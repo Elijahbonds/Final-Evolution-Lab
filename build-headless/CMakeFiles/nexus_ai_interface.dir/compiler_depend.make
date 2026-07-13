@@ -930,6 +930,19 @@ CMakeFiles/nexus_ai_interface.dir/engine/ai_interface/src/command_router.cpp.o: 
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/ai_interface/include/nexus/ai/command_router.h \
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/ai_interface/include/nexus/ai/command_schema.h \
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/assets/include/nexus/assets/asset_manifest.h \
+  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/cell_types.h \
+  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/doc_ingester.h \
+  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/experience_ledger.h \
+  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/future_state_buffer.h \
+  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/geval_scorer.h \
+  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/idle_feed.h \
+  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/model_trainer.h \
+  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/observation_bus.h \
+  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/research_loop.h \
+  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/self_improvement_scheduler.h \
+  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/spatial_sampler.h \
+  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/web_auditor.h \
+  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/wisdom_store.h \
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/core/include/nexus/core/log.h \
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/core/include/nexus/core/result.h \
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/creative/include/nexus/creative/voxel_world.h \
@@ -949,6 +962,7 @@ CMakeFiles/nexus_ai_interface.dir/engine/ai_interface/src/command_router.cpp.o: 
   /usr/include/c++/13/algorithm \
   /usr/include/c++/13/any \
   /usr/include/c++/13/array \
+  /usr/include/c++/13/atomic \
   /usr/include/c++/13/backward/auto_ptr.h \
   /usr/include/c++/13/backward/binders.h \
   /usr/include/c++/13/bit \
@@ -959,6 +973,7 @@ CMakeFiles/nexus_ai_interface.dir/engine/ai_interface/src/command_router.cpp.o: 
   /usr/include/c++/13/bits/allocator.h \
   /usr/include/c++/13/bits/atomic_base.h \
   /usr/include/c++/13/bits/atomic_lockfree_defines.h \
+  /usr/include/c++/13/bits/atomic_timed_wait.h \
   /usr/include/c++/13/bits/atomic_wait.h \
   /usr/include/c++/13/bits/basic_ios.h \
   /usr/include/c++/13/bits/basic_ios.tcc \
@@ -967,6 +982,7 @@ CMakeFiles/nexus_ai_interface.dir/engine/ai_interface/src/command_router.cpp.o: 
   /usr/include/c++/13/bits/char_traits.h \
   /usr/include/c++/13/bits/charconv.h \
   /usr/include/c++/13/bits/chrono.h \
+  /usr/include/c++/13/bits/chrono_io.h \
   /usr/include/c++/13/bits/codecvt.h \
   /usr/include/c++/13/bits/concept_check.h \
   /usr/include/c++/13/bits/cpp_type_traits.h \
@@ -1027,6 +1043,7 @@ CMakeFiles/nexus_ai_interface.dir/engine/ai_interface/src/command_router.cpp.o: 
   /usr/include/c++/13/bits/ranges_util.h \
   /usr/include/c++/13/bits/refwrap.h \
   /usr/include/c++/13/bits/requires_hosted.h \
+  /usr/include/c++/13/bits/semaphore_base.h \
   /usr/include/c++/13/bits/shared_ptr.h \
   /usr/include/c++/13/bits/shared_ptr_atomic.h \
   /usr/include/c++/13/bits/shared_ptr_base.h \
@@ -1036,6 +1053,7 @@ CMakeFiles/nexus_ai_interface.dir/engine/ai_interface/src/command_router.cpp.o: 
   /usr/include/c++/13/bits/std_abs.h \
   /usr/include/c++/13/bits/std_function.h \
   /usr/include/c++/13/bits/std_mutex.h \
+  /usr/include/c++/13/bits/std_thread.h \
   /usr/include/c++/13/bits/stl_algo.h \
   /usr/include/c++/13/bits/stl_algobase.h \
   /usr/include/c++/13/bits/stl_bvector.h \
@@ -1060,10 +1078,12 @@ CMakeFiles/nexus_ai_interface.dir/engine/ai_interface/src/command_router.cpp.o: 
   /usr/include/c++/13/bits/streambuf_iterator.h \
   /usr/include/c++/13/bits/string_view.tcc \
   /usr/include/c++/13/bits/stringfwd.h \
+  /usr/include/c++/13/bits/this_thread_sleep.h \
   /usr/include/c++/13/bits/uniform_int_dist.h \
   /usr/include/c++/13/bits/unique_lock.h \
   /usr/include/c++/13/bits/unique_ptr.h \
   /usr/include/c++/13/bits/unordered_map.h \
+  /usr/include/c++/13/bits/unordered_set.h \
   /usr/include/c++/13/bits/uses_allocator.h \
   /usr/include/c++/13/bits/uses_allocator_args.h \
   /usr/include/c++/13/bits/utility.h \
@@ -1075,12 +1095,15 @@ CMakeFiles/nexus_ai_interface.dir/engine/ai_interface/src/command_router.cpp.o: 
   /usr/include/c++/13/cassert \
   /usr/include/c++/13/cctype \
   /usr/include/c++/13/cerrno \
+  /usr/include/c++/13/charconv \
+  /usr/include/c++/13/chrono \
   /usr/include/c++/13/climits \
   /usr/include/c++/13/clocale \
   /usr/include/c++/13/cmath \
   /usr/include/c++/13/codecvt \
   /usr/include/c++/13/compare \
   /usr/include/c++/13/concepts \
+  /usr/include/c++/13/condition_variable \
   /usr/include/c++/13/cstddef \
   /usr/include/c++/13/cstdint \
   /usr/include/c++/13/cstdio \
@@ -1100,6 +1123,7 @@ CMakeFiles/nexus_ai_interface.dir/engine/ai_interface/src/command_router.cpp.o: 
   /usr/include/c++/13/ext/string_conversions.h \
   /usr/include/c++/13/ext/type_traits.h \
   /usr/include/c++/13/filesystem \
+  /usr/include/c++/13/format \
   /usr/include/c++/13/forward_list \
   /usr/include/c++/13/functional \
   /usr/include/c++/13/initializer_list \
@@ -1125,13 +1149,16 @@ CMakeFiles/nexus_ai_interface.dir/engine/ai_interface/src/command_router.cpp.o: 
   /usr/include/c++/13/pstl/pstl_config.h \
   /usr/include/c++/13/ranges \
   /usr/include/c++/13/ratio \
+  /usr/include/c++/13/semaphore \
   /usr/include/c++/13/span \
   /usr/include/c++/13/sstream \
   /usr/include/c++/13/stdexcept \
+  /usr/include/c++/13/stop_token \
   /usr/include/c++/13/streambuf \
   /usr/include/c++/13/string \
   /usr/include/c++/13/string_view \
   /usr/include/c++/13/system_error \
+  /usr/include/c++/13/thread \
   /usr/include/c++/13/tr1/bessel_function.tcc \
   /usr/include/c++/13/tr1/beta_function.tcc \
   /usr/include/c++/13/tr1/ell_integral.tcc \
@@ -1148,8 +1175,10 @@ CMakeFiles/nexus_ai_interface.dir/engine/ai_interface/src/command_router.cpp.o: 
   /usr/include/c++/13/type_traits \
   /usr/include/c++/13/typeinfo \
   /usr/include/c++/13/unordered_map \
+  /usr/include/c++/13/unordered_set \
   /usr/include/c++/13/utility \
   /usr/include/c++/13/valarray \
+  /usr/include/c++/13/variant \
   /usr/include/c++/13/vector \
   /usr/include/c++/13/version \
   /usr/include/ctype.h \
@@ -1166,6 +1195,7 @@ CMakeFiles/nexus_ai_interface.dir/engine/ai_interface/src/command_router.cpp.o: 
   /usr/include/math.h \
   /usr/include/pthread.h \
   /usr/include/sched.h \
+  /usr/include/semaphore.h \
   /usr/include/stdc-predef.h \
   /usr/include/stdint.h \
   /usr/include/stdio.h \
@@ -1215,6 +1245,7 @@ CMakeFiles/nexus_ai_interface.dir/engine/ai_interface/src/command_router.cpp.o: 
   /usr/include/x86_64-linux-gnu/bits/select-decl.h \
   /usr/include/x86_64-linux-gnu/bits/select.h \
   /usr/include/x86_64-linux-gnu/bits/select2.h \
+  /usr/include/x86_64-linux-gnu/bits/semaphore.h \
   /usr/include/x86_64-linux-gnu/bits/setjmp.h \
   /usr/include/x86_64-linux-gnu/bits/stdint-intn.h \
   /usr/include/x86_64-linux-gnu/bits/stdint-least.h \
@@ -1294,6 +1325,7 @@ CMakeFiles/nexus_ai_interface.dir/engine/ai_interface/src/command_router.cpp.o: 
   /usr/include/x86_64-linux-gnu/sys/select.h \
   /usr/include/x86_64-linux-gnu/sys/single_threaded.h \
   /usr/include/x86_64-linux-gnu/sys/syscall.h \
+  /usr/include/x86_64-linux-gnu/sys/time.h \
   /usr/include/x86_64-linux-gnu/sys/types.h \
   /usr/lib/gcc/x86_64-linux-gnu/13/include/limits.h \
   /usr/lib/gcc/x86_64-linux-gnu/13/include/stdarg.h \
@@ -2934,13 +2966,17 @@ CMakeFiles/nexus_ai_interface.dir/engine/ai_interface/src/text_prompt_adapter.cp
   /usr/lib/gcc/x86_64-linux-gnu/13/include/syslimits.h
 
 
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/ai_interface/src/gemini_game_prompt_client.cpp:
+
 /usr/include/c++/13/unordered_set:
 
+/usr/include/c++/13/format:
+
+/usr/include/c++/13/condition_variable:
+
+/usr/include/c++/13/charconv:
+
 /usr/include/c++/13/bits/unordered_set.h:
-
-/usr/include/x86_64-linux-gnu/c++/13/bits/c++io.h:
-
-/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/ai_interface/src/gemini_game_prompt_client.cpp:
 
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/generative/include/nexus/generative/scan_importer.h:
 
@@ -2951,6 +2987,22 @@ CMakeFiles/nexus_ai_interface.dir/engine/ai_interface/src/text_prompt_adapter.cp
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/generative/include/nexus/generative/generative_adapter.h:
 
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/creative/include/nexus/creative/world_manipulator.h:
+
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/wisdom_store.h:
+
+/usr/include/x86_64-linux-gnu/c++/13/bits/c++io.h:
+
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/spatial_sampler.h:
+
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/observation_bus.h:
+
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/idle_feed.h:
+
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/future_state_buffer.h:
+
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/experience_ledger.h:
+
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/doc_ingester.h:
 
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/assets/include/nexus/assets/asset_manifest.h:
 
@@ -2978,6 +3030,8 @@ CMakeFiles/nexus_ai_interface.dir/engine/ai_interface/src/text_prompt_adapter.cp
 
 /usr/include/linux/stddef.h:
 
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/web_auditor.h:
+
 /usr/include/linux/posix_types.h:
 
 /usr/include/c++/13/iostream:
@@ -3001,6 +3055,8 @@ CMakeFiles/nexus_ai_interface.dir/engine/ai_interface/src/text_prompt_adapter.cp
 /usr/include/x86_64-linux-gnu/sys/single_threaded.h:
 
 /usr/include/x86_64-linux-gnu/sys/cdefs.h:
+
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/research_loop.h:
 
 /usr/include/x86_64-linux-gnu/gnu/stubs.h:
 
@@ -3035,6 +3091,8 @@ CMakeFiles/nexus_ai_interface.dir/engine/ai_interface/src/text_prompt_adapter.cp
 /usr/include/x86_64-linux-gnu/bits/uio_lim.h:
 
 /usr/include/x86_64-linux-gnu/bits/uintn-identity.h:
+
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/self_improvement_scheduler.h:
 
 /usr/include/x86_64-linux-gnu/bits/typesizes.h:
 
@@ -3310,6 +3368,8 @@ _deps/nlohmann_json-src/include/nlohmann/detail/meta/cpp_future.hpp:
 
 /usr/include/c++/13/bits/locale_facets.h:
 
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/cell_types.h:
+
 /usr/include/x86_64-linux-gnu/asm/errno.h:
 
 /usr/include/c++/13/bits/fs_path.h:
@@ -3412,6 +3472,8 @@ _deps/nlohmann_json-src/include/nlohmann/detail/input/binary_reader.hpp:
 
 /usr/include/x86_64-linux-gnu/bits/fp-fast.h:
 
+/usr/include/c++/13/bits/chrono_io.h:
+
 /usr/include/x86_64-linux-gnu/bits/posix_opt.h:
 
 _deps/nlohmann_json-src/include/nlohmann/detail/conversions/to_json.hpp:
@@ -3455,6 +3517,8 @@ _deps/nlohmann_json-src/include/nlohmann/detail/output/output_adapters.hpp:
 _deps/nlohmann_json-src/include/nlohmann/detail/string_escape.hpp:
 
 /usr/include/c++/13/bits/streambuf_iterator.h:
+
+/usr/include/c++/13/variant:
 
 /usr/include/x86_64-linux-gnu/c++/13/bits/atomic_word.h:
 
@@ -3540,6 +3604,8 @@ _deps/nlohmann_json-src/include/nlohmann/json_fwd.hpp:
 
 /usr/include/c++/13/bits/ptr_traits.h:
 
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/model_trainer.h:
+
 /usr/include/pthread.h:
 
 /usr/include/c++/13/bits/alloc_traits.h:
@@ -3565,6 +3631,8 @@ _deps/nlohmann_json-src/include/nlohmann/json_fwd.hpp:
 /usr/include/c++/13/bits/atomic_timed_wait.h:
 
 /usr/include/x86_64-linux-gnu/bits/posix1_lim.h:
+
+/usr/include/c++/13/chrono:
 
 /usr/include/x86_64-linux-gnu/bits/types/__FILE.h:
 
@@ -3813,6 +3881,8 @@ _deps/nlohmann_json-src/include/nlohmann/detail/iterators/primitive_iterator.hpp
 /usr/include/c++/13/bits/nested_exception.h:
 
 /usr/include/ctype.h:
+
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/geval_scorer.h:
 
 /usr/include/linux/errno.h:
 

@@ -520,10 +520,38 @@ CMakeFiles/nexus_gameplay.dir/app/gameplay/src/tennis_rally_mode.cpp.s: cmake_fo
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/nexus_gameplay.dir/app/gameplay/src/tennis_rally_mode.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/tennis_rally_mode.cpp -o CMakeFiles/nexus_gameplay.dir/app/gameplay/src/tennis_rally_mode.cpp.s
 
+CMakeFiles/nexus_gameplay.dir/app/gameplay/src/golf_closest_pin_mode.cpp.o: CMakeFiles/nexus_gameplay.dir/flags.make
+CMakeFiles/nexus_gameplay.dir/app/gameplay/src/golf_closest_pin_mode.cpp.o: /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/golf_closest_pin_mode.cpp
+CMakeFiles/nexus_gameplay.dir/app/gameplay/src/golf_closest_pin_mode.cpp.o: CMakeFiles/nexus_gameplay.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles --progress-num=$(CMAKE_PROGRESS_33) "Building CXX object CMakeFiles/nexus_gameplay.dir/app/gameplay/src/golf_closest_pin_mode.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/nexus_gameplay.dir/app/gameplay/src/golf_closest_pin_mode.cpp.o -MF CMakeFiles/nexus_gameplay.dir/app/gameplay/src/golf_closest_pin_mode.cpp.o.d -o CMakeFiles/nexus_gameplay.dir/app/gameplay/src/golf_closest_pin_mode.cpp.o -c /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/golf_closest_pin_mode.cpp
+
+CMakeFiles/nexus_gameplay.dir/app/gameplay/src/golf_closest_pin_mode.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/nexus_gameplay.dir/app/gameplay/src/golf_closest_pin_mode.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/golf_closest_pin_mode.cpp > CMakeFiles/nexus_gameplay.dir/app/gameplay/src/golf_closest_pin_mode.cpp.i
+
+CMakeFiles/nexus_gameplay.dir/app/gameplay/src/golf_closest_pin_mode.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/nexus_gameplay.dir/app/gameplay/src/golf_closest_pin_mode.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/golf_closest_pin_mode.cpp -o CMakeFiles/nexus_gameplay.dir/app/gameplay/src/golf_closest_pin_mode.cpp.s
+
+CMakeFiles/nexus_gameplay.dir/app/gameplay/src/volleyball_rally_mode.cpp.o: CMakeFiles/nexus_gameplay.dir/flags.make
+CMakeFiles/nexus_gameplay.dir/app/gameplay/src/volleyball_rally_mode.cpp.o: /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/volleyball_rally_mode.cpp
+CMakeFiles/nexus_gameplay.dir/app/gameplay/src/volleyball_rally_mode.cpp.o: CMakeFiles/nexus_gameplay.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles --progress-num=$(CMAKE_PROGRESS_34) "Building CXX object CMakeFiles/nexus_gameplay.dir/app/gameplay/src/volleyball_rally_mode.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/nexus_gameplay.dir/app/gameplay/src/volleyball_rally_mode.cpp.o -MF CMakeFiles/nexus_gameplay.dir/app/gameplay/src/volleyball_rally_mode.cpp.o.d -o CMakeFiles/nexus_gameplay.dir/app/gameplay/src/volleyball_rally_mode.cpp.o -c /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/volleyball_rally_mode.cpp
+
+CMakeFiles/nexus_gameplay.dir/app/gameplay/src/volleyball_rally_mode.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/nexus_gameplay.dir/app/gameplay/src/volleyball_rally_mode.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/volleyball_rally_mode.cpp > CMakeFiles/nexus_gameplay.dir/app/gameplay/src/volleyball_rally_mode.cpp.i
+
+CMakeFiles/nexus_gameplay.dir/app/gameplay/src/volleyball_rally_mode.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/nexus_gameplay.dir/app/gameplay/src/volleyball_rally_mode.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/volleyball_rally_mode.cpp -o CMakeFiles/nexus_gameplay.dir/app/gameplay/src/volleyball_rally_mode.cpp.s
+
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/throw_catch_physics.cpp.o: CMakeFiles/nexus_gameplay.dir/flags.make
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/throw_catch_physics.cpp.o: /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/throw_catch_physics.cpp
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/throw_catch_physics.cpp.o: CMakeFiles/nexus_gameplay.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles --progress-num=$(CMAKE_PROGRESS_33) "Building CXX object CMakeFiles/nexus_gameplay.dir/app/gameplay/src/throw_catch_physics.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles --progress-num=$(CMAKE_PROGRESS_35) "Building CXX object CMakeFiles/nexus_gameplay.dir/app/gameplay/src/throw_catch_physics.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/nexus_gameplay.dir/app/gameplay/src/throw_catch_physics.cpp.o -MF CMakeFiles/nexus_gameplay.dir/app/gameplay/src/throw_catch_physics.cpp.o.d -o CMakeFiles/nexus_gameplay.dir/app/gameplay/src/throw_catch_physics.cpp.o -c /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/throw_catch_physics.cpp
 
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/throw_catch_physics.cpp.i: cmake_force
@@ -537,7 +565,7 @@ CMakeFiles/nexus_gameplay.dir/app/gameplay/src/throw_catch_physics.cpp.s: cmake_
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venue_volume_registry.cpp.o: CMakeFiles/nexus_gameplay.dir/flags.make
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venue_volume_registry.cpp.o: /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/venue_volume_registry.cpp
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venue_volume_registry.cpp.o: CMakeFiles/nexus_gameplay.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles --progress-num=$(CMAKE_PROGRESS_34) "Building CXX object CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venue_volume_registry.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles --progress-num=$(CMAKE_PROGRESS_36) "Building CXX object CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venue_volume_registry.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venue_volume_registry.cpp.o -MF CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venue_volume_registry.cpp.o.d -o CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venue_volume_registry.cpp.o -c /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/venue_volume_registry.cpp
 
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venue_volume_registry.cpp.i: cmake_force
@@ -551,7 +579,7 @@ CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venue_volume_registry.cpp.s: cmak
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venice_pickup_mode.cpp.o: CMakeFiles/nexus_gameplay.dir/flags.make
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venice_pickup_mode.cpp.o: /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/venice_pickup_mode.cpp
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venice_pickup_mode.cpp.o: CMakeFiles/nexus_gameplay.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles --progress-num=$(CMAKE_PROGRESS_35) "Building CXX object CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venice_pickup_mode.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles --progress-num=$(CMAKE_PROGRESS_37) "Building CXX object CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venice_pickup_mode.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venice_pickup_mode.cpp.o -MF CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venice_pickup_mode.cpp.o.d -o CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venice_pickup_mode.cpp.o -c /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/venice_pickup_mode.cpp
 
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venice_pickup_mode.cpp.i: cmake_force
@@ -565,7 +593,7 @@ CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venice_pickup_mode.cpp.s: cmake_f
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/voxel_command_parser.cpp.o: CMakeFiles/nexus_gameplay.dir/flags.make
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/voxel_command_parser.cpp.o: /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/voxel_command_parser.cpp
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/voxel_command_parser.cpp.o: CMakeFiles/nexus_gameplay.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles --progress-num=$(CMAKE_PROGRESS_36) "Building CXX object CMakeFiles/nexus_gameplay.dir/app/gameplay/src/voxel_command_parser.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles --progress-num=$(CMAKE_PROGRESS_38) "Building CXX object CMakeFiles/nexus_gameplay.dir/app/gameplay/src/voxel_command_parser.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/nexus_gameplay.dir/app/gameplay/src/voxel_command_parser.cpp.o -MF CMakeFiles/nexus_gameplay.dir/app/gameplay/src/voxel_command_parser.cpp.o.d -o CMakeFiles/nexus_gameplay.dir/app/gameplay/src/voxel_command_parser.cpp.o -c /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/voxel_command_parser.cpp
 
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/voxel_command_parser.cpp.i: cmake_force
@@ -579,7 +607,7 @@ CMakeFiles/nexus_gameplay.dir/app/gameplay/src/voxel_command_parser.cpp.s: cmake
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/wave_spawner.cpp.o: CMakeFiles/nexus_gameplay.dir/flags.make
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/wave_spawner.cpp.o: /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/wave_spawner.cpp
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/wave_spawner.cpp.o: CMakeFiles/nexus_gameplay.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles --progress-num=$(CMAKE_PROGRESS_37) "Building CXX object CMakeFiles/nexus_gameplay.dir/app/gameplay/src/wave_spawner.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles --progress-num=$(CMAKE_PROGRESS_39) "Building CXX object CMakeFiles/nexus_gameplay.dir/app/gameplay/src/wave_spawner.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/nexus_gameplay.dir/app/gameplay/src/wave_spawner.cpp.o -MF CMakeFiles/nexus_gameplay.dir/app/gameplay/src/wave_spawner.cpp.o.d -o CMakeFiles/nexus_gameplay.dir/app/gameplay/src/wave_spawner.cpp.o -c /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/wave_spawner.cpp
 
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/wave_spawner.cpp.i: cmake_force
@@ -593,7 +621,7 @@ CMakeFiles/nexus_gameplay.dir/app/gameplay/src/wave_spawner.cpp.s: cmake_force
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/who_scene_it_mode.cpp.o: CMakeFiles/nexus_gameplay.dir/flags.make
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/who_scene_it_mode.cpp.o: /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/who_scene_it_mode.cpp
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/who_scene_it_mode.cpp.o: CMakeFiles/nexus_gameplay.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles --progress-num=$(CMAKE_PROGRESS_38) "Building CXX object CMakeFiles/nexus_gameplay.dir/app/gameplay/src/who_scene_it_mode.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles --progress-num=$(CMAKE_PROGRESS_40) "Building CXX object CMakeFiles/nexus_gameplay.dir/app/gameplay/src/who_scene_it_mode.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/nexus_gameplay.dir/app/gameplay/src/who_scene_it_mode.cpp.o -MF CMakeFiles/nexus_gameplay.dir/app/gameplay/src/who_scene_it_mode.cpp.o.d -o CMakeFiles/nexus_gameplay.dir/app/gameplay/src/who_scene_it_mode.cpp.o -c /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/who_scene_it_mode.cpp
 
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/who_scene_it_mode.cpp.i: cmake_force
@@ -638,6 +666,8 @@ nexus_gameplay_OBJECTS = \
 "CMakeFiles/nexus_gameplay.dir/app/gameplay/src/snowboarding_mode.cpp.o" \
 "CMakeFiles/nexus_gameplay.dir/app/gameplay/src/surfing_mode.cpp.o" \
 "CMakeFiles/nexus_gameplay.dir/app/gameplay/src/tennis_rally_mode.cpp.o" \
+"CMakeFiles/nexus_gameplay.dir/app/gameplay/src/golf_closest_pin_mode.cpp.o" \
+"CMakeFiles/nexus_gameplay.dir/app/gameplay/src/volleyball_rally_mode.cpp.o" \
 "CMakeFiles/nexus_gameplay.dir/app/gameplay/src/throw_catch_physics.cpp.o" \
 "CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venue_volume_registry.cpp.o" \
 "CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venice_pickup_mode.cpp.o" \
@@ -680,6 +710,8 @@ libnexus_gameplay.a: CMakeFiles/nexus_gameplay.dir/app/gameplay/src/skateboardin
 libnexus_gameplay.a: CMakeFiles/nexus_gameplay.dir/app/gameplay/src/snowboarding_mode.cpp.o
 libnexus_gameplay.a: CMakeFiles/nexus_gameplay.dir/app/gameplay/src/surfing_mode.cpp.o
 libnexus_gameplay.a: CMakeFiles/nexus_gameplay.dir/app/gameplay/src/tennis_rally_mode.cpp.o
+libnexus_gameplay.a: CMakeFiles/nexus_gameplay.dir/app/gameplay/src/golf_closest_pin_mode.cpp.o
+libnexus_gameplay.a: CMakeFiles/nexus_gameplay.dir/app/gameplay/src/volleyball_rally_mode.cpp.o
 libnexus_gameplay.a: CMakeFiles/nexus_gameplay.dir/app/gameplay/src/throw_catch_physics.cpp.o
 libnexus_gameplay.a: CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venue_volume_registry.cpp.o
 libnexus_gameplay.a: CMakeFiles/nexus_gameplay.dir/app/gameplay/src/venice_pickup_mode.cpp.o
@@ -688,7 +720,7 @@ libnexus_gameplay.a: CMakeFiles/nexus_gameplay.dir/app/gameplay/src/wave_spawner
 libnexus_gameplay.a: CMakeFiles/nexus_gameplay.dir/app/gameplay/src/who_scene_it_mode.cpp.o
 libnexus_gameplay.a: CMakeFiles/nexus_gameplay.dir/build.make
 libnexus_gameplay.a: CMakeFiles/nexus_gameplay.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles --progress-num=$(CMAKE_PROGRESS_39) "Linking CXX static library libnexus_gameplay.a"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles --progress-num=$(CMAKE_PROGRESS_41) "Linking CXX static library libnexus_gameplay.a"
 	$(CMAKE_COMMAND) -P CMakeFiles/nexus_gameplay.dir/cmake_clean_target.cmake
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/nexus_gameplay.dir/link.txt --verbose=$(VERBOSE)
 

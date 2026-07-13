@@ -98,6 +98,7 @@ nexus_scan_envelope_test: CMakeFiles/nexus_scan_envelope_test.dir/build.make
 nexus_scan_envelope_test: CMakeFiles/nexus_scan_envelope_test.dir/compiler_depend.ts
 nexus_scan_envelope_test: libnexus_gameplay.a
 nexus_scan_envelope_test: libnexus_ai_interface.a
+nexus_scan_envelope_test: libnexus_cell.a
 nexus_scan_envelope_test: libnexus_generative.a
 nexus_scan_envelope_test: libnexus_creative.a
 nexus_scan_envelope_test: libnexus_assets.a

@@ -99,6 +99,9 @@ auto ModeRuntime::setMode(std::string_view modeId) -> Result<void> {
   } else if (modeId == "market_browse") {
     m_kind = ActiveModeKind::kMarketBrowse;
     m_browseItemsViewed = 0;
+  } else if (modeId == "movement_lab") {
+    m_kind = ActiveModeKind::kMovementLab;
+    m_movementLab.reset();
   } else if (isOutcomeSportMode(modeId)) {
     m_kind = ActiveModeKind::kOutcomeSport;
     m_outcomeSport.reset(modeId);
@@ -134,6 +137,7 @@ void ModeRuntime::reset() {
   m_tennisRally.reset();
   m_golf.reset();
   m_volleyball.reset();
+  m_movementLab.reset();
   m_lastThrowPulseCount = 0;
   m_browseItemsViewed = 0;
 }
@@ -203,6 +207,22 @@ auto ModeRuntime::handleCommand(std::string_view command, const nlohmann::json& 
             {"venue_token", ArenaModeRegistry::venueTokenForMode(m_modeId)},
         });
       }
+    }
+  }
+
+  if (m_kind == ActiveModeKind::kMovementLab) {
+    if (command == "fel.movement_lab.start_drill") {
+      const std::string drillId = params.value("drill_id", "");
+      return m_movementLab.startDrill(drillId);
+    }
+    if (command == "fel.movement_lab.complete_drill") {
+      const std::string drillId  = params.value("drill_id", "");
+      const float       prqScore = params.value("prq_score", 0.0F);
+      return m_movementLab.completeDrill(drillId, prqScore);
+    }
+    if (command == "fel.movement_lab.reset") {
+      m_movementLab.reset();
+      return Result<nlohmann::json>::ok({{"mode_id", "movement_lab"}, {"reset", true}});
     }
   }
 
@@ -647,6 +667,8 @@ auto ModeRuntime::stateJson() const -> nlohmann::json {
         {"items_viewed", m_browseItemsViewed},
         {"venue_token", ArenaModeRegistry::venueTokenForMode(m_modeId)},
     };
+  } else if (m_kind == ActiveModeKind::kMovementLab) {
+    payload["movement_lab"] = m_movementLab.stateJson();
   }
 
   return payload;

@@ -76,6 +76,7 @@ set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/nexus_assets.dir/DependInfo.cmake"
   "CMakeFiles/nexus_luma.dir/DependInfo.cmake"
   "CMakeFiles/nexus_generative.dir/DependInfo.cmake"
+  "CMakeFiles/nexus_cell.dir/DependInfo.cmake"
   "CMakeFiles/nexus_ai_interface.dir/DependInfo.cmake"
   "CMakeFiles/nexus_gameplay.dir/DependInfo.cmake"
   "CMakeFiles/nexus_agent_cli_lib.dir/DependInfo.cmake"
@@ -90,5 +91,6 @@ set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/nexus_job_system_test.dir/DependInfo.cmake"
   "CMakeFiles/nexus_cartridge_test.dir/DependInfo.cmake"
   "CMakeFiles/nexus_scale_policy_test.dir/DependInfo.cmake"
+  "CMakeFiles/nexus_cell_test.dir/DependInfo.cmake"
   "CMakeFiles/nexus_realtime_test.dir/DependInfo.cmake"
   )

@@ -99,6 +99,7 @@ nexus_agent_cli_test: CMakeFiles/nexus_agent_cli_test.dir/compiler_depend.ts
 nexus_agent_cli_test: libnexus_agent_cli_lib.a
 nexus_agent_cli_test: libnexus_gameplay.a
 nexus_agent_cli_test: libnexus_ai_interface.a
+nexus_agent_cli_test: libnexus_cell.a
 nexus_agent_cli_test: libnexus_generative.a
 nexus_agent_cli_test: libnexus_creative.a
 nexus_agent_cli_test: libnexus_assets.a

@@ -9,6 +9,7 @@ nexus_generative_test: \
   libnexus_assets.a \
   libnexus_luma.a \
   libnexus_creative.a \
+  libnexus_cell.a \
   libnexus_core.a \
   /usr/lib/gcc/x86_64-linux-gnu/13/../../../x86_64-linux-gnu/libpthread.a \
   /usr/lib/gcc/x86_64-linux-gnu/13/libstdc++.so \
@@ -59,6 +60,8 @@ libnexus_assets.a:
 libnexus_luma.a:
 
 libnexus_creative.a:
+
+libnexus_cell.a:
 
 libnexus_core.a:
 

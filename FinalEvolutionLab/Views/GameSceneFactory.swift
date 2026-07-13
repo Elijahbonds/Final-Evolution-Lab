@@ -244,6 +244,8 @@ struct GameSceneFactory {
             return buildCourtCarnivalScene()
         case .marketBrowse:
             return buildMarketBrowseScene()
+        case .movementLab:
+            return buildMovementLabScene()
         }
     }
 
@@ -267,7 +269,25 @@ struct GameSceneFactory {
         return scene
     }
 
-    // MARK: - Basketball (Venice Beach Court)
+    // MARK: - Movement Lab (education venue)
+
+    private static func buildMovementLabScene() -> SCNScene {
+        let scene = SCNScene()
+        scene.background.contents = UIColor(red: 0.04, green: 0.04, blue: 0.10, alpha: 1)
+
+        addCamera(to: scene, position: SCNVector3(0, 3.0, 6.0), lookAt: SCNVector3(0, 1.2, 0))
+        addLighting(to: scene, tint: UIColor(red: 0.45, green: 0.55, blue: 0.95, alpha: 1))
+        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 0), color: UIColor(red: 0.45, green: 0.55, blue: 0.95, alpha: 1), name: "athlete")
+
+        let hasBundled = NexusBundledMeshLoader.attachBackdropFromManifest(for: .movementLab, to: scene)
+            || NexusBundledMeshLoader.attachEnvironmentBackdrop(for: .movementLab, to: scene)
+        if !hasBundled {
+            addFloor(to: scene, color: UIColor(red: 0.06, green: 0.06, blue: 0.12, alpha: 1), reflectivity: 0.10)
+        }
+
+        PremiumViewpointConfig.applyToScene(scene, for: .movementLab)
+        return scene
+    }
 
     private static func buildBasketballScene(mode: GameModeId) -> SCNScene {
         let scene = SCNScene()

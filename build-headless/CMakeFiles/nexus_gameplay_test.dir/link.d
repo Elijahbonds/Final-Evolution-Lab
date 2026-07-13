@@ -5,6 +5,7 @@ nexus_gameplay_test: \
   CMakeFiles/nexus_gameplay_test.dir/tests/unit/gameplay/gameplay_test.cpp.o \
   libnexus_gameplay.a \
   libnexus_ai_interface.a \
+  libnexus_cell.a \
   /usr/lib/gcc/x86_64-linux-gnu/13/../../../x86_64-linux-gnu/libpthread.a \
   libnexus_generative.a \
   libnexus_creative.a \
@@ -51,6 +52,8 @@ CMakeFiles/nexus_gameplay_test.dir/tests/unit/gameplay/gameplay_test.cpp.o:
 libnexus_gameplay.a:
 
 libnexus_ai_interface.a:
+
+libnexus_cell.a:
 
 /usr/lib/gcc/x86_64-linux-gnu/13/../../../x86_64-linux-gnu/libpthread.a:
 

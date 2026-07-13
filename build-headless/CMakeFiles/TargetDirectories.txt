@@ -4,6 +4,7 @@
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles/nexus_assets.dir
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles/nexus_luma.dir
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles/nexus_generative.dir
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles/nexus_cell.dir
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles/nexus_ai_interface.dir
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles/nexus_gameplay.dir
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles/nexus_agent_cli_lib.dir
@@ -18,6 +19,7 @@
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles/nexus_job_system_test.dir
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles/nexus_cartridge_test.dir
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles/nexus_scale_policy_test.dir
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles/nexus_cell_test.dir
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles/nexus_realtime_test.dir
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles/test.dir
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles/edit_cache.dir

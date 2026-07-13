@@ -158,6 +158,15 @@ nonisolated struct GameModeRules: Sendable {
                 targetScore: 0,
                 rewardEligibleMinActions: 0
             )
+        case .movementLab:
+            return GameModeRules(
+                useMatchCountdown: false,
+                matchDurationSeconds: 0,
+                roundLimit: 6,
+                usesTargetScoreWin: false,
+                targetScore: 0,
+                rewardEligibleMinActions: 1
+            )
         }
     }
 }

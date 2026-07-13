@@ -1615,6 +1615,76 @@ void flagship_brain_brawl_validate_only_integration() {
   physics.shutdown();
 }
 
+void movement_lab_curriculum_validate_only_integration() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  nexus::physics::PhysicsWorld physics;
+  require(physics.init({}).isOk(), "physics init");
+
+  const auto mode = nexus::gameplay::ArenaModeRegistry::find("movement_lab");
+  require(mode.has_value(), "movement_lab mode registered");
+  require(mode->venueToken == "Movement_Lab", "movement_lab uses Movement_Lab venue");
+  require(!mode->scoringEnabled, "movement_lab is non-scoring");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "movement_lab"}, {"user_id", "test_athlete"}},
+              "ml_start")
+              .status == "ok",
+          "movement_lab session starts");
+
+  // Start the intro drill
+  auto start = gameplay.handleGameplayCommand(
+      "fel.movement_lab.start_drill", {{"drill_id", "intro"}}, "ml_drill_start");
+  require(start.status == "ok", "movement_lab start intro drill");
+  require(start.payload.contains("started_drill"), "start payload has started_drill");
+  require(start.payload["started_drill"].get<std::string>() == "intro", "started_drill is intro");
+
+  // Complete intro drill with passing PRQ
+  auto complete = gameplay.handleGameplayCommand(
+      "fel.movement_lab.complete_drill",
+      {{"drill_id", "intro"}, {"prq_score", 0.72F}},
+      "ml_drill_complete");
+  require(complete.status == "ok", "movement_lab complete intro drill");
+  require(complete.payload["completed_drill"]["passed"].get<bool>(), "intro drill passed");
+  require(complete.payload["completed_count"].get<int>() == 1, "1 drill completed");
+
+  // Attempt the next drill (loading)
+  auto startLoading = gameplay.handleGameplayCommand(
+      "fel.movement_lab.start_drill", {{"drill_id", "loading"}}, "ml_loading_start");
+  require(startLoading.status == "ok", "movement_lab start loading drill");
+
+  // Complete with PRQ below threshold → should fail (return error)
+  auto failComplete = gameplay.handleGameplayCommand(
+      "fel.movement_lab.complete_drill",
+      {{"drill_id", "loading"}, {"prq_score", 0.40F}},
+      "ml_loading_fail");
+  require(failComplete.status == "ok", "movement_lab complete low PRQ returns ok payload");
+  require(!failComplete.payload["completed_drill"]["passed"].get<bool>(),
+          "loading drill not passed at low PRQ");
+  require(failComplete.payload["completed_count"].get<int>() == 1,
+          "count unchanged after failed drill");
+
+  // Reset
+  auto reset = gameplay.handleGameplayCommand(
+      "fel.movement_lab.reset", {}, "ml_reset");
+  require(reset.status == "ok", "movement_lab reset ok");
+
+  // HUD poll reflects movement_lab mode
+  gameplay.handleGameplayCommand(
+      "fel.arena.start_session",
+      {{"mode_id", "movement_lab"}, {"user_id", "test_athlete2"}},
+      "ml_start2");
+  const auto hud = gameplay.handleGameplayQuery("fel.hud.poll", {}, "ml_hud");
+  require(hud.payload["payload"]["mode_id"].get<std::string>() == "movement_lab",
+          "hud reports movement_lab mode");
+  require(hud.payload["payload"]["mode_state"]["movement_lab"].is_object(),
+          "hud movement_lab nested state");
+
+  physics.shutdown();
+}
+
 void flagship_skateboarding_validate_only_integration() {
   nexus::creative::VoxelWorld world;
   nexus::creative::WorldManipulator manipulator(world);
@@ -3090,6 +3160,7 @@ auto main() -> int {
   flagship_court_carnival_validate_only_integration();
   flagship_gymnastics_validate_only_integration();
   flagship_brain_brawl_validate_only_integration();
+  movement_lab_curriculum_validate_only_integration();
   flagship_skateboarding_validate_only_integration();
   flagship_snowboarding_validate_only_integration();
   flagship_surfing_validate_only_integration();

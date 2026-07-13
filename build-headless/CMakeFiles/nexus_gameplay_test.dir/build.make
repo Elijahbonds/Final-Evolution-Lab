@@ -98,6 +98,7 @@ nexus_gameplay_test: CMakeFiles/nexus_gameplay_test.dir/build.make
 nexus_gameplay_test: CMakeFiles/nexus_gameplay_test.dir/compiler_depend.ts
 nexus_gameplay_test: libnexus_gameplay.a
 nexus_gameplay_test: libnexus_ai_interface.a
+nexus_gameplay_test: libnexus_cell.a
 nexus_gameplay_test: libnexus_generative.a
 nexus_gameplay_test: libnexus_creative.a
 nexus_gameplay_test: libnexus_assets.a

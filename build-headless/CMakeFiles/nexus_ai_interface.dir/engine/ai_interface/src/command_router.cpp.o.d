@@ -334,6 +334,33 @@ CMakeFiles/nexus_ai_interface.dir/engine/ai_interface/src/command_router.cpp.o: 
  /usr/include/c++/13/any \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/_deps/nlohmann_json-src/include/nlohmann/detail/macro_unscope.hpp \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/_deps/nlohmann_json-src/include/nlohmann/thirdparty/hedley/hedley_undef.hpp \
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/self_improvement_scheduler.h \
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/cell_types.h \
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/doc_ingester.h \
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/geval_scorer.h \
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/wisdom_store.h \
+ /usr/include/c++/13/mutex /usr/include/c++/13/bits/unique_lock.h \
+ /usr/include/c++/13/unordered_set \
+ /usr/include/c++/13/bits/unordered_set.h \
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/experience_ledger.h \
+ /usr/include/c++/13/atomic \
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/future_state_buffer.h \
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/idle_feed.h \
+ /usr/include/c++/13/chrono /usr/include/c++/13/bits/chrono_io.h \
+ /usr/include/c++/13/format /usr/include/c++/13/charconv \
+ /usr/include/c++/13/variant /usr/include/c++/13/condition_variable \
+ /usr/include/c++/13/stop_token /usr/include/c++/13/bits/std_thread.h \
+ /usr/include/c++/13/semaphore /usr/include/c++/13/bits/semaphore_base.h \
+ /usr/include/c++/13/bits/atomic_timed_wait.h \
+ /usr/include/c++/13/bits/this_thread_sleep.h \
+ /usr/include/x86_64-linux-gnu/sys/time.h /usr/include/semaphore.h \
+ /usr/include/x86_64-linux-gnu/bits/semaphore.h \
+ /usr/include/c++/13/thread \
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/model_trainer.h \
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/observation_bus.h \
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/research_loop.h \
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/spatial_sampler.h \
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/cell/include/nexus/cell/web_auditor.h \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/core/include/nexus/core/log.h \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/creative/include/nexus/creative/voxel_world.h \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/creative/include/nexus/creative/world_manipulator.h \
@@ -344,6 +371,5 @@ CMakeFiles/nexus_ai_interface.dir/engine/ai_interface/src/command_router.cpp.o: 
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/generative/include/nexus/generative/manifest_registrar.h \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/assets/include/nexus/assets/asset_manifest.h \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/generative/include/nexus/generative/environment_scan_types.h \
- /usr/include/c++/13/mutex /usr/include/c++/13/bits/unique_lock.h \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/generative/include/nexus/generative/environment_scan_importer.h \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/generative/include/nexus/generative/scan_importer.h

@@ -102,6 +102,7 @@ nexus_generative_test: libnexus_generative.a
 nexus_generative_test: libnexus_assets.a
 nexus_generative_test: libnexus_luma.a
 nexus_generative_test: libnexus_creative.a
+nexus_generative_test: libnexus_cell.a
 nexus_generative_test: libnexus_core.a
 nexus_generative_test: CMakeFiles/nexus_generative_test.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable nexus_generative_test"
