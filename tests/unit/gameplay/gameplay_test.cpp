@@ -542,29 +542,27 @@ void soccer_penalty_validate_only_integration() {
               .status == "ok",
           "soccer session starts");
 
-  for (int i = 0; i < 12; ++i) {
+  // Fire several penalty shots using the dedicated SoccerPenaltyMode commands
+  for (int i = 0; i < 6; ++i) {
     if (gameplay.mode_runtime().shouldAutoEndSession()) {
       break;
     }
-    const bool playerShot = (i % 2) == 0;
-    const auto pulse = gameplay.handleGameplayCommand(
-        "fel.sport.pulse",
-        {{"success", playerShot},
-         {"timing", playerShot ? 0.9F : 0.35F},
-         {"shot_type", "penalty"}},
-        "soccer_penalty_pulse");
-    require(pulse.status == "ok", "soccer penalty pulse ok");
+    const auto shot = gameplay.handleGameplayCommand(
+        "fel.soccer.shoot",
+        {{"aim_zone", (i % 3 == 0) ? "top_left" : (i % 3 == 1) ? "right" : "center"},
+         {"power", 0.82F}},
+        "soccer_penalty_shot");
+    require(shot.status == "ok", "soccer penalty pulse ok");
     gameplay.update(0.05, physics, {});
   }
 
   const auto state =
       gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "soccer_state");
   require(state.status == "ok", "soccer mode state ok");
-  require(state.payload["outcome_sport"]["win_target"].get<int>() == 5,
-          "soccer HUD exposes win target");
-  require(state.payload["outcome_sport"]["shot_type"].get<std::string>() == "penalty",
-          "soccer shot type is penalty");
-  require(gameplay.mode_runtime().shouldAutoEndSession(), "soccer match completes at five goals");
+  require(state.payload["soccer_penalty"]["rounds_main"].get<int>() == 5,
+          "soccer HUD exposes rounds_main");
+  require(state.payload["soccer_penalty"]["victory"].is_boolean(),
+          "soccer penalty has victory field");
 
   const auto end = gameplay.handleGameplayCommand(
       "fel.arena.end_session", {{"use_live_scores", true}}, "soccer_end");
@@ -1769,15 +1767,19 @@ void flagship_outcome_sport_validate_only_integration() {
               .status == "ok",
           "baseball session starts");
 
-  for (int i = 0; i < 48; ++i) {
-    if (gameplay.mode_runtime().shouldAutoEndSession()) {
-      break;
-    }
-    const auto pulse = gameplay.handleGameplayCommand(
-        "fel.sport.pulse", {{"success", true}, {"timing", 0.9F}}, "baseball_pulse");
-    require(pulse.status == "ok", "baseball sport pulse ok");
-    gameplay.update(0.05, physics, {});
-  }
+  // Seed a pitch then swing — HomeRunDerbyMode dedicated commands
+  require(gameplay.handleGameplayCommand(
+              "fel.baseball.pitch",
+              {{"pitch_speed", 0.5F}, {"pitch_location", 0.0F}},
+              "baseball_pitch")
+              .status == "ok",
+          "baseball pitch ok");
+  require(gameplay.handleGameplayCommand(
+              "fel.baseball.swing",
+              {{"timing", 0.93F}, {"power", 0.80F}},
+              "baseball_swing_hr")
+              .status == "ok",
+          "baseball home run swing ok");
 
   const auto end = gameplay.handleGameplayCommand(
       "fel.arena.end_session", {{"use_live_scores", true}}, "baseball_end");
@@ -1803,6 +1805,173 @@ void flagship_outcome_sport_validate_only_integration() {
   }
 
   require(gameplay.mode_runtime().shouldAutoEndSession(), "volleyball match completes");
+
+  physics.shutdown();
+}
+
+void flagship_home_run_derby_validate_only_integration() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  nexus::physics::PhysicsWorld physics;
+  require(physics.init({}).isOk(), "physics init");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "baseball"}, {"user_id", "flagship_derby"}},
+              "derby_start")
+              .status == "ok",
+          "home run derby session starts");
+
+  // Pitch + swing cycle
+  require(gameplay.handleGameplayCommand(
+              "fel.baseball.pitch",
+              {{"pitch_speed", 0.4F}, {"pitch_location", 0.1F}},
+              "derby_pitch1")
+              .status == "ok",
+          "home run derby pitch ok");
+  const auto swing1 = gameplay.handleGameplayCommand(
+      "fel.baseball.swing", {{"timing", 0.95F}, {"power", 0.85F}}, "derby_swing1");
+  require(swing1.status == "ok", "home run derby swing ok");
+  require(swing1.payload.contains("swing"), "home run derby swing payload present");
+  require(swing1.payload["swing"].value("grade", "") == "home_run",
+          "home run derby perfect+power = home_run");
+
+  // Miss swing (no live pitch) should return error
+  const auto miss = gameplay.handleGameplayCommand(
+      "fel.baseball.swing", {{"timing", 0.5F}, {"power", 0.5F}}, "derby_no_pitch");
+  require(miss.status != "ok", "home run derby swing without pitch returns error");
+
+  const auto end = gameplay.handleGameplayCommand(
+      "fel.arena.end_session", {{"use_live_scores", true}}, "derby_end");
+  require(end.status == "ok", "home run derby session ends");
+  require(end.payload.contains("outcome"), "home run derby outcome present");
+
+  physics.shutdown();
+}
+
+void flagship_football_kick_return_validate_only_integration() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  nexus::physics::PhysicsWorld physics;
+  require(physics.init({}).isOk(), "physics init");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "football"}, {"user_id", "flagship_football"}},
+              "football_start")
+              .status == "ok",
+          "football kick return session starts");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.football.dodge", {{"direction", 0.6F}}, "football_dodge1")
+              .status == "ok",
+          "football dodge ok");
+
+  const auto run1 = gameplay.handleGameplayCommand(
+      "fel.football.run", {{"direction", 0.2F}, {"burst", 0.8F}}, "football_run1");
+  require(run1.status == "ok", "football run ok");
+  require(run1.payload.contains("run"), "football run payload present");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.football.lateral", {{"direction", -0.4F}}, "football_lateral1")
+              .status == "ok",
+          "football lateral ok");
+
+  const auto end = gameplay.handleGameplayCommand(
+      "fel.arena.end_session", {{"use_live_scores", true}}, "football_end");
+  require(end.status == "ok", "football session ends");
+  require(end.payload.contains("outcome"), "football outcome present");
+
+  physics.shutdown();
+}
+
+void flagship_soccer_penalty_validate_only_integration() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  nexus::physics::PhysicsWorld physics;
+  require(physics.init({}).isOk(), "physics init");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "soccer"}, {"user_id", "flagship_soccer"}},
+              "soccer_start")
+              .status == "ok",
+          "soccer penalty session starts");
+
+  // Take a penalty shot (top-left, high power)
+  const auto shot1 = gameplay.handleGameplayCommand(
+      "fel.soccer.shoot", {{"aim_zone", "top_left"}, {"power", 0.9F}}, "soccer_shot1");
+  require(shot1.status == "ok", "soccer shoot top_left ok");
+  require(shot1.payload.contains("shoot"), "soccer shoot payload present");
+
+  // Register keeper dive
+  require(gameplay.handleGameplayCommand(
+              "fel.soccer.save", {{"dive_direction", 0.5F}}, "soccer_save1")
+              .status == "ok",
+          "soccer save ok");
+
+  // Center penalty
+  require(gameplay.handleGameplayCommand(
+              "fel.soccer.shoot", {{"aim_zone", "center"}, {"power", 0.6F}}, "soccer_shot2")
+              .status == "ok",
+          "soccer center shot ok");
+
+  const auto end = gameplay.handleGameplayCommand(
+      "fel.arena.end_session", {{"use_live_scores", true}}, "soccer_end");
+  require(end.status == "ok", "soccer session ends");
+  require(end.payload.contains("outcome"), "soccer outcome present");
+
+  physics.shutdown();
+}
+
+void flagship_tennis_rally_validate_only_integration() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  nexus::physics::PhysicsWorld physics;
+  require(physics.init({}).isOk(), "physics init");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "tennis"}, {"user_id", "flagship_tennis"}},
+              "tennis_start")
+              .status == "ok",
+          "tennis session starts");
+
+  // Serve phase — ace on perfect power + wide placement
+  const auto serve1 = gameplay.handleGameplayCommand(
+      "fel.tennis.serve", {{"power", 0.95F}, {"placement", 0.7F}}, "tennis_serve1");
+  require(serve1.status == "ok", "tennis serve ok");
+  require(serve1.payload.contains("serve"), "tennis serve payload present");
+  require(serve1.payload["serve"].value("result", "") == "ace", "tennis ace on perfect serve");
+
+  // Fault serve (low power)
+  require(gameplay.handleGameplayCommand(
+              "fel.tennis.serve", {{"power", 0.3F}, {"placement", 0.0F}}, "tennis_fault1")
+              .status == "ok",
+          "tennis fault serve ok");
+
+  // Serve that lands "in" (mid power, non-ace) → transitions to rally phase
+  const auto serve_in = gameplay.handleGameplayCommand(
+      "fel.tennis.serve", {{"power", 0.70F}, {"placement", 0.2F}}, "tennis_serve_in");
+  require(serve_in.status == "ok", "tennis in serve ok");
+  require(serve_in.payload["serve"].value("result", "") == "in", "tennis serve lands in");
+
+  // Now in rally phase — hit a flat winner
+  const auto rally1 = gameplay.handleGameplayCommand(
+      "fel.tennis.rally",
+      {{"timing", 0.90F}, {"shot_type", "flat"}},
+      "tennis_rally1");
+  require(rally1.status == "ok", "tennis rally ok");
+  require(rally1.payload.contains("rally"), "tennis rally payload present");
+
+  const auto end = gameplay.handleGameplayCommand(
+      "fel.arena.end_session", {{"use_live_scores", true}}, "tennis_end");
+  require(end.status == "ok", "tennis session ends");
+  require(end.payload.contains("outcome"), "tennis outcome present");
 
   physics.shutdown();
 }
@@ -2776,6 +2945,10 @@ auto main() -> int {
   flagship_surfing_validate_only_integration();
   flagship_outcome_sport_validate_only_integration();
   soccer_penalty_validate_only_integration();
+  flagship_home_run_derby_validate_only_integration();
+  flagship_football_kick_return_validate_only_integration();
+  flagship_soccer_penalty_validate_only_integration();
+  flagship_tennis_rally_validate_only_integration();
   flagship_who_scene_it_validate_only_integration();
   session_receipt_body_matches_api_contract();
   flagship_modes_emit_post_ready_receipts();

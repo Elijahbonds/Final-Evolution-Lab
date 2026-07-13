@@ -138,11 +138,13 @@ add_library(nexus_gameplay
   app/gameplay/src/fel_bridge_service.cpp
   app/gameplay/src/fel_session_types.cpp
   app/gameplay/src/fitness_data.cpp
+  app/gameplay/src/football_kick_return_mode.cpp
   app/gameplay/src/game_prompt_adapter.cpp
   app/gameplay/src/gameplay_application.cpp
   app/gameplay/src/gameplay_manager.cpp
   app/gameplay/src/gymnastics_mode.cpp
   app/gameplay/src/health_system.cpp
+  app/gameplay/src/home_run_derby_mode.cpp
   app/gameplay/src/hud_relay_service.cpp
   app/gameplay/src/karate_endless_mode.cpp
   app/gameplay/src/mode_runtime.cpp
@@ -151,9 +153,11 @@ add_library(nexus_gameplay
   app/gameplay/src/qte_system.cpp
   app/gameplay/src/scan_envelope_mapper.cpp
   app/gameplay/src/session_receipt_client.cpp
+  app/gameplay/src/soccer_penalty_mode.cpp
   app/gameplay/src/skateboarding_mode.cpp
   app/gameplay/src/snowboarding_mode.cpp
   app/gameplay/src/surfing_mode.cpp
+  app/gameplay/src/tennis_rally_mode.cpp
   app/gameplay/src/throw_catch_physics.cpp
   app/gameplay/src/venue_volume_registry.cpp
   app/gameplay/src/venice_pickup_mode.cpp

@@ -217,6 +217,10 @@ auto GameplayApplication::handleGameplayCommand(std::string_view command,
       command.rfind("fel.snow.", 0) == 0 || command.rfind("fel.surf.", 0) == 0 ||
       command.rfind("fel.scene.", 0) == 0 ||
       command.rfind("fel.sport.", 0) == 0 ||
+      command.rfind("fel.baseball.", 0) == 0 ||
+      command.rfind("fel.football.", 0) == 0 ||
+      command.rfind("fel.soccer.", 0) == 0 ||
+      command.rfind("fel.tennis.", 0) == 0 ||
       command.rfind("fel.mode.", 0) == 0) {
     const auto modeResult = m_modeRuntime.handleCommand(command, safeParams);
     if (modeResult.isErr()) {

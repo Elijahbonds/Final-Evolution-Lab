@@ -12,8 +12,7 @@ namespace nexus::gameplay {
 namespace {
 
 [[nodiscard]] auto isOutcomeSportMode(std::string_view modeId) -> bool {
-  return modeId == "basketball_3v3" || modeId == "karate_h2h" || modeId == "baseball" ||
-         modeId == "football" || modeId == "soccer" || modeId == "golf" || modeId == "tennis" ||
+  return modeId == "basketball_3v3" || modeId == "karate_h2h" || modeId == "golf" ||
          modeId == "volleyball";
 }
 
@@ -57,6 +56,10 @@ auto ModeRuntime::setMode(std::string_view modeId) -> Result<void> {
   m_surfing.reset();
   m_whoSceneIt.reset();
   m_outcomeSport.reset();
+  m_homeRunDerby.reset();
+  m_footballKickReturn.reset();
+  m_soccerPenalty.reset();
+  m_tennisRally.reset();
   m_lastThrowPulseCount = 0;
   m_browseItemsViewed = 0;
 
@@ -80,6 +83,14 @@ auto ModeRuntime::setMode(std::string_view modeId) -> Result<void> {
     m_kind = ActiveModeKind::kSurfing;
   } else if (modeId == "who_scene_it") {
     m_kind = ActiveModeKind::kWhoSceneIt;
+  } else if (modeId == "baseball") {
+    m_kind = ActiveModeKind::kHomeRunDerby;
+  } else if (modeId == "football") {
+    m_kind = ActiveModeKind::kFootballKickReturn;
+  } else if (modeId == "soccer") {
+    m_kind = ActiveModeKind::kSoccerPenalty;
+  } else if (modeId == "tennis") {
+    m_kind = ActiveModeKind::kTennisRally;
   } else if (modeId == "market_browse") {
     m_kind = ActiveModeKind::kMarketBrowse;
     m_browseItemsViewed = 0;
@@ -112,6 +123,10 @@ void ModeRuntime::reset() {
   m_surfing.reset();
   m_whoSceneIt.reset();
   m_outcomeSport.reset();
+  m_homeRunDerby.reset();
+  m_footballKickReturn.reset();
+  m_soccerPenalty.reset();
+  m_tennisRally.reset();
   m_lastThrowPulseCount = 0;
   m_browseItemsViewed = 0;
 }
@@ -140,6 +155,14 @@ void ModeRuntime::update(double deltaSeconds) {
     m_whoSceneIt.update(deltaSeconds);
   } else if (m_kind == ActiveModeKind::kOutcomeSport) {
     m_outcomeSport.update(deltaSeconds);
+  } else if (m_kind == ActiveModeKind::kHomeRunDerby) {
+    m_homeRunDerby.update(deltaSeconds);
+  } else if (m_kind == ActiveModeKind::kFootballKickReturn) {
+    m_footballKickReturn.update(deltaSeconds);
+  } else if (m_kind == ActiveModeKind::kSoccerPenalty) {
+    m_soccerPenalty.update(deltaSeconds);
+  } else if (m_kind == ActiveModeKind::kTennisRally) {
+    m_tennisRally.update(deltaSeconds);
   }
 }
 
@@ -432,6 +455,82 @@ auto ModeRuntime::handleCommand(std::string_view command, const nlohmann::json& 
     }
   }
 
+  if (m_kind == ActiveModeKind::kHomeRunDerby) {
+    if (!params.is_object()) {
+      return Result<nlohmann::json>::err("baseball command params must be object");
+    }
+    if (command == "fel.baseball.pitch") {
+      const float speed = params.value("pitch_speed", 0.5F);
+      const float location = params.value("pitch_location", 0.0F);
+      return m_homeRunDerby.pitch(speed, location);
+    }
+    if (command == "fel.baseball.swing") {
+      const float timing = params.value("timing", 0.75F);
+      const float power = params.value("power", 0.75F);
+      return m_homeRunDerby.swing(timing, power);
+    }
+  }
+
+  if (m_kind == ActiveModeKind::kFootballKickReturn) {
+    if (!params.is_object()) {
+      return Result<nlohmann::json>::err("football command params must be object");
+    }
+    if (command == "fel.football.run") {
+      const float direction = params.value("direction", 0.0F);
+      const float burst = params.value("burst", 0.6F);
+      return m_footballKickReturn.run(direction, burst);
+    }
+    if (command == "fel.football.dodge") {
+      const float direction = params.value("direction", 0.5F);
+      return m_footballKickReturn.dodge(direction);
+    }
+    if (command == "fel.football.lateral") {
+      const float direction = params.value("direction", -0.5F);
+      return m_footballKickReturn.lateral(direction);
+    }
+  }
+
+  if (m_kind == ActiveModeKind::kSoccerPenalty) {
+    if (!params.is_object()) {
+      return Result<nlohmann::json>::err("soccer command params must be object");
+    }
+    if (command == "fel.soccer.shoot") {
+      const float power = params.value("power", 0.75F);
+      const std::string zoneStr = params.value("aim_zone", "left");
+      AimZone zone = AimZone::kLeft;
+      if (zoneStr == "right") {
+        zone = AimZone::kRight;
+      } else if (zoneStr == "center") {
+        zone = AimZone::kCenter;
+      } else if (zoneStr == "top_left") {
+        zone = AimZone::kTopLeft;
+      } else if (zoneStr == "top_right") {
+        zone = AimZone::kTopRight;
+      }
+      return m_soccerPenalty.shoot(zone, power);
+    }
+    if (command == "fel.soccer.save") {
+      const float diveDirection = params.value("dive_direction", 0.5F);
+      return m_soccerPenalty.save(diveDirection);
+    }
+  }
+
+  if (m_kind == ActiveModeKind::kTennisRally) {
+    if (!params.is_object()) {
+      return Result<nlohmann::json>::err("tennis command params must be object");
+    }
+    if (command == "fel.tennis.serve") {
+      const float power = params.value("power", 0.75F);
+      const float placement = params.value("placement", 0.6F);
+      return m_tennisRally.serve(power, placement);
+    }
+    if (command == "fel.tennis.rally") {
+      const float timing = params.value("timing", 0.75F);
+      const std::string shotType = params.value("shot_type", "flat");
+      return m_tennisRally.rally(timing, shotType);
+    }
+  }
+
   if (command == "fel.mode.get_state") {
     return Result<nlohmann::json>::ok(stateJson());
   }
@@ -476,6 +575,14 @@ auto ModeRuntime::stateJson() const -> nlohmann::json {
     payload["who_scene_it"] = m_whoSceneIt.stateJson();
   } else if (m_kind == ActiveModeKind::kOutcomeSport) {
     payload["outcome_sport"] = m_outcomeSport.stateJson();
+  } else if (m_kind == ActiveModeKind::kHomeRunDerby) {
+    payload["home_run_derby"] = m_homeRunDerby.stateJson();
+  } else if (m_kind == ActiveModeKind::kFootballKickReturn) {
+    payload["football_kick_return"] = m_footballKickReturn.stateJson();
+  } else if (m_kind == ActiveModeKind::kSoccerPenalty) {
+    payload["soccer_penalty"] = m_soccerPenalty.stateJson();
+  } else if (m_kind == ActiveModeKind::kTennisRally) {
+    payload["tennis_rally"] = m_tennisRally.stateJson();
   } else if (m_kind == ActiveModeKind::kMarketBrowse) {
     payload["market_browse"] = {
         {"items_viewed", m_browseItemsViewed},
@@ -519,6 +626,18 @@ auto ModeRuntime::shouldAutoEndSession() const -> bool {
   }
   if (m_kind == ActiveModeKind::kOutcomeSport) {
     return m_outcomeSport.isMatchComplete();
+  }
+  if (m_kind == ActiveModeKind::kHomeRunDerby) {
+    return m_homeRunDerby.isDerbyOver();
+  }
+  if (m_kind == ActiveModeKind::kFootballKickReturn) {
+    return m_footballKickReturn.isDriveOver();
+  }
+  if (m_kind == ActiveModeKind::kSoccerPenalty) {
+    return m_soccerPenalty.isMatchOver();
+  }
+  if (m_kind == ActiveModeKind::kTennisRally) {
+    return m_tennisRally.isMatchOver();
   }
   if (m_kind == ActiveModeKind::kMarketBrowse) {
     return false;
@@ -579,6 +698,26 @@ auto ModeRuntime::sessionScoreInput() const -> MatchScoreInput {
     input.playerScore = static_cast<float>(m_whoSceneIt.correctCount());
   } else if (m_kind == ActiveModeKind::kOutcomeSport) {
     return m_outcomeSport.sessionScoreInput();
+  } else if (m_kind == ActiveModeKind::kHomeRunDerby) {
+    input.playerScore = static_cast<float>(m_homeRunDerby.homeRuns());
+    input.stagingScore = m_homeRunDerby.homeRuns();
+    input.playerRuns = m_homeRunDerby.homeRuns();
+    input.opponentScore = static_cast<float>(HomeRunDerbyMode::kWinHomeRuns);
+  } else if (m_kind == ActiveModeKind::kFootballKickReturn) {
+    input.playerScore = static_cast<float>(m_footballKickReturn.touchdowns() * 6);
+    input.playerTouchdowns = m_footballKickReturn.touchdowns();
+    input.opponentTouchdowns = 0;
+    input.stagingScore = m_footballKickReturn.touchdowns();
+  } else if (m_kind == ActiveModeKind::kSoccerPenalty) {
+    input.playerGoals = m_soccerPenalty.playerGoals();
+    input.opponentGoals = m_soccerPenalty.opponentGoals();
+    input.playerScore = static_cast<float>(m_soccerPenalty.playerGoals());
+    input.opponentScore = static_cast<float>(m_soccerPenalty.opponentGoals());
+  } else if (m_kind == ActiveModeKind::kTennisRally) {
+    input.playerSets = m_tennisRally.playerSets();
+    input.opponentSets = m_tennisRally.opponentSets();
+    input.playerScore = static_cast<float>(m_tennisRally.playerSets());
+    input.opponentScore = static_cast<float>(m_tennisRally.opponentSets());
   }
   return input;
 }
