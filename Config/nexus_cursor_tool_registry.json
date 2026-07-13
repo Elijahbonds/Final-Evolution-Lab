@@ -21,7 +21,8 @@
     "read_state",
     "list_artifacts",
     "studio_open_file",
-    "studio_run_playtest"
+    "studio_run_playtest",
+    "web_audit"
   ],
   "tools": {
     "list_modes": {
@@ -132,7 +133,8 @@
         "studio_open_file",
         "studio_run_playtest",
         "list_artifacts",
-        "nexus_scan_playtest"
+        "nexus_scan_playtest",
+        "web_audit"
       ]
     },
     "read_file": {
@@ -334,6 +336,57 @@
         "required": [
           "mode_id"
         ]
+      }
+    },
+    "web_audit": {
+      "description": "Open a URL with a headless Playwright browser, optionally follow a login flow, run scripted interaction steps, and collect UX/performance/accessibility findings. Results are written to artifacts/web-audit/latest.json and fed into CELL via kWebAudit observations.",
+      "hosts": [
+        "cursor_mcp",
+        "ios_app"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Top-level URL to audit (e.g. https://finalevolution.abacusai.app/login)"
+          },
+          "credentials": {
+            "type": "object",
+            "description": "Optional login credentials. Supported keys: email, username, password.",
+            "properties": {
+              "email": { "type": "string" },
+              "username": { "type": "string" },
+              "password": { "type": "string" }
+            }
+          },
+          "steps": {
+            "type": "array",
+            "description": "Optional scripted audit steps to execute after login.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "enum": ["navigate", "click", "fill", "assert_text", "screenshot"]
+                },
+                "selector": { "type": "string", "description": "CSS selector" },
+                "value": { "type": "string", "description": "Text to fill or assert" },
+                "url": { "type": "string", "description": "URL for navigate action" }
+              },
+              "required": ["action"]
+            }
+          },
+          "stub_mode": {
+            "type": "boolean",
+            "description": "When true, skip Playwright and use a lightweight HTTP fetch (CI / offline)."
+          },
+          "timeout_ms": {
+            "type": "number",
+            "description": "Max milliseconds for initial navigation (default 15000)."
+          }
+        },
+        "required": ["url"]
       }
     }
   }

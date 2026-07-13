@@ -26,6 +26,7 @@ enum class ObservationType : std::uint8_t {
   kManual,            ///< manually injected via cell.observe command
   kHardwareTelemetry, ///< raw frame from an external hardware device (e.g., AI camera)
   kExternalKnowledge, ///< item ingested from IdleFeed (HN, GitHub, arXiv, Dev.to, RSS)
+  kWebAudit,          ///< finding from WebAuditor (login flow, UX, perf, accessibility)
 };
 
 struct Observation {

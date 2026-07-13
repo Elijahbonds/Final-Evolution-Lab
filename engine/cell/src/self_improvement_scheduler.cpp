@@ -31,7 +31,8 @@ SelfImprovementScheduler::SelfImprovementScheduler(CellConfig config)
       m_trainer(m_config.model),
       m_feed(m_config.feed),
       m_docs(m_config.docs),
-      m_scorer(m_config.geval) {}
+      m_scorer(m_config.geval),
+      m_webAuditor(m_config.web_audit) {}
 
 SelfImprovementScheduler::~SelfImprovementScheduler() {
   if (m_initialized) {
@@ -54,6 +55,11 @@ auto SelfImprovementScheduler::init(nexus::core::JobSystem& jobs) -> Result<void
   m_research.start(m_bus, m_ledger, m_wisdom, jobs);
   m_trainer.start(m_ledger);
   m_feed.start(m_bus);
+
+  // Start WebAuditor background polling (only if a URL is configured).
+  if (!m_config.web_audit.url.empty()) {
+    m_webAuditor.start(m_bus);
+  }
 
   // Ingest project documentation into WisdomStore (RAG seed).
   m_docs.ingest(m_wisdom, m_scorer);
@@ -170,6 +176,12 @@ auto SelfImprovementScheduler::currentPolicyWeights() const -> PolicyWeights {
   return m_trainer.currentPolicyWeights();
 }
 
+// ── Web audit ────────────────────────────────────────────────────────────────
+
+void SelfImprovementScheduler::triggerWebAudit() {
+  m_webAuditor.auditNow();
+}
+
 // ── Wisdom export (2c) ────────────────────────────────────────────────────
 
 auto SelfImprovementScheduler::exportWisdomSnapshot() const -> nlohmann::json {
@@ -268,6 +280,11 @@ auto SelfImprovementScheduler::handleCommand(const std::string& command,
     // Signal via an env flag convention instead (noop in-process; noted in logs).
     NEXUS_LOG_INFO(LogChannel::kCell, "IdleFeed paused (next cycle skipped via stub_mode hint)");
     return {{"id", id}, {"status", "ok"}, {"payload", {{"message", "Feed paused"}}}};
+  }
+
+  if (command == "cell.web_audit_now") {
+    m_webAuditor.auditNow();
+    return {{"id", id}, {"status", "ok"}, {"payload", {{"message", "Web audit triggered"}}}};
   }
 
   return {{"id", id}, {"status", "error"}, {"error", "Unsupported cell command: " + command}};
@@ -392,6 +409,30 @@ auto SelfImprovementScheduler::handleQuery(const std::string& query,
             }}};
   }
 
+  if (query == "cell.web_audit_status") {
+    const auto report = m_webAuditor.lastReport();
+    nlohmann::json findings = nlohmann::json::array();
+    for (const auto& f : report.findings) {
+      findings.push_back({{"category", f.category},
+                          {"severity", auditSeverityName(f.severity)},
+                          {"message",  f.message},
+                          {"url",      f.url},
+                          {"value",    f.value}});
+    }
+    return {{"id", id},
+            {"status", "ok"},
+            {"payload", {
+                {"running",          m_webAuditor.isRunning()},
+                {"total_reports",    m_webAuditor.totalReportsRead()},
+                {"total_findings",   m_webAuditor.totalFindingsPushed()},
+                {"last_url",         report.url},
+                {"last_login_ok",    report.login_ok},
+                {"last_page_title",  report.page_title},
+                {"last_load_time_ms",report.load_time_ms},
+                {"last_findings",    findings},
+            }}};
+  }
+
   return {{"id", id}, {"status", "error"}, {"error", "Unsupported cell query: " + query}};
 }
 
@@ -399,6 +440,7 @@ void SelfImprovementScheduler::shutdown() {
   if (!m_initialized) {
     return;
   }
+  m_webAuditor.stop();
   m_feed.stop();
   m_research.stop();
   m_trainer.stop();

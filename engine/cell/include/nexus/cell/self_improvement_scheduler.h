@@ -20,6 +20,7 @@
 #include "nexus/cell/observation_bus.h"
 #include "nexus/cell/research_loop.h"
 #include "nexus/cell/spatial_sampler.h"
+#include "nexus/cell/web_auditor.h"
 #include "nexus/cell/wisdom_store.h"
 #include "nexus/core/result.h"
 
@@ -47,6 +48,7 @@ struct CellConfig {
   IdleFeedConfig         feed;
   DocIngesterConfig      docs;
   GEvalConfig            geval;
+  WebAuditConfig         web_audit;
 };
 
 class SelfImprovementScheduler {
@@ -101,6 +103,10 @@ public:
   /// Return the top-100 WisdomStore entries as a JSON array (for web dashboard).
   [[nodiscard]] auto exportWisdomSnapshot() const -> nlohmann::json;
 
+  // ── Web audit (browser-based app critique) ────────────────────────────────
+  /// Trigger an immediate web audit cycle (for cell.web_audit_now command).
+  void triggerWebAudit();
+
   // ── Status & accessors ────────────────────────────────────────────────────
   [[nodiscard]] auto status() const -> CellStatus;
   [[nodiscard]] auto observationBus() -> ObservationBus& { return m_bus; }
@@ -132,6 +138,7 @@ private:
   IdleFeed                 m_feed;
   DocIngester              m_docs;
   GEvalScorer              m_scorer;
+  WebAuditor               m_webAuditor;
   bool                     m_initialized{false};
 };
 

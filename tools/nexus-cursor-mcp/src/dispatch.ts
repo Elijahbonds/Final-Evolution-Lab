@@ -9,6 +9,7 @@ import { runScanEnvelopeTest } from "./scan-playtest.js";
 import { loadRegistry } from "./registry.js";
 import { runWhitelistedScript } from "./safe-exec.js";
 import { readNexusState, writeBuildGateLog } from "./state.js";
+import { runWebAudit, type WebAuditOptions } from "./web-audit.js";
 
 export type ToolDispatchResult = {
   success: boolean;
@@ -127,6 +128,47 @@ async function handlePlaytest(
   }
 }
 
+
+async function handleWebAudit(args: Record<string, unknown>): Promise<ToolDispatchResult> {
+  const url = String(args.url ?? "").trim();
+  if (!url) {
+    return {
+      success: false,
+      summary: "Missing url",
+      payload: { error: "missing_url" },
+    };
+  }
+
+  const options: WebAuditOptions = {
+    url,
+    stub_mode: args.stub_mode === true,
+    timeout_ms: typeof args.timeout_ms === "number" ? args.timeout_ms : undefined,
+  };
+
+  if (args.credentials && typeof args.credentials === "object" && !Array.isArray(args.credentials)) {
+    options.credentials = args.credentials as Record<string, string>;
+  }
+
+  if (args.steps && Array.isArray(args.steps)) {
+    options.steps = args.steps as WebAuditOptions["steps"];
+  }
+
+  try {
+    const report = await runWebAudit(options);
+    return {
+      success: true,
+      summary: `Web audit complete for ${url} — ${report.findings.length} finding(s), login_ok=${report.login_ok}`,
+      payload: report as unknown as Record<string, unknown>,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      success: false,
+      summary: message,
+      payload: { error: "web_audit_failed", url },
+    };
+  }
+}
 
 async function handleScanPlaytest(): Promise<ToolDispatchResult> {
   try {
@@ -266,6 +308,8 @@ export async function dispatchTool(
   args: Record<string, unknown> = {},
 ): Promise<ToolDispatchResult> {
   switch (name) {
+    case "web_audit":
+      return handleWebAudit(args);
     case "list_modes":
       return handleListModes(args);
     case "playtest":
