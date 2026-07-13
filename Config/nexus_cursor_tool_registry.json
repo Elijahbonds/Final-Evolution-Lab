@@ -22,7 +22,10 @@
     "list_artifacts",
     "studio_open_file",
     "studio_run_playtest",
-    "web_audit"
+    "web_audit",
+    "cell_agent",
+    "cell_agent_status",
+    "cell_agent_result"
   ],
   "tools": {
     "list_modes": {
@@ -134,7 +137,10 @@
         "studio_run_playtest",
         "list_artifacts",
         "nexus_scan_playtest",
-        "web_audit"
+        "web_audit",
+        "cell_agent",
+        "cell_agent_status",
+        "cell_agent_result"
       ]
     },
     "read_file": {
@@ -387,6 +393,71 @@
           }
         },
         "required": ["url"]
+      }
+    },
+    "cell_agent": {
+      "description": "Submit a task to the CELL zero-cost local AI agent swarm. The agent uses WisdomStore heuristics and git/terminal/IDE tools in a ReAct loop — no token API, no per-query cost. Returns a task_id; poll results with cell_agent_result.",
+      "hosts": [
+        "cursor_mcp",
+        "ios_app"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "Natural-language task description (e.g. 'Show recent git changes', 'Find all TODO comments in engine/cell')"
+          },
+          "tools": {
+            "type": "array",
+            "description": "Tool names the agent may use. Defaults to all: [\"git\", \"terminal\", \"ide_file\"]",
+            "items": {
+              "type": "string",
+              "enum": ["git", "terminal", "ide_file"]
+            }
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Optional stable task identifier for later polling. Auto-generated if omitted."
+          },
+          "max_steps": {
+            "type": "number",
+            "description": "Maximum ReAct steps (1–20, default 10)."
+          },
+          "wisdom_weight": {
+            "type": "number",
+            "description": "0–1 weight for WisdomStore heuristics vs keyword scoring (default 0.6)."
+          }
+        },
+        "required": ["prompt"]
+      }
+    },
+    "cell_agent_status": {
+      "description": "Query the CELL agent swarm health: active workers, queued tasks, completed/failed counts.",
+      "hosts": [
+        "cursor_mcp",
+        "ios_app"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    "cell_agent_result": {
+      "description": "Poll the result of a previously submitted CELL agent task. Returns ready=false while the task is still running, or the full trace and summary when complete.",
+      "hosts": [
+        "cursor_mcp",
+        "ios_app"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "The task_id returned by cell_agent."
+          }
+        },
+        "required": ["task_id"]
       }
     }
   }

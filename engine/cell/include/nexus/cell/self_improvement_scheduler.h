@@ -10,6 +10,7 @@
 //   • handles the cell.* command namespace via CommandRouter
 //   • runs IdleFeed to ingest world knowledge during idle time
 
+#include "nexus/cell/agent_swarm.h"
 #include "nexus/cell/cell_types.h"
 #include "nexus/cell/doc_ingester.h"
 #include "nexus/cell/experience_ledger.h"
@@ -27,6 +28,7 @@
 #include <nlohmann/json.hpp>
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -49,6 +51,7 @@ struct CellConfig {
   DocIngesterConfig      docs;
   GEvalConfig            geval;
   WebAuditConfig         web_audit;
+  AgentSwarmConfig       agent_swarm;
 };
 
 class SelfImprovementScheduler {
@@ -107,6 +110,17 @@ public:
   /// Trigger an immediate web audit cycle (for cell.web_audit_now command).
   void triggerWebAudit();
 
+  // ── Agent Swarm (zero-cost local AI agents) ────────────────────────────────
+  /// Submit a task to the CELL agent swarm.  Returns the task_id.
+  [[nodiscard]] auto submitAgentTask(AgentTask task) -> std::string;
+
+  /// Poll the result for a submitted agent task.
+  [[nodiscard]] auto agentTaskResult(const std::string& task_id) const
+      -> std::optional<AgentResult>;
+
+  /// Current swarm status (worker count, queue depth, completed).
+  [[nodiscard]] auto agentSwarmStatus() const -> AgentSwarmStatus;
+
   // ── Status & accessors ────────────────────────────────────────────────────
   [[nodiscard]] auto status() const -> CellStatus;
   [[nodiscard]] auto observationBus() -> ObservationBus& { return m_bus; }
@@ -139,6 +153,7 @@ private:
   DocIngester              m_docs;
   GEvalScorer              m_scorer;
   WebAuditor               m_webAuditor;
+  AgentSwarm               m_swarm;
   bool                     m_initialized{false};
 };
 

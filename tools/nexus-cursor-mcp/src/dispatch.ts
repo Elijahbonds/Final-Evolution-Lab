@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { join } from "node:path";
 import { dispatchAgentCommand } from "./agent.js";
+import { handleCellAgent, handleCellAgentResult, handleCellAgentStatus } from "./cell-agent.js";
 import { listArtifactPaths, repoRoot } from "./config.js";
 import { filterModes, loadModes } from "./modes.js";
 import { runPlaytest } from "./playtest.js";
@@ -310,6 +311,12 @@ export async function dispatchTool(
   switch (name) {
     case "web_audit":
       return handleWebAudit(args);
+    case "cell_agent":
+      return handleCellAgent(args);
+    case "cell_agent_status":
+      return handleCellAgentStatus(args);
+    case "cell_agent_result":
+      return handleCellAgentResult(args);
     case "list_modes":
       return handleListModes(args);
     case "playtest":
