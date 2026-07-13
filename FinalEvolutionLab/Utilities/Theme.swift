@@ -1,21 +1,26 @@
 import SwiftUI
 
+/// Legacy palette, re-pointed at the `FELDesign` tokens (Phase 5 polish):
+/// every screen still referencing `Theme` now renders the premium
+/// white/cyan/purple system without per-screen edits. New UI should use
+/// `FELDesign` directly; these aliases exist for the migration period.
 nonisolated struct Theme: Sendable {
-    static let brandBlue = Color(red: 0, green: 0.83, blue: 1.0)
-    static let brandCyan = Color(red: 0, green: 0.95, blue: 0.9)
-    static let deepBlack = Color(red: 0.02, green: 0.02, blue: 0.02)
-    static let cardBackground = Color(white: 0.08)
-    static let cardBorder = Color(white: 0.12)
-    static let surfaceElevated = Color(white: 0.1)
+    static let brandBlue = FELDesign.Colors.cyan
+    static let brandCyan = FELDesign.Colors.cyan
+    static let deepBlack = FELDesign.Colors.ink
+    static let cardBackground = FELDesign.Colors.surface
+    static let cardBorder = FELDesign.Colors.hairlineStrong
+    static let surfaceElevated = FELDesign.Colors.surfaceRaised
 
-    static let foundationGreen = Color.green
-    static let flightBlue = Color(red: 0.2, green: 0.5, blue: 1.0)
-    static let elitePurple = Color(red: 0.6, green: 0.2, blue: 1.0)
+    // Difficulty ramp: white -> cyan -> purple (premium tiering).
+    static let foundationGreen = FELDesign.Colors.textSecondary
+    static let flightBlue = FELDesign.Colors.cyan
+    static let elitePurple = FELDesign.Colors.purple
 
-    static let neonGreen = Color(red: 0.2, green: 1.0, blue: 0.4)
-    static let slateBackground = Color(red: 0.06, green: 0.07, blue: 0.08)
-    static let slateCard = Color(red: 0.09, green: 0.1, blue: 0.11)
-    static let slateMuted = Color(red: 0.14, green: 0.15, blue: 0.16)
+    static let neonGreen = FELDesign.Colors.success
+    static let slateBackground = FELDesign.Colors.ink
+    static let slateCard = FELDesign.Colors.surface
+    static let slateMuted = FELDesign.Colors.surfaceRaised
 
     static func difficultyColor(_ difficulty: Exercise.Difficulty) -> Color {
         switch difficulty {

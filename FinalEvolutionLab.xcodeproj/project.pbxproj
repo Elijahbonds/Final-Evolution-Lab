@@ -12,7 +12,23 @@
 		DACE898C2FE4E326005B582D /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = FEFB00502E9EAD3100EA8BCF /* FirebaseAuth */; };
 		DACE898D2FE4E326005B582D /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = FEAA03002E9F200000EA8BCF /* FirebaseCrashlytics */; };
 		DACE898E2FE4E326005B582D /* SocialDataConnect in Frameworks */ = {isa = PBXBuildFile; productRef = FEAA01022E9F000000EA8BCF /* SocialDataConnect */; };
+		FEUF00012E00000000000001 /* UnityFramework.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FEUF00002E00000000000000 /* UnityFramework.framework */; };
+		FEUF00022E00000000000002 /* UnityFramework.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = FEUF00002E00000000000000 /* UnityFramework.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		FEUF00032E00000000000003 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				FEUF00022E00000000000002 /* UnityFramework.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXContainerItemProxy section */
 		105FC58A2E9EAD3200EA8BCF /* PBXContainerItemProxy */ = {
@@ -35,6 +51,7 @@
 		105FC57A2E9EAD3100EA8BCF /* FinalEvolutionLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FinalEvolutionLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		105FC5892E9EAD3200EA8BCF /* FinalEvolutionLabTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FinalEvolutionLabTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		105FC5932E9EAD3200EA8BCF /* FinalEvolutionLabUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FinalEvolutionLabUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		FEUF00002E00000000000000 /* UnityFramework.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UnityFramework.framework; path = Vendor/UnityFramework.framework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -60,6 +77,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FEUF00012E00000000000001 /* UnityFramework.framework in Frameworks */,
 				DACE898E2FE4E326005B582D /* SocialDataConnect in Frameworks */,
 				DACE898D2FE4E326005B582D /* FirebaseCrashlytics in Frameworks */,
 				DACE898C2FE4E326005B582D /* FirebaseAuth in Frameworks */,
@@ -91,6 +109,7 @@
 				105FC57C2E9EAD3100EA8BCF /* FinalEvolutionLab */,
 				105FC58C2E9EAD3200EA8BCF /* FinalEvolutionLabTests */,
 				105FC5962E9EAD3200EA8BCF /* FinalEvolutionLabUITests */,
+				FEUF00002E00000000000000 /* UnityFramework.framework */,
 				105FC57B2E9EAD3100EA8BCF /* Products */,
 			);
 			sourceTree = "<group>";
@@ -117,6 +136,7 @@
 				105FC5762E9EAD3100EA8BCF /* Sources */,
 				105FC5772E9EAD3100EA8BCF /* Frameworks */,
 				105FC5782E9EAD3100EA8BCF /* Resources */,
+				FEUF00032E00000000000003 /* Embed Frameworks */,
 				FEAA02002E9F0A0000EA8BCF /* Verify GoogleService-Info.plist */,
 				FEAA05002E9F500000EA8BCF /* Crashlytics upload symbols (Release) */,
 			);
@@ -601,11 +621,15 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Vendor-Sim", "$(PROJECT_DIR)/Vendor",
+				);
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.finalevolutionlab.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) NEXUS_USE_FIREBASE";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) NEXUS_USE_FIREBASE FEL_UNITY_EMBEDDED";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -687,12 +711,16 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Vendor-Sim", "$(PROJECT_DIR)/Vendor",
+				);
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.finalevolutionlab.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = FEL_TestFlight_Distribution;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) NEXUS_USE_FIREBASE";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) NEXUS_USE_FIREBASE FEL_UNITY_EMBEDDED";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;

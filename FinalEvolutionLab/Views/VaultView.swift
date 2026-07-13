@@ -11,7 +11,7 @@ struct VaultView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
+            VStack(spacing: FELDesign.Space.lg) {
                 headerSection
                 lumaHeroSection
                 profileCard
@@ -24,11 +24,11 @@ struct VaultView: View {
                 statsGrid
                 achievementsSection
             }
-            .padding(.horizontal)
-            .padding(.bottom, 32)
+            .padding(.horizontal, FELDesign.Space.md)
+            .padding(.bottom, FELDesign.Space.xl)
         }
         .scrollIndicators(.hidden)
-        .background(Theme.deepBlack)
+        .background(FELDesign.Colors.ink)
         .sheet(isPresented: $showEditProfile) {
             EditProfileView(viewModel: viewModel)
         }
@@ -47,21 +47,17 @@ struct VaultView: View {
     }
 
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
             FELPreviewLabel(text: FELPremiumCopy.Preview.vaultProfile)
 
-            Text("ATHLETE PROFILE")
-                .font(.system(.caption, design: .monospaced, weight: .bold))
-                .foregroundStyle(Theme.brandBlue)
-                .tracking(4)
+            FELMicroLabel(text: "Athlete Profile", color: FELDesign.Colors.cyan)
 
             Text("Vault")
-                .font(.system(size: 52, weight: .black))
-                .italic()
-                .foregroundStyle(.white)
+                .font(FELDesign.Typography.display)
+                .foregroundStyle(FELDesign.Colors.textPrimary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 8)
+        .padding(.top, FELDesign.Space.xs)
     }
 
     private var lumaHeroSection: some View {
@@ -74,24 +70,24 @@ struct VaultView: View {
     }
 
     private var performanceStrip: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: FELDesign.Space.sm) {
             VaultMetricPill(
                 label: FELEconomyLabels.performanceScore,
                 value: "\(Int(viewModel.competitivePRQScore))",
                 icon: "chart.line.uptrend.xyaxis",
-                color: Theme.neonGreen
+                color: FELDesign.Colors.cyan
             )
             VaultMetricPill(
                 label: FELEconomyLabels.shards,
                 value: "\(viewModel.profile.evolutionShards)",
                 icon: "diamond.fill",
-                color: Theme.brandCyan
+                color: FELDesign.Colors.cyan
             )
             VaultMetricPill(
                 label: FELEconomyLabels.focusEnergyShort,
                 value: "\(Int(viewModel.effectiveMetrics.neuralDrive))",
                 icon: "brain.head.profile.fill",
-                color: Theme.brandBlue
+                color: FELDesign.Colors.cyan
             )
         }
     }
@@ -100,46 +96,11 @@ struct VaultView: View {
         Button {
             showCreatorHub = true
         } label: {
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(Theme.brandCyan.opacity(0.14))
-                        .frame(width: 48, height: 48)
-                    Image(systemName: "video.badge.plus")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundStyle(Theme.brandCyan)
-                }
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Text("MOCAP CREATOR HUB")
-                            .font(.system(.subheadline, weight: .black))
-                            .foregroundStyle(.white)
-                        FELPreviewLabel(text: "MINTING")
-                    }
-                    Text("Mint custom cards · Track shard royalties")
-                        .font(.system(.caption, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.55))
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.35))
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Theme.cardBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [Theme.brandCyan.opacity(0.45), Theme.elitePurple.opacity(0.25)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1
-                            )
-                    )
+            VaultEntryRow(
+                icon: "video.badge.plus",
+                title: "Mocap Creator Hub",
+                subtitle: "Mint custom cards · Track shard royalties",
+                badge: "MINTING"
             )
         }
         .buttonStyle(.plain)
@@ -149,154 +110,109 @@ struct VaultView: View {
         Button {
             showTriumphLobby = true
         } label: {
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(Theme.brandCyan.opacity(0.14))
-                        .frame(width: 48, height: 48)
-                    Image(systemName: "dollarsign.circle.fill")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundStyle(Theme.brandCyan)
-                }
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Text("COMPETITIVE CASH ARENA")
-                            .font(.system(.subheadline, weight: .black))
-                            .foregroundStyle(.white)
-                        FELPreviewLabel(text: "CASH")
-                    }
-                    Text("Manage cash balance · View tournament ledger")
-                        .font(.system(.caption, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.55))
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.35))
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Theme.cardBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [Theme.brandCyan.opacity(0.45), Theme.elitePurple.opacity(0.25)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1
-                            )
-                    )
+            VaultEntryRow(
+                icon: "dollarsign.circle.fill",
+                title: "Competitive Cash Arena",
+                subtitle: "Manage cash balance · View tournament ledger",
+                badge: "CASH"
             )
         }
         .buttonStyle(.plain)
     }
 
     private var profileCard: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: FELDesign.Space.md) {
             ZStack {
                 Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [Theme.brandBlue.opacity(0.2), Theme.cardBackground],
-                            center: .center,
-                            startRadius: 10,
-                            endRadius: 50
-                        )
-                    )
+                    .fill(FELDesign.Colors.surfaceRaised)
                     .frame(width: 88, height: 88)
+                    .overlay(
+                        Circle()
+                            .stroke(FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)
+                    )
 
                 Image(systemName: viewModel.profile.avatarSystemName)
                     .font(.system(size: 36, weight: .bold))
-                    .foregroundStyle(Theme.brandBlue)
+                    .foregroundStyle(FELDesign.Colors.cyan)
             }
 
-            VStack(spacing: 4) {
+            VStack(spacing: FELDesign.Space.xxs) {
                 Text(viewModel.profile.displayName)
-                    .font(.system(.title3, weight: .black))
-                    .foregroundStyle(.white)
+                    .font(FELDesign.Typography.heading)
+                    .foregroundStyle(FELDesign.Colors.textPrimary)
 
                 Text(viewModel.profile.athleteTag)
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(Theme.brandBlue.opacity(0.7))
+                    .font(FELDesign.Typography.stat)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
             }
 
             Text("Joined \(viewModel.profile.joinDate, format: .dateTime.month(.wide).year())")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .font(FELDesign.Typography.caption)
+                .foregroundStyle(FELDesign.Colors.textTertiary)
 
-            VStack(spacing: 10) {
-                HStack(spacing: 12) {
+            VStack(spacing: FELDesign.Space.sm) {
+                HStack(spacing: FELDesign.Space.sm) {
                     Button {
                         showEditProfile = true
                     } label: {
-                        Text("EDIT PROFILE")
-                            .font(.system(.caption, design: .monospaced, weight: .bold))
+                        Text("Edit Profile")
+                            .font(FELDesign.Typography.label)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(Color.white.opacity(0.06))
+                            .padding(.vertical, FELDesign.Space.sm)
+                            .background(FELDesign.Colors.surfaceRaised)
                             .clipShape(Capsule())
-                            .foregroundStyle(.white)
+                            .overlay(
+                                Capsule()
+                                    .stroke(FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)
+                            )
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
                     }
 
                     Button {
                         showShardShop = true
                     } label: {
-                        HStack(spacing: 4) {
+                        HStack(spacing: FELDesign.Space.xxs) {
                             Image(systemName: "diamond.fill")
                                 .font(.system(size: 10))
                             Text("Shop")
                         }
-                        .font(.system(.caption, weight: .bold))
+                        .font(FELDesign.Typography.label)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(Theme.brandCyan.opacity(0.12))
+                        .padding(.vertical, FELDesign.Space.sm)
+                        .background(FELDesign.Colors.cyan)
                         .clipShape(Capsule())
-                        .foregroundStyle(Theme.brandCyan)
+                        .foregroundStyle(FELDesign.Colors.ink)
                     }
                 }
 
                 Button {
                     showCharacterEditor = true
                 } label: {
-                    HStack(spacing: 6) {
+                    HStack(spacing: FELDesign.Space.xs) {
                         Image(systemName: "person.crop.circle.badge.exclamationmark")
-                        Text("CHARACTER CUSTOMIZATION")
+                        Text("Character Customization")
                     }
-                    .font(.system(.caption, design: .monospaced, weight: .bold))
+                    .font(FELDesign.Typography.label)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(Theme.brandBlue.opacity(0.15))
+                    .padding(.vertical, FELDesign.Space.sm)
+                    .background(FELDesign.Colors.surfaceRaised)
                     .clipShape(Capsule())
-                    .foregroundStyle(Theme.brandBlue)
                     .overlay(
                         Capsule()
-                            .stroke(Theme.brandBlue.opacity(0.4), lineWidth: 1)
+                            .stroke(FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)
                     )
+                    .foregroundStyle(FELDesign.Colors.textPrimary)
                 }
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(24)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Theme.cardBackground)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(Theme.brandBlue.opacity(0.1), lineWidth: 1)
-                )
-        )
+        .felCard(padding: FELDesign.Space.lg)
     }
 
     private var healthKitSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
             HStack {
-                Text("HEALTH DATA")
-                    .font(.system(.caption2, design: .monospaced, weight: .bold))
-                    .foregroundStyle(.secondary)
-                    .tracking(2)
+                FELMicroLabel(text: "Health Data")
 
                 Spacer()
 
@@ -305,55 +221,49 @@ struct VaultView: View {
                         Task { await viewModel.connectHealthKit() }
                     } label: {
                         Text("CONNECT")
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
-                            .padding(.horizontal, 12)
+                            .font(FELDesign.Typography.micro)
+                            .tracking(FELDesign.Typography.microTracking)
+                            .padding(.horizontal, FELDesign.Space.sm)
                             .padding(.vertical, 6)
-                            .background(Theme.brandBlue.opacity(0.15))
-                            .foregroundStyle(Theme.brandBlue)
+                            .background(FELDesign.Colors.cyan)
+                            .foregroundStyle(FELDesign.Colors.ink)
                             .clipShape(Capsule())
                     }
                 }
             }
 
             if viewModel.healthKit.isAuthorized {
-                HStack(spacing: 12) {
-                    HealthMetric(label: "HR", value: "\(Int(viewModel.healthKit.heartRate))", unit: "bpm", icon: "heart.fill", color: .red)
-                    HealthMetric(label: "CALORIES", value: "\(Int(viewModel.healthKit.activeCalories))", unit: "kcal", icon: "flame.fill", color: .orange)
-                    HealthMetric(label: "RHR", value: "\(Int(viewModel.healthKit.restingHeartRate))", unit: "bpm", icon: "waveform.path.ecg", color: .pink)
+                HStack(spacing: FELDesign.Space.sm) {
+                    HealthMetric(label: "HR", value: "\(Int(viewModel.healthKit.heartRate))", unit: "bpm", icon: "heart.fill", color: FELDesign.Colors.cyan)
+                    HealthMetric(label: "CALORIES", value: "\(Int(viewModel.healthKit.activeCalories))", unit: "kcal", icon: "flame.fill", color: FELDesign.Colors.cyan)
+                    HealthMetric(label: "RHR", value: "\(Int(viewModel.healthKit.restingHeartRate))", unit: "bpm", icon: "waveform.path.ecg", color: FELDesign.Colors.cyan)
                 }
             } else {
-                HStack(spacing: 12) {
+                HStack(spacing: FELDesign.Space.sm) {
                     Image(systemName: "heart.text.square.fill")
-                        .font(.title2)
-                        .foregroundStyle(.red.opacity(0.5))
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(FELDesign.Colors.textSecondary)
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Apple Health")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.white)
+                            .font(FELDesign.Typography.label)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
                         Text("Connect to sync heart rate and activity data")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(FELDesign.Typography.caption)
+                            .foregroundStyle(FELDesign.Colors.textSecondary)
                     }
                 }
-                .padding(16)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(Theme.cardBackground)
-                )
+                .felCard()
             }
         }
     }
 
     private var statsGrid: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("LIFETIME STATS")
-                .font(.system(.caption2, design: .monospaced, weight: .bold))
-                .foregroundStyle(.secondary)
-                .tracking(2)
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
+            FELMicroLabel(text: "Lifetime Stats")
 
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: FELDesign.Space.sm), GridItem(.flexible(), spacing: FELDesign.Space.sm)], spacing: FELDesign.Space.sm) {
                 StatCell(label: "Total Workouts", value: "\(viewModel.profile.totalWorkouts)", icon: "figure.run")
                 StatCell(label: FELEconomyLabels.shards, value: "\(viewModel.profile.evolutionShards)", icon: "diamond.fill")
                 StatCell(label: "Day Streak", value: "\(viewModel.profile.streakDays)", icon: "flame.fill")
@@ -363,55 +273,16 @@ struct VaultView: View {
     }
 
     private var masterVaultSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("MASTER VAULT")
-                    .font(.system(.caption2, design: .monospaced, weight: .bold))
-                    .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.15))
-                    .tracking(2)
-
-                Spacer()
-            }
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
+            FELMicroLabel(text: "Master Vault")
 
             ForEach(VaultResources.videos, id: \.title) { resource in
                 Link(destination: resource.url) {
-                    HStack(spacing: 14) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color(red: 0.95, green: 0.49, blue: 0.15).opacity(0.1))
-                                .frame(width: 44, height: 44)
-
-                            Image(systemName: resource.icon)
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.15))
-                        }
-
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(resource.title.uppercased())
-                                .font(.system(.caption, design: .monospaced, weight: .bold))
-                                .foregroundStyle(.white)
-                                .lineLimit(1)
-
-                            Text(resource.description)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-
-                        Spacer()
-
-                        Image(systemName: "arrow.up.right")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.15).opacity(0.6))
-                    }
-                    .padding(12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(Theme.cardBackground)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .stroke(Color(red: 0.95, green: 0.49, blue: 0.15).opacity(0.08), lineWidth: 0.5)
-                            )
+                    VaultResourceRow(
+                        icon: resource.icon,
+                        title: resource.title,
+                        subtitle: resource.description,
+                        promoCode: nil
                     )
                 }
             }
@@ -419,66 +290,16 @@ struct VaultView: View {
     }
 
     private var equipmentSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("EQUIPMENT & TOOLS")
-                .font(.system(.caption2, design: .monospaced, weight: .bold))
-                .foregroundStyle(.secondary)
-                .tracking(2)
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
+            FELMicroLabel(text: "Equipment & Tools")
 
             ForEach(VaultResources.equipment, id: \.title) { item in
                 Link(destination: item.url) {
-                    HStack(spacing: 14) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Theme.brandBlue.opacity(0.1))
-                                .frame(width: 44, height: 44)
-
-                            Image(systemName: item.icon)
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundStyle(Theme.brandBlue)
-                        }
-
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(item.title.uppercased())
-                                .font(.system(.caption, design: .monospaced, weight: .bold))
-                                .foregroundStyle(.white)
-                                .lineLimit(1)
-
-                            Text(item.description)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-
-                        Spacer()
-
-                        if let code = item.promoCode {
-                            VStack(spacing: 2) {
-                                Text("CODE")
-                                    .font(.system(size: 7, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(.tertiary)
-                                Text(code)
-                                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                                    .foregroundStyle(Color(red: 0.95, green: 0.49, blue: 0.15))
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 6)
-                            .background(Color(red: 0.95, green: 0.49, blue: 0.15).opacity(0.08))
-                            .clipShape(.rect(cornerRadius: 8))
-                        } else {
-                            Image(systemName: "arrow.up.right")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(Theme.brandBlue.opacity(0.6))
-                        }
-                    }
-                    .padding(12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(Theme.cardBackground)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .stroke(Theme.cardBorder, lineWidth: 0.5)
-                            )
+                    VaultResourceRow(
+                        icon: item.icon,
+                        title: item.title,
+                        subtitle: item.description,
+                        promoCode: item.promoCode
                     )
                 }
             }
@@ -486,21 +307,110 @@ struct VaultView: View {
     }
 
     private var achievementsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("ACHIEVEMENTS")
-                .font(.system(.caption2, design: .monospaced, weight: .bold))
-                .foregroundStyle(.secondary)
-                .tracking(2)
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
+            FELMicroLabel(text: "Achievements")
 
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: FELDesign.Space.sm), GridItem(.flexible(), spacing: FELDesign.Space.sm), GridItem(.flexible(), spacing: FELDesign.Space.sm)], spacing: FELDesign.Space.sm) {
                 AchievementBadge(name: "First Rep", icon: "1.circle.fill", unlocked: viewModel.profile.totalWorkouts >= 1)
                 AchievementBadge(name: "Week Warrior", icon: "7.circle.fill", unlocked: viewModel.profile.streakDays >= 7)
                 AchievementBadge(name: "Shard Collector", icon: "diamond.fill", unlocked: viewModel.profile.evolutionShards >= 100)
                 AchievementBadge(name: "Focus Master", icon: "brain.head.profile.fill", unlocked: viewModel.profile.metrics.neuralDrive >= 50)
                 AchievementBadge(name: "Performance Ready", icon: "airplane.departure", unlocked: viewModel.profile.metrics.prqScore >= 50)
-                AchievementBadge(name: "Top Performer", icon: "crown.fill", unlocked: viewModel.profile.metrics.prqScore >= 90)
+                AchievementBadge(name: "Top Performer", icon: "crown.fill", unlocked: viewModel.profile.metrics.prqScore >= 90, accent: FELDesign.Colors.purple)
             }
         }
+    }
+}
+
+/// Full-width navigation entry card (Creator Hub, Cash Arena).
+private struct VaultEntryRow: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let badge: String
+
+    var body: some View {
+        HStack(spacing: FELDesign.Space.md) {
+            ZStack {
+                Circle()
+                    .fill(FELDesign.Colors.surfaceRaised)
+                    .frame(width: 48, height: 48)
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(FELDesign.Colors.cyan)
+            }
+            VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
+                HStack(spacing: FELDesign.Space.xs) {
+                    Text(title.uppercased())
+                        .font(FELDesign.Typography.micro)
+                        .tracking(FELDesign.Typography.microTracking)
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
+                    FELPreviewLabel(text: badge)
+                }
+                Text(subtitle)
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(FELDesign.Colors.textTertiary)
+        }
+        .felCard()
+    }
+}
+
+/// External resource link row (videos, equipment) with optional promo code chip.
+private struct VaultResourceRow: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let promoCode: String?
+
+    var body: some View {
+        HStack(spacing: FELDesign.Space.md) {
+            ZStack {
+                RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                    .fill(FELDesign.Colors.surfaceRaised)
+                    .frame(width: 44, height: 44)
+
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(FELDesign.Colors.cyan)
+            }
+
+            VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
+                Text(title)
+                    .font(FELDesign.Typography.label)
+                    .foregroundStyle(FELDesign.Colors.textPrimary)
+                    .lineLimit(1)
+
+                Text(subtitle)
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            if let code = promoCode {
+                VStack(spacing: 2) {
+                    FELMicroLabel(text: "Code")
+                    Text(code)
+                        .font(FELDesign.Typography.statSmall)
+                        .foregroundStyle(FELDesign.Colors.cyan)
+                }
+                .padding(.horizontal, FELDesign.Space.xs)
+                .padding(.vertical, 6)
+                .background(FELDesign.Colors.surfaceRaised)
+                .clipShape(.rect(cornerRadius: FELDesign.Radius.sm))
+            } else {
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(FELDesign.Colors.textTertiary)
+            }
+        }
+        .felCard(padding: FELDesign.Space.sm)
     }
 }
 
@@ -511,34 +421,32 @@ struct VaultMetricPill: View {
     let color: Color
 
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: FELDesign.Space.xs) {
             Image(systemName: icon)
-                .font(.system(size: 12, weight: .bold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(color)
 
             Text(value)
-                .font(.system(.subheadline, design: .rounded, weight: .black))
-                .foregroundStyle(.white)
+                .font(FELDesign.Typography.stat)
+                .foregroundStyle(FELDesign.Colors.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
 
-            Text(label)
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(.secondary)
+            Text(label.uppercased())
+                .font(FELDesign.Typography.micro)
+                .foregroundStyle(FELDesign.Colors.textTertiary)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
                 .minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-        .padding(.horizontal, 6)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Theme.cardBackground)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(color.opacity(0.12), lineWidth: 0.5)
-                )
+        .padding(.vertical, FELDesign.Space.sm)
+        .padding(.horizontal, FELDesign.Space.xs)
+        .background(FELDesign.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: FELDesign.Radius.md))
+        .overlay(
+            RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                .stroke(FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline)
         )
     }
 }
@@ -551,28 +459,26 @@ struct HealthMetric: View {
     let color: Color
 
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: FELDesign.Space.xs) {
             Image(systemName: icon)
-                .font(.system(size: 14, weight: .bold))
+                .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(color)
 
             Text(value)
-                .font(.system(.headline, design: .monospaced, weight: .black))
-                .foregroundStyle(.white)
+                .font(FELDesign.Typography.stat)
+                .foregroundStyle(FELDesign.Colors.textPrimary)
 
             Text(unit)
-                .font(.system(size: 9, design: .monospaced))
-                .foregroundStyle(.tertiary)
+                .font(FELDesign.Typography.statSmall)
+                .foregroundStyle(FELDesign.Colors.textTertiary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(color.opacity(0.06))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(color.opacity(0.1), lineWidth: 0.5)
-                )
+        .padding(.vertical, FELDesign.Space.md)
+        .background(FELDesign.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: FELDesign.Radius.md))
+        .overlay(
+            RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                .stroke(FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline)
         )
     }
 }
@@ -583,26 +489,19 @@ struct StatCell: View {
     let icon: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: FELDesign.Space.xs) {
             Image(systemName: icon)
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(Theme.brandBlue)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(FELDesign.Colors.cyan)
 
             Text(value)
-                .font(.system(.title2, design: .monospaced, weight: .black))
-                .foregroundStyle(.white)
+                .font(FELDesign.Typography.statLarge)
+                .foregroundStyle(FELDesign.Colors.textPrimary)
 
-            Text(label)
-                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                .foregroundStyle(.tertiary)
-                .tracking(1)
+            FELMicroLabel(text: label)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Theme.cardBackground)
-        )
+        .felCard()
     }
 }
 
@@ -610,28 +509,27 @@ struct AchievementBadge: View {
     let name: String
     let icon: String
     let unlocked: Bool
+    var accent: Color = FELDesign.Colors.cyan
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: FELDesign.Space.xs) {
             Image(systemName: icon)
-                .font(.system(size: 24, weight: .bold))
-                .foregroundStyle(unlocked ? Theme.brandBlue : Color.white.opacity(0.1))
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(unlocked ? accent : FELDesign.Colors.textTertiary.opacity(0.5))
 
             Text(name.uppercased())
-                .font(.system(size: 8, weight: .bold, design: .monospaced))
-                .foregroundStyle(unlocked ? Color.white : Color.white.opacity(0.2))
+                .font(FELDesign.Typography.micro)
+                .foregroundStyle(unlocked ? FELDesign.Colors.textPrimary : FELDesign.Colors.textTertiary)
                 .multilineTextAlignment(.center)
                 .tracking(0.5)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(unlocked ? Theme.brandBlue.opacity(0.06) : Theme.cardBackground)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(unlocked ? Theme.brandBlue.opacity(0.15) : .clear, lineWidth: 0.5)
-                )
+        .padding(.vertical, FELDesign.Space.md)
+        .background(FELDesign.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: FELDesign.Radius.md))
+        .overlay(
+            RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                .stroke(unlocked ? accent.opacity(0.35) : FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline)
         )
     }
 }
@@ -681,15 +579,17 @@ struct EditProfileView: View {
                     TextField("Display Name", text: $name)
                     TextField("Athlete Tag", text: $tag)
                 }
+                .listRowBackground(FELDesign.Colors.surface)
             }
             .scrollContentBackground(.hidden)
-            .background(Theme.deepBlack)
+            .background(FELDesign.Colors.ink)
             .navigationTitle("Edit Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                        .foregroundStyle(FELDesign.Colors.textSecondary)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
@@ -706,6 +606,7 @@ struct EditProfileView: View {
                         SaveSystem.saveProfile(viewModel.profile)
                         dismiss()
                     }
+                    .foregroundStyle(FELDesign.Colors.cyan)
                     .disabled(name.isEmpty)
                 }
             }

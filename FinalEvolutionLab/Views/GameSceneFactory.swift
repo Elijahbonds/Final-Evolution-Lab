@@ -74,12 +74,61 @@ struct GameSceneFactory {
         if name.hasPrefix("fighter") || name.hasPrefix("def") || name.hasPrefix("vPlayer") || name.hasPrefix("judge") {
             return true
         }
+        // Pickup 2v2 extras (teammate1, opponent2) — keep alongside the
+        // primary "opponent"/"player1" so scene cleaning never prunes them.
+        if name.hasPrefix("teammate") || name.hasPrefix("opponent") { return true }
         let known: Set<String> = [
             "player", "player1", "opponent", "dunker", "batter", "pitcher", "catcher",
             "returner", "kicker", "goalkeeper", "golfer", "surfer", "skater", "rider",
             "cognitivePlayer", "filmQuizPlayer", "partyBoardPlayer", "gymnast"
         ]
         return known.contains(name)
+    }
+
+
+    /// Places a skinned bundled character (fail-soft: returns false so the
+    /// caller keeps its procedural fallback). Optional team tint multiplies
+    /// materials for side identity without needing distinct models.
+    @discardableResult
+    private static func addSkinnedCharacter(
+        _ asset: FELBundledAsset,
+        to scene: SCNScene,
+        name: String,
+        at position: SCNVector3,
+        facingY: Float = 0,
+        height: Float = 1.85,
+        tint: UIColor? = nil
+    ) -> Bool {
+        guard let node = FELBundledAssets.characterNode(asset, height: height) else { return false }
+        node.name = name
+        node.position = position
+        node.eulerAngles.y = facingY
+        if let tint {
+            node.enumerateHierarchy { child, _ in
+                for material in child.geometry?.materials ?? [] {
+                    material.multiply.contents = tint
+                }
+            }
+        }
+        scene.rootNode.addChildNode(node)
+        return true
+    }
+
+    /// Drops a skinned character so its feet rest at y≈0. The pipeline-clip
+    /// container's origin sits well below the feet (feet import ~2.5 world-units
+    /// up), so an un-grounded reuse floats high above the floor — this is the
+    /// exact bug the dojo fighters hit, fixed the same way here: measure the
+    /// LeftFoot/RightFoot joint world Y (the node must already be in the graph)
+    /// and subtract it. Fail-soft: no foot joint ⇒ position unchanged. Targeted
+    /// per call site rather than folded into the global normalizer, whose blind
+    /// offset overcorrected other modes.
+    private static func groundSkinnedCharacter(named name: String, in scene: SCNScene) {
+        guard let node = scene.rootNode.childNode(withName: name, recursively: false) else { return }
+        let footNode = node.childNode(withName: "LeftFoot", recursively: true)
+            ?? node.childNode(withName: "RightFoot", recursively: true)
+        if let footY = footNode?.worldPosition.y, footY.isFinite {
+            node.position.y -= footY
+        }
     }
 
     static func primaryGameplayAvatarName(for mode: GameModeId) -> String {
@@ -126,6 +175,11 @@ struct GameSceneFactory {
         if name.hasPrefix("derbyBall-") || ["bat", "pitcherHand", "ballFlight"].contains(name) {
             return true
         }
+        // The dunk hoop is gameplay geometry (camera target + rim), so it must
+        // survive the procedural-cleanup pass that runs when a USDZ venue loads.
+        if ["hoop", "hoopMesh"].contains(name) {
+            return true
+        }
         return false
     }
 
@@ -158,14 +212,28 @@ struct GameSceneFactory {
     }
 
     /// Strips procedural venue geometry; hybrid keeps distant sky backdrops for Metal/SceneKit depth composite.
+    /// Venue/avatar/prop subtrees are kept whole — loaded USDZ hierarchies have
+    /// unnamed child mesh nodes that must not be pruned individually.
     static func cleanProceduralEnvironment(in scene: SCNScene, hybridOverlay: Bool = false) {
-        var remove: [SCNNode] = []
-        scene.rootNode.enumerateChildNodes { node, _ in
-            if !isGameplayCritical(node, hybridOverlay: hybridOverlay) {
-                remove.append(node)
+        func keepsWholeSubtree(_ name: String) -> Bool {
+            isGameplayAvatarNodeName(name)
+                || isGameplayPropNodeName(name)
+                || (!hybridOverlay && isBundledVenueNodeName(name))
+                || (hybridOverlay && isEnvironmentBackdropNodeName(name))
+        }
+
+        func prune(_ node: SCNNode) {
+            for child in Array(node.childNodes) {
+                let name = child.name ?? ""
+                if keepsWholeSubtree(name) { continue }
+                if isGameplayCritical(child, hybridOverlay: hybridOverlay) {
+                    prune(child)
+                } else {
+                    child.removeFromParentNode()
+                }
             }
         }
-        for node in remove { node.removeFromParentNode() }
+        prune(scene.rootNode)
     }
 
     /// SceneKit depth layer behind avatars when Metal owns the playable venue mesh.
@@ -191,14 +259,180 @@ struct GameSceneFactory {
     }
 
     /// Bundled mesh priority + procedural cleanup + cluster lighting for production scenes.
+    /// Textured USDZ venues (Meshy, via the Blender pipeline) take priority over
+    /// precooked `.nexusmesh.json` manifest meshes; procedural stays as final fallback.
     static func finalizeSceneEnvironment(_ scene: SCNScene, for mode: GameModeId) {
-        let hasBundled = NexusBundledMeshLoader.attachBackdropFromManifest(for: mode, to: scene)
+        let hasBundled = attachBundledUSDZVenue(for: mode, to: scene)
+            || NexusBundledMeshLoader.attachBackdropFromManifest(for: mode, to: scene)
             || NexusBundledMeshLoader.attachEnvironmentBackdrop(for: mode, to: scene)
         if hasBundled {
             cleanProceduralEnvironment(in: scene, hybridOverlay: false)
         }
+        // Meshy panorama backdrop fills the horizon (and feeds PBR ambience)
+        // instead of the black void.
+        if let backgroundName = backgroundImageName(for: mode),
+           let image = UIImage(named: backgroundName) {
+            scene.background.contents = image
+            scene.lightingEnvironment.contents = image
+            scene.lightingEnvironment.intensity = 0.12
+        }
         PremiumViewpointConfig.applyToScene(scene, for: mode)
         adjustSceneQuality(scene, for: FELPerformanceMonitor.shared.currentTier)
+        animateAllCharacters(in: scene)
+    }
+
+    /// Universal liveness pass — runs for EVERY mode at scene finalize (and via
+    /// `buildGameplayOverlay`, so both the SceneKit and Metal/hybrid paths get
+    /// it). Belt-and-suspenders on top of the per-character auto-play in
+    /// `FELBundledAssets.characterNode`:
+    ///   1. Start + loop every embedded `SCNAnimationPlayer` on any skinned
+    ///      node, so no baked walk/run/idle clip is ever left frozen.
+    ///   2. Give every gameplay CHARACTER node (skinned OR procedural avatar)
+    ///      a gentle "alive" breathing idle when it carries no embedded clip,
+    ///      so procedural-fallback modes (gymnastics/surf/skate/snow and every
+    ///      fail-soft avatar) are never frozen statues either.
+    /// Non-character geometry (venue, props, crowd) is untouched.
+    static func animateAllCharacters(in scene: SCNScene) {
+        // 1. Global embedded-animation kick (covers any skinned node whose
+        //    clip somehow wasn't started at load, and clips added post-load).
+        FELBundledAssets.playAllAnimations(on: scene.rootNode, loop: true)
+
+        // 2. Per-character alive fallback, scoped to named gameplay avatars so
+        //    we never bob the venue or props. Skip nodes already driven by a
+        //    movement/AI action (shuffle/homing) — their transform is owned by
+        //    that controller and a concurrent bob would fight it. Skinned
+        //    characters with an embedded clip are skipped inside ensureAlive.
+        let motionKeys = ["shuffle", "homingDefense", "circle"]
+        for child in scene.rootNode.childNodes {
+            guard let name = child.name, isGameplayAvatarNodeName(name) else { continue }
+            if motionKeys.contains(where: { child.action(forKey: $0) != nil }) { continue }
+            FELBundledAssets.ensureAlive(child)
+        }
+    }
+
+    private static func backgroundImageName(for mode: GameModeId) -> String? {
+        switch mode {
+        case .basketballHeadToHead, .basketballDunkContest3D, .basketball3v3, .venicePickup, .courtCarnival:
+            return "BackgroundBasketball"
+        case .baseball: return "BackgroundBaseball"
+        case .volleyball: return "BackgroundVolleyball"
+        case .gymnastics: return "BackgroundGymnastics"
+        case .football: return "BackgroundFootball"
+        case .tennis: return "BackgroundTennis"
+        case .soccer: return "BackgroundSoccer"
+        case .golf: return "BackgroundGolf"
+        case .skateboarding: return "BackgroundSkateboarding"
+        case .karate: return "BackgroundKarate"
+        case .karateEndless: return "BackgroundKarate"
+        case .snowboarding: return "BackgroundSnowboarding"
+        case .surfing: return "BackgroundSurfing"
+        case .marketBrowse: return "BackgroundMuscleBeachGym"
+        case .whoSceneIt: return "BackgroundMuscleBeach"
+        default: return nil
+        }
+    }
+
+    /// Attaches the mode's textured USDZ venue if bundled. Node is named for
+    /// the `isBundledVenueNodeName` keep-list; a neutral fill light lifts the
+    /// PBR textures under stylized cluster lighting.
+    @discardableResult
+    private static func attachBundledUSDZVenue(for mode: GameModeId, to scene: SCNScene) -> Bool {
+        let asset: FELBundledAsset?
+        let footprint: Float
+        switch mode {
+        case .karate:
+            asset = .venueShimogamoDojo
+            footprint = 30 // interior must clear the dojo chase camera (z≈7.8)
+        case .karateEndless:
+            asset = .venueShimogamoDojo
+            footprint = 30
+        case .tennis:
+            asset = .venueTennisCourt
+            footprint = 30
+        case .skateboarding:
+            asset = .venueSkatePark
+            footprint = 34
+        case .snowboarding:
+            asset = .venueMountainSlope
+            footprint = 60
+        case .surfing:
+            asset = .venueSurfBreak
+            footprint = 60
+        case .golf:
+            asset = .venueLinksGolf
+            footprint = 60
+        case .soccer:
+            asset = .venueSoccerStadium
+            footprint = 50
+        case .baseball:
+            asset = .venueBallpark
+            footprint = 50
+        case .gymnastics:
+            asset = .venueGymnasticsGym
+            footprint = 30
+        case .marketBrowse:
+            asset = .venueMuscleBeachGym
+            footprint = 30
+        case .whoSceneIt:
+            asset = .venueMuscleBeachStage
+            footprint = 30
+        case .basketballDunkContest3D:
+            // Real 3D Venice Beach blacktop court (textured USDZ) replaces the
+            // procedural gray box; cleanProceduralEnvironment prunes the box
+            // once this loads. The dunk hoop is placed separately (mesh hoop).
+            asset = .venueVeniceBlacktop
+            footprint = 34
+        default:
+            asset = nil
+            footprint = 0
+        }
+        guard let asset, let venue = FELBundledAssets.venueNode(asset, footprint: footprint) else {
+            return false
+        }
+        venue.name = "bundledVenueBackdrop"
+        if mode == .tennis {
+            // VenueTennisCourt photogrammetry quirks: the scanned court's long
+            // axis runs across X (its net along Z, slicing through the default
+            // camera), and the corner palm-tree bases drag the bounding box
+            // ~4.7 units below the playing surface, so bbox-grounding floats
+            // the court in the air with gameplay avatars hidden underneath it.
+            // Rotate the court onto the gameplay axis (net across X at z=0),
+            // drop the playing surface to y~0, and recenter the scanned net.
+            venue.eulerAngles.y = .pi / 2
+            venue.position = SCNVector3(0, -4.75, 0.43)
+        }
+        PremiumViewpointConfig.applyBackdropTuning(to: venue, for: mode)
+        // Matte response: stylized spots blow out on PBR venue textures.
+        venue.enumerateHierarchy { node, _ in
+            for material in node.geometry?.materials ?? [] {
+                material.metalness.contents = 0.0
+                material.roughness.contents = 1.0
+                material.specular.contents = UIColor.black
+            }
+        }
+        scene.rootNode.addChildNode(venue)
+
+        let isDojo = (mode == .karate || mode == .karateEndless)
+        let fill = SCNNode()
+        fill.name = "venueFillLight"
+        fill.light = SCNLight()
+        fill.light?.type = .omni
+        fill.light?.color = UIColor(white: 1.0, alpha: 1)
+        fill.light?.intensity = isDojo ? 150 : 420
+        fill.position = isDojo ? SCNVector3(0, 6, 0) : SCNVector3(0, 10, 2)
+        scene.rootNode.addChildNode(fill)
+
+        if !isDojo {
+            // Judge/backcourt zone sits outside the stylized spots.
+            let backFill = SCNNode()
+            backFill.name = "venueFillLight"
+            backFill.light = SCNLight()
+            backFill.light?.type = .omni
+            backFill.light?.intensity = 240
+            backFill.position = SCNVector3(0, 4, -5)
+            scene.rootNode.addChildNode(backFill)
+        }
+        return true
     }
 
     private static func buildSceneCore(for mode: GameModeId) -> SCNScene {
@@ -255,7 +489,9 @@ struct GameSceneFactory {
 
         addCamera(to: scene, position: SCNVector3(0.4, 2.6, 5.2), lookAt: SCNVector3(0, 1.4, 0))
         addLighting(to: scene, tint: brandCyan)
-        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 0.5), color: brandCyan, name: "player1")
+        if !addSkinnedCharacter(.characterElijahRunning, to: scene, name: "player1", at: SCNVector3(0, 0, 0.5)) {
+            addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 0.5), color: brandCyan, name: "player1")
+        }
 
         let hasBundled = NexusBundledMeshLoader.attachBackdropFromManifest(for: .marketBrowse, to: scene)
             || NexusBundledMeshLoader.attachEnvironmentBackdrop(for: .marketBrowse, to: scene)
@@ -270,17 +506,33 @@ struct GameSceneFactory {
     // MARK: - Basketball (Venice Beach Court)
 
     private static func buildBasketballScene(mode: GameModeId) -> SCNScene {
+        // Two distinct products share this builder but must NOT alias:
+        //  .basketballHeadToHead — a focused, competitive 1v1 (2 players,
+        //     cooler blacktop, tighter head-on camera).
+        //  .venicePickup — a Venice Beach pickup RUN (2v2: teammate + two
+        //     opponents, warmer sun-worn court, wider run-of-play camera).
+        // The differing roster COUNT is the load-bearing differentiator.
+        let isPickup = (mode == .venicePickup)
         let scene = SCNScene()
         scene.background.contents = UIColor(red: 0.02, green: 0.02, blue: 0.04, alpha: 1)
 
-        addCamera(to: scene, position: SCNVector3(3, 4.5, 7), lookAt: SCNVector3(0, 1.2, 0))
-        addLighting(to: scene, tint: brandBlue)
+        // Pickup frames the wider run of play; H2H sits tighter and more head-on.
+        if isPickup {
+            addCamera(to: scene, position: SCNVector3(2.2, 5.0, 8.0), lookAt: SCNVector3(0, 1.1, 0.4))
+            addLighting(to: scene, tint: brandCyan)
+        } else {
+            addCamera(to: scene, position: SCNVector3(3.4, 4.2, 6.4), lookAt: SCNVector3(0, 1.2, 0))
+            addLighting(to: scene, tint: brandBlue)
+        }
 
         addFloor(to: scene, color: UIColor(red: 0.08, green: 0.06, blue: 0.04, alpha: 1), reflectivity: 0.15)
 
         let court = SCNBox(width: 8, height: 0.02, length: 5, chamferRadius: 0)
         let courtMat = SCNMaterial()
-        courtMat.diffuse.contents = UIColor(red: 0.12, green: 0.08, blue: 0.04, alpha: 1)
+        // Pickup court is a warmer, sun-worn asphalt; H2H is cool blacktop.
+        courtMat.diffuse.contents = isPickup
+            ? UIColor(red: 0.17, green: 0.11, blue: 0.05, alpha: 1)
+            : UIColor(red: 0.10, green: 0.09, blue: 0.11, alpha: 1)
         courtMat.roughness.contents = 0.9
         court.materials = [courtMat]
         let courtNode = SCNNode(geometry: court)
@@ -290,11 +542,36 @@ struct GameSceneFactory {
         addCourtLines(to: scene)
         addHoop(to: scene, x: 3.5)
         addHoop(to: scene, x: -3.5, flip: true)
-        addPlayerAvatar(to: scene, at: SCNVector3(-1.5, 0, 0), color: brandBlue, name: "player1")
-        addAvatar(to: scene, at: SCNVector3(1.5, 0, 0), color: UIColor(red: 1.0, green: 0.25, blue: 0.2, alpha: 1), name: "opponent")
+
+        let opponentRed = UIColor(red: 1.0, green: 0.25, blue: 0.2, alpha: 1)
+        // Load-bearing names: GameSceneHostView movement/camera loops find
+        // "player1" (primary) and "opponent" by name — preserved in both modes.
+        if !addSkinnedCharacter(.characterElijahRunning, to: scene, name: "player1", at: SCNVector3(-1.5, 0, 0), facingY: .pi / 2) {
+            addPlayerAvatar(to: scene, at: SCNVector3(-1.5, 0, 0), color: brandBlue, name: "player1")
+        }
+        if !addSkinnedCharacter(.npcEricNashIdle, to: scene, name: "opponent", at: SCNVector3(1.5, 0, 0), facingY: -.pi / 2) {
+            addAvatar(to: scene, at: SCNVector3(1.5, 0, 0), color: opponentRed, name: "opponent")
+        }
+
+        if isPickup {
+            // 2v2 run: a teammate on the wing + a second defender. Unique
+            // non-load-bearing names; fail-soft procedural fallbacks.
+            // Pale jersey tints, not full-saturation multiplies — a solid
+            // cyan/red multiply silhouettes the character; a near-white tint
+            // reads as a team color while the skin/clothing texture survives.
+            let teammateTint = UIColor(red: 0.72, green: 0.90, blue: 1.0, alpha: 1)
+            let opponent2Tint = UIColor(red: 1.0, green: 0.72, blue: 0.66, alpha: 1)
+            if !addSkinnedCharacter(.npcTallAthleticIdle, to: scene, name: "teammate1", at: SCNVector3(-2.4, 0, 1.8), facingY: .pi / 3, tint: teammateTint) {
+                addAvatar(to: scene, at: SCNVector3(-2.4, 0, 1.8), color: brandCyan, name: "teammate1")
+            }
+            if !addSkinnedCharacter(.npcTallAthleticIdle, to: scene, name: "opponent2", at: SCNVector3(2.4, 0, 1.6), facingY: -.pi / 3, tint: opponent2Tint) {
+                addAvatar(to: scene, at: SCNVector3(2.4, 0, 1.6), color: opponentRed, name: "opponent2")
+            }
+        }
+
         addBall(to: scene, at: SCNVector3(-1.5, 1.4, 0), color: UIColor(red: 0.8, green: 0.35, blue: 0.1, alpha: 1))
         addVeniceBeachWalls(to: scene)
-        addVeniceBeachCrowd(to: scene, depth: 5)
+        addVeniceBeachCrowd(to: scene, depth: isPickup ? 6 : 5)
         addParticles(to: scene, color: brandCyan.withAlphaComponent(0.2), area: SCNVector3(8, 0.1, 5))
 
         return scene
@@ -306,14 +583,16 @@ struct GameSceneFactory {
         let scene = SCNScene()
         scene.background.contents = UIColor(red: 0.01, green: 0.01, blue: 0.03, alpha: 1)
 
-        addCamera(to: scene, position: SCNVector3(2, 5.5, 9), lookAt: SCNVector3(0, 2.0, -1))
+        // 3/4 view down the runway toward the hoop (rim ~z=-2.3), so the whole
+        // approach + jam reads. The dunk cinematic camera takes over mid-dunk.
+        addCamera(to: scene, position: SCNVector3(3.4, 3.4, 7.0), lookAt: SCNVector3(0, 2.4, -1.5))
         addLighting(to: scene, tint: UIColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 1))
 
         let spotCenter = SCNNode()
         spotCenter.light = SCNLight()
         spotCenter.light?.type = .spot
         spotCenter.light?.color = UIColor(red: 1.0, green: 0.9, blue: 0.7, alpha: 1)
-        spotCenter.light?.intensity = 1800
+        spotCenter.light?.intensity = 550
         spotCenter.light?.spotInnerAngle = 15
         spotCenter.light?.spotOuterAngle = 40
         spotCenter.light?.castsShadow = true
@@ -327,14 +606,14 @@ struct GameSceneFactory {
         spotRim.light = SCNLight()
         spotRim.light?.type = .spot
         spotRim.light?.color = UIColor.orange.withAlphaComponent(0.8)
-        spotRim.light?.intensity = 800
+        spotRim.light?.intensity = 300
         spotRim.light?.spotInnerAngle = 10
         spotRim.light?.spotOuterAngle = 30
         spotRim.position = SCNVector3(-2, 8, -3)
         spotRim.look(at: SCNVector3(2.5, 3, -1))
         scene.rootNode.addChildNode(spotRim)
 
-        addFloor(to: scene, color: UIColor(red: 0.05, green: 0.28, blue: 0.55, alpha: 0.35), reflectivity: 0.25)
+        addFloor(to: scene, color: UIColor(red: 0.05, green: 0.28, blue: 0.55, alpha: 0.35), reflectivity: 0.0)
 
         let court = SCNBox(width: 12, height: 0.02, length: 8, chamferRadius: 0)
         let courtMat = SCNMaterial()
@@ -367,45 +646,106 @@ struct GameSceneFactory {
         }
 
         addCourtLines(to: scene)
-        addHoop(to: scene, x: -4.5, flip: true)
+        // Forward-facing hoop at the END of the runway, directly ahead of the
+        // dunker (who runs down -z toward it). Rim node named "hoop" so the dunk
+        // cinematic camera targets it and the dunker travels to it. Previously
+        // the hoop sat off at x=-4.5 while the runway/dunker pointed down -z, so
+        // the dunk played in empty space misaligned with the rim.
+        let rimZ: Float = -2.3
+        // Real 3D basketball hoop mesh (VeniceBasketballHoop USDZ), rim at 3.05m,
+        // at the end of the runway facing the dunker. Container named "hoopMesh"
+        // (kept through the venue-cleanup pass); its inner "hoop" locator is the
+        // dunk camera's rim target. Fail-soft to a procedural hoop.
+        if let hoop = FELBundledAssets.basketballHoopNode(rimHeight: 3.05, rimLocatorName: "hoop", flip: true) {
+            hoop.name = "hoopMesh"
+            hoop.position = SCNVector3(0, 0, rimZ)
+            scene.rootNode.addChildNode(hoop)
+        } else {
+            let fbHoop = SCNNode()
+            fbHoop.name = "hoopMesh"
+            let fbPole = SCNNode(geometry: SCNCylinder(radius: 0.06, height: 3.05))
+            fbPole.geometry?.firstMaterial?.diffuse.contents = UIColor(white: 0.2, alpha: 1)
+            fbPole.position = SCNVector3(0, 1.525, rimZ - 0.75)
+            fbHoop.addChildNode(fbPole)
+            let fbBoard = SCNNode(geometry: SCNBox(width: 1.8, height: 1.05, length: 0.05, chamferRadius: 0.02))
+            fbBoard.geometry?.firstMaterial?.diffuse.contents = UIColor(white: 0.92, alpha: 1)
+            fbBoard.geometry?.firstMaterial?.transparency = 0.85
+            fbBoard.position = SCNVector3(0, 3.5, rimZ - 0.4)
+            fbHoop.addChildNode(fbBoard)
+            let fbRim = SCNNode(geometry: SCNTorus(ringRadius: 0.23, pipeRadius: 0.02))
+            fbRim.geometry?.firstMaterial?.diffuse.contents = UIColor.orange
+            fbRim.geometry?.firstMaterial?.emission.contents = UIColor.orange.withAlphaComponent(0.35)
+            fbRim.position = SCNVector3(0, 3.05, rimZ)
+            fbHoop.addChildNode(fbRim)
+            let rimLoc = SCNNode(); rimLoc.name = "hoop"; rimLoc.position = SCNVector3(0, 3.05, rimZ)
+            fbHoop.addChildNode(rimLoc)
+            scene.rootNode.addChildNode(fbHoop)
+        }
 
         let dunker = brandBlue
         let opponentColor = UIColor(red: 1.0, green: 0.25, blue: 0.2, alpha: 1)
-        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 4), color: dunker, name: "dunker")
-        addAvatar(to: scene, at: SCNVector3(2.8, 0, 2.5), color: opponentColor, name: "opponent")
-        addBall(to: scene, at: SCNVector3(0, 1.4, 4), color: UIColor(red: 0.85, green: 0.4, blue: 0.1, alpha: 1))
+        // Dunker starts at the BACK of the runway (z=5.5), facing -z straight
+        // down the lane at the hoop. The dunk cinematic translates this node to
+        // the rim during the approach so the jam lands at the rim, not in place.
+        if let elijah = FELBundledAssets.characterNode(.characterElijahRunning, height: 1.85) {
+            elijah.name = "dunker"
+            elijah.position = SCNVector3(0, 0, 5.5)
+            elijah.eulerAngles.y = .pi   // face -z, down the runway at the hoop
+            scene.rootNode.addChildNode(elijah)
+        } else {
+            addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 5.5), color: dunker, name: "dunker")
+        }
+        // Opponent waits off to the side of the runway, out of the lane.
+        _ = addSkinnedCharacter(.npcEricNashIdle, to: scene, name: "opponent", at: SCNVector3(3.4, 0, 3.5), facingY: -.pi / 2)
+        addBall(to: scene, at: SCNVector3(0.28, 1.05, 5.3), color: UIColor(red: 0.85, green: 0.4, blue: 0.1, alpha: 1))
 
+        // Judges sit behind the baseline (beyond the hoop at z=-2.3), facing +z
+        // toward the incoming dunker so they watch the jam come at them — out of
+        // the runway/lane, not under the rim.
         let judgeColor = UIColor(white: 0.45, alpha: 1)
-        for (i, x) in ([-2.5, 0.0, 2.5] as [Float]).enumerated() {
+        let judgeCast: [FELBundledAsset] = [.npcEricNashIdle, .npcTallAthleticIdle, .npcEricNashIdle]
+        for (i, x) in ([-2.6, 0.0, 2.6] as [Float]).enumerated() {
             let table = SCNBox(width: 1.2, height: 0.7, length: 0.4, chamferRadius: 0.02)
             let tMat = SCNMaterial()
             tMat.diffuse.contents = UIColor(red: 0.08, green: 0.06, blue: 0.04, alpha: 1)
             table.materials = [tMat]
             let tNode = SCNNode(geometry: table)
-            tNode.position = SCNVector3(x, 0.35, -5.5)
+            tNode.position = SCNVector3(x, 0.35, -4.7)
             scene.rootNode.addChildNode(tNode)
-            addAvatar(to: scene, at: SCNVector3(x, 0, -5.0), color: judgeColor, name: "judge\(i)")
+            // Skinned NPC judges (auto-rigged Meshy models, idle loops);
+            // procedural avatars remain the fallback. Face +z (toward dunker).
+            if let judge = FELBundledAssets.characterNode(judgeCast[i], height: 1.8) {
+                judge.name = "judge\(i)"
+                judge.position = SCNVector3(x, 0, -4.3)
+                scene.rootNode.addChildNode(judge)
+            } else {
+                addAvatar(to: scene, at: SCNVector3(x, 0, -4.3), color: judgeColor, name: "judge\(i)")
+            }
         }
 
         addStadiumStands(to: scene, depth: 12)
         addStadiumLights(to: scene, width: 12, depth: 12)
 
+        // Arena atmosphere: warm sparks drifting through the light haze above
+        // the court. Wide spread + slow drift so it reads as ambience, not a
+        // thin vertical streak.
         let crowdEmitter = SCNNode()
         let crowdParticles = SCNParticleSystem()
-        crowdParticles.birthRate = 3
-        crowdParticles.particleLifeSpan = 5
-        crowdParticles.particleSize = 0.015
+        crowdParticles.birthRate = 5
+        crowdParticles.particleLifeSpan = 7
+        crowdParticles.particleLifeSpanVariation = 2
+        crowdParticles.particleSize = 0.014
         crowdParticles.particleSizeVariation = 0.01
-        crowdParticles.particleColor = UIColor.orange.withAlphaComponent(0.15)
-        crowdParticles.emitterShape = SCNBox(width: 12, height: 0.1, length: 8, chamferRadius: 0)
-        crowdParticles.spreadingAngle = 15
-        crowdParticles.particleVelocity = 0.2
-        crowdParticles.particleVelocityVariation = 0.08
-        crowdParticles.birthDirection = .constant
-        crowdParticles.emittingDirection = SCNVector3(0, 1, 0)
+        crowdParticles.particleColor = UIColor.orange.withAlphaComponent(0.18)
+        crowdParticles.emitterShape = SCNBox(width: 12, height: 3.0, length: 8, chamferRadius: 0)
+        crowdParticles.spreadingAngle = 180
+        crowdParticles.particleVelocity = 0.06
+        crowdParticles.particleVelocityVariation = 0.05
+        crowdParticles.birthDirection = .random
         crowdParticles.blendMode = .additive
+        crowdParticles.isAffectedByGravity = false
         crowdEmitter.addParticleSystem(crowdParticles)
-        crowdEmitter.position = SCNVector3(0, 0.1, 0)
+        crowdEmitter.position = SCNVector3(0, 1.6, 0)
         scene.rootNode.addChildNode(crowdEmitter)
 
         addVeniceBeachWalls(to: scene)
@@ -450,13 +790,22 @@ struct GameSceneFactory {
             SCNVector3(2.5, 0, -1.0)
         ]
 
+        let blueCast: [FELBundledAsset] = [.characterElijahRunning, .npcTallAthleticIdle, .npcEricNashIdle]
+        let redCast: [FELBundledAsset] = [.npcEricNashIdle, .npcTallAthleticIdle, .characterElijahWalking]
+        let redTint = UIColor(red: 1.0, green: 0.45, blue: 0.4, alpha: 1)
         for index in 0..<threeVThreeTeamSize {
-            if index == 0 {
-                addPlayerAvatar(to: scene, at: teamAStart[index], color: teamBlue, name: "blue1")
-            } else {
-                addAvatar(to: scene, at: teamAStart[index], color: teamBlue, name: "blue\(index + 1)")
+            let blueName = "blue\(index + 1)"
+            if !addSkinnedCharacter(blueCast[index], to: scene, name: blueName, at: teamAStart[index], facingY: .pi / 2) {
+                if index == 0 {
+                    addPlayerAvatar(to: scene, at: teamAStart[index], color: teamBlue, name: "blue1")
+                } else {
+                    addAvatar(to: scene, at: teamAStart[index], color: teamBlue, name: blueName)
+                }
             }
-            addAvatar(to: scene, at: teamBStart[index], color: teamRed, name: "red\(index + 1)")
+            let redName = "red\(index + 1)"
+            if !addSkinnedCharacter(redCast[index], to: scene, name: redName, at: teamBStart[index], facingY: -.pi / 2, tint: redTint) {
+                addAvatar(to: scene, at: teamBStart[index], color: teamRed, name: redName)
+            }
         }
 
         addBall(to: scene, at: SCNVector3(teamAStart[0].x, 1.4, teamAStart[0].z), color: UIColor(red: 0.8, green: 0.35, blue: 0.1, alpha: 1))
@@ -472,11 +821,14 @@ struct GameSceneFactory {
     }
 
     private static func add3v3Animations(to scene: SCNScene, teamSize: Int) {
+        // Idle drift is applied ONLY to off-ball blue teammates. Red defenders
+        // are driven every frame by addHomingDefense (position=...), so running
+        // a shuffle moveBy on them too makes the two controllers fight and the
+        // defenders jitter/teleport. Blue1 is the player-controlled node — no drift.
         var avatarNames: [String] = []
         if teamSize >= 2 {
             avatarNames.append(contentsOf: (2...teamSize).map { "blue\($0)" })
         }
-        avatarNames.append(contentsOf: (1...teamSize).map { "red\($0)" })
         for name in avatarNames {
             guard let node = scene.rootNode.childNode(withName: name, recursively: true) else { continue }
             let dx = Float.random(in: -1.0...1.0)
@@ -521,10 +873,16 @@ struct GameSceneFactory {
         let scene = SCNScene()
         scene.background.contents = UIColor(red: 0.03, green: 0.01, blue: 0.01, alpha: 1)
 
-        addCamera(to: scene, position: SCNVector3(0, 3.5, 6.5), lookAt: SCNVector3(0, 1.2, 0))
+        // Fighting-game side view: close + low, centered between the two
+        // fighters (x=±1.2, grounded below) at chest height. Was (0,3.5,6.5)
+        // which shrank them to specks over a huge floor.
+        addCamera(to: scene, position: SCNVector3(0, 1.7, 4.5), lookAt: SCNVector3(0, 1.0, 0))
         addLighting(to: scene, tint: UIColor(red: 1.0, green: 0.2, blue: 0.1, alpha: 1))
-
-        addFloor(to: scene, color: UIColor(red: 0.06, green: 0.03, blue: 0.02, alpha: 1), reflectivity: 0.1)
+        // Matte dojo floor (reflectivity 0): the reflective SCNFloor bounced the
+        // key spot into a clipped white/pink hotspot between the fighters. The
+        // dojo cluster lighting is also dropped to interior levels (see
+        // PremiumViewpointConfig .dojo) so the floor no longer blows out.
+        addFloor(to: scene, color: UIColor(red: 0.06, green: 0.03, blue: 0.02, alpha: 1), reflectivity: 0.0)
 
         let mat = SCNBox(width: 6, height: 0.05, length: 6, chamferRadius: 0)
         let matMaterial = SCNMaterial()
@@ -576,8 +934,58 @@ struct GameSceneFactory {
         scene.rootNode.addChildNode(toriiNode)
 
         let redTint = UIColor(red: 1.0, green: 0.15, blue: 0.1, alpha: 1)
-        addPlayerAvatar(to: scene, at: SCNVector3(-1.2, 0, 0), color: redTint, name: "fighter1")
-        addAvatar(to: scene, at: SCNVector3(1.2, 0, 0), color: brandCyan, name: "fighter2")
+
+        // Elijah Bonds Meshy character with retargeted karate mocap (idle for
+        // the player, punch/kick combo loop for the opponent); procedural
+        // stick avatars remain the fallback. Node names stay stable — combat
+        // FX and per-limb actions nil-guard their child lookups.
+        if let player = FELBundledAssets.characterNode(.elijahKarateIdle, height: 1.75) {
+            player.name = "fighter1"
+            player.position = SCNVector3(-1.2, 0, 0)
+            player.eulerAngles.y = .pi / 2
+            scene.rootNode.addChildNode(player)
+        } else {
+            addPlayerAvatar(to: scene, at: SCNVector3(-1.2, 0, 0), color: redTint, name: "fighter1")
+        }
+        // Opponent: prefer the distinct Eric Nash rival for real visual variety;
+        // fall back to the (proven-in-dojo) red-tinted Elijah combo clip, then
+        // to a procedural avatar. The AI drives attacks by swapping in fresh
+        // strike clips at runtime (see GameSceneHostView.playOpponentStrike),
+        // so the opponent is no longer a static mirror.
+        // Opponent = red-tinted Elijah combo clip. The Eric Nash NPC rig still
+        // mis-normalizes in the dojo (skinned mesh collapses; only a static
+        // T-pose mesh survives — confirmed via snapshot diagnostics), so the
+        // proven mirror stays the base. Variety now comes from the runtime AI
+        // swapping in distinct baked strike/guard clips on fighter2.
+        if let opponent = FELBundledAssets.characterNode(.elijahKarateCombo, height: 1.75) {
+            opponent.name = "fighter2"
+            opponent.position = SCNVector3(1.2, 0, 0)
+            opponent.eulerAngles.y = -.pi / 2
+            opponent.enumerateHierarchy { child, _ in
+                for material in child.geometry?.materials ?? [] {
+                    material.multiply.contents = UIColor(red: 1.0, green: 0.55, blue: 0.5, alpha: 1)
+                }
+            }
+            scene.rootNode.addChildNode(opponent)
+        } else {
+            addAvatar(to: scene, at: SCNVector3(1.2, 0, 0), color: brandCyan, name: "fighter2")
+        }
+
+        // Ground both fighters onto the mat. The skinned container's origin
+        // sits well below the feet (feet import ~2.5 world-units up), so without
+        // this the fighters float high above the floor and the camera frames
+        // empty mat. Measure each foot joint's world Y (node is now in the
+        // graph) and drop the node so the feet rest at y≈0. Targeted to the two
+        // dojo fighters — NOT the global normalizer (whose blind offset
+        // overcorrected other modes).
+        for name in ["fighter1", "fighter2"] {
+            guard let f = scene.rootNode.childNode(withName: name, recursively: false) else { continue }
+            let footNode = f.childNode(withName: "LeftFoot", recursively: true)
+                ?? f.childNode(withName: "RightFoot", recursively: true)
+            if let footY = footNode?.worldPosition.y, footY.isFinite {
+                f.position.y -= footY
+            }
+        }
 
         addKarateAnimations(to: scene)
 
@@ -592,43 +1000,29 @@ struct GameSceneFactory {
         guard let fighter1 = scene.rootNode.childNode(withName: "fighter1", recursively: true),
               let fighter2 = scene.rootNode.childNode(withName: "fighter2", recursively: true) else { return }
 
+        // Gentle footwork sway (kept small so the runtime AI's telegraph and
+        // strike clip-swaps read clearly). Both fighters hold their lanes.
         let f1Circle = SCNAction.sequence([
-            SCNAction.moveBy(x: 0.4, y: 0, z: 0.3, duration: 1.2),
-            SCNAction.moveBy(x: -0.3, y: 0, z: -0.5, duration: 1.0),
-            SCNAction.moveBy(x: -0.1, y: 0, z: 0.2, duration: 0.8)
+            SCNAction.moveBy(x: 0.18, y: 0, z: 0.16, duration: 1.2),
+            SCNAction.moveBy(x: -0.14, y: 0, z: -0.24, duration: 1.0),
+            SCNAction.moveBy(x: -0.04, y: 0, z: 0.08, duration: 0.8)
         ])
         f1Circle.timingMode = .easeInEaseOut
         fighter1.runAction(SCNAction.repeatForever(f1Circle), forKey: "circle")
 
         let f2Circle = SCNAction.sequence([
-            SCNAction.moveBy(x: -0.3, y: 0, z: -0.3, duration: 1.0),
-            SCNAction.moveBy(x: 0.4, y: 0, z: 0.5, duration: 1.2),
-            SCNAction.moveBy(x: -0.1, y: 0, z: -0.2, duration: 0.8)
+            SCNAction.moveBy(x: -0.14, y: 0, z: -0.16, duration: 1.0),
+            SCNAction.moveBy(x: 0.18, y: 0, z: 0.24, duration: 1.2),
+            SCNAction.moveBy(x: -0.04, y: 0, z: -0.08, duration: 0.8)
         ])
         f2Circle.timingMode = .easeInEaseOut
         fighter2.runAction(SCNAction.repeatForever(f2Circle), forKey: "circle")
 
-        if let rArm = fighter1.childNode(withName: "rArm", recursively: false) {
-            let punch = SCNAction.sequence([
-                SCNAction.wait(duration: 2.0),
-                SCNAction.rotateTo(x: -1.8, y: 0, z: -0.4, duration: 0.08),
-                SCNAction.rotateTo(x: 0, y: 0, z: -0.4, duration: 0.2),
-                SCNAction.wait(duration: 1.5),
-                SCNAction.rotateTo(x: -1.5, y: 0.3, z: -0.6, duration: 0.1),
-                SCNAction.rotateTo(x: 0, y: 0, z: -0.4, duration: 0.25)
-            ])
-            rArm.runAction(SCNAction.repeatForever(punch), forKey: "punch")
-        }
-
-        if let lLeg = fighter2.childNode(withName: "lLeg", recursively: false) {
-            let kick = SCNAction.sequence([
-                SCNAction.wait(duration: 3.0),
-                SCNAction.rotateTo(x: 1.2, y: 0, z: 0, duration: 0.1),
-                SCNAction.rotateTo(x: 0, y: 0, z: 0, duration: 0.3),
-                SCNAction.wait(duration: 2.5)
-            ])
-            lLeg.runAction(SCNAction.repeatForever(kick), forKey: "kick")
-        }
+        // NOTE: per-limb "rArm"/"lLeg" child actions only existed on the old
+        // procedural stick avatars. On the skinned Meshy rigs those child names
+        // are absent, so real strikes are now driven by runtime baked-clip
+        // swaps (GameSceneHostView playKarateStrike / playOpponentStrike)
+        // rather than dead per-joint rotations here.
     }
 
     // MARK: - Baseball (Stadium Diamond with Pitcher/Catcher/Mound)
@@ -638,7 +1032,7 @@ struct GameSceneFactory {
         scene.background.contents = UIColor(red: 0.01, green: 0.02, blue: 0.05, alpha: 1)
 
         addCamera(to: scene, position: SCNVector3(-2, 4, 6), lookAt: SCNVector3(0, 1, 0))
-        addLighting(to: scene, tint: UIColor(red: 0.3, green: 0.6, blue: 1.0, alpha: 1))
+        addLighting(to: scene, tint: UIColor(red: 1.0, green: 0.96, blue: 0.88, alpha: 1))
 
         addFloor(to: scene, color: UIColor(red: 0.05, green: 0.08, blue: 0.03, alpha: 1), reflectivity: 0.05)
 
@@ -718,8 +1112,16 @@ struct GameSceneFactory {
         line2Node.eulerAngles.y = .pi / 6.5
         scene.rootNode.addChildNode(line2Node)
 
+        // Skinned Elijah at the plate (ready-stance idle, facing the mound);
+        // procedural avatar stays as the fail-soft fallback. Node name/position
+        // are load-bearing: movement + camera-follow find "batter" by name.
         let batterColor = UIColor(red: 0.1, green: 0.5, blue: 0.9, alpha: 1)
-        addPlayerAvatar(to: scene, at: SCNVector3(0.4, 0, 2.8), color: batterColor, name: "batter")
+        if !addSkinnedCharacter(.elijahKarateIdle, to: scene, name: "batter", at: SCNVector3(0.4, 0, 2.8), facingY: .pi) {
+            addPlayerAvatar(to: scene, at: SCNVector3(0.4, 0, 2.8), color: batterColor, name: "batter")
+        }
+        // Ground the reused karate-idle clip: without this the batter floats
+        // ~2.5m off the plate (same bug the dojo fighters had).
+        groundSkinnedCharacter(named: "batter", in: scene)
 
         let pitcherColor = UIColor(red: 0.8, green: 0.2, blue: 0.2, alpha: 1)
         addAvatar(to: scene, at: SCNVector3(0, 0.25, -1.0), color: pitcherColor, name: "pitcher")
@@ -777,7 +1179,7 @@ struct GameSceneFactory {
         scene.background.contents = UIColor(red: 0.02, green: 0.02, blue: 0.03, alpha: 1)
 
         addCamera(to: scene, position: SCNVector3(0, 6, 10), lookAt: SCNVector3(0, 0.5, -2))
-        addLighting(to: scene, tint: UIColor(red: 0.8, green: 0.6, blue: 0.2, alpha: 1))
+        addLighting(to: scene, tint: UIColor(red: 1.0, green: 0.96, blue: 0.88, alpha: 1))
 
         addFloor(to: scene, color: UIColor(red: 0.04, green: 0.08, blue: 0.03, alpha: 1), reflectivity: 0.05)
 
@@ -920,7 +1322,7 @@ struct GameSceneFactory {
         scene.background.contents = UIColor(red: 0.01, green: 0.03, blue: 0.02, alpha: 1)
 
         addCamera(to: scene, position: SCNVector3(0, 4, 8), lookAt: SCNVector3(0, 1.0, -1))
-        addLighting(to: scene, tint: UIColor(red: 0.2, green: 0.9, blue: 0.3, alpha: 1))
+        addLighting(to: scene, tint: UIColor(red: 1.0, green: 0.96, blue: 0.88, alpha: 1))
 
         addFloor(to: scene, color: UIColor(red: 0.04, green: 0.1, blue: 0.03, alpha: 1), reflectivity: 0.05)
 
@@ -970,11 +1372,19 @@ struct GameSceneFactory {
 
         buildGoalNet(in: scene, at: SCNVector3(0, 0, -3.5))
 
+        // Skinned Elijah on the spot (running clip — reads as the penalty
+        // run-up, and its rest pose stays grounded in static renders, unlike
+        // the karate idle whose rest pose floats in a raw T-pose) with the
+        // tall athletic NPC in net; procedural avatars remain the fallback.
         let kickerColor = UIColor(red: 0.2, green: 0.7, blue: 0.3, alpha: 1)
-        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 3.5), color: kickerColor, name: "kicker")
+        if !addSkinnedCharacter(.characterElijahRunning, to: scene, name: "kicker", at: SCNVector3(0, 0, 3.5), facingY: .pi) {
+            addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 3.5), color: kickerColor, name: "kicker")
+        }
 
         let gkColor = UIColor(red: 0.9, green: 0.8, blue: 0.1, alpha: 1)
-        addAvatar(to: scene, at: SCNVector3(0, 0, -3.2), color: gkColor, name: "goalkeeper")
+        if !addSkinnedCharacter(.npcTallAthleticIdle, to: scene, name: "goalkeeper", at: SCNVector3(0, 0, -3.2)) {
+            addAvatar(to: scene, at: SCNVector3(0, 0, -3.2), color: gkColor, name: "goalkeeper")
+        }
 
         if let gk = scene.rootNode.childNode(withName: "goalkeeper", recursively: true) {
             let sway = SCNAction.sequence([
@@ -1045,7 +1455,7 @@ struct GameSceneFactory {
         scene.background.contents = UIColor(red: 0.01, green: 0.02, blue: 0.03, alpha: 1)
 
         addCamera(to: scene, position: SCNVector3(3, 3, 5), lookAt: SCNVector3(0, 0.5, 0))
-        addLighting(to: scene, tint: UIColor(red: 0.3, green: 0.8, blue: 0.4, alpha: 1))
+        addLighting(to: scene, tint: UIColor(red: 1.0, green: 0.96, blue: 0.88, alpha: 1))
 
         addFloor(to: scene, color: UIColor(red: 0.03, green: 0.08, blue: 0.03, alpha: 1), reflectivity: 0.05)
 
@@ -1082,7 +1492,14 @@ struct GameSceneFactory {
         holeNode.position = SCNVector3(0, 0.025, -2)
         scene.rootNode.addChildNode(holeNode)
 
-        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 3), color: UIColor(red: 0.3, green: 0.7, blue: 0.4, alpha: 1), name: "golfer")
+        // Skinned Elijah at the tee (idle stance, facing the pin); procedural
+        // avatar stays as the fail-soft fallback.
+        if !addSkinnedCharacter(.elijahKarateIdle, to: scene, name: "golfer", at: SCNVector3(0, 0, 3), facingY: .pi) {
+            addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 3), color: UIColor(red: 0.3, green: 0.7, blue: 0.4, alpha: 1), name: "golfer")
+        }
+        // Ground the reused karate-idle clip so the golfer stands at the tee
+        // instead of floating above it (same fix as the dojo fighters/batter).
+        groundSkinnedCharacter(named: "golfer", in: scene)
 
         let club = SCNCylinder(radius: 0.012, height: 1.0)
         let clubMat = SCNMaterial()
@@ -1171,8 +1588,10 @@ struct GameSceneFactory {
         let scene = SCNScene()
         scene.background.contents = UIColor(red: 0.02, green: 0.03, blue: 0.06, alpha: 1)
 
-        addCamera(to: scene, position: SCNVector3(0, 5, 8), lookAt: SCNVector3(0, 0.8, 0))
-        addLighting(to: scene, tint: UIColor(red: 0.85, green: 0.75, blue: 0.1, alpha: 1))
+        // Slightly higher/further than the old (0,5,8) baseline vantage so the
+        // near player clears the bottom edge and the full court + net frame.
+        addCamera(to: scene, position: SCNVector3(0, 5.5, 9.5), lookAt: SCNVector3(0, 0.7, 0))
+        addLighting(to: scene, tint: UIColor(red: 1.0, green: 0.96, blue: 0.88, alpha: 1))
 
         addFloor(to: scene, color: UIColor(red: 0.04, green: 0.06, blue: 0.03, alpha: 1), reflectivity: 0.1)
 
@@ -1239,8 +1658,16 @@ struct GameSceneFactory {
         nbNode.position = SCNVector3(0, 1.3, 0)
         scene.rootNode.addChildNode(nbNode)
 
-        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 4.5), color: UIColor(red: 0.85, green: 0.75, blue: 0.1, alpha: 1), name: "player")
-        addAvatar(to: scene, at: SCNVector3(0, 0, -4.5), color: brandCyan, name: "opponent")
+        // Skinned Elijah on the baseline (running clip — he chases the rally
+        // snap) vs the tall athletic NPC across the net (its baked stance
+        // reads as a natural ready pose in static renders, where Eric Nash's
+        // mesh freezes in a raw T-pose); procedural fallback kept.
+        if !addSkinnedCharacter(.characterElijahRunning, to: scene, name: "player", at: SCNVector3(0, 0, 4.5), facingY: .pi) {
+            addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 4.5), color: UIColor(red: 0.85, green: 0.75, blue: 0.1, alpha: 1), name: "player")
+        }
+        if !addSkinnedCharacter(.npcTallAthleticIdle, to: scene, name: "opponent", at: SCNVector3(0, 0, -4.5)) {
+            addAvatar(to: scene, at: SCNVector3(0, 0, -4.5), color: brandCyan, name: "opponent")
+        }
 
         let ball = SCNSphere(radius: 0.035)
         let bMat = SCNMaterial()
@@ -1311,7 +1738,7 @@ struct GameSceneFactory {
         scene.background.contents = UIColor(red: 0.03, green: 0.02, blue: 0.01, alpha: 1)
 
         addCamera(to: scene, position: SCNVector3(0, 4, 8), lookAt: SCNVector3(0, 1.5, 0))
-        addLighting(to: scene, tint: UIColor(red: 0.96, green: 0.62, blue: 0.04, alpha: 1))
+        addLighting(to: scene, tint: UIColor(red: 1.0, green: 0.96, blue: 0.88, alpha: 1))
 
         addFloor(to: scene, color: UIColor(red: 0.76, green: 0.70, blue: 0.50, alpha: 1), reflectivity: 0.05)
 
@@ -1366,8 +1793,12 @@ struct GameSceneFactory {
         nbNode.position = SCNVector3(0, 2.6, 0)
         scene.rootNode.addChildNode(nbNode)
 
+        // Skinned Elijah on the sand (running clip — he chases the rally
+        // snap); teammate/opponents stay procedural, fallback kept.
         let playerColor = UIColor(red: 0.96, green: 0.62, blue: 0.04, alpha: 1)
-        addPlayerAvatar(to: scene, at: SCNVector3(-1.0, 0, 2.5), color: playerColor, name: "vPlayer1")
+        if !addSkinnedCharacter(.characterElijahRunning, to: scene, name: "vPlayer1", at: SCNVector3(-1.0, 0, 2.5), facingY: .pi) {
+            addPlayerAvatar(to: scene, at: SCNVector3(-1.0, 0, 2.5), color: playerColor, name: "vPlayer1")
+        }
         addAvatar(to: scene, at: SCNVector3(1.5, 0, 3.5), color: playerColor, name: "vPlayer2")
 
         let oppColor = brandCyan
@@ -1661,7 +2092,9 @@ struct GameSceneFactory {
             scene.rootNode.addChildNode(podiumNode)
         }
 
-        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 0), color: gymBlue, name: avatarName)
+        if !addSkinnedCharacter(.characterElijahWalking, to: scene, name: avatarName, at: SCNVector3(0, 0, 0)) {
+            addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 0), color: gymBlue, name: avatarName)
+        }
         addExtremeRhythmIdleMotion(playerName: avatarName, to: scene)
 
         addStadiumStands(to: scene, depth: 14)
@@ -2226,19 +2659,24 @@ struct GameSceneFactory {
             particles.birthRate = 0
         }
         
-        particles.particleLifeSpan = 4
-        particles.particleSize = 0.012
-        particles.particleSizeVariation = 0.008
+        particles.particleLifeSpan = 6
+        particles.particleLifeSpanVariation = 2
+        particles.particleSize = 0.010
+        particles.particleSizeVariation = 0.006
         particles.particleColor = color
-        particles.emitterShape = SCNBox(width: CGFloat(area.x), height: CGFloat(area.y), length: CGFloat(area.z), chamferRadius: 0)
-        particles.spreadingAngle = 12
-        particles.particleVelocity = 0.15
-        particles.particleVelocityVariation = 0.06
-        particles.birthDirection = .constant
-        particles.emittingDirection = SCNVector3(0, 1, 0)
+        // Ambient motes drifting across the whole court volume — NOT a thin
+        // upward column. A tight spreadingAngle + a single emit direction
+        // produced a laser-like vertical streak on camera; widen the spread,
+        // raise the emit volume, and slow the drift so it reads as atmosphere.
+        particles.emitterShape = SCNBox(width: CGFloat(area.x), height: 2.4, length: CGFloat(area.z), chamferRadius: 0)
+        particles.spreadingAngle = 180
+        particles.particleVelocity = 0.05
+        particles.particleVelocityVariation = 0.04
+        particles.birthDirection = .random
         particles.blendMode = .additive
+        particles.isAffectedByGravity = false
         emitter.addParticleSystem(particles)
-        emitter.position = SCNVector3(0, 0.1, 0)
+        emitter.position = SCNVector3(0, 1.3, 0)
         scene.rootNode.addChildNode(emitter)
     }
 
@@ -2277,7 +2715,28 @@ struct GameSceneFactory {
         scene.rootNode.addChildNode(cNode)
     }
 
-    private static func addHoop(to scene: SCNScene, x: Float, flip: Bool = false) {
+    private static func addHoop(to scene: SCNScene, x: Float, flip: Bool = false, rimName: String? = nil) {
+        // Prefer the bundled Venice Beach hoop mesh (static Meshy: pole +
+        // backboard + rim + net). Placed so the rim sits at regulation ~3.05m,
+        // pole base on the court, backboard facing the court center. The
+        // `rimName` locator ("hoop") is preserved AT the rim so the dunk
+        // cinematic camera / rim-distortion lookup still find it. Fail-soft:
+        // if the USDZ is missing, fall through to the procedural hoop below.
+        if let hoop = FELBundledAssets.basketballHoopNode(rimHeight: 3.05, rimLocatorName: rimName, flip: !flip) {
+            hoop.position = SCNVector3(x, 0, 0)
+            // Matte the PBR textures under the stylized cluster spots (same
+            // treatment as bundled venues).
+            hoop.enumerateHierarchy { node, _ in
+                for material in node.geometry?.materials ?? [] {
+                    material.metalness.contents = 0.0
+                    material.roughness.contents = 1.0
+                    material.specular.contents = UIColor.black
+                }
+            }
+            scene.rootNode.addChildNode(hoop)
+            return
+        }
+
         let dir: Float = flip ? -1 : 1
 
         let pole = SCNCylinder(radius: 0.06, height: 3.05)
@@ -2306,6 +2765,10 @@ struct GameSceneFactory {
         rim.materials = [rimMat]
         let rimNode = SCNNode(geometry: rim)
         rimNode.position = SCNVector3(x - dir * 0.65, 3.05, 0)
+        // Named only where a caller needs to look the rim up (dunk cinematic
+        // camera targets it). Multi-hoop scenes leave rims unnamed to avoid
+        // duplicate "hoop" nodes.
+        rimNode.name = rimName
         scene.rootNode.addChildNode(rimNode)
     }
 
@@ -2731,21 +3194,26 @@ struct GameSceneFactory {
         }
 
         if useDetailedCrowdEffects {
+            // Wide, slow atmospheric dust over the stands — NOT a thin upward
+            // column (the constant up-direction + narrow spread read as a
+            // vertical streak on camera).
             let crowdNoise = SCNNode()
             let noiseParticles = SCNParticleSystem()
-            noiseParticles.birthRate = 5
-            noiseParticles.particleLifeSpan = 3
-            noiseParticles.particleSize = 0.01
+            noiseParticles.birthRate = 6
+            noiseParticles.particleLifeSpan = 6
+            noiseParticles.particleLifeSpanVariation = 2
+            noiseParticles.particleSize = 0.009
             noiseParticles.particleSizeVariation = 0.005
-            noiseParticles.particleColor = color.withAlphaComponent(0.1)
-            noiseParticles.emitterShape = SCNBox(width: CGFloat(width), height: 0.5, length: CGFloat(depth), chamferRadius: 0)
-            noiseParticles.spreadingAngle = 20
-            noiseParticles.particleVelocity = 0.1
-            noiseParticles.birthDirection = .constant
-            noiseParticles.emittingDirection = SCNVector3(0, 1, 0)
+            noiseParticles.particleColor = color.withAlphaComponent(0.08)
+            noiseParticles.emitterShape = SCNBox(width: CGFloat(width), height: 3.0, length: CGFloat(depth), chamferRadius: 0)
+            noiseParticles.spreadingAngle = 180
+            noiseParticles.particleVelocity = 0.04
+            noiseParticles.particleVelocityVariation = 0.03
+            noiseParticles.birthDirection = .random
             noiseParticles.blendMode = .additive
+            noiseParticles.isAffectedByGravity = false
             crowdNoise.addParticleSystem(noiseParticles)
-            crowdNoise.position = SCNVector3(0, 2, 0)
+            crowdNoise.position = SCNVector3(0, 1.6, 0)
             scene.rootNode.addChildNode(crowdNoise)
         }
     }

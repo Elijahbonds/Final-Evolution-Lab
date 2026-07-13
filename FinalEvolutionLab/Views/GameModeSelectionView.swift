@@ -17,6 +17,8 @@ struct GameModeSelectionView: View {
     @State private var karateCoopPlayerCount = 1
     @State private var showDunkPlatform = false
     @State private var showTriumphLobby = false
+    /// Presents the Venice Ball Shop creator-economy storefront.
+    @State private var showCreatorShop = false
 
     private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)]
 
@@ -24,6 +26,7 @@ struct GameModeSelectionView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: FELSpacing.xxl) {
                 headerSection
+                creatorShopBanner
                 nexusSprintBanner
                 globalMatchmakingBanner
                 triumphCashTournamentBanner
@@ -37,16 +40,22 @@ struct GameModeSelectionView: View {
         }
         .scrollIndicators(.hidden)
         .background(Theme.deepBlack)
+        .navigationDestination(isPresented: $showCreatorShop) {
+            ShopModeView(viewModel: viewModel)
+        }
         .navigationDestination(item: $gameplayRoute) { modeId in
             if modeId == .brainBrawl {
-                BrainBrawl2DView(
+                // Pure SwiftUI Kahoot-style quiz — no GamePlayView/SceneKit shell.
+                BrainBrawlView(
                     viewModel: viewModel,
                     gameMode: GameModeRegistry.mode(for: .brainBrawl),
-                    onDismiss: { gameplayRoute = nil }
+                    onExit: { gameplayRoute = nil }
                 )
                 .id(gameplayLaunchId)
             } else if let mode = GameModeRegistry.all.first(where: { $0.id == modeId }) {
-                GamePlayView(
+                // Shared launcher: Unity-ported heroes -> embedded engine,
+                // everything else -> legacy SceneKit GamePlayView.
+                FELModeLauncherView(
                     viewModel: viewModel,
                     gameMode: mode,
                     sessionReadiness: sessionReadiness
@@ -102,6 +111,73 @@ struct GameModeSelectionView: View {
         .fullScreenCover(isPresented: $showTriumphLobby) {
             TriumphTournamentLobbyView(viewModel: viewModel)
         }
+    }
+
+    /// Prominent entry into the Venice Ball Shop creator-economy storefront.
+    private var creatorShopBanner: some View {
+        Button {
+            FELHaptics.modeSelect()
+            showCreatorShop = true
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "bag.fill")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 52, height: 52)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(
+                                LinearGradient(
+                                    colors: [Theme.brandCyan, Theme.elitePurple],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("SHOP")
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundStyle(Theme.brandCyan)
+                        .tracking(2)
+                    Text("Creator Store")
+                        .font(.system(size: 17, weight: .black))
+                        .foregroundStyle(.white)
+                    Text("Cards, critiques & the creator economy")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Theme.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [Theme.brandCyan.opacity(0.4), Theme.elitePurple.opacity(0.4)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                ),
+                                lineWidth: 1
+                            )
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("CreatorShopBanner")
+        .accessibilityLabel("Creator Store shop")
+        .accessibilityHint("Opens the Venice Ball Shop creator economy storefront")
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 12)
     }
 
     private var nexusSprintBanner: some View {
@@ -419,94 +495,46 @@ struct GameModeCard: View {
     @State private var shimmer = false
 
     var body: some View {
+        // Premium card: icon, name, one metadata line. Flat surface, hairline
+        // stroke that turns accent on press — no gradient layers, no glow.
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
                 HStack {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                RadialGradient(
-                                    colors: [mode.accentColor.opacity(0.2), mode.accentColor.opacity(0.05)],
-                                    center: .center,
-                                    startRadius: 2,
-                                    endRadius: 22
-                                )
-                            )
-                            .frame(width: 42, height: 42)
-
-                        Image(systemName: mode.iconName)
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundStyle(mode.accentColor)
-                            .shadow(color: mode.accentColor.opacity(0.4), radius: 6)
-                    }
+                    Image(systemName: mode.iconName)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(mode.accentColor)
+                        .frame(width: 40, height: 40)
+                        .background(FELDesign.Colors.surfaceRaised)
+                        .clipShape(Circle())
 
                     Spacer()
 
                     multiplayerBadge
-
-                    nexusTierBadge
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(mode.name.uppercased())
-                        .font(.system(.subheadline, weight: .black))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
+                Text(mode.name.uppercased())
+                    .font(FELDesign.Typography.label)
+                    .tracking(0.4)
+                    .foregroundStyle(FELDesign.Colors.textPrimary)
+                    .lineLimit(1)
 
-                    Text(mode.subtitle)
-                        .font(.system(.caption2, design: .monospaced, weight: .medium))
-                        .foregroundStyle(mode.accentColor.opacity(0.8))
-                        .lineLimit(1)
-                }
-
-                HStack(spacing: 4) {
-                    Image(systemName: "location.fill")
-                        .font(.system(size: 8))
-                    Text(mode.environmentName)
-                        .font(.system(size: 9, weight: .medium, design: .monospaced))
-                }
-                .foregroundStyle(.tertiary)
-
-                if let hint = mode.hint {
-                    Text(hint)
-                        .font(.system(size: 8, weight: .medium, design: .monospaced))
-                        .foregroundStyle(mode.accentColor.opacity(0.6))
-                        .lineLimit(1)
-                }
+                Text(mode.environmentName)
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textTertiary)
+                    .lineLimit(1)
             }
-            .padding(14)
+            .padding(FELDesign.Space.md)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(Theme.cardBackground)
-
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(
-                            LinearGradient(
-                                colors: [mode.accentColor.opacity(0.06), .clear, mode.accentColor.opacity(0.03)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-
-                    RoundedRectangle(cornerRadius: 18)
-                        .stroke(
-                            LinearGradient(
-                                colors: [
-                                    mode.accentColor.opacity(isPressed ? 0.5 : 0.15),
-                                    mode.accentColor.opacity(0.05),
-                                    mode.accentColor.opacity(isPressed ? 0.3 : 0.1)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1
-                        )
-                }
-                .shadow(color: mode.accentColor.opacity(isPressed ? 0.15 : 0.05), radius: isPressed ? 12 : 4)
+            .background(FELDesign.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: FELDesign.Radius.lg))
+            .overlay(
+                RoundedRectangle(cornerRadius: FELDesign.Radius.lg)
+                    .stroke(
+                        isPressed ? mode.accentColor : FELDesign.Colors.hairline,
+                        lineWidth: FELDesign.Stroke.hairline
+                    )
             )
-            .scaleEffect(isPressed ? 0.96 : 1)
+            .scaleEffect(isPressed ? 0.97 : 1)
             .opacity(mode.isLaunchableInCurrentBuild ? 1 : 0.55)
         }
         .buttonStyle(.plain)

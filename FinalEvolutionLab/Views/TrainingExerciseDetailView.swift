@@ -13,6 +13,8 @@ struct TrainingExerciseDetailView: View {
     @State private var restTimer: Int = 0
     @State private var timerTask: Task<Void, Never>?
     @State private var exerciseDone: Bool = false
+    /// Flipped by the 3D demo if the skinned model can't render → 2D fallback.
+    @State private var demo3DFailed: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -73,8 +75,19 @@ struct TrainingExerciseDetailView: View {
                             .stroke(accentColor.opacity(0.2), lineWidth: 1)
                     )
 
-                AvatarDemoView(trainingExercise: exercise)
-                    .clipShape(RoundedRectangle(cornerRadius: 24))
+                Group {
+                    if demo3DFailed {
+                        AvatarDemoView(trainingExercise: exercise)
+                    } else {
+                        ExerciseDemo3DView(
+                            exerciseId: exercise.id,
+                            category: exercise.category,
+                            difficulty: exerciseDifficulty,
+                            renderFailed: $demo3DFailed
+                        )
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 24))
 
                 VStack {
                     Spacer()
@@ -302,6 +315,16 @@ struct TrainingExerciseDetailView: View {
         case .mobility: .cyan
         case .agility: .orange
         case .recovery: .purple
+        }
+    }
+
+    /// Amplitude difficulty for the 3D demo, derived from the exercise's
+    /// progression level (1→foundation, 2→flight, 3→elite).
+    private var exerciseDifficulty: Exercise.Difficulty {
+        switch max(level, exercise.progressionLevel) {
+        case 1: .foundation
+        case 2: .flight
+        default: .elite
         }
     }
 

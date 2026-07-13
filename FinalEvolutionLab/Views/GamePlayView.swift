@@ -19,6 +19,10 @@ struct GamePlayView: View {
 
     @State private var score: Int = 0
     @State private var opponentScore: Int = 0
+    /// Last-seen 3v3 controller team totals, so onAI3v3Score adds deltas (not a
+    /// max/sum hybrid) and composes with the player's manual-tap scoring.
+    @State private var ai3v3BlueSeen: Int = 0
+    @State private var ai3v3RedSeen: Int = 0
     @State private var timeRemaining: Int = 60
     @State private var isActive = false
     @State private var showResults = false
@@ -47,6 +51,7 @@ struct GamePlayView: View {
 
     @State private var dunkRound: Int = 1
     @State private var lastJudgeScores: (Int, Int, Int)?
+    @State private var judgeRollUpReveal: Bool = false
     @State private var crowdMessage: String = ""
     @State private var chakraBar: Double = 0
     @State private var karateHitFlash: Bool = false
@@ -210,6 +215,18 @@ struct GamePlayView: View {
         gameMode.id == .basketballHeadToHead || gameMode.id.is3DDunkContest || gameMode.id == .basketball3v3
     }
 
+    /// Modes that run the dribble-vs-walk possession system in the scene host
+    /// (mirror of GameSceneHostView.isBasketballPossessionMode). Jumpshot /
+    /// crossover clip-swaps only make sense in these.
+    private var isBasketballPossession: Bool {
+        switch gameMode.id {
+        case .basketballHeadToHead, .venicePickup, .basketball3v3, .basketballDunkContest3D:
+            return true
+        default:
+            return false
+        }
+    }
+
     private var supportsDefense: Bool {
         gameMode.id == .basketballHeadToHead || gameMode.id == .basketball3v3
     }
@@ -227,6 +244,76 @@ struct GamePlayView: View {
         return score > 0 || maxCombo >= 2 || criticalHits > 0 || playerActionCount >= minA
     }
 
+    /// Shared controller state (Phase 2 input layer) — one instance per session.
+    @State private var felPad = FELGamepadState()
+
+    /// Charge modes always show the pad; 3D avatar sports gain it too so the
+    /// stick drives movement (GameSceneHostView MovementBounds) alongside
+    /// their sport-specific bottom controls.
+    private var usesGamepadOverlay: Bool {
+        if inputScheme == .charge { return true }
+        switch gameMode.id {
+        case .tennis, .volleyball, .soccer, .football, .skateboarding,
+             .snowboarding, .surfing, .gymnastics, .courtCarnival:
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// One-shot karate strike playback signal (see GameSceneHostView).
+    @State private var karateStrikeNonce = 0
+    @State private var karateStrikeAsset: FELBundledAsset?
+
+    /// One-shot basketball crossover / jumpshot playback signals (see
+    /// GameSceneHostView). Bumped when the matching action fires in a basketball
+    /// possession mode; the scene host swaps in the baked dribble-crossover /
+    /// jumpshot clip once, then reverts to dribble/locomotion.
+    @State private var basketballCrossoverNonce = 0
+    @State private var basketballJumpShotNonce = 0
+    /// Which baked dunk clip the dunk contest plays next (alternates between the
+    /// two retargeted power dunks for variety; see setDunkClipActive).
+    @State private var basketballDunkClipAsset: FELBundledAsset = .elijahDunk
+
+    /// One-shot per-sport action playback signal (see SportActionAnimationLibrary
+    /// / GameSceneHostView.playSportAction). Bumped when a covered sport's action
+    /// fires; the scene host prefers a bundled full-body Action_ clip and falls
+    /// back to the procedural arm-swing.
+    @State private var sportActionNonce = 0
+    @State private var sportActionLabel = ""
+
+    // MARK: - Karate Excellence: combo / opponent AI / waves
+    @State private var karateCombo = KarateComboTracker()
+    @State private var recentStrikeButtons: [ArenaPadFaceButton] = []
+    @State private var comboExpiryTask: Task<Void, Never>?
+    /// Opponent (fighter2) animation event bridge.
+    @State private var karateOpponentEventNonce = 0
+    @State private var karateOpponentEvent: KarateOpponentEvent?
+    /// Impact hitstop + contact-burst bridge.
+    @State private var karateHitstopNonce = 0
+    @State private var karateHitstopCritical = false
+    /// Local deterministic opponent AI (1v1 + each endless opponent).
+    @State private var opponentAI: KarateOpponentAI?
+    @State private var opponentHP: Int = 0
+    @State private var opponentMaxHP: Int = 0
+    @State private var opponentAITask: Task<Void, Never>?
+    @State private var pendingOpponentAttack: KarateOpponentAI.Attack?
+    /// Local survival-wave engine (karateEndless).
+    @State private var waveEngine: KarateEndlessWaveEngine?
+    @State private var waveTickTask: Task<Void, Never>?
+    @State private var showWaveClear = false
+    @State private var karateVictory = false
+    /// 1v1 player HP (endless uses `waveEngine.playerHP`). KO drives match end.
+    static let karatePlayerMaxHP = 100
+    @State private var karatePlayerHP: Int = karatePlayerMaxHP
+    /// Set true when the player is defeated (1v1 loss / endless defeat) so the
+    /// results screen shows the KO outcome instead of the score winner.
+    @State private var karateDefeat = false
+    /// Range gate: updated by the scene host when a strike fires — true only if
+    /// the opponent is within reach, so a whiffed (out-of-range) strike deals
+    /// no damage. Defaults true so early frames / harness resolve fail-soft.
+    @State private var karateInStrikeRange = true
+
     var body: some View {
         ZStack {
             Theme.deepBlack.ignoresSafeArea()
@@ -242,6 +329,23 @@ struct GamePlayView: View {
                 controlPanel
             }
             .offset(x: screenShake)
+
+            // Shared controller overlay (Phase 2 input layer): full-screen for
+            // charge modes AND every mode with a free-moving 3D avatar — the
+            // scene host honors per-mode MovementBounds, so the left stick /
+            // D-pad drive the player and face buttons fire mode actions.
+            // Works in portrait and landscape (edge-anchored, reflows).
+            if usesGamepadOverlay {
+                FELGamepadView(state: felPad, isActive: isActive)
+                    .offset(x: screenShake)
+                    .onAppear { configureFELPadBridge() }
+                    .onChange(of: felPad.leftStick) { _, vector in
+                        handlePS2LeftStick(vector)
+                    }
+                    .onChange(of: felPad.rightStick) { _, vector in
+                        handlePS2RightStick(vector)
+                    }
+            }
 
             if showBiomechanicsHUD, let audit = viewModel.biomechanicsAudit {
                 LiveBiomechanicsOverlay(
@@ -259,7 +363,7 @@ struct GamePlayView: View {
 
             if showCriticalFlash {
                 LinearGradient(
-                    colors: [Theme.brandCyan.opacity(0.3), Theme.elitePurple.opacity(0.2)],
+                    colors: [FELDesign.Colors.cyan.opacity(0.3), FELDesign.Colors.purple.opacity(0.2)],
                     startPoint: .top,
                     endPoint: .bottom
                 )
@@ -293,20 +397,17 @@ struct GamePlayView: View {
                     .allowsHitTesting(false)
                     .transition(.opacity)
                     .overlay(
-                        Text("SLOW MOTION")
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.4))
-                            .tracking(4)
+                        FELMicroLabel(text: "Slow Motion", color: FELDesign.Colors.textTertiary)
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                             .padding(.top, 60)
-                            .padding(.leading, 16)
+                            .padding(.leading, FELDesign.Space.md)
                             .allowsHitTesting(false)
                     )
             }
 
             if showPerfectGuard {
                 RadialGradient(
-                    colors: [Theme.brandCyan.opacity(0.5), Theme.elitePurple.opacity(0.3), .clear],
+                    colors: [FELDesign.Colors.cyan.opacity(0.5), FELDesign.Colors.purple.opacity(0.3), .clear],
                     center: .center,
                     startRadius: 10,
                     endRadius: 300
@@ -327,18 +428,9 @@ struct GamePlayView: View {
                 VStack {
                     Spacer()
                     Text(lastTrickName)
-                        .font(.system(size: 24, weight: .black, design: .monospaced))
-                        .italic()
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [gameMode.accentColor, .white, gameMode.accentColor],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .shadow(color: gameMode.accentColor.opacity(0.8), radius: 12)
-                        .shadow(color: .black, radius: 4)
-                        .tracking(3)
+                        .font(FELDesign.Typography.title)
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
+                        .shadow(color: .black.opacity(0.6), radius: 4)
                         .transition(.asymmetric(
                             insertion: .scale(scale: 0.3).combined(with: .opacity),
                             removal: .opacity.combined(with: .move(edge: .top))
@@ -351,6 +443,22 @@ struct GamePlayView: View {
             if showResults {
                 ResultScreen(
                     winner: {
+                        // Karate is decided by KO, not score. Endless is always a
+                        // "defeat" run (you play until you fall) — the score is
+                        // the achievement; a wave-survival finish still reads as
+                        // p1 unless the player was KO'd.
+                        if isKarate {
+                            if karateDefeat { return .p2 }
+                            if karateVictory { return .p1 }
+                            // Timer/exit with no KO: fall back to remaining HP.
+                            let oppFrac = opponentAI?.hpFraction ?? 0
+                            let playerFrac = gameMode.id == .karateEndless
+                                ? (waveEngine?.playerHPFraction ?? 1)
+                                : Double(karatePlayerHP) / Double(Self.karatePlayerMaxHP)
+                            if playerFrac > oppFrac { return .p1 }
+                            if oppFrac > playerFrac { return .p2 }
+                            return .draw
+                        }
                         switch VersusMatchOutcome.winnerSide(playerScore: score, opponentScore: opponentScore) {
                         case .playerWins: return .p1
                         case .opponentWins: return .p2
@@ -418,13 +526,14 @@ struct GamePlayView: View {
                 Button {
                     dismiss()
                 } label: {
-                    HStack(spacing: 4) {
+                    HStack(spacing: FELDesign.Space.xxs) {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 14, weight: .bold))
                         Text("EXIT")
-                            .font(.system(.caption, design: .monospaced, weight: .bold))
+                            .font(FELDesign.Typography.micro)
+                            .tracking(FELDesign.Typography.microTracking)
                     }
-                    .foregroundStyle(gameMode.accentColor)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
                 }
                 .accessibilityIdentifier("GameplayExitButton")
             }
@@ -434,13 +543,13 @@ struct GamePlayView: View {
                         Button("Accept") {
                             multipeerService.acceptPendingInvitation()
                         }
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.green)
+                        .font(FELDesign.Typography.micro)
+                        .foregroundStyle(FELDesign.Colors.success)
                         Button("Decline") {
                             multipeerService.rejectPendingInvitation()
                         }
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.orange)
+                        .font(FELDesign.Typography.micro)
+                        .foregroundStyle(FELDesign.Colors.danger)
                     }
                     Button {
                         withAnimation(.spring(response: 0.3)) {
@@ -449,12 +558,14 @@ struct GamePlayView: View {
                     } label: {
                         Image(systemName: showBiomechanicsHUD ? "figure.run.motion" : "figure.stand")
                             .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(showBiomechanicsHUD ? Theme.brandCyan : .secondary)
+                            .foregroundStyle(showBiomechanicsHUD ? FELDesign.Colors.cyan : FELDesign.Colors.textTertiary)
                             .frame(width: 28, height: 28)
-                            .background(Color.white.opacity(0.06))
+                            .background(FELDesign.Colors.surfaceRaised)
                             .clipShape(Circle())
                     }
-                    NeuralAuraBadge(auraLevel: arcadePhysics.auraLevel)
+                    // (NeuralAuraBadge removed from the live toolbar — a pulsing
+                    // "aura level" sim readout that cluttered the top-right corner.
+                    // Aura still drives effects mechanically; no persistent badge.)
                     peerStatusBadge
                 }
             }
@@ -502,11 +613,9 @@ struct GamePlayView: View {
     // MARK: - HUD Honesty
 
     private var gameplayHonestyStrip: some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 8) {
-                Text(gameMode.subtitle.uppercased())
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.55))
+        VStack(spacing: FELDesign.Space.xxs) {
+            HStack(spacing: FELDesign.Space.xs) {
+                FELMicroLabel(text: gameMode.subtitle, color: FELDesign.Colors.textSecondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                     .accessibilityIdentifier("GameplayModeSubtitle")
@@ -517,20 +626,20 @@ struct GamePlayView: View {
                 }
             }
             if let proxyNote = gameMode.id.venueMeshProxyNote {
-                HStack(spacing: 4) {
+                HStack(spacing: FELDesign.Space.xxs) {
                     Image(systemName: "info.circle")
-                        .font(.system(size: 8, weight: .bold))
+                        .font(.system(size: 9, weight: .semibold))
                     Text(proxyNote)
-                        .font(.system(size: 8, weight: .medium, design: .monospaced))
+                        .font(.system(size: 9, weight: .medium))
                         .multilineTextAlignment(.leading)
                 }
-                .foregroundStyle(.white.opacity(0.45))
+                .foregroundStyle(FELDesign.Colors.textTertiary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityIdentifier("GameplayVenueProxyNote")
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 6)
+        .padding(.horizontal, FELDesign.Space.md)
+        .padding(.bottom, FELDesign.Space.xs)
     }
 
     // MARK: - HUD Bar
@@ -538,114 +647,84 @@ struct GamePlayView: View {
     private var hudBar: some View {
         ZStack {
             HStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 4) {
+                VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
+                    HStack(spacing: FELDesign.Space.xxs) {
                         Circle()
                             .fill(effectiveHudPrimary)
                             .frame(width: 5, height: 5)
-                        Text("YOU")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundStyle(effectiveHudAccent.opacity(0.8))
+                        FELMicroLabel(text: "You", color: FELDesign.Colors.textSecondary)
                     }
                     if let badge = generatorHudBadge {
                         Text(badge)
-                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                            .font(FELDesign.Typography.micro)
+                            .tracking(FELDesign.Typography.microTracking)
                             .foregroundStyle(effectiveHudAccent)
-                            .padding(.horizontal, 6)
+                            .padding(.horizontal, FELDesign.Space.xs)
                             .padding(.vertical, 2)
                             .background(effectiveHudAccent.opacity(0.12))
                             .clipShape(Capsule())
                             .accessibilityIdentifier("GeneratorHudBadgeLabel")
                     }
                     Text("\(score)")
-                        .font(.system(size: 36, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white)
+                        .font(.system(size: 40, weight: .bold, design: .monospaced))
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
                         .contentTransition(.numericText())
-                        .shadow(color: effectiveHudAccent.opacity(0.3), radius: 8)
-                    HStack(spacing: 3) {
-                        Image(systemName: "brain.head.profile.fill")
-                            .font(.system(size: 7))
-                        Text("\(prqAttributeLabel) \(Int(prqAttributeValue * 100))")
-                            .font(.system(size: 8, weight: .bold, design: .monospaced))
-                    }
-                    .foregroundStyle(playerPRQ >= PRQ.legendaryThreshold ? .yellow : gameMode.accentColor.opacity(0.6))
+                    // (PRQ "IQ" attribute label removed — sim chrome that
+                    // cluttered the live HUD; PRQ still shows on results/lab.)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                VStack(spacing: 5) {
+                VStack(spacing: FELDesign.Space.xxs) {
                     ZStack {
                         Circle()
-                            .fill(gameMode.accentColor.opacity(0.1))
+                            .fill(FELDesign.Colors.surfaceRaised)
                             .frame(width: 36, height: 36)
                         Image(systemName: gameMode.iconName)
                             .font(.system(size: 15, weight: .bold))
-                            .foregroundStyle(gameMode.accentColor)
+                            .foregroundStyle(FELDesign.Colors.textSecondary)
                     }
 
                     if isDunkContest {
                         Text("Round \(dunkRound)/3")
-                            .font(.system(size: 11, weight: .black, design: .monospaced))
-                            .foregroundStyle(.orange)
-                            .shadow(color: .orange.opacity(0.3), radius: 6)
+                            .font(FELDesign.Typography.stat)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
                     } else if isBlacktop {
                         Text("First to \(targetScore)")
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
-                            .foregroundStyle(gameMode.accentColor)
+                            .font(FELDesign.Typography.stat)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
                     } else if isTimerBased {
                         Text(timeFormatted)
-                            .font(.system(size: 20, weight: .black, design: .monospaced))
-                            .foregroundStyle(timeRemaining <= 10 ? .red : gameMode.accentColor)
+                            .font(.system(size: 20, weight: .bold, design: .monospaced))
+                            .foregroundStyle(timeRemaining <= 10 ? FELDesign.Colors.danger : FELDesign.Colors.textPrimary)
                             .contentTransition(.numericText())
-                            .shadow(color: (timeRemaining <= 10 ? Color.red : gameMode.accentColor).opacity(0.4), radius: 8)
                     } else {
                         Text("R\(roundNumber)/\(maxRounds)")
-                            .font(.system(size: 14, weight: .black, design: .monospaced))
-                            .foregroundStyle(gameMode.accentColor)
+                            .font(FELDesign.Typography.stat)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
                     }
 
-                    if arcadePhysics.neuralBurstActive {
-                        HStack(spacing: 3) {
-                            Image(systemName: "bolt.fill")
-                                .font(.system(size: 8))
-                            Text("1.5x")
-                                .font(.system(size: 9, weight: .black, design: .monospaced))
-                        }
-                        .foregroundStyle(Theme.elitePurple)
-                        .shadow(color: Theme.elitePurple.opacity(0.4), radius: 6)
-                    }
-
-                    if nexusEngine.isLinked {
-                        HStack(spacing: 3) {
-                            Circle()
-                                .fill(Theme.brandCyan)
-                                .frame(width: 5, height: 5)
-                            Text("NEXUS \(nexusEngine.throwCatchPhase.label)")
-                                .font(.system(size: 8, weight: .bold, design: .monospaced))
-                            Text(String(format: "%.2fx", nexusEngine.powerMultiplier))
-                                .font(.system(size: 8, weight: .black, design: .monospaced))
-                        }
-                        .foregroundStyle(Theme.brandCyan.opacity(0.85))
-                    }
+                    // (Neural-burst + "NEXUS <phase> x" multiplier chrome removed
+                    // from the live HUD — sim readouts that cluttered the top bar.
+                    // The burst still applies mechanically; a brief on-activation
+                    // flash conveys it without a persistent readout.)
                 }
 
-                VStack(alignment: .trailing, spacing: 2) {
-                    HStack(spacing: 4) {
-                        Text("OPP")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.secondary)
+                VStack(alignment: .trailing, spacing: FELDesign.Space.xxs) {
+                    HStack(spacing: FELDesign.Space.xxs) {
+                        FELMicroLabel(text: "Opp", color: FELDesign.Colors.textTertiary)
                         Circle()
-                            .fill(.secondary.opacity(0.4))
+                            .fill(FELDesign.Colors.textTertiary)
                             .frame(width: 5, height: 5)
                     }
                     Text("\(opponentScore)")
-                        .font(.system(size: 36, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.5))
+                        .font(.system(size: 36, weight: .bold, design: .monospaced))
+                        .foregroundStyle(FELDesign.Colors.textSecondary)
                         .contentTransition(.numericText())
                 }
                 .frame(maxWidth: .infinity, alignment: .trailing)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
+            .padding(.horizontal, FELDesign.Space.md)
+            .padding(.vertical, FELDesign.Space.md)
 
             if isKarate {
                 VStack {
@@ -653,21 +732,13 @@ struct GamePlayView: View {
                     HStack {
                         Spacer()
                         VStack(alignment: .trailing, spacing: 2) {
-                            Text("CHAKRA")
-                                .font(.system(size: 8, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.orange.opacity(0.9))
+                            FELMicroLabel(text: "Chakra", color: FELDesign.Colors.textTertiary)
                             GeometryReader { geo in
                                 ZStack(alignment: .leading) {
                                     RoundedRectangle(cornerRadius: 3)
                                         .fill(Color.black.opacity(0.5))
                                     RoundedRectangle(cornerRadius: 3)
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [.orange, .yellow],
-                                                startPoint: .leading,
-                                                endPoint: .trailing
-                                            )
-                                        )
+                                        .fill(FELDesign.Colors.cyan)
                                         .frame(width: geo.size.width * (chakraBar / 100))
                                         .animation(.spring(response: 0.3), value: chakraBar)
                                 }
@@ -676,35 +747,20 @@ struct GamePlayView: View {
                             .clipShape(.rect(cornerRadius: 3))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 3)
-                                    .stroke(.orange.opacity(0.4), lineWidth: 0.5)
+                                    .stroke(FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline)
                             )
                         }
-                        .padding(.trailing, 20)
+                        .padding(.trailing, FELDesign.Space.md)
                     }
                 }
                 .padding(.bottom, 4)
             }
         }
-        .background(
-            ZStack {
-                Theme.cardBackground.opacity(0.9)
-                LinearGradient(
-                    colors: [gameMode.accentColor.opacity(0.04), .clear],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            }
-        )
+        .background(FELDesign.Colors.surface.opacity(0.92))
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(
-                    LinearGradient(
-                        colors: [gameMode.accentColor.opacity(0.4), gameMode.accentColor.opacity(0.0)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .frame(height: 1)
+                .fill(FELDesign.Colors.hairline)
+                .frame(height: FELDesign.Stroke.hairline)
         }
     }
 
@@ -729,7 +785,43 @@ struct GamePlayView: View {
                 isMidAir: isDunkContest ? (dunkEngine.phase == .airborne || dunkEngine.phase == .launch) : false,
                 isSpecialMove: isSlowMo || showVanishFlash || showPerfectGuard,
                 isSlowMotion: isSlowMo,
-                avatarAppearance: GameplayAvatarAppearance.fromProfile(viewModel.profile)
+                avatarAppearance: GameplayAvatarAppearance.fromProfile(viewModel.profile),
+                karateStrikeNonce: karateStrikeNonce,
+                karateStrikeAsset: karateStrikeAsset,
+                karateOpponentEventNonce: karateOpponentEventNonce,
+                karateOpponentEvent: karateOpponentEvent,
+                karateHitstopNonce: karateHitstopNonce,
+                karateHitstopCritical: karateHitstopCritical,
+                basketballCrossoverNonce: basketballCrossoverNonce,
+                basketballJumpShotNonce: basketballJumpShotNonce,
+                basketballDunkClipAsset: basketballDunkClipAsset,
+                sportActionNonce: sportActionNonce,
+                sportActionLabel: sportActionLabel,
+                onKarateStrike: { inRange in karateInStrikeRange = inRange },
+                onAI3v3Score: { isPlayerTeam, teamTotal in
+                    // The on-court AI scored (never blue1 — the human's makes go
+                    // through performAction). teamTotal is the controller's
+                    // cumulative team score; add the DELTA since we last saw it so
+                    // it composes additively with the player's own manual taps
+                    // instead of a max/sum hybrid (P2). Blue teammates (blue2/
+                    // blue3) assist the player's side → player score; red → the
+                    // scoreboard opponent. Both feed the target-21 / countdown end.
+                    guard isActive else { return }
+                    withAnimation(.spring(response: 0.25)) {
+                        if isPlayerTeam {
+                            let delta = max(0, teamTotal - ai3v3BlueSeen)
+                            ai3v3BlueSeen = teamTotal
+                            score += delta
+                        } else {
+                            let delta = max(0, teamTotal - ai3v3RedSeen)
+                            ai3v3RedSeen = teamTotal
+                            opponentScore += delta
+                        }
+                    }
+                    if isBlacktop && gameRules.usesTargetScoreWin {
+                        if score >= targetScore || opponentScore >= targetScore { endGame() }
+                    }
+                }
             )
             .clipShape(.rect(cornerRadius: 0))
 
@@ -737,32 +829,43 @@ struct GamePlayView: View {
                 sceneViewportLoadingOverlay
             }
 
+            if isKarate {
+                karateCombatOverlay
+            }
+
             if combo > 1 {
                 VStack {
                     Spacer()
                     HStack {
                         Spacer()
-                        VStack(spacing: 4) {
+                        VStack(spacing: FELDesign.Space.xxs) {
                             Text(isKarate ? "\(combo) HIT COMBO!" : "\(combo)x COMBO")
-                                .font(.system(size: isKarate ? 20 : 16, weight: .black, design: .monospaced))
-                                .foregroundStyle(isKarate ? .orange : (combo >= 5 ? Theme.brandCyan : gameMode.accentColor))
-                                .shadow(color: isKarate ? .orange.opacity(0.6) : .clear, radius: 8)
-                            if !isKarate {
-                                Text(String(format: "%.1fx", arcadePhysics.comboMultiplier(for: combo)))
-                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(.white.opacity(0.6))
+                                .font(FELDesign.Typography.stat)
+                                .foregroundStyle(comboColor)
+                            Group {
+                                if isKarate {
+                                    Text(karateComboSubtitle)
+                                } else {
+                                    Text(String(format: "%.1fx", arcadePhysics.comboMultiplier(for: combo)))
+                                }
                             }
+                            .font(FELDesign.Typography.statSmall)
+                            .foregroundStyle(combo >= 8 ? FELDesign.Colors.purple : FELDesign.Colors.textSecondary)
                         }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(
-                            isKarate ? .orange.opacity(0.15) :
-                            (combo >= 5 ? Theme.brandCyan.opacity(0.2) : gameMode.accentColor.opacity(0.15))
+                        .padding(.horizontal, FELDesign.Space.md)
+                        .padding(.vertical, FELDesign.Space.xs)
+                        .background(FELDesign.Colors.surface.opacity(0.85))
+                        .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                                .stroke(combo >= 5 ? FELDesign.Colors.glow(comboColor, 0.55) : FELDesign.Colors.hairline,
+                                        lineWidth: combo >= 5 ? FELDesign.Stroke.accent : FELDesign.Stroke.hairline)
                         )
-                        .clipShape(.rect(cornerRadius: 12))
-                        .scaleEffect(combo >= 5 ? 1.1 : 1.0)
+                        .shadow(color: combo >= 5 ? FELDesign.Colors.glow(comboColor, 0.6) : .clear,
+                                radius: combo >= 8 ? 12 : 6)
+                        .scaleEffect(1.0 + min(CGFloat(combo), 12) * 0.02)
                         .animation(.spring(response: 0.2, dampingFraction: 0.5), value: combo)
-                        .padding(16)
+                        .padding(FELDesign.Space.md)
                     }
                 }
             }
@@ -792,7 +895,20 @@ struct GamePlayView: View {
             }
 
             if let judges = lastJudgeScores {
-                dunkJudgeOverlay(j1: judges.0, j2: judges.1, j3: judges.2)
+                VStack {
+                    Spacer()
+                    JudgeScoreRollUp(
+                        judges: [judges.0, judges.1, judges.2],
+                        maxPerJudge: 17,
+                        accent: FELDesign.Colors.cyan,
+                        eliteTotalThreshold: 42,
+                        message: crowdMessage,
+                        reveal: $judgeRollUpReveal
+                    )
+                    .padding(.bottom, 80)
+                }
+                .allowsHitTesting(false)
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
 
             if isDunkContest && isActive && dunkEngine.phase != .idle && dunkEngine.phase != .scored {
@@ -813,20 +929,13 @@ struct GamePlayView: View {
 
     private var sceneViewportLoadingOverlay: some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    Theme.deepBlack.opacity(0.92),
-                    gameMode.accentColor.opacity(0.08)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            VStack(spacing: 10) {
+            FELDesign.Colors.ink.opacity(0.92)
+            VStack(spacing: FELDesign.Space.sm) {
                 ProgressView()
-                    .tint(gameMode.accentColor)
+                    .tint(FELDesign.Colors.cyan)
                 Text("Loading \(gameMode.name) arena…")
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.75))
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
             }
         }
         .allowsHitTesting(false)
@@ -919,106 +1028,16 @@ struct GamePlayView: View {
     }
 
     // MARK: - Dunk Judge Overlay
-
-    private func dunkJudgeOverlay(j1: Int, j2: Int, j3: Int) -> some View {
-        let total = j1 + j2 + j3
-        let isElite = total >= 42
-        return VStack(spacing: 8) {
-            Spacer()
-
-            VStack(spacing: 12) {
-                HStack(spacing: 16) {
-                    judgeScoreView(label: "Judge 1", score: j1, isElite: isElite)
-                    judgeScoreView(label: "Judge 2", score: j2, isElite: isElite)
-                    judgeScoreView(label: "Judge 3", score: j3, isElite: isElite)
-                }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 16)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(.ultraThinMaterial)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(
-                                    LinearGradient(
-                                        colors: [.orange.opacity(0.6), .yellow.opacity(0.3)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 2
-                                )
-                        )
-                        .shadow(color: .orange.opacity(0.2), radius: 20)
-                )
-
-                Text("\(total)")
-                    .font(.system(size: 42, weight: .black, design: .monospaced))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: isElite ? [.yellow, .orange, .yellow] : [.white, .white.opacity(0.8)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .shadow(color: isElite ? .orange.opacity(0.5) : .clear, radius: 16)
-
-                if !crowdMessage.isEmpty {
-                    Text(crowdMessage)
-                        .font(.system(size: 18, weight: .black, design: .monospaced))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [.orange, .yellow],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .tracking(3)
-                        .shadow(color: .orange.opacity(0.6), radius: 12)
-                }
-            }
-            .padding(.bottom, 80)
-        }
-        .allowsHitTesting(false)
-        .transition(.opacity.combined(with: .move(edge: .bottom)))
-    }
-
-    private func judgeScoreView(label: String, score: Int, isElite: Bool) -> some View {
-        VStack(spacing: 6) {
-            Text(label.uppercased())
-                .font(.system(size: 8, weight: .bold, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.5))
-                .tracking(1)
-            Text("\(score)")
-                .font(.system(size: 32, weight: .black, design: .monospaced))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: score >= 47 ? [.yellow, .orange] : [.orange, .orange.opacity(0.8)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .shadow(color: score >= 47 ? .yellow.opacity(0.5) : .clear, radius: 8)
-        }
-    }
+    // Judge reveal is rendered by the reusable JudgeScoreRollUp component
+    // (FELJudgeScoreRollUp.swift), driven by `judgeRollUpReveal`.
 
     // MARK: - Control Panel
 
     private var controlPanel: some View {
         VStack(spacing: 8) {
             if inputScheme == .charge {
-                ArenaPadOverlay(
-                    onFaceButton: handleArenaPadFaceButton,
-                    onDPad: handlePS2DPad,
-                    onLeftStick: handlePS2LeftStick,
-                    onRightStick: handlePS2RightStick,
-                    onLeftShoulder: handlePS2LeftShoulder,
-                    onRightShoulder: handlePS2RightShoulder,
-                    accentColor: gameMode.accentColor,
-                    isActive: isActive
-                )
-                .frame(height: 190)
-                .padding(.horizontal, 4)
-
+                // Pad input now comes from the full-screen FELGamepadView
+                // overlay (see body); only mode-specific quick actions remain.
                 if isDunkContest {
                     dunkContestActionButtons
                         .padding(.horizontal, 12)
@@ -2635,33 +2654,31 @@ struct GamePlayView: View {
                     dunkEngine.setModifier(styleTrigger: styleTriggerHeld, powerTrigger: powerTriggerHeld)
                 }
             } label: {
-                HStack(spacing: 4) {
+                HStack(spacing: FELDesign.Space.xxs) {
                     Image(systemName: "l2.button.roundedbottom.horizontal")
                         .font(.system(size: 11, weight: .bold))
                     Text("STYLE")
-                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .font(FELDesign.Typography.micro)
+                        .tracking(FELDesign.Typography.microTracking)
                 }
-                .foregroundStyle(styleTriggerHeld ? .black : .purple)
+                .foregroundStyle(styleTriggerHeld ? FELDesign.Colors.ink : FELDesign.Colors.purple)
                 .frame(maxWidth: .infinity)
                 .frame(height: 40)
                 .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(styleTriggerHeld ? Color.purple : Color.purple.opacity(0.12))
+                    RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                        .fill(styleTriggerHeld ? FELDesign.Colors.purple : FELDesign.Colors.surfaceRaised)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.purple.opacity(0.4), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                                .stroke(styleTriggerHeld ? FELDesign.Colors.purple : FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)
                         )
                 )
             }
 
             VStack(spacing: 2) {
-                Text(dunkEngine.activeModifier.label)
-                    .font(.system(size: 9, weight: .black, design: .monospaced))
-                    .foregroundStyle(modifierLabelColor)
-                    .tracking(1)
+                FELMicroLabel(text: dunkEngine.activeModifier.label, color: modifierLabelColor)
                 Text(String(format: "%.1fx", dunkEngine.activeModifier.scoreMultiplier))
-                    .font(.system(size: 8, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.5))
+                    .font(FELDesign.Typography.statSmall)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
             }
             .frame(width: 70)
 
@@ -2671,21 +2688,22 @@ struct GamePlayView: View {
                     dunkEngine.setModifier(styleTrigger: styleTriggerHeld, powerTrigger: powerTriggerHeld)
                 }
             } label: {
-                HStack(spacing: 4) {
+                HStack(spacing: FELDesign.Space.xxs) {
                     Image(systemName: "r2.button.roundedbottom.horizontal")
                         .font(.system(size: 11, weight: .bold))
                     Text("POWER")
-                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .font(FELDesign.Typography.micro)
+                        .tracking(FELDesign.Typography.microTracking)
                 }
-                .foregroundStyle(powerTriggerHeld ? .black : .red)
+                .foregroundStyle(powerTriggerHeld ? FELDesign.Colors.ink : FELDesign.Colors.cyan)
                 .frame(maxWidth: .infinity)
                 .frame(height: 40)
                 .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(powerTriggerHeld ? Color.red : Color.red.opacity(0.12))
+                    RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                        .fill(powerTriggerHeld ? FELDesign.Colors.cyan : FELDesign.Colors.surfaceRaised)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.red.opacity(0.4), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                                .stroke(powerTriggerHeld ? FELDesign.Colors.cyan : FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)
                         )
                 )
             }
@@ -2694,27 +2712,24 @@ struct GamePlayView: View {
 
     private var modifierLabelColor: Color {
         switch dunkEngine.activeModifier {
-        case .standard: return .white.opacity(0.6)
-        case .flashy: return .purple
-        case .power: return .red
-        case .signature: return .yellow
+        case .standard: return FELDesign.Colors.textSecondary
+        case .flashy: return FELDesign.Colors.purple
+        case .power: return FELDesign.Colors.cyan
+        case .signature: return FELDesign.Colors.purple
         }
     }
 
     private var dunkTrickSelector: some View {
         VStack(spacing: 8) {
-            HStack(spacing: 6) {
+            HStack(spacing: FELDesign.Space.xs) {
                 Image(systemName: "sparkles")
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(.orange)
-                Text("SELECT TRICK")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .foregroundStyle(.orange)
-                    .tracking(2)
+                    .foregroundStyle(FELDesign.Colors.textTertiary)
+                FELMicroLabel(text: "Select Trick", color: FELDesign.Colors.textSecondary)
                 Spacer()
                 Text("R\(dunkEngine.round)/\(dunkEngine.totalRounds)")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.5))
+                    .font(FELDesign.Typography.statSmall)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -2725,29 +2740,31 @@ struct GamePlayView: View {
                                 dunkEngine.selectedTrick = trick
                             }
                         } label: {
-                            VStack(spacing: 4) {
+                            VStack(spacing: FELDesign.Space.xxs) {
                                 Image(systemName: trick.icon)
                                     .font(.system(size: 16, weight: .bold))
                                 Text(trick.rawValue)
-                                    .font(.system(size: 7, weight: .black, design: .monospaced))
+                                    .font(.system(size: 9, weight: .semibold))
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.7)
                                 HStack(spacing: 2) {
                                     ForEach(0..<5, id: \.self) { i in
                                         Circle()
-                                            .fill(Double(i) / 5.0 < trick.complexity ? .orange : .white.opacity(0.15))
+                                            .fill(Double(i) / 5.0 < trick.complexity
+                                                ? (dunkEngine.selectedTrick == trick ? FELDesign.Colors.ink : FELDesign.Colors.cyan)
+                                                : (dunkEngine.selectedTrick == trick ? FELDesign.Colors.ink.opacity(0.3) : FELDesign.Colors.hairline))
                                             .frame(width: 4, height: 4)
                                     }
                                 }
                             }
-                            .foregroundStyle(dunkEngine.selectedTrick == trick ? .black : .white)
+                            .foregroundStyle(dunkEngine.selectedTrick == trick ? FELDesign.Colors.ink : FELDesign.Colors.textPrimary)
                             .frame(width: 72, height: 70)
                             .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(dunkEngine.selectedTrick == trick ? .orange : .orange.opacity(0.1))
+                                RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                                    .fill(dunkEngine.selectedTrick == trick ? FELDesign.Colors.cyan : FELDesign.Colors.surfaceRaised)
                                     .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(dunkEngine.selectedTrick == trick ? .orange : .orange.opacity(0.25), lineWidth: 1.5)
+                                        RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                                            .stroke(dunkEngine.selectedTrick == trick ? FELDesign.Colors.cyan : FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline)
                                     )
                             )
                         }
@@ -2767,20 +2784,13 @@ struct GamePlayView: View {
                 Image(systemName: "figure.run")
                     .font(.system(size: 18, weight: .bold))
                 Text("START APPROACH")
-                    .font(.system(size: 14, weight: .black, design: .monospaced))
+                    .font(FELDesign.Typography.label)
             }
-            .foregroundStyle(.black)
+            .foregroundStyle(FELDesign.Colors.ink)
             .frame(maxWidth: .infinity)
             .frame(height: 56)
-            .background(
-                LinearGradient(
-                    colors: [.orange, Color(red: 1.0, green: 0.5, blue: 0.0)],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
-            .clipShape(.rect(cornerRadius: 16))
-            .shadow(color: .orange.opacity(0.3), radius: 12)
+            .background(FELDesign.Colors.cyan)
+            .clipShape(.rect(cornerRadius: FELDesign.Radius.lg))
         }
         .disabled(!isActive)
         .opacity(isActive ? 1 : 0.5)
@@ -2788,18 +2798,15 @@ struct GamePlayView: View {
 
     private var dunkSprintChargeView: some View {
         VStack(spacing: 10) {
-            HStack(spacing: 6) {
+            HStack(spacing: FELDesign.Space.xs) {
                 Image(systemName: "bolt.fill")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.cyan)
-                Text("HOLD TO SPRINT")
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white)
-                    .tracking(1)
+                    .foregroundStyle(FELDesign.Colors.cyan)
+                FELMicroLabel(text: "Hold to Sprint", color: FELDesign.Colors.textPrimary)
                 Spacer()
                 Text("\(Int(dunkEngine.sprintCharge * 100))%")
-                    .font(.system(size: 14, weight: .black, design: .monospaced))
-                    .foregroundStyle(.cyan)
+                    .font(FELDesign.Typography.stat)
+                    .foregroundStyle(FELDesign.Colors.cyan)
                     .contentTransition(.numericText())
             }
 
@@ -2808,13 +2815,7 @@ struct GamePlayView: View {
                     RoundedRectangle(cornerRadius: 6)
                         .fill(Color.black.opacity(0.6))
                     RoundedRectangle(cornerRadius: 6)
-                        .fill(
-                            LinearGradient(
-                                colors: [.cyan, dunkEngine.sprintCharge > 0.8 ? .orange : .blue],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .fill(dunkEngine.sprintCharge > 0.8 ? FELDesign.Colors.purple : FELDesign.Colors.cyan)
                         .frame(width: geo.size.width * dunkEngine.sprintCharge)
                         .animation(.linear(duration: 0.05), value: dunkEngine.sprintCharge)
                 }
@@ -2823,90 +2824,77 @@ struct GamePlayView: View {
             .clipShape(.rect(cornerRadius: 6))
             .overlay(
                 RoundedRectangle(cornerRadius: 6)
-                    .stroke(.cyan.opacity(0.4), lineWidth: 1)
+                    .stroke(FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)
             )
 
             Button {
                 releaseDunkSprint()
             } label: {
                 Text("RELEASE TO LAUNCH")
-                    .font(.system(size: 13, weight: .black, design: .monospaced))
-                    .foregroundStyle(.black)
+                    .font(FELDesign.Typography.label)
+                    .foregroundStyle(FELDesign.Colors.ink)
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
-                    .background(
-                        LinearGradient(
-                            colors: [.cyan, .blue],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .clipShape(.rect(cornerRadius: 14))
+                    .background(FELDesign.Colors.cyan)
+                    .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
             }
         }
     }
 
     private var dunkLaunchTimingView: some View {
         VStack(spacing: 10) {
-            HStack(spacing: 6) {
+            HStack(spacing: FELDesign.Space.xs) {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.green)
-                Text("TAP TO JUMP")
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white)
-                    .tracking(1)
+                    .foregroundStyle(FELDesign.Colors.success)
+                FELMicroLabel(text: "Tap to Jump", color: FELDesign.Colors.textPrimary)
                 Spacer()
             }
 
             dunkTimingBar(
                 value: dunkEngine.launchTiming,
                 greenZone: dunkEngine.launchGreenZone,
-                accentColor: .green
+                accentColor: FELDesign.Colors.success
             )
 
             Button {
                 confirmDunkLaunch()
             } label: {
                 Text("JUMP!")
-                    .font(.system(size: 16, weight: .black, design: .monospaced))
-                    .foregroundStyle(.black)
+                    .font(FELDesign.Typography.label)
+                    .foregroundStyle(FELDesign.Colors.ink)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
                     .background(
                         dunkEngine.launchGreenZone.contains(dunkEngine.launchTiming)
-                            ? Color.green
-                            : Color.green.opacity(0.4)
+                            ? FELDesign.Colors.cyan
+                            : FELDesign.Colors.glow(FELDesign.Colors.cyan, 0.4)
                     )
-                    .clipShape(.rect(cornerRadius: 14))
-                    .shadow(color: .green.opacity(0.3), radius: 8)
+                    .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
             }
         }
     }
 
     private var dunkArcadeAirborneControls: some View {
         VStack(spacing: 8) {
-            HStack(spacing: 6) {
+            HStack(spacing: FELDesign.Space.xs) {
                 Image(systemName: "figure.highintensity.intervaltraining")
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(.purple)
-                Text(dunkEngine.selectedTrick.rawValue)
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white)
-                    .tracking(1)
+                    .foregroundStyle(FELDesign.Colors.purple)
+                FELMicroLabel(text: dunkEngine.selectedTrick.rawValue, color: FELDesign.Colors.textPrimary)
                 Spacer()
                 if dunkEngine.midAirState.branchCount > 0 {
                     HStack(spacing: 3) {
                         Image(systemName: "link")
                             .font(.system(size: 8, weight: .bold))
                         Text("\(dunkEngine.midAirState.branchCount)x CHAIN")
-                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                            .font(FELDesign.Typography.statSmall)
                     }
-                    .foregroundStyle(.yellow)
+                    .foregroundStyle(FELDesign.Colors.purple)
                 }
                 Text("\(Int(dunkEngine.completedRotation * 100))%")
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
-                    .foregroundStyle(dunkEngine.completedRotation >= 0.9 ? .green : .purple)
+                    .font(FELDesign.Typography.statSmall)
+                    .foregroundStyle(dunkEngine.completedRotation >= 0.9 ? FELDesign.Colors.success : FELDesign.Colors.textPrimary)
                     .contentTransition(.numericText())
             }
 
@@ -2915,13 +2903,7 @@ struct GamePlayView: View {
                     RoundedRectangle(cornerRadius: 5)
                         .fill(Color.black.opacity(0.6))
                     RoundedRectangle(cornerRadius: 5)
-                        .fill(
-                            LinearGradient(
-                                colors: [.purple, dunkEngine.completedRotation >= 0.9 ? .green : .pink],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .fill(dunkEngine.completedRotation >= 0.9 ? FELDesign.Colors.success : FELDesign.Colors.purple)
                         .frame(width: geo.size.width * min(1, dunkEngine.completedRotation))
                         .animation(.linear(duration: 0.05), value: dunkEngine.completedRotation)
                 }
@@ -2931,8 +2913,8 @@ struct GamePlayView: View {
 
             if !dunkEngine.midAirState.trickChainLabel.isEmpty {
                 Text(dunkEngine.midAirState.trickChainLabel)
-                    .font(.system(size: 8, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.cyan.opacity(0.8))
+                    .font(FELDesign.Typography.statSmall)
+                    .foregroundStyle(FELDesign.Colors.cyan)
                     .lineLimit(1)
                     .transition(.opacity)
             }
@@ -2951,8 +2933,9 @@ struct GamePlayView: View {
                                     blue: button.displayColor.b
                                 ))
                             Text(button.dunkCategory.uppercased())
-                                .font(.system(size: 6, weight: .black, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.7))
+                                .font(.system(size: 8, weight: .semibold))
+                                .tracking(0.8)
+                                .foregroundStyle(FELDesign.Colors.textSecondary)
                                 .lineLimit(1)
                         }
                         .frame(maxWidth: .infinity)
@@ -2986,24 +2969,18 @@ struct GamePlayView: View {
                     Button {
                         handleStyleLanding()
                     } label: {
-                        HStack(spacing: 5) {
+                        HStack(spacing: FELDesign.Space.xxs) {
                             Image(systemName: "l1.button.roundedbottom.horizontal")
                                 .font(.system(size: 11, weight: .bold))
                             Text("STYLE LAND")
-                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                                .font(FELDesign.Typography.micro)
+                                .tracking(FELDesign.Typography.microTracking)
                         }
-                        .foregroundStyle(.black)
+                        .foregroundStyle(FELDesign.Colors.ink)
                         .frame(maxWidth: .infinity)
                         .frame(height: 44)
-                        .background(
-                            LinearGradient(
-                                colors: [.cyan, .blue],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .clipShape(.rect(cornerRadius: 12))
-                        .shadow(color: .cyan.opacity(0.4), radius: 8)
+                        .background(FELDesign.Colors.purple)
+                        .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
                     }
                     .transition(.scale(scale: 0.8).combined(with: .opacity))
                 }
@@ -3011,39 +2988,33 @@ struct GamePlayView: View {
                 Button {
                     confirmDunkLanding()
                 } label: {
-                    HStack(spacing: 5) {
+                    HStack(spacing: FELDesign.Space.xxs) {
                         Image(systemName: "arrow.down.to.line.compact")
                             .font(.system(size: 13, weight: .bold))
                         Text("SLAM!")
-                            .font(.system(size: 12, weight: .black, design: .monospaced))
+                            .font(FELDesign.Typography.micro)
+                            .tracking(FELDesign.Typography.microTracking)
                     }
-                    .foregroundStyle(.black)
+                    .foregroundStyle(FELDesign.Colors.ink)
                     .frame(maxWidth: .infinity)
                     .frame(height: 44)
-                    .background(
-                        LinearGradient(
-                            colors: [.orange, .yellow],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .clipShape(.rect(cornerRadius: 12))
-                    .shadow(color: .orange.opacity(0.4), radius: 8)
+                    .background(FELDesign.Colors.cyan)
+                    .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
                 }
             }
 
             if dunkEngine.totalFreestylePoints > 0 {
-                HStack(spacing: 6) {
+                HStack(spacing: FELDesign.Space.xs) {
                     Image(systemName: "star.fill")
                         .font(.system(size: 9))
-                        .foregroundStyle(.yellow)
+                        .foregroundStyle(FELDesign.Colors.purple)
                     Text("FREESTYLE: +\(dunkEngine.totalFreestylePoints)")
-                        .font(.system(size: 9, weight: .black, design: .monospaced))
-                        .foregroundStyle(.yellow)
+                        .font(FELDesign.Typography.statSmall)
+                        .foregroundStyle(FELDesign.Colors.purple)
                     if dunkEngine.midAirState.comboMultiplier > 1.0 {
                         Text(String(format: "(%.1fx)", dunkEngine.midAirState.comboMultiplier))
-                            .font(.system(size: 8, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.yellow.opacity(0.7))
+                            .font(FELDesign.Typography.statSmall)
+                            .foregroundStyle(FELDesign.Colors.textSecondary)
                     }
                 }
                 .transition(.opacity)
@@ -3053,38 +3024,34 @@ struct GamePlayView: View {
 
     private var dunkLandingTimingView: some View {
         VStack(spacing: 10) {
-            HStack(spacing: 6) {
+            HStack(spacing: FELDesign.Space.xs) {
                 Image(systemName: "arrow.down.to.line.compact")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.orange)
-                Text("STICK THE LANDING!")
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white)
-                    .tracking(1)
+                    .foregroundStyle(FELDesign.Colors.cyan)
+                FELMicroLabel(text: "Stick the Landing", color: FELDesign.Colors.textPrimary)
                 Spacer()
             }
 
             dunkTimingBar(
                 value: dunkEngine.landingTiming,
                 greenZone: dunkEngine.landingGreenZone,
-                accentColor: .orange
+                accentColor: FELDesign.Colors.success
             )
 
             Button {
                 confirmDunkLanding()
             } label: {
                 Text("LAND!")
-                    .font(.system(size: 16, weight: .black, design: .monospaced))
-                    .foregroundStyle(.black)
+                    .font(FELDesign.Typography.label)
+                    .foregroundStyle(FELDesign.Colors.ink)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
                     .background(
                         dunkEngine.landingGreenZone.contains(dunkEngine.landingTiming)
-                            ? Color.orange
-                            : Color.orange.opacity(0.4)
+                            ? FELDesign.Colors.cyan
+                            : FELDesign.Colors.glow(FELDesign.Colors.cyan, 0.4)
                     )
-                    .clipShape(.rect(cornerRadius: 14))
-                    .shadow(color: .orange.opacity(0.3), radius: 8)
+                    .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
             }
         }
     }
@@ -3103,7 +3070,7 @@ struct GamePlayView: View {
                     .offset(x: geo.size.width * greenZone.lowerBound)
 
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(greenZone.contains(value) ? accentColor : .red)
+                    .fill(greenZone.contains(value) ? accentColor : FELDesign.Colors.danger)
                     .frame(width: 4)
                     .offset(x: geo.size.width * value - 2)
                     .animation(.linear(duration: 0.03), value: value)
@@ -3113,7 +3080,7 @@ struct GamePlayView: View {
         .clipShape(.rect(cornerRadius: 6))
         .overlay(
             RoundedRectangle(cornerRadius: 6)
-                .stroke(accentColor.opacity(0.3), lineWidth: 1)
+                .stroke(FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)
         )
     }
 
@@ -3122,27 +3089,24 @@ struct GamePlayView: View {
             Spacer()
             HStack {
                 Spacer()
-                VStack(spacing: 6) {
-                    Text(dunkPhaseLabel)
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .foregroundStyle(dunkPhaseColor)
-                        .tracking(2)
+                VStack(spacing: FELDesign.Space.xxs) {
+                    FELMicroLabel(text: dunkPhaseLabel, color: dunkPhaseColor)
                     if dunkEngine.phase == .airborne {
                         Text(String(format: "HEIGHT: %.0f%%", dunkEngine.jumpHeight * 100))
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.6))
+                            .font(FELDesign.Typography.statSmall)
+                            .foregroundStyle(FELDesign.Colors.textSecondary)
                     }
                 }
-                .padding(10)
+                .padding(FELDesign.Space.sm)
                 .background(
-                    RoundedRectangle(cornerRadius: 10)
+                    RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
                         .fill(.black.opacity(0.6))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(dunkPhaseColor.opacity(0.3), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                                .stroke(FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline)
                         )
                 )
-                .padding(.trailing, 16)
+                .padding(.trailing, FELDesign.Space.md)
                 .padding(.bottom, 100)
             }
         }
@@ -3161,11 +3125,11 @@ struct GamePlayView: View {
 
     private var dunkPhaseColor: Color {
         switch dunkEngine.phase {
-        case .approach: return .cyan
-        case .launch: return .green
-        case .airborne: return .purple
-        case .landing: return .orange
-        default: return .white
+        case .approach: return FELDesign.Colors.cyan
+        case .launch: return FELDesign.Colors.success
+        case .airborne: return FELDesign.Colors.purple
+        case .landing: return FELDesign.Colors.cyan
+        default: return FELDesign.Colors.textPrimary
         }
     }
 
@@ -3254,57 +3218,57 @@ struct GamePlayView: View {
     private var matchLobbyOverlay: some View {
         ZStack {
             Color.black.opacity(0.94).ignoresSafeArea()
-            VStack(spacing: 20) {
-                Text("MULTIPLAYER SETUP")
-                    .font(.system(size: 14, weight: .black, design: .monospaced))
-                    .foregroundStyle(gameMode.accentColor)
+            VStack(spacing: FELDesign.Space.lg) {
+                FELMicroLabel(text: "Multiplayer Setup", color: FELDesign.Colors.textSecondary)
                 Text(gameMode.name)
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(.white)
+                    .font(FELDesign.Typography.heading)
+                    .foregroundStyle(FELDesign.Colors.textPrimary)
                 Text("Session key: \(gameMode.id.rawValue)")
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.secondary)
+                    .font(FELDesign.Typography.statSmall)
+                    .foregroundStyle(FELDesign.Colors.textTertiary)
                 if multipeerService.pendingInvitationPeerName != nil {
                     Text("Incoming invite — use Accept or Decline in the toolbar.")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.orange)
+                        .font(FELDesign.Typography.caption)
+                        .foregroundStyle(FELDesign.Colors.cyan)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                 }
-                HStack(spacing: 16) {
+                HStack(spacing: FELDesign.Space.md) {
                     Button {
                         multipeerService.startHosting(gameId: gameMode.id.rawValue)
                     } label: {
                         Label("HOST", systemImage: "antenna.radiowaves.left.and.right")
-                            .font(.system(.caption, design: .monospaced, weight: .bold))
-                            .foregroundStyle(Theme.brandCyan)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-                            .background(Theme.brandCyan.opacity(0.12))
+                            .font(FELDesign.Typography.micro)
+                            .foregroundStyle(FELDesign.Colors.cyan)
+                            .padding(.horizontal, FELDesign.Space.md)
+                            .padding(.vertical, FELDesign.Space.xs)
+                            .background(FELDesign.Colors.surfaceRaised)
                             .clipShape(Capsule())
+                            .overlay(Capsule().stroke(FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline))
                     }
                     Button {
                         multipeerService.startBrowsing(gameId: gameMode.id.rawValue)
                     } label: {
                         Label("JOIN", systemImage: "magnifyingglass")
-                            .font(.system(.caption, design: .monospaced, weight: .bold))
-                            .foregroundStyle(.orange)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-                            .background(Color.orange.opacity(0.12))
+                            .font(FELDesign.Typography.micro)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
+                            .padding(.horizontal, FELDesign.Space.md)
+                            .padding(.vertical, FELDesign.Space.xs)
+                            .background(FELDesign.Colors.surfaceRaised)
                             .clipShape(Capsule())
+                            .overlay(Capsule().stroke(FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline))
                     }
                 }
                 Button {
                     withAnimation(.spring(response: 0.35)) { matchLobbyComplete = true }
                 } label: {
                     Text("CONTINUE TO COUNTDOWN")
-                        .font(.system(.subheadline, design: .monospaced, weight: .black))
-                        .foregroundStyle(.black)
+                        .font(FELDesign.Typography.label)
+                        .foregroundStyle(FELDesign.Colors.ink)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(gameMode.accentColor)
-                        .clipShape(.rect(cornerRadius: 14))
+                        .padding(.vertical, FELDesign.Space.md)
+                        .background(FELDesign.Colors.cyan)
+                        .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
@@ -3457,6 +3421,8 @@ struct GamePlayView: View {
         withAnimation { isActive = true }
         score = 0
         opponentScore = 0
+        ai3v3BlueSeen = 0
+        ai3v3RedSeen = 0
         combo = 0
         maxCombo = 0
         criticalHits = 0
@@ -3541,6 +3507,55 @@ struct GamePlayView: View {
             timeRemaining = max(1, gameRules.matchDurationSeconds)
             startTimer()
         }
+
+        // Karate Excellence: reset combo/opponent/wave state and spin up the
+        // deterministic opponent AI (+ local wave engine for endless).
+        karateCombo.reset()
+        recentStrikeButtons.removeAll()
+        comboExpiryTask?.cancel(); comboExpiryTask = nil
+        opponentAITask?.cancel(); opponentAITask = nil
+        waveTickTask?.cancel(); waveTickTask = nil
+        showWaveClear = false
+        karateVictory = false
+        karateDefeat = false
+        karatePlayerHP = Self.karatePlayerMaxHP
+        karateInStrikeRange = true
+        opponentAI = nil
+        opponentHP = 0
+        opponentMaxHP = 0
+        pendingOpponentAttack = nil
+        if isKarate {
+            if gameMode.id == .karateEndless {
+                waveEngine = KarateEndlessWaveEngine()
+                startKarateWaveTick()
+            } else {
+                waveEngine = nil
+            }
+            spawnKarateOpponent()
+        } else {
+            waveEngine = nil
+        }
+    }
+
+    private func startKarateWaveTick() {
+        waveTickTask?.cancel()
+        waveTickTask = Task { @MainActor in
+            var lastWave = waveEngine?.wave ?? 1
+            while !Task.isCancelled, isActive {
+                try? await Task.sleep(for: .seconds(1))
+                guard !Task.isCancelled, isActive else { return }
+                waveEngine?.tickSecond()
+                if let w = waveEngine {
+                    if w.isOver { handlePlayerDefeated(); return }
+                    // Intermission just ended → new wave began → spawn its first
+                    // opponent.
+                    if w.wave != lastWave {
+                        lastWave = w.wave
+                        if opponentAI == nil { spawnKarateOpponent() }
+                    }
+                }
+            }
+        }
     }
 
     private func resetGame() {
@@ -3569,6 +3584,38 @@ struct GamePlayView: View {
 
     private func performAction(_ action: String) {
         guard isActive else { return }
+
+        // Karate never uses the generic score/DDA path — it's a KO fight loop.
+        // A tap-anywhere on the scene throws a quick jab; face buttons route
+        // through performKarateStrike directly. Guarding this here also stops
+        // the DDA opponent-score generation below from firing for karate.
+        if isKarate {
+            performKarateStrike(.square)
+            return
+        }
+
+        // Basketball possession modes: fire the matching baked clip on the scene
+        // host. Shoot swaps in the JumpShot one-shot (releasing the ball);
+        // Crossover swaps in the DribbleCrossover clip. Fail-soft: the host
+        // no-ops if the clip is missing. This only drives visuals — scoring below
+        // is unchanged.
+        if isBasketballPossession {
+            switch action {
+            case "Shoot": basketballJumpShotNonce += 1
+            case "Crossover": basketballCrossoverNonce += 1
+            default: break
+            }
+        }
+
+        // Per-sport action: drive the scene host's action animation, which
+        // prefers a bundled full-body Action_<mode>_<action>.usdz clip and falls
+        // back to the procedural arm-swing. Only fire for modes the registry
+        // covers (golf/tennis/baseball/soccer/volleyball/football).
+        if SportActionAnimationLibrary.modeToken(for: gameMode.id) != nil {
+            sportActionLabel = action
+            sportActionNonce += 1
+        }
+
         playerActionCount += 1
 
         let physics = leakageAdjustedPhysics
@@ -3603,9 +3650,9 @@ struct GamePlayView: View {
                 lastActionIsCritical = isCritical
                 lastActionIsBurst = arcadePhysics.neuralBurstActive
 
-                if isKarate {
-                    lastAction = karateSuccessFeedback(action: action, isCritical: isCritical, points: finalPoints)
-                } else if isCritical {
+                // Karate never reaches here (it returns early above and runs
+                // its own KO fight loop in resolveKarateStrike).
+                if isCritical {
                     criticalHits += 1
                     lastAction = "CRITICAL \(action.uppercased()) +\(finalPoints)"
                 } else if arcadePhysics.neuralBurstActive {
@@ -3619,17 +3666,7 @@ struct GamePlayView: View {
                 specialMeter = min(100, specialMeter + arcadePhysics.specialMeterGainRate * (isCritical ? 1.5 : 1.0))
             }
 
-            if isKarate {
-                withAnimation(.spring(response: 0.2)) {
-                    chakraBar = min(100, chakraBar + 25)
-                }
-                triggerKarateHitFlash()
-                triggerScreenShake(intensity: isCritical ? 0.8 : 0.5)
-                if isCritical {
-                    criticalHits += 1
-                    triggerCriticalFlash()
-                }
-            } else if isCritical {
+            if isCritical {
                 triggerCriticalFlash()
                 triggerScreenShake(intensity: 0.6)
             } else {
@@ -3647,12 +3684,7 @@ struct GamePlayView: View {
         } else {
             withAnimation(.spring(response: 0.3)) {
                 combo = 0
-                if isKarate {
-                    lastAction = karateFailFeedback()
-                    chakraBar = max(0, chakraBar - 10)
-                } else {
-                    lastAction = "MISSED"
-                }
+                lastAction = "MISSED"
                 lastActionIsCritical = false
                 lastActionIsBurst = false
             }
@@ -3685,6 +3717,13 @@ struct GamePlayView: View {
                         maxPoints: DynamicDifficulty.prqScaledOpponentMaxPoints(playerPRQ: playerPRQ, mode: gameMode.id)
                     )
                 }
+                // Symmetric target-score end: the AI can now actually WIN by
+                // reaching 21 (blacktop h2h/3v3). Previously only the player's
+                // score could trigger the target end, so the ghost could never
+                // close out a match — it only inflated the results comparison.
+                if isBlacktop && gameRules.usesTargetScoreWin && opponentScore >= targetScore {
+                    endGame()
+                }
             }
         }
 
@@ -3709,6 +3748,105 @@ struct GamePlayView: View {
         }
     }
 
+    // MARK: - Karate Excellence HUD
+
+    /// White → cyan → gold color ramp by combo depth.
+    private var comboColor: Color {
+        if combo >= 8 { return Color(red: 1.0, green: 0.82, blue: 0.25) }   // gold
+        if combo >= 5 { return FELDesign.Colors.cyan }
+        return FELDesign.Colors.textPrimary
+    }
+
+    private var karateComboSubtitle: String {
+        let label = karateCombo.tierLabel
+        let mult = String(format: "%.2fx", karateCombo.multiplier)
+        return label.isEmpty ? mult : "\(label)  \(mult)"
+    }
+
+    /// Opponent HP bar (1v1) or wave/score/HP survival HUD (endless), plus the
+    /// between-round "WAVE CLEARED" beat and victory/defeat banner.
+    @ViewBuilder
+    private var karateCombatOverlay: some View {
+        VStack(spacing: 6) {
+            if gameMode.id == .karateEndless, let wave = waveEngine {
+                HStack(spacing: 10) {
+                    karateChip("WAVE", "\(wave.wave)")
+                    karateChip("SCORE", "\(wave.score)")
+                    karateChip("TIME", timeString(wave.elapsedSeconds))
+                    Spacer()
+                }
+                karateHPBar(label: "YOU", fraction: wave.playerHPFraction,
+                            color: FELDesign.Colors.cyan)
+            } else {
+                // 1v1: player HP bar (KO ends the match).
+                karateHPBar(label: "YOU",
+                            fraction: Double(karatePlayerHP) / Double(Self.karatePlayerMaxHP),
+                            color: FELDesign.Colors.cyan)
+            }
+            if let ai = opponentAI, opponentMaxHP > 0, !ai.isDefeated || gameMode.id == .karate {
+                karateHPBar(label: gameMode.id == .karateEndless ? "ENEMY" : "OPPONENT",
+                            fraction: ai.hpFraction,
+                            color: Color(red: 1.0, green: 0.4, blue: 0.3))
+            }
+            Spacer()
+        }
+        .padding(.horizontal, FELDesign.Space.md)
+        .padding(.top, 56)
+        .allowsHitTesting(false)
+
+        if showWaveClear {
+            VStack {
+                Spacer()
+                Text(karateVictory ? "SURVIVED!" : "WAVE \(waveEngine?.lastClearedWave ?? 0) CLEARED")
+                    .font(.system(size: 34, weight: .heavy, design: .rounded))
+                    .foregroundStyle(Color(red: 1.0, green: 0.82, blue: 0.25))
+                    .shadow(color: FELDesign.Colors.glow(FELDesign.Colors.cyan, 0.7), radius: 16)
+                    .scaleEffect(showWaveClear ? 1.0 : 0.6)
+                    .animation(.spring(response: 0.35, dampingFraction: 0.55), value: showWaveClear)
+                Spacer()
+            }
+            .allowsHitTesting(false)
+        }
+    }
+
+    private func karateChip(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(label)
+                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                .foregroundStyle(FELDesign.Colors.textSecondary)
+            Text(value)
+                .font(FELDesign.Typography.stat)
+                .foregroundStyle(FELDesign.Colors.textPrimary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(FELDesign.Colors.surface.opacity(0.8))
+        .clipShape(.rect(cornerRadius: FELDesign.Radius.md))
+    }
+
+    private func karateHPBar(label: String, fraction: Double, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .foregroundStyle(FELDesign.Colors.textSecondary)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.white.opacity(0.12))
+                    Capsule()
+                        .fill(color)
+                        .frame(width: max(0, geo.size.width * CGFloat(max(0, min(1, fraction)))))
+                        .shadow(color: FELDesign.Colors.glow(color, 0.6), radius: 4)
+                        .animation(.spring(response: 0.35), value: fraction)
+                }
+            }
+            .frame(height: 7)
+        }
+    }
+
+    private func timeString(_ seconds: Int) -> String {
+        String(format: "%d:%02d", seconds / 60, seconds % 60)
+    }
+
     // MARK: - Karate Feedback
 
     private func karateSuccessFeedback(action: String, isCritical: Bool, points: Int) -> String {
@@ -3730,6 +3868,266 @@ struct GamePlayView: View {
         Task {
             try? await Task.sleep(for: .milliseconds(120))
             withAnimation(.easeIn(duration: 0.1)) { karateHitFlash = false }
+        }
+    }
+
+    // MARK: - Karate combat resolution
+
+    /// Base contact damage per strike button before combo/critical scaling.
+    private func karateStrikeDamage(for button: ArenaPadFaceButton) -> Int {
+        switch button {
+        case .square: return 7    // jab — fast, light
+        case .circle: return 10   // hook
+        case .cross: return 13    // uppercut
+        case .triangle: return 15 // roundhouse — heavy, slow
+        }
+    }
+
+    /// Resolve a player strike. Always plays feedback/combo; applies damage to
+    /// the opponent HP only when the strike CONNECTS — the opponent is within
+    /// reach (range gate) and is not guarding. A whiffed or guarded strike
+    /// keeps the combo alive visually but deals no HP damage. On a killing hit
+    /// it routes to KO / wave-clear via handleOpponentDefeated.
+    private func resolveKarateStrike(button: ArenaPadFaceButton, isCritical: Bool, basePoints: Int) {
+        let now = CACurrentMediaTime()
+        let count = karateCombo.register(at: now)
+        withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
+            combo = count
+            maxCombo = max(maxCombo, combo)
+        }
+        scheduleComboExpiry()
+
+        // Impact hitstop + contact burst + hit flash + shake.
+        karateHitstopCritical = isCritical
+        karateHitstopNonce += 1
+        triggerKarateHitFlash()
+        triggerScreenShake(intensity: isCritical ? 1.6 : 1.15)
+        if isCritical {
+            criticalHits += 1
+            triggerCriticalFlash()
+        }
+        hapticSuccess(isCritical: isCritical)
+        FELSoundscapeEngine.shared.triggerCheer(intensity: isCritical ? 1.0 : 0.65)
+        FELSoundscapeEngine.shared.combo = combo
+
+        // Chakra / special meter gains (secondary meter).
+        withAnimation(.spring(response: 0.15)) {
+            chakraBar = min(100, chakraBar + 22)
+        }
+        withAnimation(.spring(response: 0.2)) {
+            specialMeter = min(100, specialMeter + arcadePhysics.specialMeterGainRate * (isCritical ? 1.5 : 1.0))
+        }
+
+        // Connection check: out of range → whiff (no damage, no score).
+        guard karateInStrikeRange, var ai = opponentAI, !ai.isDefeated else {
+            withAnimation { lastAction = "WHIFF!" }
+            return
+        }
+        // Opponent guarding → chip nothing, show GUARDED.
+        if ai.isBlocking {
+            withAnimation { lastAction = "GUARDED!" }
+            return
+        }
+
+        // Landed hit — score + damage.
+        let scored = Int((Double(basePoints + (isCritical ? 3 : 1)) * karateCombo.multiplier).rounded())
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) {
+            score += max(1, scored)
+            lastAction = karateSuccessFeedback(action: "STRIKE", isCritical: isCritical, points: max(1, scored))
+        }
+
+        let dmgBase = karateStrikeDamage(for: button) + (isCritical ? 8 : 0)
+        let dmg = Int((Double(dmgBase) * karateCombo.multiplier).rounded())
+        ai.takeDamage(dmg, now: now)
+        opponentAI = ai
+        opponentHP = ai.hp
+        // Opponent visual stagger.
+        karateOpponentEvent = .stagger
+        karateOpponentEventNonce += 1
+        FELGameplayEventBus.postScored()
+
+        // Named-combo flourish (only on landed hits).
+        if let named = KarateNamedCombo.detect(in: recentStrikeButtons) {
+            score += named.bonusPoints
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.5)) {
+                comboChainText = "\(named.displayName) +\(named.bonusPoints)"
+                showComboChain = true
+            }
+            recentStrikeButtons.removeAll()
+            Task {
+                try? await Task.sleep(for: .seconds(1.1))
+                withAnimation { showComboChain = false }
+            }
+        }
+
+        if gameMode.id == .karateEndless {
+            waveEngine?.registerPlayerHit(basePoints: basePoints, comboMultiplier: karateCombo.multiplier)
+            if let w = waveEngine { score = w.score }
+        }
+
+        if ai.isDefeated {
+            handleOpponentDefeated()
+        }
+    }
+
+    private func scheduleComboExpiry() {
+        comboExpiryTask?.cancel()
+        comboExpiryTask = Task {
+            try? await Task.sleep(for: .seconds(KarateComboTracker.comboResetWindow + 0.05))
+            guard !Task.isCancelled else { return }
+            if karateCombo.tickExpiry(now: CACurrentMediaTime()) {
+                withAnimation(.easeOut(duration: 0.3)) { combo = 0 }
+            }
+        }
+    }
+
+    private func handleOpponentDefeated() {
+        if gameMode.id == .karateEndless {
+            let cleared = waveEngine?.registerOpponentDefeated() ?? false
+            if let w = waveEngine {
+                score = w.score
+                opponentHP = 0
+            }
+            if cleared {
+                // Intermission beat: the wave tick advances the wave and the
+                // next opponent spawns when combat resumes (see wave tick).
+                opponentAITask?.cancel(); opponentAITask = nil
+                opponentAI = nil
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.55)) { showWaveClear = true }
+                Task {
+                    try? await Task.sleep(for: .seconds(2.2))
+                    withAnimation { showWaveClear = false }
+                }
+            } else {
+                // Next opponent in the same wave.
+                Task {
+                    try? await Task.sleep(for: .milliseconds(550))
+                    if isActive, !(waveEngine?.isOver ?? true) { spawnKarateOpponent() }
+                }
+            }
+        } else {
+            // 1v1 victory.
+            karateVictory = true
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.55)) {
+                showWaveClear = true
+                lastAction = "K.O.!"
+            }
+            Task {
+                try? await Task.sleep(for: .seconds(1.6))
+                endGame()
+            }
+        }
+    }
+
+    // MARK: - Karate opponent AI + waves lifecycle
+
+    /// Build a fresh opponent for the current mode/wave and start (or restart)
+    /// the deterministic AI tick loop.
+    private func spawnKarateOpponent() {
+        let seedBase = GameplaySeed.uint64(from: matchSessionId)
+        let difficulty: KarateOpponentAI.Difficulty
+        let waveSalt: UInt64
+        if gameMode.id == .karateEndless, let w = waveEngine {
+            difficulty = w.currentDifficulty
+            waveSalt = UInt64(w.wave) &* 0x9E37 &+ UInt64(w.opponentsClearedThisWave)
+        } else {
+            difficulty = .normal
+            waveSalt = 0x1F2E
+        }
+        let ai = KarateOpponentAI(difficulty: difficulty, seed: seedBase &+ waveSalt &+ 0xA1)
+        opponentAI = ai
+        opponentMaxHP = ai.maxHP
+        opponentHP = ai.hp
+        startKarateOpponentTick()
+    }
+
+    private func startKarateOpponentTick() {
+        opponentAITask?.cancel()
+        opponentAITask = Task { @MainActor in
+            var lastIntent: KarateOpponentAI.Intent = .idle
+            while !Task.isCancelled, isActive {
+                if var ai = opponentAI, !ai.isDefeated {
+                    let now = CACurrentMediaTime()
+                    let intent = ai.tick(now: now)
+                    opponentAI = ai
+                    if intent != lastIntent {
+                        applyOpponentIntent(intent)
+                        lastIntent = intent
+                    }
+                }
+                try? await Task.sleep(for: .milliseconds(60))
+            }
+        }
+    }
+
+    /// Translate an AI intent into scene events + player-side consequences.
+    private func applyOpponentIntent(_ intent: KarateOpponentAI.Intent) {
+        switch intent {
+        case .idle:
+            break
+        case .telegraph(let attack, _):
+            pendingOpponentAttack = attack
+            karateOpponentEvent = .telegraph(duration: 0.4)
+            karateOpponentEventNonce += 1
+        case .strike(let attack):
+            karateOpponentEvent = .strike(attack.asset)
+            karateOpponentEventNonce += 1
+            resolveOpponentAttack(attack)
+            pendingOpponentAttack = nil
+        case .block:
+            karateOpponentEvent = .guard(duration: 0.5)
+            karateOpponentEventNonce += 1
+        case .stagger:
+            break   // stagger visual already fired from resolveKarateHit
+        }
+    }
+
+    /// The opponent's strike resolves: if the player is guarding (block held in
+    /// the perfect-guard window) it's blocked/countered via the existing combat
+    /// resolver; otherwise the player takes damage.
+    private func resolveOpponentAttack(_ attack: KarateOpponentAI.Attack) {
+        guard isActive, isKarate else { return }
+        let guarding = blockTimestamp > 0
+        if guarding {
+            resolveCombatOnHit()   // perfect-guard / vanish-counter / block path
+            return
+        }
+        // Unblocked hit on the player.
+        triggerScreenShake(intensity: 0.5)
+        combo = 0
+        karateCombo.reset()
+        hapticFail()
+        withAnimation(.spring(response: 0.25)) { lastAction = "HIT! -\(attack.damage)" }
+        if gameMode.id == .karateEndless {
+            waveEngine?.registerPlayerDamage(attack.damage)
+            if let w = waveEngine, w.isOver {
+                handlePlayerDefeated()
+            }
+        } else {
+            // 1v1: deplete the player HP bar; KO ends the match as a loss.
+            withAnimation(.spring(response: 0.35)) {
+                karatePlayerHP = max(0, karatePlayerHP - attack.damage)
+            }
+            if karatePlayerHP <= 0 {
+                handlePlayerDefeated()
+            }
+        }
+    }
+
+    /// Player KO'd (1v1 loss or endless defeat): stop the fight and route to the
+    /// results overlay with the defeat outcome.
+    private func handlePlayerDefeated() {
+        guard isActive else { return }
+        karateDefeat = true
+        karateVictory = false
+        opponentAITask?.cancel(); opponentAITask = nil
+        waveTickTask?.cancel(); waveTickTask = nil
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.55)) {
+            lastAction = "K.O."
+        }
+        Task {
+            try? await Task.sleep(for: .seconds(1.4))
+            endGame()
         }
     }
 
@@ -3814,9 +4212,27 @@ struct GamePlayView: View {
         }
     }
 
+    /// Maps a dunk trick to one of the two retargeted power-dunk clips so the
+    /// dunk contest varies its full-body animation. Two-handed power jams use the
+    /// ElijahDunkPower capture; the rest keep the original ElijahDunk. Both wire
+    /// through the same setDunkClipActive path (never cloned skinned nodes).
+    private func dunkClipAsset(for trick: DunkTrickSlot) -> FELBundledAsset {
+        switch trick {
+        case .tomahawk, .reverseJam, .doubleClutch:
+            return .elijahDunkPower
+        default:
+            return .elijahDunk
+        }
+    }
+
     private func confirmDunkLaunch() {
         guard dunkEngine.phase == .launch else { return }
         dunkTimerTask?.cancel()
+        // Pick which baked power-dunk clip this launch plays, for visual variety.
+        // Two-handed power tricks use the ElijahDunkPower capture; the rest use
+        // the original ElijahDunk. Set BEFORE the phase flips to launch/airborne
+        // (which drives isMidAir → setDunkClipActive in the scene host).
+        basketballDunkClipAsset = dunkClipAsset(for: dunkEngine.selectedTrick)
         let inGreen = dunkEngine.launchGreenZone.contains(dunkEngine.launchTiming)
         if inGreen {
             triggerFlash()
@@ -3876,12 +4292,16 @@ struct GamePlayView: View {
             judgeRNG: &judgeRNG
         )
 
+        judgeRollUpReveal = false
         withAnimation(.spring(response: 0.3)) {
             lastJudgeScores = (result.j1, result.j2, result.j3)
             crowdMessage = result.message
             score += result.total
             dunkEngine.roundScores.append((round: dunkEngine.round, score: result.total, message: result.message))
         }
+        // Kick off the staggered count-up reveal on the next runloop tick so
+        // the component sees reveal flip false -> true.
+        DispatchQueue.main.async { judgeRollUpReveal = true }
 
         let impactLevel = dunkEngine.impactIntensity
         triggerScreenShake(intensity: 0.5 + impactLevel * 0.5)
@@ -3965,6 +4385,8 @@ struct GamePlayView: View {
             crowdMessage = "AI: \(wda.wdaCrowdMessage)"
             lastAction = "OPPONENT: +\(total)"
         }
+        judgeRollUpReveal = false
+        DispatchQueue.main.async { judgeRollUpReveal = true }
         triggerScreenShake(intensity: 0.3)
         FELGameplayEventBus.postOpponentScored()
     }
@@ -4101,6 +4523,12 @@ struct GamePlayView: View {
         timeScaleUpdateTask = nil
         gameTimerTask?.cancel()
         gameTimerTask = nil
+        opponentAITask?.cancel()
+        opponentAITask = nil
+        waveTickTask?.cancel()
+        waveTickTask = nil
+        comboExpiryTask?.cancel()
+        comboExpiryTask = nil
         isSlowMo = false
         showTrickText = false
         showComboChain = false
@@ -4143,6 +4571,18 @@ struct GamePlayView: View {
         let baseChance = inSweetSpot ? blendedBase + 0.15 : blendedBase * chargeValue
         let success = Double.random(in: 0...1) < baseChance
         let action = actionsForMode.first ?? "Action"
+
+        // Drive the per-sport action animation for registry-covered modes
+        // (golf/tennis/baseball/soccer/volleyball/football). The gesture handlers
+        // route through here, so this is the single place that fires the swing/
+        // serve/spike/kick clip — GameSceneHostView.playSportAction prefers a
+        // bundled Action_<mode>_<action>.usdz and fails soft to the procedural
+        // arm-swing. Previously only performAction() bumped this, so through
+        // normal gesture play the action animation never triggered.
+        if SportActionAnimationLibrary.modeToken(for: gameMode.id) != nil {
+            sportActionLabel = action
+            sportActionNonce += 1
+        }
 
         if success {
             let isCritical = Double.random(in: 0...1) < physics.criticalHitChance
@@ -4500,29 +4940,21 @@ struct GamePlayView: View {
         VStack {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 4) {
+                    HStack(spacing: FELDesign.Space.xxs) {
                         Image(systemName: specialMeterFull ? "flame.fill" : "bolt.fill")
                             .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(specialMeterFull ? .orange : Theme.brandCyan)
-                        Text(specialMeterFull ? "SPECIAL READY" : "SPECIAL")
-                            .font(.system(size: 8, weight: .black, design: .monospaced))
-                            .foregroundStyle(specialMeterFull ? .orange : Theme.brandCyan.opacity(0.8))
-                            .tracking(1)
+                            .foregroundStyle(specialMeterFull ? FELDesign.Colors.purple : FELDesign.Colors.cyan)
+                        FELMicroLabel(
+                            text: specialMeterFull ? "Special Ready" : "Special",
+                            color: specialMeterFull ? FELDesign.Colors.purple : FELDesign.Colors.textSecondary
+                        )
                     }
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(Color.black.opacity(0.6))
                             RoundedRectangle(cornerRadius: 4)
-                                .fill(
-                                    LinearGradient(
-                                        colors: specialMeterFull
-                                            ? [.orange, .yellow, .orange]
-                                            : [Theme.brandCyan.opacity(0.6), Theme.elitePurple.opacity(0.8)],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
+                                .fill(specialMeterFull ? FELDesign.Colors.purple : FELDesign.Colors.cyan)
                                 .frame(width: geo.size.width * min(1, specialMeter / 100))
                                 .animation(.spring(response: 0.25), value: specialMeter)
                         }
@@ -4531,22 +4963,22 @@ struct GamePlayView: View {
                     .clipShape(.rect(cornerRadius: 4))
                     .overlay(
                         RoundedRectangle(cornerRadius: 4)
-                            .stroke(specialMeterFull ? .orange.opacity(0.6) : Theme.brandCyan.opacity(0.3), lineWidth: 1)
+                            .stroke(specialMeterFull ? FELDesign.Colors.glow(FELDesign.Colors.purple, 0.5) : FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline)
                     )
                 }
-                .padding(10)
+                .padding(FELDesign.Space.sm)
                 .background(
-                    RoundedRectangle(cornerRadius: 10)
+                    RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
                         .fill(.black.opacity(0.5))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(specialMeterFull ? .orange.opacity(0.3) : .clear, lineWidth: 1)
+                            RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                                .stroke(specialMeterFull ? FELDesign.Colors.glow(FELDesign.Colors.purple, 0.3) : .clear, lineWidth: FELDesign.Stroke.hairline)
                         )
                 )
                 Spacer()
             }
-            .padding(.leading, 16)
-            .padding(.top, 8)
+            .padding(.leading, FELDesign.Space.md)
+            .padding(.top, FELDesign.Space.xs)
             Spacer()
         }
         .allowsHitTesting(false)
@@ -4561,11 +4993,8 @@ struct GamePlayView: View {
                 Spacer()
                 VStack(spacing: 6) {
                     if isModifierHeld {
-                        VStack(spacing: 4) {
-                            Text("TRICK MODE")
-                                .font(.system(size: 8, weight: .black, design: .monospaced))
-                                .foregroundStyle(Theme.elitePurple)
-                                .tracking(2)
+                        VStack(spacing: FELDesign.Space.xxs) {
+                            FELMicroLabel(text: "Trick Mode", color: FELDesign.Colors.purple)
                             HStack(spacing: 12) {
                                 trickDirectionButton(.up, label: "\u{25B2}", hint: isKarate ? "Vortex" : "Windmill")
                                 trickDirectionButton(.down, label: "\u{25BC}", hint: isKarate ? "Barrage" : "Between")
@@ -4577,17 +5006,12 @@ struct GamePlayView: View {
                                     executeSpecialTrick()
                                 } label: {
                                     Text(isKarate ? "FINAL GATE" : "GIANT KILLER")
-                                        .font(.system(size: 9, weight: .black, design: .monospaced))
-                                        .foregroundStyle(.black)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(
-                                            LinearGradient(
-                                                colors: [.orange, .yellow],
-                                                startPoint: .leading,
-                                                endPoint: .trailing
-                                            )
-                                        )
+                                        .font(FELDesign.Typography.micro)
+                                        .tracking(FELDesign.Typography.microTracking)
+                                        .foregroundStyle(FELDesign.Colors.ink)
+                                        .padding(.horizontal, FELDesign.Space.sm)
+                                        .padding(.vertical, FELDesign.Space.xxs)
+                                        .background(FELDesign.Colors.purple)
                                         .clipShape(Capsule())
                                 }
                             }
@@ -4611,22 +5035,23 @@ struct GamePlayView: View {
                                 activeModifierState = isModifierHeld ? .style : .none
                             }
                         } label: {
-                            HStack(spacing: 4) {
+                            HStack(spacing: FELDesign.Space.xxs) {
                                 Image(systemName: "l1.button.roundedbottom.horizontal")
                                     .font(.system(size: 12, weight: .bold))
                                 Text("STYLE")
-                                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                                    .font(FELDesign.Typography.micro)
+                                    .tracking(FELDesign.Typography.microTracking)
                             }
-                            .foregroundStyle(activeModifierState == .style ? .black : Theme.elitePurple)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
+                            .foregroundStyle(activeModifierState == .style ? FELDesign.Colors.ink : FELDesign.Colors.purple)
+                            .padding(.horizontal, FELDesign.Space.sm)
+                            .padding(.vertical, FELDesign.Space.xs)
                             .background(
                                 activeModifierState == .style
-                                    ? AnyShapeStyle(Theme.elitePurple)
-                                    : AnyShapeStyle(Theme.elitePurple.opacity(0.15))
+                                    ? AnyShapeStyle(FELDesign.Colors.purple)
+                                    : AnyShapeStyle(FELDesign.Colors.surfaceRaised.opacity(0.8))
                             )
                             .clipShape(Capsule())
-                            .overlay(Capsule().stroke(Theme.elitePurple.opacity(0.4), lineWidth: 1))
+                            .overlay(Capsule().stroke(activeModifierState == .style ? FELDesign.Colors.purple : FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline))
                         }
 
                         Button {
@@ -4640,22 +5065,23 @@ struct GamePlayView: View {
                                 }
                             }
                         } label: {
-                            HStack(spacing: 4) {
+                            HStack(spacing: FELDesign.Space.xxs) {
                                 Image(systemName: "r1.button.roundedbottom.horizontal")
                                     .font(.system(size: 12, weight: .bold))
                                 Text("POWER")
-                                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                                    .font(FELDesign.Typography.micro)
+                                    .tracking(FELDesign.Typography.microTracking)
                             }
-                            .foregroundStyle(activeModifierState == .power ? .black : .orange)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
+                            .foregroundStyle(activeModifierState == .power ? FELDesign.Colors.ink : FELDesign.Colors.cyan)
+                            .padding(.horizontal, FELDesign.Space.sm)
+                            .padding(.vertical, FELDesign.Space.xs)
                             .background(
                                 activeModifierState == .power
-                                    ? AnyShapeStyle(Color.orange)
-                                    : AnyShapeStyle(Color.orange.opacity(0.15))
+                                    ? AnyShapeStyle(FELDesign.Colors.cyan)
+                                    : AnyShapeStyle(FELDesign.Colors.surfaceRaised.opacity(0.8))
                             )
                             .clipShape(Capsule())
-                            .overlay(Capsule().stroke(Color.orange.opacity(0.4), lineWidth: 1))
+                            .overlay(Capsule().stroke(activeModifierState == .power ? FELDesign.Colors.cyan : FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline))
                         }
                     }
                 }
@@ -4673,16 +5099,16 @@ struct GamePlayView: View {
                 Text(label)
                     .font(.system(size: 14, weight: .bold))
                 Text(hint)
-                    .font(.system(size: 7, weight: .bold, design: .monospaced))
+                    .font(.system(size: 8, weight: .semibold))
                     .lineLimit(1)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(FELDesign.Colors.textPrimary)
             .frame(width: 50, height: 44)
-            .background(Theme.elitePurple.opacity(0.2))
-            .clipShape(.rect(cornerRadius: 8))
+            .background(FELDesign.Colors.surfaceRaised.opacity(0.8))
+            .clipShape(.rect(cornerRadius: FELDesign.Radius.sm))
             .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Theme.elitePurple.opacity(0.3), lineWidth: 1)
+                RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                    .stroke(FELDesign.Colors.glow(FELDesign.Colors.purple, 0.3), lineWidth: FELDesign.Stroke.hairline)
             )
         }
     }
@@ -4830,6 +5256,16 @@ struct GamePlayView: View {
 
         matrixState = matrixState.resolveAction(at: CACurrentMediaTime())
 
+        // Animate the avatar on a landed trick (board/precision extreme modes).
+        // The trick system previously fired only screen FX, so the on-court
+        // avatar never visibly performed the trick — the "idle-only" complaint.
+        // Routes through the same sport-action seam: a bundled Action_ clip if it
+        // ships, else the procedural full-body pulse (registered in modeToken).
+        if SportActionAnimationLibrary.modeToken(for: gameMode.id) != nil {
+            sportActionLabel = trick.name
+            sportActionNonce += 1
+        }
+
         Task {
             try? await Task.sleep(for: .seconds(2.0))
             withAnimation { showTrickText = false; lastTrickName = ""; showQTEGrade = false }
@@ -4937,6 +5373,22 @@ struct GamePlayView: View {
             return
         }
 
+        if isKarate {
+            // Karate is a real fight loop — the face buttons ONLY fire strikes,
+            // never the basketball performAction("Dunk"/"Shoot"/…) fall-through
+            // below. Damage is applied on connect (range + opponent not
+            // guarding) inside performKarateStrike.
+            performKarateStrike(button)
+            return
+        }
+
+        // Non-basketball pad modes: route face buttons to the mode's REAL action
+        // handler instead of bleeding into the basketball performAction("Shoot"/
+        // "Dunk"/…) fall-through below. These modes show FELGamepadView
+        // (usesGamepadOverlay) but are ball/board sports — a face press must fire
+        // the sport action, not a basketball verb.
+        if routeFaceButtonToModeAction(button) { return }
+
         switch button {
         case .triangle:
             performAction("Shoot")
@@ -4947,6 +5399,106 @@ struct GamePlayView: View {
         case .cross:
             performAction("Style")
         }
+    }
+
+    /// Maps a pad face button to the current mode's real action for the modes
+    /// that show the shared gamepad but are NOT basketball/karate/dunk. Returns
+    /// true when it handled the press (caller must then `return`), false to let
+    /// the basketball fall-through run (basketball family modes). Keeps every
+    /// pad mode's face buttons firing the correct sport action — no bleed-through.
+    private func routeFaceButtonToModeAction(_ button: ArenaPadFaceButton) -> Bool {
+        switch gameMode.id {
+        case .tennis:
+            let type: String
+            switch button {
+            case .triangle: type = "Serve"
+            case .square:   type = "Forehand"
+            case .circle:   type = "Volley"
+            case .cross:    type = "Baseline"
+            }
+            handleRallyHit(type: type)
+            return true
+        case .volleyball:
+            // Aim already tracked via stick/drag; any face button spikes.
+            handleVolleyballSpike()
+            return true
+        case .soccer:
+            let power: KickPower
+            switch button {
+            case .triangle: power = .high
+            case .cross:    power = .low
+            default:        power = .mid
+            }
+            handlePenaltyKick(power: power)
+            return true
+        case .football:
+            // Phase-aware: catch the kick, then tap-in-zone to break away.
+            if footballPhase == .catch {
+                handleCatchTap()
+            } else {
+                handleRunTap()
+            }
+            return true
+        case .skateboarding, .snowboarding, .surfing, .gymnastics:
+            // Board/precision rhythm modes: a face button performs the mode's
+            // primary/secondary/tertiary action (same set the on-screen rhythm
+            // buttons use), routing through performAction so the round advances
+            // and the sport-action clip fires. Cross = special/first action.
+            let actions = actionsForMode
+            let idx: Int
+            switch button {
+            case .square:   idx = 0
+            case .circle:   idx = 1
+            case .triangle: idx = 2
+            case .cross:    idx = 0
+            }
+            if actions.indices.contains(idx) { performAction(actions[idx]) }
+            return true
+        case .courtCarnival:
+            // Party board: a face button rolls the quantum dice when idle. It
+            // does NOT fire performAction directly — the board flow is
+            // roll → land on tile → event card resolves via its own button →
+            // performAction (round advance). Calling performAction here would
+            // double-advance the 5-round loop and end the match early (the bug
+            // the audit flagged from the basketball fall-through). When an event
+            // is active the dice is guarded, so the press is a safe no-op and
+            // the player resolves the event on its dedicated card.
+            rollQuantumDice()
+            return true
+        default:
+            // Basketball family (h2h/3v3/dunk) — let the caller's basketball
+            // fall-through handle Shoot/Dunk/Sprint/Style.
+            return false
+        }
+    }
+
+    /// Maps a face button to a karate strike: plays the clip, records the input
+    /// for named-combo detection, then resolves the hit (damage on connect).
+    /// This replaces the basketball performAction fall-through for karate so a
+    /// strike is deterministic (it lands if in range and the opponent isn't
+    /// guarding) rather than a random shot-success roll.
+    private func performKarateStrike(_ button: ArenaPadFaceButton) {
+        guard isActive, isKarate else { return }
+        let strike: FELBundledAsset
+        switch button {
+        case .square: strike = .elijahStrikeJab
+        case .circle: strike = .elijahStrikeHook
+        case .triangle: strike = .elijahStrikeRoundhouse
+        case .cross: strike = .elijahStrikeUppercut
+        }
+        // Fire the visual clip; the scene host reports connect range back via
+        // onKarateStrike (updates karateInStrikeRange before we resolve).
+        karateStrikeAsset = strike
+        karateStrikeNonce += 1
+        // Record the input for named-combo detection (tail of last 6).
+        recentStrikeButtons.append(button)
+        if recentStrikeButtons.count > 6 { recentStrikeButtons.removeFirst() }
+
+        playerActionCount += 1
+        let physics = leakageAdjustedPhysics
+        let isCritical = Double.random(in: 0...1) < physics.criticalHitChance
+        let basePoints = pointsForAction("Strike", success: true)
+        resolveKarateStrike(button: button, isCritical: isCritical, basePoints: basePoints)
     }
 
     private func handlePS2DPad(_ direction: ArenaPadDPadDirection) {
@@ -5007,6 +5559,14 @@ struct GamePlayView: View {
             dunkEngine.setModifier(styleTrigger: styleTriggerHeld, powerTrigger: powerTriggerHeld)
             return
         }
+        // Karate: the left shoulder is GUARD. Arms the perfect-guard window so an
+        // incoming opponent strike is blocked/countered (see resolveOpponentAttack
+        // → resolveCombatOnHit). The window auto-expires in CombatInputResolver.
+        if isKarate {
+            handleBlock()
+            withAnimation(.spring(response: 0.15)) { lastAction = "GUARD" }
+            return
+        }
         withAnimation(.spring(response: 0.2)) {
             isModifierHeld.toggle()
             activeModifierState = isModifierHeld ? .style : .none
@@ -5027,6 +5587,28 @@ struct GamePlayView: View {
             } else {
                 activeModifierState = .power
                 isModifierHeld = true
+            }
+        }
+    }
+
+    /// Routes shared-gamepad events into the existing mode handlers.
+    /// L2/R2 mirror L1/R1 (style/power modifiers) until modes gain
+    /// trigger-specific actions.
+    private func configureFELPadBridge() {
+        felPad.onEvent = { event in
+            switch event {
+            case .buttonDown(let button):
+                if let face = button.legacyFaceButton {
+                    handleArenaPadFaceButton(face)
+                } else if button == .l1 || button == .l2 {
+                    handlePS2LeftShoulder()
+                } else if button == .r1 || button == .r2 {
+                    handlePS2RightShoulder()
+                }
+            case .dpadDown(let direction):
+                handlePS2DPad(direction.legacyDirection)
+            case .buttonUp, .dpadUp:
+                break
             }
         }
     }
@@ -5161,30 +5743,24 @@ struct GamePlayView: View {
             Spacer()
             HStack {
                 Spacer()
-                HStack(spacing: 8) {
+                HStack(spacing: FELDesign.Space.xs) {
                     Text("\(percent)%")
-                        .font(.system(size: 22, weight: .black, design: .monospaced))
+                        .font(.system(size: 22, weight: .bold, design: .monospaced))
                         .foregroundStyle(contestTierColor(tier))
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(label.uppercased())
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
-                            .foregroundStyle(.white)
-                            .tracking(1)
-                        Text("SHOT CONTEST")
-                            .font(.system(size: 7, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.5))
+                        FELMicroLabel(text: label, color: FELDesign.Colors.textPrimary)
+                        FELMicroLabel(text: "Shot Contest")
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
+                .padding(.horizontal, FELDesign.Space.md)
+                .padding(.vertical, FELDesign.Space.xs)
                 .background(
-                    RoundedRectangle(cornerRadius: 14)
+                    RoundedRectangle(cornerRadius: FELDesign.Radius.md)
                         .fill(.ultraThinMaterial)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(contestTierColor(tier).opacity(0.5), lineWidth: 1.5)
+                            RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                                .stroke(FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)
                         )
-                        .shadow(color: contestTierColor(tier).opacity(0.3), radius: 12)
                 )
                 Spacer()
             }
@@ -5196,11 +5772,11 @@ struct GamePlayView: View {
 
     private func contestTierColor(_ tier: ContestTier) -> Color {
         switch tier {
-        case .smothered: return .red
-        case .heavy: return .orange
-        case .contested: return .yellow
-        case .light: return Color(red: 0.6, green: 0.8, blue: 0.3)
-        case .open: return .green
+        case .smothered: return FELDesign.Colors.danger
+        case .heavy: return FELDesign.Colors.danger.opacity(0.75)
+        case .contested: return FELDesign.Colors.textSecondary
+        case .light: return FELDesign.Colors.success.opacity(0.75)
+        case .open: return FELDesign.Colors.success
         }
     }
 
@@ -5226,16 +5802,17 @@ struct GamePlayView: View {
                             Image(systemName: defensiveState.handsUp ? "hand.raised.fill" : "hand.raised")
                                 .font(.system(size: 16, weight: .bold))
                             Text("CONTEST")
-                                .font(.system(size: 7, weight: .black, design: .monospaced))
+                                .font(.system(size: 8, weight: .semibold))
+                                .tracking(0.8)
                         }
-                        .foregroundStyle(defensiveState.handsUp ? .black : .white)
+                        .foregroundStyle(defensiveState.handsUp ? FELDesign.Colors.ink : FELDesign.Colors.textPrimary)
                         .frame(width: 56, height: 52)
                         .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(defensiveState.handsUp ? gameMode.accentColor : gameMode.accentColor.opacity(0.15))
+                            RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                                .fill(defensiveState.handsUp ? FELDesign.Colors.cyan : FELDesign.Colors.surfaceRaised.opacity(0.8))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(gameMode.accentColor.opacity(0.4), lineWidth: 1)
+                                    RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                                        .stroke(defensiveState.handsUp ? FELDesign.Colors.cyan : FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)
                                 )
                         )
                     }
@@ -5256,16 +5833,17 @@ struct GamePlayView: View {
                             Image(systemName: defensiveState.isQuickProtectActive ? "shield.fill" : "shield")
                                 .font(.system(size: 16, weight: .bold))
                             Text("PROTECT")
-                                .font(.system(size: 7, weight: .black, design: .monospaced))
+                                .font(.system(size: 8, weight: .semibold))
+                                .tracking(0.8)
                         }
-                        .foregroundStyle(defensiveState.isQuickProtectActive ? .black : .white)
+                        .foregroundStyle(defensiveState.isQuickProtectActive ? FELDesign.Colors.ink : FELDesign.Colors.textPrimary)
                         .frame(width: 56, height: 52)
                         .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(defensiveState.isQuickProtectActive ? Theme.brandCyan : Theme.brandCyan.opacity(0.15))
+                            RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                                .fill(defensiveState.isQuickProtectActive ? FELDesign.Colors.cyan : FELDesign.Colors.surfaceRaised.opacity(0.8))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Theme.brandCyan.opacity(0.4), lineWidth: 1)
+                                    RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                                        .stroke(defensiveState.isQuickProtectActive ? FELDesign.Colors.cyan : FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)
                                 )
                         )
                     }
@@ -5277,8 +5855,8 @@ struct GamePlayView: View {
                                 .fill(contestTierColor(defensiveState.contestResult().tier))
                                 .frame(width: 5, height: 5)
                             Text("\(Int(defenderSimDistance * 10) / 10)ft")
-                                .font(.system(size: 8, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.6))
+                                .font(FELDesign.Typography.statSmall)
+                                .foregroundStyle(FELDesign.Colors.textSecondary)
                         }
                         .transition(.opacity.combined(with: .scale(scale: 0.8)))
                     }

@@ -2,11 +2,22 @@ import SwiftUI
 
 @main
 struct FinalEvolutionLabApp: App {
+    @UIApplicationDelegateAdaptor(FELAppDelegate.self) private var appDelegate
+
     /// `-ScreenshotHarness` — PR/docs only (DEBUG). Skips the tab shell and opens ``GameModeScreenshotHarnessView``.
     /// Normal Run from Xcode must **not** pass this argument; shipping launch always uses ``ContentView``.
     private var screenshotHarness: Bool {
         #if DEBUG
         ProcessInfo.processInfo.arguments.contains("-ScreenshotHarness")
+        #else
+        false
+        #endif
+    }
+
+    /// `-ControllerTestScene` (DEBUG) — boots straight into the shared-input test scene.
+    private var controllerTestScene: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("-ControllerTestScene")
         #else
         false
         #endif
@@ -28,7 +39,9 @@ struct FinalEvolutionLabApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if screenshotHarness {
+            if controllerTestScene {
+                ControllerTestSceneView()
+            } else if screenshotHarness {
                 GameModeScreenshotHarnessView()
             } else {
                 ContentView()

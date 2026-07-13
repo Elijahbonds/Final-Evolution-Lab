@@ -160,3 +160,17 @@ scratch/
 dataconnect/.dataconnect/
 
 
+assets/motion/clips/
+assets/motion/external/cmu/
+scripts/asset_pipeline/.env
+assets/motion/external/meshy/
+
+# CI/session artifacts — never track
+.gitconfig
+.emergent/
+
+# CMU clip library — 8.8GB local working set, referenced by registry.json
+assets/motion/clips_cmu/
+Vendor/
+Vendor-Sim/
+*.pbxproj.bak

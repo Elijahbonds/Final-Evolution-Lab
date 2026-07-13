@@ -41,13 +41,13 @@ enum PremiumViewpointConfig {
     static func cluster(for mode: GameModeId) -> Cluster {
         switch mode {
         case .basketballHeadToHead, .venicePickup, .basketballDunkContestIRL, .basketballDunkContest3D, .basketball3v3,
-             .courtCarnival, .surfing, .tennis:
+             .courtCarnival:
             return .basketball
         case .karate, .karateEndless:
             return .dojo
         case .baseball, .football, .soccer:
             return .stadium
-        case .golf, .volleyball, .skateboarding, .snowboarding:
+        case .golf, .volleyball, .skateboarding, .snowboarding, .tennis, .surfing:
             return .outdoor
         case .gymnastics, .brainBrawl, .whoSceneIt, .marketBrowse:
             return .indoor
@@ -64,7 +64,7 @@ enum PremiumViewpointConfig {
     }
 
     static func lighting(for mode: GameModeId) -> Lighting {
-        lightingByCluster[cluster(for: mode)] ?? lightingByCluster[.basketball]!
+        modeLighting[mode] ?? lightingByCluster[cluster(for: mode)] ?? lightingByCluster[.basketball]!
     }
 
     static func defaultFieldOfView(for mode: GameModeId) -> CGFloat {
@@ -94,6 +94,10 @@ enum PremiumViewpointConfig {
     static func applyToScene(_ scene: SCNScene, for mode: GameModeId) {
         let lighting = lighting(for: mode)
         applyClusterLighting(to: scene, lighting: lighting, hybridOverlay: false)
+        // Pure-SceneKit (device) path: ensure the avatar key light exists with the
+        // per-mode intensity + tint so mode art direction (e.g. karate's cool
+        // Matrix rim) actually reaches the fighters, not just the hybrid overlay.
+        attachAvatarFillLight(to: scene, intensity: lighting.avatarFillIntensity, tint: clusterTint(for: mode))
         tuneAtmosphereNodes(in: scene, for: mode)
 
         if let camNode = scene.rootNode.childNode(withName: "mainCamera", recursively: true),
@@ -111,15 +115,16 @@ enum PremiumViewpointConfig {
     }
 
     private static func clusterTint(for mode: GameModeId) -> UIColor {
+        if let tint = modeTint[mode] { return tint }
         switch cluster(for: mode) {
         case .basketball:
             return UIColor(red: 0.55, green: 0.82, blue: 1.0, alpha: 1)
         case .dojo:
             return UIColor(red: 1.0, green: 0.55, blue: 0.35, alpha: 1)
         case .stadium:
-            return UIColor(red: 0.75, green: 0.95, blue: 0.65, alpha: 1)
+            return UIColor(red: 1.0, green: 0.95, blue: 0.9, alpha: 1)
         case .outdoor:
-            return UIColor(red: 0.95, green: 0.88, blue: 0.55, alpha: 1)
+            return UIColor(red: 1.0, green: 0.95, blue: 0.9, alpha: 1)
         case .indoor:
             return UIColor(red: 0.65, green: 0.72, blue: 1.0, alpha: 1)
         }
@@ -132,9 +137,12 @@ enum PremiumViewpointConfig {
             fovNormal: 54, fovAction: 44
         ),
         .dojo: ChaseCamera(
-            offsetX: 0, offsetY: 4.2, offsetZ: 7.8,
-            lookAtY: 1.25, followSpeed: 7.5, targetSpeed: 9.5,
-            fovNormal: 52, fovAction: 42
+            // Fighting-game side view framing BOTH fighters — was a far/high
+            // chase (5.0/9.0) that shrank the pair to specks over a vast floor.
+            // Pulled in close and low, centered on the mat midpoint.
+            offsetX: 0, offsetY: 2.4, offsetZ: 5.4,
+            lookAtY: 1.4, followSpeed: 7.5, targetSpeed: 9.5,
+            fovNormal: 52, fovAction: 44
         ),
         .stadium: ChaseCamera(
             offsetX: 0.5, offsetY: 7.2, offsetZ: 11.0,
@@ -221,25 +229,65 @@ enum PremiumViewpointConfig {
 
     private static let lightingByCluster: [Cluster: Lighting] = [
         .basketball: Lighting(
-            ambientIntensity: 1050, venueFillIntensity: 820, avatarFillIntensity: 1100,
-            spotIntensity: 1500, exposureOffset: 0.55
+            // Toned down from 1050/820/1500: the bright outdoor preset blew out
+            // the real 3D Venice blacktop court (reflective USDZ surface) into a
+            // white hotspot. These levels keep the court readable + avatars lit.
+            ambientIntensity: 780, venueFillIntensity: 520, avatarFillIntensity: 950,
+            spotIntensity: 800, exposureOffset: 0.42
         ),
         .dojo: Lighting(
-            ambientIntensity: 980, venueFillIntensity: 760, avatarFillIntensity: 1050,
-            spotIntensity: 1350, exposureOffset: 0.5
+            // Interior dusk dojo — was copied from the bright outdoor basketball
+            // preset (980/760/1350) which blasted the reflective mat into a
+            // clipped white/pink hotspot between the fighters. Dropped to
+            // moody-interior levels: fighters stay well-lit via avatarFill while
+            // the key spot no longer blows out the floor.
+            ambientIntensity: 500, venueFillIntensity: 360, avatarFillIntensity: 780,
+            spotIntensity: 540, exposureOffset: 0.5
         ),
         .stadium: Lighting(
-            ambientIntensity: 1120, venueFillIntensity: 900, avatarFillIntensity: 1150,
-            spotIntensity: 1600, exposureOffset: 0.6
+            ambientIntensity: 430, venueFillIntensity: 300, avatarFillIntensity: 460,
+            spotIntensity: 360, exposureOffset: 0.6
         ),
         .outdoor: Lighting(
-            ambientIntensity: 1000, venueFillIntensity: 780, avatarFillIntensity: 1080,
-            spotIntensity: 1450, exposureOffset: 0.52
+            ambientIntensity: 410, venueFillIntensity: 280, avatarFillIntensity: 440,
+            spotIntensity: 340, exposureOffset: 0.52
         ),
         .indoor: Lighting(
-            ambientIntensity: 940, venueFillIntensity: 720, avatarFillIntensity: 1000,
-            spotIntensity: 1280, exposureOffset: 0.48
+            ambientIntensity: 400, venueFillIntensity: 260, avatarFillIntensity: 440,
+            spotIntensity: 320, exposureOffset: 0.48
         ),
+    ]
+
+    /// Per-mode lighting art direction, overriding the shared cluster preset.
+    /// Used where a single mode needs a distinct look the cluster can't carry.
+    private static let modeLighting: [GameModeId: Lighting] = [
+        // NBA Live 07 presentation: bright, clean arena. The basketball cluster
+        // was dimmed to 780/520/950/800 to stop the reflective Venice court from
+        // blowing out — but the dunk stage should read bright and arcade-clean.
+        // We push arena light back up here; the court no longer clips because
+        // GameSceneFactory mattes the bundled venue floor for this mode (kills the
+        // glossy sunset reflection that caused the hotspot). Fighters/dunker stay
+        // crisply keyed via the strong avatar fill.
+        .basketballDunkContest3D: Lighting(
+            ambientIntensity: 1020, venueFillIntensity: 720, avatarFillIntensity: 1200,
+            spotIntensity: 1050, exposureOffset: 0.52
+        ),
+        // Matrix Revolutions / Naruto Storm x zombies: deep-dark environment with
+        // the fighters carved out in high contrast. Environment light drops well
+        // below the dojo cluster so the venue falls into shadow, while the avatar
+        // fill is pushed HIGH (cool tint, see modeTint) so the pair stay razor
+        // readable against the dark — dramatic, not murky.
+        .karateEndless: Lighting(
+            ambientIntensity: 320, venueFillIntensity: 210, avatarFillIntensity: 1180,
+            spotIntensity: 620, exposureOffset: 0.46
+        ),
+    ]
+
+    /// Per-mode avatar fill tint, overriding the cluster's warm/cool default.
+    private static let modeTint: [GameModeId: UIColor] = [
+        // Matrix key light: cool blue-green rim carving the fighters out of the
+        // dark instead of the dojo's warm orange.
+        .karateEndless: UIColor(red: 0.45, green: 0.95, blue: 0.78, alpha: 1),
     ]
 
     private static func applyClusterLighting(to scene: SCNScene, lighting: Lighting, hybridOverlay: Bool) {
@@ -247,13 +295,13 @@ enum PremiumViewpointConfig {
             guard let light = node.light else { return }
             switch light.type {
             case .ambient:
-                light.intensity = max(light.intensity, lighting.ambientIntensity)
+                light.intensity = lighting.ambientIntensity
             case .omni where node.name == "venueFillLight" || node.name == "avatarFillLight":
                 light.intensity = node.name == "avatarFillLight"
                     ? lighting.avatarFillIntensity
                     : lighting.venueFillIntensity
             case .spot:
-                light.intensity = max(light.intensity, lighting.spotIntensity)
+                light.intensity = lighting.spotIntensity
             default:
                 break
             }

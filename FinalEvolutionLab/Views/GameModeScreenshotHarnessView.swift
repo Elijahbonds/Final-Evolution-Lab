@@ -3,11 +3,26 @@ import SwiftUI
 /// PR / docs-only: launch app with argument `-ScreenshotHarness` to capture Arena grid + every ``GameMode`` gameplay shell without stepping through multiplayer lobby.
 struct GameModeScreenshotHarnessView: View {
     @State private var viewModel = LabViewModel()
-    @State private var modeIndex = 0
+    @State private var modeIndex: Int
     /// 0 = full Arena mode grid, 1 = GamePlay chrome for selected mode.
-    @State private var section = 0
+    @State private var section: Int
 
     private var modes: [GameMode] { GameModeRegistry.all }
+
+    /// `-HarnessMode <GameModeId rawValue>` (e.g. `karate_h2h`) jumps straight
+    /// to that mode's gameplay section — enables headless screenshot capture.
+    init() {
+        let args = ProcessInfo.processInfo.arguments
+        if let flagIndex = args.firstIndex(of: "-HarnessMode"),
+           args.indices.contains(flagIndex + 1),
+           let index = GameModeRegistry.all.firstIndex(where: { $0.id.rawValue == args[flagIndex + 1] }) {
+            _modeIndex = State(initialValue: index)
+            _section = State(initialValue: 1)
+        } else {
+            _modeIndex = State(initialValue: 0)
+            _section = State(initialValue: 0)
+        }
+    }
 
     var body: some View {
         NavigationStack {

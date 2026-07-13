@@ -71,11 +71,37 @@ nonisolated struct DirectionalTrick: Sendable, Identifiable {
         DirectionalTrick(id: "sig_shadow", name: "Phantom Echo Finisher", displayName: "PHANTOM ECHO!", direction: .down, modifier: .special, basePoints: 28, riskFactor: 2.2, animationKey: "combat_shadow"),
     ]
 
+    /// Board / precision extreme-sports tricks (skate/snow/surf/gymnastics).
+    /// Previously these modes fell through to `dunkTricks`, so landing a trick
+    /// flashed basketball names ("WINDMILL!", "360!") — content bleed-through.
+    /// Same direction × modifier grid so `resolve` always finds a match.
+    static let boardTricks: [DirectionalTrick] = [
+        DirectionalTrick(id: "board_ollie", name: "Ollie", displayName: "OLLIE!", direction: .up, modifier: .none, basePoints: 6, riskFactor: 0.8, animationKey: "board_ollie"),
+        DirectionalTrick(id: "board_shuv", name: "Pop Shuv-It", displayName: "SHUV-IT!", direction: .right, modifier: .none, basePoints: 8, riskFactor: 1.0, animationKey: "board_shuvit"),
+        DirectionalTrick(id: "board_grind", name: "50-50 Grind", displayName: "GRIND!", direction: .left, modifier: .none, basePoints: 7, riskFactor: 0.9, animationKey: "board_grind"),
+        DirectionalTrick(id: "board_kickflip", name: "Kickflip", displayName: "KICKFLIP!", direction: .down, modifier: .none, basePoints: 9, riskFactor: 1.1, animationKey: "board_kickflip"),
+        DirectionalTrick(id: "board_carve", name: "Carve", displayName: "CARVE!", direction: .neutral, modifier: .none, basePoints: 6, riskFactor: 0.8, animationKey: "board_carve"),
+        DirectionalTrick(id: "board_stylemethod", name: "Method Air", displayName: "METHOD AIR!", direction: .up, modifier: .style, basePoints: 13, riskFactor: 1.3, animationKey: "board_method"),
+        DirectionalTrick(id: "board_style360", name: "360 Spin", displayName: "360 SPIN!", direction: .right, modifier: .style, basePoints: 15, riskFactor: 1.5, animationKey: "board_spin360"),
+        DirectionalTrick(id: "board_stylegrab", name: "Indy Grab", displayName: "INDY GRAB!", direction: .down, modifier: .style, basePoints: 14, riskFactor: 1.4, animationKey: "board_indy"),
+        DirectionalTrick(id: "board_styleboard", name: "Boardslide", displayName: "BOARDSLIDE!", direction: .left, modifier: .style, basePoints: 13, riskFactor: 1.35, animationKey: "board_boardslide"),
+        DirectionalTrick(id: "board_powerbig", name: "Big Air", displayName: "BIG AIR!", direction: .up, modifier: .power, basePoints: 14, riskFactor: 1.4, animationKey: "board_bigair"),
+        DirectionalTrick(id: "board_powerslam", name: "Backflip", displayName: "BACKFLIP!", direction: .down, modifier: .power, basePoints: 16, riskFactor: 1.6, animationKey: "board_backflip"),
+        DirectionalTrick(id: "board_powerrail", name: "Rail Slide", displayName: "RAIL SLIDE!", direction: .left, modifier: .power, basePoints: 15, riskFactor: 1.5, animationKey: "board_rail"),
+        DirectionalTrick(id: "board_power900", name: "900 Spin", displayName: "900!", direction: .right, modifier: .power, basePoints: 17, riskFactor: 1.7, animationKey: "board_900"),
+        DirectionalTrick(id: "board_sigmctwist", name: "McTwist", displayName: "MCTWIST!", direction: .up, modifier: .special, basePoints: 25, riskFactor: 2.0, animationKey: "board_mctwist"),
+        DirectionalTrick(id: "board_sig1080", name: "1080", displayName: "1080!", direction: .down, modifier: .special, basePoints: 28, riskFactor: 2.2, animationKey: "board_1080"),
+        DirectionalTrick(id: "board_sighandplant", name: "Handplant", displayName: "HANDPLANT!", direction: .left, modifier: .special, basePoints: 22, riskFactor: 1.9, animationKey: "board_handplant"),
+        DirectionalTrick(id: "board_sigdoublecork", name: "Double Cork", displayName: "DOUBLE CORK!", direction: .right, modifier: .special, basePoints: 30, riskFactor: 2.5, animationKey: "board_doublecork"),
+    ]
+
     static func resolve(direction: ComboDirection, modifier: ModifierState, mode: GameModeId) -> DirectionalTrick {
         let pool: [DirectionalTrick]
         switch mode {
         case .karate, .karateEndless:
             pool = combatTricks
+        case .skateboarding, .snowboarding, .surfing, .gymnastics:
+            pool = boardTricks
         default:
             pool = dunkTricks
         }

@@ -1,0 +1,151 @@
+import Foundation
+import SwiftUI
+
+// MARK: - UnityBridgeShim (Lane F: framework glue)
+//
+// The only file that talks to UnityFramework directly. Everything is behind
+// FEL_UNITY_EMBEDDED so the app builds identically before the framework is
+// linked. To activate:
+//   1. Drag UnityFramework.framework (built from FEL-unity/FELGameplay/iosBuild,
+//      scheme "UnityFramework") into the FinalEvolutionLab app target
+//      (General → Frameworks, Embed & Sign).
+//   2. Add FEL_UNITY_EMBEDDED to Build Settings → Swift Compiler → Custom Flags
+//      → Active Compilation Conditions.
+//
+// Unity 6 UaaL surface used here (stable since 2019.3):
+//   UnityFramework.getInstance() / -runEmbedded(withArgc:argv:appLaunchOpts:)
+//   -sendMessageToGO(withName:functionName:message:)  (Swift-bridged name)
+//   -appController().rootView                          (the render UIView)
+//   NativeCallProxy pattern replaced by C# HostEmitter -> objc callback.
+
+#if FEL_UNITY_EMBEDDED
+import MachO
+import UnityFramework
+
+enum UnityBridgeShim {
+    private static var framework: UnityFramework?
+
+    /// Load + run the embedded Unity player once; register the C#->Swift emitter.
+    @MainActor
+    static func loadUnity(host: FELUnityHost) {
+        if framework != nil { return }
+        guard let bundlePath = Bundle.main.privateFrameworksPath.map({ $0 + "/UnityFramework.framework" }),
+              let bundle = Bundle(path: bundlePath) else {
+            print("[UnityShim] UnityFramework.framework not found in app bundle")
+            return
+        }
+        if !bundle.isLoaded { bundle.load() }
+        guard let ufw = bundle.principalClass?.getInstance() else {
+            print("[UnityShim] UnityFramework.getInstance() failed")
+            return
+        }
+        if ufw.appController() == nil {
+            // Canonical UaaL bootstrap: hand Unity the host executable's Mach-O
+            // header. Resolved at runtime via dyld (image 0 = main executable)
+            // because this app builds with Xcode's debug-dylib mechanism, where
+            // the static __mh_execute_header symbol is unavailable.
+            if let raw = _dyld_get_image_header(0) {
+                raw.withMemoryRebound(to: MachHeader.self, capacity: 1) {
+                    ufw.setExecuteHeader($0)
+                }
+            }
+            ufw.setDataBundleId("com.unity3d.framework")
+            ufw.runEmbedded(withArgc: CommandLine.argc,
+                            argv: CommandLine.unsafeArgv,
+                            appLaunchOpts: [:])
+        }
+        framework = ufw
+
+        // C# FELUnityBridge.EmitToHost -> FELNativeBridge.mm (in the framework)
+        // -> the C callback we register here -> main-actor host.receive.
+        FELUnityEventPump.shared.onEvent = { json in
+            Task { @MainActor in host.receive(json: json) }
+        }
+        registerNativeEmitter()
+    }
+
+    /// Resolve FELRegisterEmitter from the loaded UnityFramework and register a
+    /// C-convention trampoline into the event pump. dlsym keeps this decoupled
+    /// from the framework's headers (the symbol ships in FELNativeBridge.mm).
+    private static func registerNativeEmitter() {
+        typealias RegisterFn = @convention(c) (@convention(c) (UnsafePointer<CChar>?) -> Void) -> Void
+        guard let sym = dlsym(dlopen(nil, RTLD_NOW), "FELRegisterEmitter") else {
+            print("[UnityShim] FELRegisterEmitter not found — Unity->Swift events disabled")
+            return
+        }
+        let register = unsafeBitCast(sym, to: RegisterFn.self)
+        register { cJson in
+            guard let cJson else { return }
+            let json = String(cString: cJson)
+            DispatchQueue.main.async { FELUnityEventPump.shared.pump(json) }
+        }
+    }
+
+    /// Swift -> C#: route a HostCommand JSON to the FELUnityBridge GameObject.
+    static func sendMessage(_ json: String) {
+        framework?.sendMessageToGO(withName: "FELUnityBridge",
+                                   functionName: "ReceiveHostMessage",
+                                   message: json)
+    }
+
+    /// The Unity render view, re-parented into SwiftUI.
+    static var unityRootView: UIView? {
+        framework?.appController()?.rootView
+    }
+}
+
+/// Hosts Unity's render UIView inside SwiftUI. Unity boots asynchronously, so
+/// the root view may not exist at makeUIView time — the wrapper polls until
+/// Unity's view appears, then adopts it (and stops polling).
+struct UnityContainerView: UIViewRepresentable {
+    func makeUIView(context: Context) -> UnityAdoptingView {
+        let v = UnityAdoptingView()
+        v.backgroundColor = .black
+        v.beginAdoption()
+        return v
+    }
+    func updateUIView(_ uiView: UnityAdoptingView, context: Context) {
+        uiView.adoptIfPossible()
+    }
+}
+
+final class UnityAdoptingView: UIView {
+    private var poll: Timer?
+    private weak var adopted: UIView?
+
+    func beginAdoption() {
+        adoptIfPossible()
+        guard adopted == nil else { return }
+        poll = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+            DispatchQueue.main.async { self?.adoptIfPossible() }
+        }
+    }
+
+    func adoptIfPossible() {
+        guard adopted == nil, let unityView = UnityBridgeShim.unityRootView else { return }
+        adopted = unityView
+        poll?.invalidate()
+        poll = nil
+        unityView.frame = bounds
+        unityView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        addSubview(unityView)
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        adopted?.frame = bounds
+    }
+
+    deinit { poll?.invalidate() }
+}
+
+/// Singleton relay for the C# emitter callback (registered via the tiny ObjC
+/// category the embed step adds; until then events simply do not flow).
+final class FELUnityEventPump: NSObject {
+    static let shared = FELUnityEventPump()
+    var onEvent: ((String) -> Void)?
+
+    /// Exposed to ObjC so the C# HostEmitter's native callback can reach Swift.
+    @objc func pump(_ json: String) { onEvent?(json) }
+}
+#endif

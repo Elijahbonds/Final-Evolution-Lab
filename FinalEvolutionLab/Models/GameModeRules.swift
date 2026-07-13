@@ -72,7 +72,10 @@ nonisolated struct GameModeRules: Sendable {
             return GameModeRules(
                 useMatchCountdown: false,
                 matchDurationSeconds: 0,
-                roundLimit: 7,
+                // 6 rounds — the film-quiz bank ships exactly 6 FilmQuestion
+                // entries and the UI reads "OF 6". A 7th round re-showed
+                // question #6 with a "QUESTION 7 OF 6" label (off-by-one).
+                roundLimit: 6,
                 usesTargetScoreWin: false,
                 targetScore: 0,
                 rewardEligibleMinActions: 5

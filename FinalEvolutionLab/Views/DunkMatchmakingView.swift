@@ -6,21 +6,21 @@ import Combine
 struct DunkMatchmakingView: View {
     @Environment(\.dismiss) private var dismiss
     let viewModel: LabViewModel
-    
+
     private enum MatchFlowPhase {
         case preflight
         case queued
         case searching
         case matched
     }
-    
+
     private struct RimChecklistItem: Identifiable {
         let id: String
         let title: String
         let detail: String
         var isChecked: Bool
     }
-    
+
     // Matchmaking / Lobby states
     @State private var flowPhase: MatchFlowPhase = .preflight
     @State private var isSearching = false
@@ -43,7 +43,7 @@ struct DunkMatchmakingView: View {
         RimChecklistItem(id: "runway", title: "Clear 15 ft approach lane", detail: "Unobstructed run-up path from baseline to takeoff zone.", isChecked: false),
         RimChecklistItem(id: "zoom_proctor", title: "Zoom proctor session joined", detail: "WDA proctor tile live — say your athlete tag to confirm identity.", isChecked: false)
     ]
-    
+
     // Judges Scoring Animation states
     @State private var judgesScoringTriggered = false
     @State private var judge1ScoreTicker = 0.0
@@ -52,16 +52,16 @@ struct DunkMatchmakingView: View {
     @State private var isPlayerWinner = false
     @State private var showWinnerBanner = false
     @State private var hasClaimedRewards = false
-    
+
     @State private var selectedSignatureAnimation: NexusAnimationAsset? = nil
     @State private var showSignatureSelector = false
     @State private var showCreatorCardSelector = false
-    
+
     // Radar / scan effects
     @State private var scanLineOffset: CGFloat = -120.0
     @State private var searchingProgress = 0.0
     private let lobbyTimer = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
-    
+
     struct DunkOpponent: Identifiable, Sendable {
         let id: String
         let displayName: String
@@ -76,7 +76,7 @@ struct DunkMatchmakingView: View {
         let totalScore: Double
         let clipTitle: String
     }
-    
+
     private let availableOpponents = [
         DunkOpponent(
             id: "opp_flight",
@@ -85,7 +85,7 @@ struct DunkMatchmakingView: View {
             avatarSystemName: "flame.fill",
             prqScore: 79.0,
             creatorCardTitle: "Bonds Bounce",
-            creatorCardColor: Color(red: 0.95, green: 0.49, blue: 0.15),
+            creatorCardColor: FELDesign.Colors.cyan,
             difficultyScore: 24.5,
             artisticScore: 8.5,
             firstTryScore: 10.0,
@@ -99,7 +99,7 @@ struct DunkMatchmakingView: View {
             avatarSystemName: "bolt.fill",
             prqScore: 85.0,
             creatorCardTitle: "Coach V Elite",
-            creatorCardColor: .yellow,
+            creatorCardColor: FELDesign.Colors.purple,
             difficultyScore: 26.0,
             artisticScore: 9.0,
             firstTryScore: 7.0,
@@ -121,17 +121,16 @@ struct DunkMatchmakingView: View {
             clipTitle: "Double-Clutch Rim Grazer"
         )
     ]
-    
+
     var body: some View {
         ZStack {
-            Theme.deepBlack.ignoresSafeArea()
-            Theme.meshGradient.opacity(0.35).ignoresSafeArea()
-            
+            FELDesign.Colors.ink.ignoresSafeArea()
+
             VStack(spacing: 0) {
                 // Header HUD
                 headerHUD
-                    .padding(.top, 10)
-                
+                    .padding(.top, FELDesign.Space.xs)
+
                 switch flowPhase {
                 case .preflight:
                     preflightLobby
@@ -172,12 +171,12 @@ struct DunkMatchmakingView: View {
         .overlay(alignment: .bottom) {
             if let msg = balanceToastMessage {
                 Text(msg)
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.red.opacity(0.85)))
-                    .padding(.bottom, 24)
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textPrimary)
+                    .padding(.horizontal, FELDesign.Space.md)
+                    .padding(.vertical, FELDesign.Space.xs)
+                    .background(RoundedRectangle(cornerRadius: FELDesign.Radius.sm).fill(FELDesign.Colors.danger.opacity(0.85)))
+                    .padding(.bottom, FELDesign.Space.lg)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
@@ -200,7 +199,7 @@ struct DunkMatchmakingView: View {
                     matchedOpponent = availableOpponents.randomElement()
                 }
             }
-            
+
             // Animate scanline
             scanLineOffset += 3.0
             if scanLineOffset > 150.0 {
@@ -225,48 +224,49 @@ struct DunkMatchmakingView: View {
             creatorCardSelectorSheet
         }
     }
-    
+
     // MARK: - Lobby Header
-    
+
     private var headerHUD: some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 6) {
+        VStack(spacing: FELDesign.Space.xs) {
+            HStack(spacing: FELDesign.Space.xs) {
                 FELPreviewLabel(text: FELPremiumCopy.Preview.proctoredDunkLobby)
                 FELPreviewLabel(text: FELPremiumCopy.Preview.triumphCashEntry)
             }
-            
-            HStack {
+
+            HStack(spacing: FELDesign.Space.xs) {
                 Image(systemName: "video.badge.checkmark")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.orange)
-                
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.cyan)
+
                 Text("PROCTORED IRL H2H DUNK")
-                    .font(.system(size: 13, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white)
-                    .tracking(2)
+                    .font(FELDesign.Typography.label)
+                    .foregroundStyle(FELDesign.Colors.textPrimary)
+                    .tracking(1)
             }
 
             Text("Set up in front of a hoop · tripod · 1v1 · compete for $")
-                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.55))
+                .font(FELDesign.Typography.caption)
+                .foregroundStyle(FELDesign.Colors.textSecondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 8)
-            
+                .padding(.horizontal, FELDesign.Space.xs)
+
             if flowPhase != .preflight {
-                HStack(spacing: 8) {
+                HStack(spacing: FELDesign.Space.xs) {
                     Circle()
-                        .fill(proctorConnected ? Theme.neonGreen : Color.orange)
+                        .fill(proctorConnected ? FELDesign.Colors.success : FELDesign.Colors.textTertiary)
                         .frame(width: 6, height: 6)
-                    Text(proctorConnected ? "WDA PROCTOR LIVE" : "AWAITING PROCTOR")
-                        .font(.system(size: 8, weight: .black, design: .monospaced))
-                        .foregroundStyle(proctorConnected ? Theme.neonGreen : Color.orange)
-                    
+                    FELMicroLabel(
+                        text: proctorConnected ? "WDA Proctor Live" : "Awaiting Proctor",
+                        color: proctorConnected ? FELDesign.Colors.success : FELDesign.Colors.textTertiary
+                    )
+
                     if entryEscrowLocked {
-                        Text("•")
-                            .foregroundStyle(.secondary)
+                        Text("·")
+                            .foregroundStyle(FELDesign.Colors.textTertiary)
                         Text("ESCROW \(String(format: "$%.2f", selectedTier.entryFee))")
-                            .font(.system(size: 8, weight: .black, design: .monospaced))
-                            .foregroundStyle(Theme.brandCyan)
+                            .font(FELDesign.Typography.statSmall)
+                            .foregroundStyle(FELDesign.Colors.cyan)
                     }
                 }
             }
@@ -277,483 +277,444 @@ struct DunkMatchmakingView: View {
     private var allChecklistComplete: Bool {
         rimChecklist.allSatisfy(\.isChecked) && tripodGuideAcknowledged
     }
-    
+
+    private var canJoinQueue: Bool {
+        allChecklistComplete && triumphEngine.cashBalance >= selectedTier.entryFee
+    }
+
     // MARK: - Preflight: Tripod guide, rim checklist, Triumph entry
-    
+
     private var preflightLobby: some View {
         ScrollView {
-            VStack(spacing: 16) {
+            VStack(spacing: FELDesign.Space.md) {
                 tripodSetupGuideCard
-                
+
                 regulationRimChecklistCard
-                
+
                 triumphEntryCard
-                
+
                 signatureAndCreatorSelectors
-                
+
                 Button(action: joinProctoredQueue) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: FELDesign.Space.xs) {
                         Image(systemName: "person.2.badge.gearshape.fill")
                         Text("JOIN PROCTORED QUEUE · \(String(format: "$%.2f", selectedTier.entryFee))")
-                            .font(.system(.subheadline, design: .monospaced, weight: .black))
                     }
+                    .font(FELDesign.Typography.label)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(allChecklistComplete && triumphEngine.cashBalance >= selectedTier.entryFee ? Theme.neonGreen : Color.gray.opacity(0.35))
-                    .foregroundStyle(allChecklistComplete ? .black : .white.opacity(0.5))
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .shadow(color: allChecklistComplete ? Theme.neonGreen.opacity(0.3) : .clear, radius: 10)
+                    .padding(.vertical, FELDesign.Space.md)
+                    .background(canJoinQueue ? FELDesign.Colors.cyan : FELDesign.Colors.surfaceRaised)
+                    .foregroundStyle(canJoinQueue ? FELDesign.Colors.ink : FELDesign.Colors.textTertiary)
+                    .clipShape(RoundedRectangle(cornerRadius: FELDesign.Radius.md))
                 }
-                .disabled(!allChecklistComplete || triumphEngine.cashBalance < selectedTier.entryFee)
+                .disabled(!canJoinQueue)
                 .accessibilityIdentifier("DunkJoinQueueButton")
-                .padding(.bottom, 20)
+                .padding(.bottom, FELDesign.Space.lg)
             }
         }
     }
-    
+
     private var tripodSetupGuideCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("TRIPOD SETUP GUIDE")
-                .font(.system(size: 9, weight: .black, design: .monospaced))
-                .foregroundStyle(Theme.brandCyan)
-                .tracking(2)
-            
-            HStack(spacing: 14) {
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
+            FELMicroLabel(text: "Tripod Setup Guide")
+
+            HStack(spacing: FELDesign.Space.md) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color.black.opacity(0.4))
+                    RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                        .fill(FELDesign.Colors.ink)
                         .frame(width: 88, height: 110)
-                    VStack(spacing: 4) {
+                    VStack(spacing: FELDesign.Space.xxs) {
                         Image(systemName: "iphone.gen3")
                             .font(.system(size: 22))
-                            .foregroundStyle(Theme.brandCyan)
+                            .foregroundStyle(FELDesign.Colors.cyan)
                         Rectangle()
-                            .fill(Color.white.opacity(0.3))
+                            .fill(FELDesign.Colors.hairlineStrong)
                             .frame(width: 2, height: 28)
                         Image(systemName: "triangle.fill")
                             .font(.system(size: 10))
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(FELDesign.Colors.textSecondary)
                             .rotationEffect(.degrees(180))
                     }
                 }
-                
-                VStack(alignment: .leading, spacing: 6) {
+
+                VStack(alignment: .leading, spacing: FELDesign.Space.xs) {
                     guideStep("1", "Lock phone on tripod at baseline — landscape, chest height.")
                     guideStep("2", "Frame full hoop, backboard, and 15 ft runway in view.")
                     guideStep("3", "Join Zoom proctor room; keep your tile unmuted for identity check.")
                 }
             }
-            
+
             Toggle(isOn: $tripodGuideAcknowledged) {
                 Text("Tripod angle verified — ready for proctor review")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.85))
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textPrimary)
             }
-            .tint(Theme.neonGreen)
+            .tint(FELDesign.Colors.cyan)
         }
-        .padding(12)
-        .background(RoundedRectangle(cornerRadius: 14).fill(Theme.cardBackground))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.brandCyan.opacity(0.2), lineWidth: 1))
+        .felCard()
     }
-    
+
     private func guideStep(_ number: String, _ text: String) -> some View {
-        HStack(alignment: .top, spacing: 6) {
+        HStack(alignment: .top, spacing: FELDesign.Space.xs) {
             Text(number)
-                .font(.system(size: 9, weight: .black, design: .monospaced))
-                .foregroundStyle(.black)
+                .font(FELDesign.Typography.micro)
+                .foregroundStyle(FELDesign.Colors.ink)
                 .frame(width: 16, height: 16)
-                .background(Circle().fill(Theme.brandCyan))
+                .background(Circle().fill(FELDesign.Colors.cyan))
             Text(text)
-                .font(.system(size: 9, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.75))
+                .font(FELDesign.Typography.caption)
+                .foregroundStyle(FELDesign.Colors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
-    
+
     private var regulationRimChecklistCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("REGULATION RIM CHECKLIST")
-                .font(.system(size: 9, weight: .black, design: .monospaced))
-                .foregroundStyle(Theme.brandCyan)
-                .tracking(2)
-            
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
+            FELMicroLabel(text: "Regulation Rim Checklist")
+
             ForEach($rimChecklist) { $item in
                 Toggle(isOn: $item.isChecked) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(item.title.uppercased())
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
-                            .foregroundStyle(.white)
+                    VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
+                        Text(item.title)
+                            .font(FELDesign.Typography.label)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
                         Text(item.detail)
-                            .font(.system(size: 8, design: .monospaced))
-                            .foregroundStyle(.secondary)
+                            .font(FELDesign.Typography.caption)
+                            .foregroundStyle(FELDesign.Colors.textSecondary)
                     }
                 }
-                .tint(Theme.neonGreen)
+                .tint(FELDesign.Colors.cyan)
             }
         }
-        .padding(12)
-        .background(RoundedRectangle(cornerRadius: 14).fill(Theme.cardBackground))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+        .felCard()
     }
-    
+
     private var triumphEntryCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
             HStack {
-                Text("TRIUMPH CASH ENTRY")
-                    .font(.system(size: 9, weight: .black, design: .monospaced))
-                    .foregroundStyle(Theme.brandCyan)
-                    .tracking(2)
+                FELMicroLabel(text: "Triumph Cash Entry")
                 Spacer()
                 FELPreviewLabel(text: FELPremiumCopy.Preview.triumphCashEntry)
             }
-            
+
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("BALANCE")
-                        .font(.system(size: 8, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
+                    FELMicroLabel(text: "Balance")
                     Text(String(format: "$%.2f USD", triumphEngine.cashBalance))
-                        .font(.system(size: 18, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white)
+                        .font(FELDesign.Typography.statLarge)
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
                 }
                 Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("PRIZE POOL")
-                        .font(.system(size: 8, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.secondary)
+                VStack(alignment: .trailing, spacing: FELDesign.Space.xxs) {
+                    FELMicroLabel(text: "Prize Pool")
                     Text(String(format: "$%.2f", selectedTier.prizePool))
-                        .font(.system(size: 14, weight: .black, design: .monospaced))
-                        .foregroundStyle(Theme.neonGreen)
+                        .font(FELDesign.Typography.stat)
+                        .foregroundStyle(FELDesign.Colors.success)
                 }
             }
-            
+
             ForEach(TournamentTier.tiers) { tier in
                 Button(action: { selectedTier = tier }) {
                     HStack {
                         Circle()
-                            .stroke(selectedTier.id == tier.id ? Theme.brandCyan : Color.gray.opacity(0.4), lineWidth: 2)
-                            .fill(selectedTier.id == tier.id ? Theme.brandCyan : Color.clear)
+                            .stroke(selectedTier.id == tier.id ? FELDesign.Colors.cyan : FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.accent)
+                            .fill(selectedTier.id == tier.id ? FELDesign.Colors.cyan : Color.clear)
                             .frame(width: 14, height: 14)
                         Text(tier.name.uppercased())
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
-                            .foregroundStyle(.white)
+                            .font(FELDesign.Typography.caption)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
                         Spacer()
                         Text(String(format: "$%.2f entry", tier.entryFee))
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundStyle(Theme.brandCyan)
+                            .font(FELDesign.Typography.statSmall)
+                            .foregroundStyle(FELDesign.Colors.textSecondary)
                     }
-                    .padding(10)
-                    .background(RoundedRectangle(cornerRadius: 8).fill(selectedTier.id == tier.id ? Theme.brandCyan.opacity(0.08) : Color.white.opacity(0.03)))
+                    .padding(FELDesign.Space.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                            .fill(selectedTier.id == tier.id ? FELDesign.Colors.surfaceRaised : Color.clear)
+                    )
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(12)
-        .background(RoundedRectangle(cornerRadius: 14).fill(Theme.slateCard))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.brandCyan.opacity(0.15), lineWidth: 1))
+        .felCard()
     }
-    
+
     private var signatureAndCreatorSelectors: some View {
-        VStack(spacing: 16) {
-            VStack(spacing: 8) {
+        VStack(spacing: FELDesign.Space.md) {
+            VStack(spacing: FELDesign.Space.xs) {
                 Text("PROCTORED 1v1 LOBBY")
-                    .font(.system(size: 16, weight: .black, design: .monospaced))
-                    .foregroundStyle(.white)
-                
+                    .font(FELDesign.Typography.heading)
+                    .foregroundStyle(FELDesign.Colors.textPrimary)
+
                 Text("Zoom-style WDA proctor verifies your rim setup, then pairs you with a matched PRQ opponent. Cash entry locks in escrow until judges finalize scores.")
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
                     .multilineTextAlignment(.center)
             }
-            
+
             // Signature Animation Selector Card
-            VStack(alignment: .leading, spacing: 8) {
-                Text("ACTIVE SIGNATURE DUNK")
-                    .font(.system(size: 9, weight: .black, design: .monospaced))
-                    .foregroundStyle(Theme.brandCyan)
-                    .tracking(2)
-                
+            VStack(alignment: .leading, spacing: FELDesign.Space.xs) {
+                FELMicroLabel(text: "Active Signature Dunk")
+
                 Button(action: { showSignatureSelector = true }) {
-                    HStack(spacing: 12) {
+                    HStack(spacing: FELDesign.Space.sm) {
                         ZStack {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Theme.brandCyan.opacity(0.12))
+                            RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                                .fill(FELDesign.Colors.surfaceRaised)
                                 .frame(width: 36, height: 36)
                             Image(systemName: "figure.basketball")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(Theme.brandCyan)
+                                .font(FELDesign.Typography.caption)
+                                .foregroundStyle(FELDesign.Colors.cyan)
                         }
-                        
-                        VStack(alignment: .leading, spacing: 2) {
+
+                        VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
                             Text(selectedSignatureAnimation?.header.title.uppercased() ?? "STANDARD DUNK")
-                                .font(.system(size: 11, weight: .black, design: .monospaced))
-                                .foregroundStyle(.white)
+                                .font(FELDesign.Typography.label)
+                                .foregroundStyle(FELDesign.Colors.textPrimary)
                             Text(selectedSignatureAnimation?.header.competitionName ?? "Preset Animation")
-                                .font(.system(size: 8, weight: .medium))
-                                .foregroundStyle(.secondary)
+                                .font(FELDesign.Typography.caption)
+                                .foregroundStyle(FELDesign.Colors.textSecondary)
                         }
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.tertiary)
+                            .font(FELDesign.Typography.micro)
+                            .foregroundStyle(FELDesign.Colors.textTertiary)
                     }
-                    .padding(10)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(Theme.cardBackground))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.brandCyan.opacity(0.2), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
+                .felCard(padding: FELDesign.Space.sm)
             }
-            .padding(.horizontal, 24)
-            
+
             // Active Creator Card selector
-            VStack(alignment: .leading, spacing: 8) {
-                Text("ACTIVE CREATOR CARD")
-                    .font(.system(size: 9, weight: .black, design: .monospaced))
-                    .foregroundStyle(Theme.brandCyan)
-                    .tracking(2)
-                
+            VStack(alignment: .leading, spacing: FELDesign.Space.xs) {
+                FELMicroLabel(text: "Active Creator Card")
+
                 Button(action: { showCreatorCardSelector = true }) {
-                    HStack(spacing: 12) {
+                    HStack(spacing: FELDesign.Space.sm) {
                         ZStack {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill((activeCreatorCard?.accentColor ?? Theme.brandCyan).opacity(0.12))
+                            RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                                .fill(FELDesign.Colors.surfaceRaised)
                                 .frame(width: 36, height: 36)
                             Image(systemName: activeCreatorCard?.iconName ?? "person.crop.rectangle")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(activeCreatorCard?.accentColor ?? Theme.brandCyan)
+                                .font(FELDesign.Typography.caption)
+                                .foregroundStyle(activeCreatorCard != nil ? FELDesign.Colors.cyan : FELDesign.Colors.textTertiary)
                         }
-                        
-                        VStack(alignment: .leading, spacing: 2) {
+
+                        VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
                             Text(activeCreatorCard?.creatorName.uppercased() ?? "NO CARD EQUIPPED")
-                                .font(.system(size: 11, weight: .black, design: .monospaced))
-                                .foregroundStyle(.white)
+                                .font(FELDesign.Typography.label)
+                                .foregroundStyle(FELDesign.Colors.textPrimary)
                             Text(activeCreatorCard?.title ?? "Tap to equip a Creator Card boost")
-                                .font(.system(size: 8, weight: .medium))
-                                .foregroundStyle(.secondary)
+                                .font(FELDesign.Typography.caption)
+                                .foregroundStyle(FELDesign.Colors.textSecondary)
                                 .lineLimit(1)
                         }
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.tertiary)
+                            .font(FELDesign.Typography.micro)
+                            .foregroundStyle(FELDesign.Colors.textTertiary)
                     }
-                    .padding(10)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(Theme.cardBackground))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke((activeCreatorCard?.accentColor ?? Theme.brandCyan).opacity(0.2), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
+                .felCard(padding: FELDesign.Space.sm)
             }
         }
     }
-    
+
     // MARK: - Active Queue Lobby
-    
+
     private var queuedLobby: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: FELDesign.Space.lg) {
             Spacer()
-            
+
             ZStack {
                 Circle()
-                    .stroke(Color.orange.opacity(0.3), lineWidth: 2)
+                    .stroke(FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)
                     .frame(width: 150, height: 150)
-                
-                VStack(spacing: 6) {
-                    Text("IN QUEUE")
-                        .font(.system(size: 12, weight: .black, design: .monospaced))
-                        .foregroundStyle(.orange)
-                    
+
+                VStack(spacing: FELDesign.Space.xs) {
+                    FELMicroLabel(text: "In Queue", color: FELDesign.Colors.cyan)
+
                     Text("#\(queuePosition)")
-                        .font(.system(size: 36, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white)
+                        .font(FELDesign.Typography.statLarge)
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
                 }
             }
-            
-            VStack(spacing: 8) {
+
+            VStack(spacing: FELDesign.Space.xs) {
                 Text("ACTIVE PROCTORED LOBBIES: \(activeLobbyCount)")
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.8))
-                
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
+
                 FELPreviewLabel(text: FELPremiumCopy.Preview.proctoredZoomSession)
-                
+
                 Text("WDA proctor reviewing rim checklist · pairing PRQ tier \(Int(viewModel.competitivePRQScore))")
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.5))
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textTertiary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, FELDesign.Space.lg)
             }
-            
-            proctorZoomTile(name: "WDA PROCTOR", tag: "PROCTOR · LIVE", icon: "person.badge.shield.checkmark.fill", accent: Theme.neonGreen, isLive: true)
-                .padding(.horizontal, 8)
-            
+
+            proctorZoomTile(name: "WDA PROCTOR", tag: "PROCTOR · LIVE", icon: "person.badge.shield.checkmark.fill", accent: FELDesign.Colors.success, isLive: true)
+                .padding(.horizontal, FELDesign.Space.xs)
+
             Spacer()
-            
+
             Button(action: leaveQueue) {
                 Text("LEAVE QUEUE · REFUND ESCROW")
-                    .font(.system(.subheadline, design: .monospaced, weight: .black))
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color.white.opacity(0.08))
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
             }
-            .padding(.bottom, 12)
+            .buttonStyle(FELGhostButtonStyle())
+            .padding(.bottom, FELDesign.Space.sm)
         }
     }
-    
+
     // MARK: - Searching Lobby
-    
+
     private var searchingLobby: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: FELDesign.Space.lg) {
             Spacer()
-            
+
             ZStack {
-                // Outer rotating ring
                 Circle()
-                    .stroke(
-                        AngularGradient(colors: [Theme.brandCyan, .clear, Theme.brandCyan], center: .center),
-                        lineWidth: 3
-                    )
+                    .stroke(FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.accent)
+                    .frame(width: 160, height: 160)
+
+                Circle()
+                    .trim(from: 0, to: 0.25)
+                    .stroke(FELDesign.Colors.cyan, style: StrokeStyle(lineWidth: FELDesign.Stroke.accent, lineCap: .round))
                     .frame(width: 160, height: 160)
                     .rotationEffect(.degrees(searchingProgress * 720.0))
-                
-                VStack(spacing: 4) {
-                    Text("SEARCHING")
-                        .font(.system(size: 12, weight: .black, design: .monospaced))
-                        .foregroundStyle(Theme.brandCyan)
-                    
+
+                VStack(spacing: FELDesign.Space.xxs) {
+                    FELMicroLabel(text: "Searching", color: FELDesign.Colors.cyan)
+
                     Text(String(format: "%.0f%%", searchingProgress * 100.0))
-                        .font(.system(size: 16, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.white)
+                        .font(FELDesign.Typography.stat)
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
                 }
             }
-            
-            VStack(spacing: 6) {
-                Text("PAIRING PROCTORED OPPONENT...")
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.8))
-                
+
+            VStack(spacing: FELDesign.Space.xs) {
+                Text("PAIRING PROCTORED OPPONENT…")
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textSecondary)
+
                 FELPreviewLabel(text: FELPremiumCopy.Preview.proctoredZoomSession)
-                
+
                 Text("Escrow locked · Zoom room held open for both athletes")
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.5))
+                    .font(FELDesign.Typography.caption)
+                    .foregroundStyle(FELDesign.Colors.textTertiary)
             }
-            
+
             Spacer()
         }
     }
-    
+
     // MARK: - Active Multiplayer Lobby View
-    
+
     private var activeMatchLobby: some View {
         VStack(spacing: 0) {
             Spacer()
         }
     }
-    
+
     private func activeMatchLobby(opponent: DunkOpponent) -> some View {
-        VStack(spacing: 12) {
+        VStack(spacing: FELDesign.Space.sm) {
             // Zoom-style proctor session tiles
-            VStack(alignment: .leading, spacing: 8) {
-                Text("PROCTORED ZOOM SESSION")
-                    .font(.system(size: 9, weight: .black, design: .monospaced))
-                    .foregroundStyle(Theme.brandCyan)
-                    .tracking(2)
-                
-                HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: FELDesign.Space.xs) {
+                FELMicroLabel(text: "Proctored Zoom Session")
+
+                HStack(spacing: FELDesign.Space.xs) {
                     proctorZoomTile(
                         name: viewModel.profile.displayName,
                         tag: viewModel.profile.athleteTag,
                         icon: viewModel.profile.avatarSystemName,
-                        accent: Theme.brandCyan,
+                        accent: FELDesign.Colors.cyan,
                         isLive: true
                     )
                     proctorZoomTile(
                         name: opponent.displayName,
                         tag: opponent.athleteTag,
                         icon: opponent.avatarSystemName,
-                        accent: .orange,
+                        accent: FELDesign.Colors.textSecondary,
                         isLive: true
                     )
                     proctorZoomTile(
                         name: "WDA PROCTOR",
                         tag: "VERIFIED",
                         icon: "person.badge.shield.checkmark.fill",
-                        accent: Theme.neonGreen,
+                        accent: FELDesign.Colors.success,
                         isLive: proctorConnected
                     )
                 }
             }
-            .padding(10)
-            .background(RoundedRectangle(cornerRadius: 14).fill(Color.black.opacity(0.35)))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.brandCyan.opacity(0.2), lineWidth: 1))
-            
+            .felCard(padding: FELDesign.Space.sm)
+
             // Head-to-Head Cards Section
-            HStack(spacing: 12) {
+            HStack(spacing: FELDesign.Space.sm) {
                 // Player Card (Left)
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 6) {
+                VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
+                    HStack(spacing: FELDesign.Space.xs) {
                         Image(systemName: viewModel.profile.avatarSystemName)
-                            .foregroundStyle(Theme.brandCyan)
+                            .foregroundStyle(FELDesign.Colors.cyan)
                         Text(viewModel.profile.displayName.uppercased())
-                            .font(.system(size: 11, weight: .black))
-                            .foregroundStyle(.white)
+                            .font(FELDesign.Typography.label)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
                             .lineLimit(1)
                     }
-                    
-                    HStack(spacing: 4) {
+
+                    HStack(spacing: FELDesign.Space.xxs) {
                         Text(viewModel.profile.athleteTag)
-                            .font(.system(size: 8, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.5))
+                            .font(FELDesign.Typography.statSmall)
+                            .foregroundStyle(FELDesign.Colors.textTertiary)
                         Spacer()
                         Text("PRQ: \(Int(viewModel.competitivePRQScore))")
-                            .font(.system(size: 8, weight: .black, design: .monospaced))
-                            .foregroundStyle(Theme.brandCyan)
+                            .font(FELDesign.Typography.statSmall)
+                            .foregroundStyle(FELDesign.Colors.cyan)
                     }
-                    
+
                     // Active Creator Card State
                     if let active = viewModel.profile.activeCreatorCard,
                        let card = CreatorCard.catalog.first(where: { $0.id == active.cardId }) {
-                        HStack(spacing: 4) {
+                        HStack(spacing: FELDesign.Space.xxs) {
                             Image(systemName: card.iconName)
-                                .font(.system(size: 8))
-                            Text(card.creatorName.uppercased())
-                                .font(.system(size: 8, weight: .black, design: .monospaced))
+                                .font(FELDesign.Typography.micro)
+                            FELMicroLabel(text: card.creatorName, color: FELDesign.Colors.textPrimary)
                         }
-                        .foregroundStyle(card.accentColor)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(card.accentColor.opacity(0.12))
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
+                        .padding(.horizontal, FELDesign.Space.xs)
+                        .padding(.vertical, FELDesign.Space.xxs)
+                        .background(FELDesign.Colors.surfaceRaised)
                         .clipShape(Capsule())
                     } else {
-                        Text("NO CREATOR CARD")
-                            .font(.system(size: 7, weight: .black, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.3))
+                        FELMicroLabel(text: "No Creator Card")
                     }
-                    
+
                     // Video/Wireframe preview box
                     ZStack {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color.black.opacity(0.4))
+                        RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                            .fill(FELDesign.Colors.ink)
                             .frame(height: 120)
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.08), lineWidth: 1))
-                        
+                            .overlay(RoundedRectangle(cornerRadius: FELDesign.Radius.sm).stroke(FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline))
+
                         if let result = playerDunkResult {
-                            VStack(spacing: 6) {
+                            VStack(spacing: FELDesign.Space.xs) {
                                 Image(systemName: "video.fill")
-                                    .font(.title3)
-                                    .foregroundStyle(Theme.neonGreen)
+                                    .font(FELDesign.Typography.heading)
+                                    .foregroundStyle(FELDesign.Colors.success)
                                     .symbolEffect(.pulse)
-                                
+
                                 Text(result.metrics.trick.rawValue.uppercased())
-                                    .font(.system(size: 8, weight: .black, design: .monospaced))
-                                    .foregroundStyle(.white)
+                                    .font(FELDesign.Typography.micro)
+                                    .foregroundStyle(FELDesign.Colors.textPrimary)
                                     .multilineTextAlignment(.center)
-                                    .padding(.horizontal, 6)
-                                
+                                    .padding(.horizontal, FELDesign.Space.xs)
+
                                 Text("Dunk Verified")
-                                    .font(.system(size: 7, design: .monospaced))
-                                    .foregroundStyle(Theme.neonGreen.opacity(0.8))
+                                    .font(FELDesign.Typography.statSmall)
+                                    .foregroundStyle(FELDesign.Colors.success)
                             }
                         } else {
                             CourtSceneView(
@@ -770,125 +731,122 @@ struct DunkMatchmakingView: View {
                                 selectedAnimation: selectedSignatureAnimation
                             )
                             .frame(height: 120)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .clipShape(RoundedRectangle(cornerRadius: FELDesign.Radius.sm))
                         }
                     }
                 }
-                .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(RoundedRectangle(cornerRadius: 14).fill(Theme.cardBackground))
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.brandCyan.opacity(playerDunkResult != nil ? 0.4 : 0.1), lineWidth: 1.5))
-                
+                .padding(FELDesign.Space.sm)
+                .background(FELDesign.Colors.surface)
+                .clipShape(RoundedRectangle(cornerRadius: FELDesign.Radius.lg))
+                .overlay(
+                    RoundedRectangle(cornerRadius: FELDesign.Radius.lg)
+                        .stroke(playerDunkResult != nil ? FELDesign.Colors.cyan : FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline)
+                )
+
                 // VS Divider
                 VStack {
                     Text("VS")
-                        .font(.system(size: 14, weight: .black, design: .monospaced))
-                        .foregroundStyle(.orange)
-                        .padding(8)
-                        .background(Circle().fill(Theme.deepBlack).overlay(Circle().stroke(Color.orange.opacity(0.4), lineWidth: 1)))
+                        .font(FELDesign.Typography.stat)
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
+                        .padding(FELDesign.Space.xs)
+                        .background(Circle().fill(FELDesign.Colors.surfaceRaised).overlay(Circle().stroke(FELDesign.Colors.hairlineStrong, lineWidth: FELDesign.Stroke.hairline)))
                 }
                 .zIndex(2)
-                
+
                 // Opponent Card (Right)
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 6) {
+                VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
+                    HStack(spacing: FELDesign.Space.xs) {
                         Image(systemName: opponent.avatarSystemName)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(FELDesign.Colors.textSecondary)
                         Text(opponent.displayName.uppercased())
-                            .font(.system(size: 11, weight: .black))
-                            .foregroundStyle(.white)
+                            .font(FELDesign.Typography.label)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
                             .lineLimit(1)
                     }
-                    
-                    HStack(spacing: 4) {
+
+                    HStack(spacing: FELDesign.Space.xxs) {
                         Text(opponent.athleteTag)
-                            .font(.system(size: 8, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.5))
+                            .font(FELDesign.Typography.statSmall)
+                            .foregroundStyle(FELDesign.Colors.textTertiary)
                         Spacer()
                         Text("PRQ: \(Int(opponent.prqScore))")
-                            .font(.system(size: 8, weight: .black, design: .monospaced))
-                            .foregroundStyle(.orange)
+                            .font(FELDesign.Typography.statSmall)
+                            .foregroundStyle(FELDesign.Colors.textSecondary)
                     }
-                    
+
                     // Creator Card State
                     if let cardTitle = opponent.creatorCardTitle, let cardColor = opponent.creatorCardColor {
-                        Text(cardTitle.uppercased())
-                            .font(.system(size: 8, weight: .black, design: .monospaced))
-                            .foregroundStyle(cardColor)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(cardColor.opacity(0.12))
+                        FELMicroLabel(text: cardTitle, color: cardColor)
+                            .padding(.horizontal, FELDesign.Space.xs)
+                            .padding(.vertical, FELDesign.Space.xxs)
+                            .background(FELDesign.Colors.surfaceRaised)
                             .clipShape(Capsule())
                     } else {
-                        Text("NO CREATOR CARD")
-                            .font(.system(size: 7, weight: .black, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.3))
+                        FELMicroLabel(text: "No Creator Card")
                     }
-                    
+
                     // Video/Wireframe preview box
                     ZStack {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color.black.opacity(0.4))
+                        RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                            .fill(FELDesign.Colors.ink)
                             .frame(height: 120)
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.08), lineWidth: 1))
-                        
+                            .overlay(RoundedRectangle(cornerRadius: FELDesign.Radius.sm).stroke(FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline))
+
                         // Opponent skeleton rendering looping simulation
-                        VStack(spacing: 6) {
+                        VStack(spacing: FELDesign.Space.xs) {
                             FELPreviewLabel(text: FELPremiumCopy.Preview.simulatedPose)
-                            
+
                             Image(systemName: "waveform.path")
-                                .font(.title3)
-                                .foregroundStyle(.orange)
+                                .font(FELDesign.Typography.heading)
+                                .foregroundStyle(FELDesign.Colors.textSecondary)
                                 .symbolEffect(.bounce)
-                            
+
                             Text(opponent.clipTitle.uppercased())
-                                .font(.system(size: 8, weight: .black, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.9))
+                                .font(FELDesign.Typography.micro)
+                                .foregroundStyle(FELDesign.Colors.textPrimary)
                                 .multilineTextAlignment(.center)
-                                .padding(.horizontal, 6)
-                            
+                                .padding(.horizontal, FELDesign.Space.xs)
+
                             Text("Playback Active")
-                                .font(.system(size: 7, design: .monospaced))
-                                .foregroundStyle(.orange.opacity(0.8))
+                                .font(FELDesign.Typography.statSmall)
+                                .foregroundStyle(FELDesign.Colors.textTertiary)
                         }
                     }
                 }
-                .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(RoundedRectangle(cornerRadius: 14).fill(Theme.cardBackground))
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.2), lineWidth: 1.5))
+                .felCard(padding: FELDesign.Space.sm)
             }
-            
+
             // Winners Banner
             if showWinnerBanner {
-                VStack(spacing: 4) {
+                VStack(spacing: FELDesign.Space.xxs) {
                     Text(isPlayerWinner ? "VICTORY" : "DEFEAT")
-                        .font(.system(size: 22, weight: .black, design: .monospaced))
-                        .foregroundStyle(isPlayerWinner ? Theme.neonGreen : Color.red)
-                        .shadow(color: (isPlayerWinner ? Theme.neonGreen : Color.red).opacity(0.4), radius: 6)
-                    
+                        .font(FELDesign.Typography.heading)
+                        .foregroundStyle(isPlayerWinner ? FELDesign.Colors.success : FELDesign.Colors.danger)
+
                     Text(isPlayerWinner ? "YOUR DUNK ECLIPSED \(opponent.displayName) IN STYLE & HANGTIME!" : "\(opponent.displayName) WON THIS ROUND. ADJUST YOUR LANDING SAFETY.")
-                        .font(.system(size: 9, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.7))
+                        .font(FELDesign.Typography.caption)
+                        .foregroundStyle(FELDesign.Colors.textSecondary)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, FELDesign.Space.md)
                 }
-                .padding(.vertical, 10)
+                .padding(.vertical, FELDesign.Space.sm)
                 .frame(maxWidth: .infinity)
-                .background(RoundedRectangle(cornerRadius: 12).fill((isPlayerWinner ? Theme.neonGreen : Color.red).opacity(0.08)))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke((isPlayerWinner ? Theme.neonGreen : Color.red).opacity(0.25), lineWidth: 1))
+                .background(FELDesign.Colors.surface)
+                .clipShape(RoundedRectangle(cornerRadius: FELDesign.Radius.md))
+                .overlay(
+                    RoundedRectangle(cornerRadius: FELDesign.Radius.md)
+                        .stroke((isPlayerWinner ? FELDesign.Colors.success : FELDesign.Colors.danger).opacity(0.4), lineWidth: FELDesign.Stroke.hairline)
+                )
                 .transition(.scale.combined(with: .opacity))
             }
-            
+
             // WDA Live Judges' Panel Section
-            VStack(alignment: .leading, spacing: 10) {
-                Text("WDA LIVE JUDGES' BOARD")
-                    .font(.system(size: 9, weight: .black, design: .monospaced))
-                    .foregroundStyle(Theme.brandCyan)
-                    .tracking(2)
-                    .padding(.horizontal, 4)
-                
-                HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
+                FELMicroLabel(text: "WDA Live Judges' Board")
+
+                HStack(spacing: FELDesign.Space.xs) {
                     // Randy
                     judgeCard(
                         name: "RANDY (WDA HEAD)",
@@ -896,7 +854,7 @@ struct DunkMatchmakingView: View {
                         opponentScore: opponent.difficultyScore * 0.33 + 3.3, // Randy scales
                         isScored: playerDunkResult != nil
                     )
-                    
+
                     // Dominique
                     judgeCard(
                         name: "DOMINIQUE (DUNKER)",
@@ -904,7 +862,7 @@ struct DunkMatchmakingView: View {
                         opponentScore: opponent.artisticScore + 4.5,
                         isScored: playerDunkResult != nil
                     )
-                    
+
                     // Lisa
                     judgeCard(
                         name: "LISA (FORM/GYM)",
@@ -914,172 +872,145 @@ struct DunkMatchmakingView: View {
                     )
                 }
             }
-            .padding(12)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Theme.slateCard))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.06), lineWidth: 1))
-            
+            .felCard(padding: FELDesign.Space.sm)
+
             if let result = playerDunkResult {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("JUDGES' LIVE COMMENTARY")
-                        .font(.system(size: 9, weight: .black, design: .monospaced))
-                        .foregroundStyle(.orange)
-                        .tracking(2)
-                        .padding(.horizontal, 4)
-                    
-                    VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: FELDesign.Space.xs) {
+                    FELMicroLabel(text: "Judges' Live Commentary")
+
+                    VStack(alignment: .leading, spacing: FELDesign.Space.xs) {
                         Text(result.randyCommentary)
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.85))
-                        
-                        Divider().background(Color.white.opacity(0.1))
-                        
+                            .font(FELDesign.Typography.caption)
+                            .foregroundStyle(FELDesign.Colors.textSecondary)
+
+                        Divider().background(FELDesign.Colors.hairline)
+
                         Text(result.dominiqueCommentary)
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.85))
-                        
-                        Divider().background(Color.white.opacity(0.1))
-                        
+                            .font(FELDesign.Typography.caption)
+                            .foregroundStyle(FELDesign.Colors.textSecondary)
+
+                        Divider().background(FELDesign.Colors.hairline)
+
                         Text(result.lisaCommentary)
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.85))
+                            .font(FELDesign.Typography.caption)
+                            .foregroundStyle(FELDesign.Colors.textSecondary)
                     }
-                    .padding(12)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.orange.opacity(0.06)))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.orange.opacity(0.15), lineWidth: 1))
+                    .felCard(padding: FELDesign.Space.sm)
                 }
-                .padding(.top, 10)
+                .padding(.top, FELDesign.Space.xs)
                 .transition(.opacity.combined(with: .scale))
             }
-            
+
             Spacer()
-            
+
             // Lobby actions
-            VStack(spacing: 10) {
+            VStack(spacing: FELDesign.Space.sm) {
                 if playerDunkResult == nil {
                     Button(action: { showCameraLab = true }) {
-                        HStack(spacing: 8) {
+                        HStack(spacing: FELDesign.Space.xs) {
                             Image(systemName: "video.fill")
                             Text("ENTER PROCTORED CAMERA LAB")
-                                .font(.system(.subheadline, design: .monospaced, weight: .black))
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 15)
-                        .background(Theme.neonGreen)
-                        .foregroundStyle(.black)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .shadow(color: Theme.neonGreen.opacity(0.3), radius: 8)
                     }
+                    .buttonStyle(FELPrimaryButtonStyle())
                 } else if !hasClaimedRewards {
                     Button(action: claimRewardsAndSave) {
-                        HStack(spacing: 8) {
+                        HStack(spacing: FELDesign.Space.xs) {
                             Image(systemName: "diamond.fill")
                             Text("CLAIM MULTIPLAYER REWARDS (+50 SHARDS)")
-                                .font(.system(.subheadline, design: .monospaced, weight: .black))
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 15)
-                        .background(Theme.brandCyan)
-                        .foregroundStyle(.black)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .shadow(color: Theme.brandCyan.opacity(0.3), radius: 8)
                     }
+                    .buttonStyle(FELPrimaryButtonStyle())
                 } else {
                     Button(action: { dismiss() }) {
                         Text("DISMISS LOBBY")
-                            .font(.system(.subheadline, design: .monospaced, weight: .black))
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 15)
-                            .background(Color.white.opacity(0.08))
-                            .foregroundStyle(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
+                    .buttonStyle(FELGhostButtonStyle())
                 }
             }
         }
     }
-    
+
     private func judgeCard(name: String, playerScore: Double, opponentScore: Double, isScored: Bool) -> some View {
-        VStack(spacing: 6) {
-            Text(name)
-                .font(.system(size: 7, weight: .black, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.6))
+        VStack(spacing: FELDesign.Space.xs) {
+            FELMicroLabel(text: name)
                 .lineLimit(1)
-            
-            HStack(spacing: 8) {
-                VStack(spacing: 2) {
+
+            HStack(spacing: FELDesign.Space.xs) {
+                VStack(spacing: FELDesign.Space.xxs) {
                     Text("YOU")
-                        .font(.system(size: 7, weight: .bold, design: .monospaced))
-                        .foregroundStyle(Theme.brandCyan.opacity(0.8))
-                    
+                        .font(FELDesign.Typography.statSmall)
+                        .foregroundStyle(FELDesign.Colors.cyan)
+
                     Text(isScored ? String(format: "%.1f", playerScore) : "--")
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
-                        .foregroundStyle(Theme.brandCyan)
+                        .font(FELDesign.Typography.stat)
+                        .foregroundStyle(FELDesign.Colors.cyan)
                 }
                 .frame(maxWidth: .infinity)
-                
+
                 Divider()
-                    .background(Color.white.opacity(0.1))
+                    .background(FELDesign.Colors.hairline)
                     .frame(height: 16)
-                
-                VStack(spacing: 2) {
+
+                VStack(spacing: FELDesign.Space.xxs) {
                     Text("OPP")
-                        .font(.system(size: 7, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.orange.opacity(0.8))
-                    
+                        .font(FELDesign.Typography.statSmall)
+                        .foregroundStyle(FELDesign.Colors.textSecondary)
+
                     Text(String(format: "%.1f", opponentScore))
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
-                        .foregroundStyle(.orange)
+                        .font(FELDesign.Typography.stat)
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
                 }
                 .frame(maxWidth: .infinity)
             }
-            .padding(.vertical, 6)
-            .background(Color.black.opacity(0.3))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .padding(.vertical, FELDesign.Space.xs)
+            .background(FELDesign.Colors.surfaceRaised)
+            .clipShape(RoundedRectangle(cornerRadius: FELDesign.Radius.sm))
         }
-        .padding(8)
+        .padding(FELDesign.Space.xs)
         .frame(maxWidth: .infinity)
-        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.03)))
     }
-    
+
     private func proctorZoomTile(name: String, tag: String, icon: String, accent: Color, isLive: Bool) -> some View {
-        VStack(spacing: 6) {
+        VStack(spacing: FELDesign.Space.xs) {
             ZStack(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.black.opacity(0.5))
+                RoundedRectangle(cornerRadius: FELDesign.Radius.sm)
+                    .fill(FELDesign.Colors.ink)
                     .frame(height: 72)
                     .overlay(
                         Image(systemName: icon)
                             .font(.system(size: 28))
-                            .foregroundStyle(accent.opacity(0.85))
+                            .foregroundStyle(accent)
                     )
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(accent.opacity(0.35), lineWidth: 1))
-                
+                    .overlay(RoundedRectangle(cornerRadius: FELDesign.Radius.sm).stroke(FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline))
+
                 if isLive {
-                    HStack(spacing: 3) {
-                        Circle().fill(Color.red).frame(width: 5, height: 5)
+                    HStack(spacing: FELDesign.Space.xxs) {
+                        Circle().fill(FELDesign.Colors.danger).frame(width: 5, height: 5)
                         Text("LIVE")
-                            .font(.system(size: 7, weight: .black, design: .monospaced))
-                            .foregroundStyle(.white)
+                            .font(FELDesign.Typography.statSmall)
+                            .foregroundStyle(FELDesign.Colors.textPrimary)
                     }
-                    .padding(6)
+                    .padding(FELDesign.Space.xs)
                 }
             }
-            
-            Text(name.uppercased())
-                .font(.system(size: 7, weight: .black, design: .monospaced))
-                .foregroundStyle(.white)
+
+            FELMicroLabel(text: name, color: FELDesign.Colors.textPrimary)
                 .lineLimit(1)
-            
+
             Text(tag)
-                .font(.system(size: 6, weight: .bold, design: .monospaced))
-                .foregroundStyle(accent.opacity(0.9))
+                .font(FELDesign.Typography.statSmall)
+                .foregroundStyle(FELDesign.Colors.textTertiary)
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity)
     }
-    
+
     // MARK: - Logic & Matchmaking Core
-    
+
     private func joinProctoredQueue() {
         guard allChecklistComplete else { return }
         guard triumphEngine.joinTournament(tier: selectedTier) else {
@@ -1098,7 +1029,7 @@ struct DunkMatchmakingView: View {
         flowPhase = .queued
         proctorConnected = false
     }
-    
+
     private func leaveQueue() {
         if entryEscrowLocked {
             TriumphTournamentEngine.shared.cancelTournament()
@@ -1110,25 +1041,25 @@ struct DunkMatchmakingView: View {
         searchingProgress = 0.0
         proctorConnected = false
     }
-    
+
     private func startMatchmakingSearch() {
         flowPhase = .searching
         isSearching = true
         searchingProgress = 0.0
     }
-    
+
     private func triggerJudgesScoringSequence() {
         guard let result = playerDunkResult, let opponent = matchedOpponent else { return }
-        
+
         judgesScoringTriggered = true
-        
+
         // Distribute player's dunk totalScore into 3 judges' scores
         let targetJ1 = result.executionScore * 0.33 + 3.0
         let targetJ2 = result.artisticScore + 4.0
         let targetJ3 = result.firstTrySuccessScore + 5.0
-        
+
         isPlayerWinner = result.totalScore > opponent.totalScore
-        
+
         // Multi-stage animations for judges typing on their scoreboards
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(400))
@@ -1149,13 +1080,13 @@ struct DunkMatchmakingView: View {
             }
         }
     }
-    
+
     private func claimRewardsAndSave() {
         guard let result = playerDunkResult, !hasClaimedRewards else { return }
-        
+
         // Award Shards
         viewModel.profile.evolutionShards += 50
-        
+
         // Calculate new PRQ rating using PRQ.rankingSessionPRQ
         let activeBoost = viewModel.profile.activeCreatorCard != nil
         let deltaPRQ = PRQ.rankingSessionPRQ(
@@ -1168,13 +1099,13 @@ struct DunkMatchmakingView: View {
             participationEligible: true,
             sessionReadiness: viewModel.profile.metrics.neuralDrive
         )
-        
+
         let newPrq = min(100.0, max(0.0, viewModel.competitivePRQScore + deltaPRQ))
         FELScoreManager.shared.applyClampedPrq(Int(newPrq))
-        
+
         // Save profile
         SaveSystem.saveProfile(viewModel.profile)
-        
+
         hasClaimedRewards = true
         UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
@@ -1187,72 +1118,68 @@ struct DunkMatchmakingView: View {
     private var creatorCardSelectorSheet: some View {
         NavigationStack {
             ZStack {
-                Theme.deepBlack.ignoresSafeArea()
-                Theme.meshGradient.opacity(0.3).ignoresSafeArea()
-                
+                FELDesign.Colors.ink.ignoresSafeArea()
+
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("SELECT CREATOR CARD")
-                            .font(.system(size: 12, weight: .black, design: .monospaced))
-                            .foregroundStyle(Theme.brandCyan)
-                            .tracking(2)
+                    VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
+                        FELMicroLabel(text: "Select Creator Card")
                             .padding(.horizontal)
-                            .padding(.top, 16)
-                        
+                            .padding(.top, FELDesign.Space.md)
+
                         Button(action: {
                             viewModel.clearCreatorCard()
                             showCreatorCardSelector = false
                         }) {
                             HStack {
                                 Text("NO CREATOR CARD")
-                                    .font(.system(size: 11, weight: .black, design: .monospaced))
-                                    .foregroundStyle(.white.opacity(0.6))
+                                    .font(FELDesign.Typography.label)
+                                    .foregroundStyle(FELDesign.Colors.textSecondary)
                                 Spacer()
                                 if viewModel.profile.activeCreatorCard == nil {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(Theme.neonGreen)
+                                        .foregroundStyle(FELDesign.Colors.cyan)
                                 }
                             }
-                            .padding()
-                            .background(RoundedRectangle(cornerRadius: 12).fill(Theme.cardBackground))
+                            .felCard()
                             .padding(.horizontal)
                         }
                         .buttonStyle(.plain)
-                        
+
                         ForEach(CreatorCard.catalog) { card in
                             Button(action: {
                                 viewModel.applyCreatorCard(card)
                                 showCreatorCardSelector = false
                             }) {
-                                HStack(spacing: 12) {
+                                HStack(spacing: FELDesign.Space.sm) {
                                     Image(systemName: card.iconName)
-                                        .foregroundStyle(card.accentColor)
-                                    VStack(alignment: .leading, spacing: 2) {
+                                        .foregroundStyle(viewModel.profile.activeCreatorCard?.cardId == card.id ? FELDesign.Colors.cyan : FELDesign.Colors.textSecondary)
+                                    VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
                                         Text(card.creatorName.uppercased())
-                                            .font(.system(size: 11, weight: .black, design: .monospaced))
-                                            .foregroundStyle(.white)
+                                            .font(FELDesign.Typography.label)
+                                            .foregroundStyle(FELDesign.Colors.textPrimary)
                                         Text(card.title)
-                                            .font(.system(size: 9, design: .monospaced))
-                                            .foregroundStyle(.secondary)
+                                            .font(FELDesign.Typography.caption)
+                                            .foregroundStyle(FELDesign.Colors.textSecondary)
                                     }
                                     Spacer()
                                     if viewModel.profile.activeCreatorCard?.cardId == card.id {
                                         Image(systemName: "checkmark.circle.fill")
-                                            .foregroundStyle(Theme.neonGreen)
+                                            .foregroundStyle(FELDesign.Colors.cyan)
                                     }
                                 }
                                 .padding()
-                                .background(RoundedRectangle(cornerRadius: 12).fill(Theme.cardBackground))
+                                .background(FELDesign.Colors.surface)
+                                .clipShape(RoundedRectangle(cornerRadius: FELDesign.Radius.lg))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(viewModel.profile.activeCreatorCard?.cardId == card.id ? Theme.neonGreen.opacity(0.4) : Color.white.opacity(0.06), lineWidth: 1)
+                                    RoundedRectangle(cornerRadius: FELDesign.Radius.lg)
+                                        .stroke(viewModel.profile.activeCreatorCard?.cardId == card.id ? FELDesign.Colors.cyan : FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline)
                                 )
                                 .padding(.horizontal)
                             }
                             .buttonStyle(.plain)
                         }
                     }
-                    .padding(.bottom, 24)
+                    .padding(.bottom, FELDesign.Space.lg)
                 }
             }
             .navigationTitle("Creator Cards")
@@ -1260,7 +1187,7 @@ struct DunkMatchmakingView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { showCreatorCardSelector = false }
-                        .foregroundStyle(Theme.brandCyan)
+                        .foregroundStyle(FELDesign.Colors.cyan)
                 }
             }
         }
@@ -1270,33 +1197,26 @@ struct DunkMatchmakingView: View {
     private var signatureAnimationSelectorSheet: some View {
         NavigationStack {
             ZStack {
-                Theme.deepBlack.ignoresSafeArea()
-                Theme.meshGradient.opacity(0.3).ignoresSafeArea()
-                
+                FELDesign.Colors.ink.ignoresSafeArea()
+
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        Text("SELECT SIGNATURE DUNK ANIMATION")
-                            .font(.system(size: 12, weight: .black, design: .monospaced))
-                            .foregroundStyle(Theme.brandCyan)
-                            .tracking(2)
+                    VStack(alignment: .leading, spacing: FELDesign.Space.lg) {
+                        FELMicroLabel(text: "Select Signature Dunk Animation")
                             .padding(.horizontal)
-                            .padding(.top, 16)
-                        
+                            .padding(.top, FELDesign.Space.md)
+
                         // User's Uploaded Animations
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("MY COMPETITION ANIMATIONS")
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.6))
+                        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
+                            FELMicroLabel(text: "My Competition Animations")
                                 .padding(.horizontal)
-                            
+
                             let userDunks = viewModel.profile.competitionAnimations.filter { $0.header.category.lowercased() == "dunk" }
                             if userDunks.isEmpty {
                                 Text("No uploaded competition dunks found. Mint or upload animations in the Creator Hub!")
-                                    .font(.system(size: 10, design: .monospaced))
-                                    .foregroundStyle(.white.opacity(0.4))
-                                    .padding()
+                                    .font(FELDesign.Typography.caption)
+                                    .foregroundStyle(FELDesign.Colors.textTertiary)
                                     .frame(maxWidth: .infinity, alignment: .center)
-                                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.02)))
+                                    .felCard()
                                     .padding(.horizontal)
                             } else {
                                 ForEach(userDunks) { anim in
@@ -1304,21 +1224,19 @@ struct DunkMatchmakingView: View {
                                 }
                             }
                         }
-                        
+
                         // Standard Presets
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("STANDARD PRESETS")
-                                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.6))
+                        VStack(alignment: .leading, spacing: FELDesign.Space.sm) {
+                            FELMicroLabel(text: "Standard Presets")
                                 .padding(.horizontal)
-                            
+
                             let presets = NexusCompetitionAnimationUploader.shared.getStandardPresets().filter { $0.header.category.lowercased() == "dunk" }
                             ForEach(presets) { anim in
                                 animationRow(for: anim, isPreset: true)
                             }
                         }
                     }
-                    .padding(.bottom, 24)
+                    .padding(.bottom, FELDesign.Space.lg)
                 }
             }
             .navigationTitle("Signature Animations")
@@ -1326,13 +1244,13 @@ struct DunkMatchmakingView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { showSignatureSelector = false }
-                        .foregroundStyle(Theme.brandCyan)
+                        .foregroundStyle(FELDesign.Colors.cyan)
                 }
             }
         }
         .preferredColorScheme(.dark)
     }
-    
+
     private func animationRow(for anim: NexusAnimationAsset, isPreset: Bool) -> some View {
         Button(action: {
             selectedSignatureAnimation = anim
@@ -1341,36 +1259,35 @@ struct DunkMatchmakingView: View {
             showSignatureSelector = false
         }) {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: FELDesign.Space.xxs) {
                     Text(anim.header.title.uppercased())
-                        .font(.system(size: 12, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white)
-                    
-                    HStack(spacing: 8) {
+                        .font(FELDesign.Typography.label)
+                        .foregroundStyle(FELDesign.Colors.textPrimary)
+
+                    HStack(spacing: FELDesign.Space.xs) {
                         Text(anim.header.competitionName)
-                            .font(.system(size: 9, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                        
-                        Text("•")
-                            .foregroundStyle(.secondary)
-                        
-                        Text(isPreset ? "PRESET" : "UPLOADED")
-                            .font(.system(size: 8, weight: .bold, design: .monospaced))
-                            .foregroundStyle(isPreset ? Theme.brandBlue : Theme.neonGreen)
+                            .font(FELDesign.Typography.caption)
+                            .foregroundStyle(FELDesign.Colors.textSecondary)
+
+                        Text("·")
+                            .foregroundStyle(FELDesign.Colors.textTertiary)
+
+                        FELMicroLabel(text: isPreset ? "Preset" : "Uploaded")
                     }
                 }
                 Spacer()
-                
+
                 if selectedSignatureAnimation?.id == anim.id {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(Theme.neonGreen)
+                        .foregroundStyle(FELDesign.Colors.cyan)
                 }
             }
             .padding()
-            .background(RoundedRectangle(cornerRadius: 12).fill(Theme.cardBackground))
+            .background(FELDesign.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: FELDesign.Radius.lg))
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(selectedSignatureAnimation?.id == anim.id ? Theme.neonGreen.opacity(0.4) : Color.white.opacity(0.06), lineWidth: 1)
+                RoundedRectangle(cornerRadius: FELDesign.Radius.lg)
+                    .stroke(selectedSignatureAnimation?.id == anim.id ? FELDesign.Colors.cyan : FELDesign.Colors.hairline, lineWidth: FELDesign.Stroke.hairline)
             )
             .padding(.horizontal)
         }
