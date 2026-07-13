@@ -623,7 +623,7 @@
 				);
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/Vendor",
+					"$(PROJECT_DIR)/Vendor-Sim", "$(PROJECT_DIR)/Vendor",
 				);
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.finalevolutionlab.app;
@@ -713,7 +713,7 @@
 				);
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/Vendor",
+					"$(PROJECT_DIR)/Vendor-Sim", "$(PROJECT_DIR)/Vendor",
 				);
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.finalevolutionlab.app;
