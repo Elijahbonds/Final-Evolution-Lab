@@ -15,6 +15,7 @@
 //   6. Experiment   — nudge a low-confidence parameter (kImperfectForm+ only)
 
 #include "nexus/cell/cell_types.h"
+#include "nexus/cell/geval_scorer.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -46,6 +47,9 @@ struct ResearchLoopConfig {
   std::size_t min_evidence{10};
   /// Minimum normalised reward-delta to form a hypothesis.
   double min_delta{0.05};
+  /// Minimum G-Eval aggregate score [0–10] for a WisdomEntry to be committed.
+  /// Entries below this threshold are refined once and re-scored before discard.
+  double geval_min_score{6.0};
 };
 
 class ResearchLoop {
@@ -75,6 +79,8 @@ public:
 
   [[nodiscard]] auto isRunning() const -> bool;
   [[nodiscard]] auto cycleCount() const -> std::uint64_t;
+  [[nodiscard]] auto gevalPassed() const -> std::uint64_t;
+  [[nodiscard]] auto gevalRejected() const -> std::uint64_t;
 
 private:
   void loop();
@@ -88,6 +94,9 @@ private:
   ExperienceLedger*        m_ledger{nullptr};
   WisdomStore*            m_wisdom{nullptr};
   nexus::core::JobSystem* m_jobs{nullptr};
+
+  // G-Eval scorer — gates wisdom writes
+  GEvalScorer             m_scorer;
 
   // Experimentation state
   CellParameterDelegate*        m_delegate{nullptr};
@@ -105,6 +114,8 @@ private:
   std::atomic<bool>        m_running{false};
   std::atomic<bool>        m_runNow{false};
   std::atomic<std::uint64_t> m_cycleCount{0};
+  std::atomic<std::uint64_t> m_gevalPassed{0};
+  std::atomic<std::uint64_t> m_gevalRejected{0};
 };
 
 } // namespace nexus::cell

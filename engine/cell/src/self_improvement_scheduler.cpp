@@ -1,7 +1,9 @@
 #include "nexus/cell/self_improvement_scheduler.h"
 
 #include "nexus/cell/cell_parameter_delegate.h"
+#include "nexus/cell/doc_ingester.h"
 #include "nexus/cell/future_state_buffer.h"
+#include "nexus/cell/geval_scorer.h"
 #include "nexus/core/job_system.h"
 #include "nexus/core/log.h"
 
@@ -27,7 +29,9 @@ SelfImprovementScheduler::SelfImprovementScheduler(CellConfig config)
       m_wisdom(m_config.wisdom),
       m_research(m_config.research),
       m_trainer(m_config.model),
-      m_feed(m_config.feed) {}
+      m_feed(m_config.feed),
+      m_docs(m_config.docs),
+      m_scorer(m_config.geval) {}
 
 SelfImprovementScheduler::~SelfImprovementScheduler() {
   if (m_initialized) {
@@ -50,6 +54,9 @@ auto SelfImprovementScheduler::init(nexus::core::JobSystem& jobs) -> Result<void
   m_research.start(m_bus, m_ledger, m_wisdom, jobs);
   m_trainer.start(m_ledger);
   m_feed.start(m_bus);
+
+  // Ingest project documentation into WisdomStore (RAG seed).
+  m_docs.ingest(m_wisdom, m_scorer);
 
   m_initialized = true;
   NEXUS_LOG_INFO(LogChannel::kCell, "CELL initialised — phase: Embryo");
@@ -245,6 +252,17 @@ auto SelfImprovementScheduler::handleCommand(const std::string& command,
     return {{"id", id}, {"status", "ok"}, {"payload", {{"message", "Feed fetch triggered"}}}};
   }
 
+  if (command == "cell.docs_ingest_now") {
+    const auto result = m_docs.ingest(m_wisdom, m_scorer);
+    return {{"id", id},
+            {"status", "ok"},
+            {"payload", {{"message",          "Doc ingestion complete"},
+                         {"files_scanned",     result.files_scanned},
+                         {"chunks_found",      result.chunks_found},
+                         {"chunks_passed",     result.chunks_passed_geval},
+                         {"entries_upserted",  result.entries_upserted}}}};
+  }
+
   if (command == "cell.feed_pause") {
     // IdleFeed has no explicit pause — stopping and restarting would lose the thread.
     // Signal via an env flag convention instead (noop in-process; noted in logs).
@@ -270,6 +288,9 @@ auto SelfImprovementScheduler::handleQuery(const std::string& query,
                 {"model_accuracy",    s.model_accuracy},
                 {"observation_queue", s.observation_queue_size},
                 {"research_cycles",   m_research.cycleCount()},
+                {"geval_passed",      m_research.gevalPassed()},
+                {"geval_rejected",    m_research.gevalRejected()},
+                {"docs_upserted",     m_docs.totalUpserted()},
                 {"feed_cycles",       m_feed.cycleCount()},
                 {"feed_ingested",     m_feed.totalItemsIngested()},
             }}};
@@ -318,8 +339,39 @@ auto SelfImprovementScheduler::handleQuery(const std::string& query,
     return {{"id", id}, {"status", "ok"}, {"payload", {{"prediction", predicted}}}};
   }
 
-  if (query == "cell.feed_status") {
-    const auto recent = m_feed.recentItems(5);
+  if (query == "cell.geval_score") {
+    // Score an arbitrary WisdomEntry candidate on demand.
+    // Payload: { "domain": "...", "rule": "...", "confidence": 0.0, "evidence_count": 0 }
+    WisdomEntry candidate;
+    candidate.domain         = payload.value("domain", "");
+    candidate.rule_text      = payload.value("rule", "");
+    candidate.confidence     = payload.value("confidence", 0.5);
+    candidate.evidence_count = payload.value("evidence_count", std::uint64_t{1});
+    const auto evalResult    = m_scorer.score(candidate);
+    return {{"id", id},
+            {"status", "ok"},
+            {"payload", {
+                {"aggregate",    evalResult.aggregate},
+                {"passes",       evalResult.passes},
+                {"clarity",      evalResult.metrics.clarity},
+                {"specificity",  evalResult.metrics.specificity},
+                {"conciseness",  evalResult.metrics.conciseness},
+                {"actionability",evalResult.metrics.actionability},
+                {"min_score",    m_scorer.config().min_score},
+            }}};
+  }
+
+  if (query == "cell.geval_stats") {
+    return {{"id", id},
+            {"status", "ok"},
+            {"payload", {
+                {"geval_passed",   m_research.gevalPassed()},
+                {"geval_rejected", m_research.gevalRejected()},
+                {"docs_upserted",  m_docs.totalUpserted()},
+            }}};
+  }
+
+  if (query == "cell.feed_status") {    const auto recent = m_feed.recentItems(5);
     nlohmann::json items = nlohmann::json::array();
     for (const auto& item : recent) {
       nlohmann::json tags = nlohmann::json::array();

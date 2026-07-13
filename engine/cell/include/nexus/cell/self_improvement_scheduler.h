@@ -11,8 +11,10 @@
 //   • runs IdleFeed to ingest world knowledge during idle time
 
 #include "nexus/cell/cell_types.h"
+#include "nexus/cell/doc_ingester.h"
 #include "nexus/cell/experience_ledger.h"
 #include "nexus/cell/future_state_buffer.h"
+#include "nexus/cell/geval_scorer.h"
 #include "nexus/cell/idle_feed.h"
 #include "nexus/cell/model_trainer.h"
 #include "nexus/cell/observation_bus.h"
@@ -43,6 +45,8 @@ struct CellConfig {
   ResearchLoopConfig     research;
   ModelConfig            model;
   IdleFeedConfig         feed;
+  DocIngesterConfig      docs;
+  GEvalConfig            geval;
 };
 
 class SelfImprovementScheduler {
@@ -126,6 +130,8 @@ private:
   FutureStateBuffer        m_futureBuffer;
   SpatialSampler           m_spatialSampler;
   IdleFeed                 m_feed;
+  DocIngester              m_docs;
+  GEvalScorer              m_scorer;
   bool                     m_initialized{false};
 };
 

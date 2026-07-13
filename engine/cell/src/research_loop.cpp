@@ -2,6 +2,7 @@
 
 #include "nexus/cell/cell_parameter_delegate.h"
 #include "nexus/cell/experience_ledger.h"
+#include "nexus/cell/geval_scorer.h"
 #include "nexus/cell/observation_bus.h"
 #include "nexus/cell/spatial_sampler.h"
 #include "nexus/cell/wisdom_store.h"
@@ -71,7 +72,9 @@ struct FeatureStat {
 
 } // namespace
 
-ResearchLoop::ResearchLoop(ResearchLoopConfig config) : m_config(std::move(config)) {}
+ResearchLoop::ResearchLoop(ResearchLoopConfig config)
+    : m_config(std::move(config)),
+      m_scorer(GEvalConfig{m_config.geval_min_score}) {}
 
 ResearchLoop::~ResearchLoop() {
   stop();
@@ -132,6 +135,14 @@ auto ResearchLoop::isRunning() const -> bool {
 
 auto ResearchLoop::cycleCount() const -> std::uint64_t {
   return m_cycleCount.load(std::memory_order_relaxed);
+}
+
+auto ResearchLoop::gevalPassed() const -> std::uint64_t {
+  return m_gevalPassed.load(std::memory_order_relaxed);
+}
+
+auto ResearchLoop::gevalRejected() const -> std::uint64_t {
+  return m_gevalRejected.load(std::memory_order_relaxed);
 }
 
 void ResearchLoop::loop() {
@@ -278,7 +289,20 @@ void ResearchLoop::analyseAndCommit() {
       entry.evidence_count   = static_cast<std::uint64_t>(pairs.size());
       entry.tier             = tier;
       entry.parent_rule_text = parentRuleText;
-      m_wisdom->upsert(std::move(entry));
+
+      // ── G-Eval gate ────────────────────────────────────────────────────────
+      // Score the candidate; if it fails the threshold try one refinement pass.
+      auto evalResult = m_scorer.score(entry);
+      if (!evalResult.passes) {
+        entry      = m_scorer.refine(std::move(entry));
+        evalResult = m_scorer.score(entry);
+      }
+      if (evalResult.passes) {
+        m_wisdom->upsert(std::move(entry));
+        m_gevalPassed.fetch_add(1, std::memory_order_relaxed);
+      } else {
+        m_gevalRejected.fetch_add(1, std::memory_order_relaxed);
+      }
     }
   }
 }
