@@ -1,8 +1,23 @@
 import { ModePhase } from './GameModeInterface.js';
 import { DunkingMode } from './dunking/index.js';
+import { GolfMode } from './golf/index.js';
 import { KarateMode } from './karate/index.js';
+import { SoccerMode } from './soccer/index.js';
+import { TennisMode } from './tennis/index.js';
+import { FootballMode } from './football/index.js';
+import { VolleyballMode } from './volleyball/index.js';
+import { BaseballMode } from './baseball/index.js';
 
-const LIVE_MODE_IDS = new Set(['basketball_dunk', 'karate']);
+const LIVE_MODE_IDS = new Set([
+  'basketball_dunk',
+  'golf',
+  'karate',
+  'soccer',
+  'tennis',
+  'football',
+  'volleyball',
+  'baseball',
+]);
 
 function cloneStub(modeEntry, canvas) {
   return {
@@ -64,12 +79,12 @@ const MODES = {
   karate: KarateMode,
   karate_h2h: createStub('karate_h2h'),
   karate_endless: createStub('karate_endless'),
-  baseball: createStub('baseball'),
-  football: createStub('football'),
-  soccer: createStub('soccer'),
-  golf: createStub('golf'),
-  tennis: createStub('tennis'),
-  volleyball: createStub('volleyball'),
+  baseball: BaseballMode,
+  football: FootballMode,
+  soccer: SoccerMode,
+  golf: GolfMode,
+  tennis: TennisMode,
+  volleyball: VolleyballMode,
   gymnastics: createStub('gymnastics'),
   brain_brawl: createStub('brain_brawl'),
   surfing: createStub('surfing'),
