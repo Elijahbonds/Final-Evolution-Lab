@@ -452,6 +452,19 @@ nexus_cell_test/fast:
 .PHONY : nexus_cell_test/fast
 
 #=============================================================================
+# Target rules for targets named nexus_youtube_learner_test
+
+# Build rule for target.
+nexus_youtube_learner_test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 nexus_youtube_learner_test
+.PHONY : nexus_youtube_learner_test
+
+# fast build rule for target.
+nexus_youtube_learner_test/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_youtube_learner_test.dir/build.make CMakeFiles/nexus_youtube_learner_test.dir/build
+.PHONY : nexus_youtube_learner_test/fast
+
+#=============================================================================
 # Target rules for targets named nexus_realtime_test
 
 # Build rule for target.
@@ -1762,6 +1775,30 @@ engine/cell/src/agent_tool.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.s
 .PHONY : engine/cell/src/agent_tool.cpp.s
 
+engine/cell/src/curriculum_advisor.o: engine/cell/src/curriculum_advisor.cpp.o
+.PHONY : engine/cell/src/curriculum_advisor.o
+
+# target to build an object file
+engine/cell/src/curriculum_advisor.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.o
+.PHONY : engine/cell/src/curriculum_advisor.cpp.o
+
+engine/cell/src/curriculum_advisor.i: engine/cell/src/curriculum_advisor.cpp.i
+.PHONY : engine/cell/src/curriculum_advisor.i
+
+# target to preprocess a source file
+engine/cell/src/curriculum_advisor.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.i
+.PHONY : engine/cell/src/curriculum_advisor.cpp.i
+
+engine/cell/src/curriculum_advisor.s: engine/cell/src/curriculum_advisor.cpp.s
+.PHONY : engine/cell/src/curriculum_advisor.s
+
+# target to generate assembly for a file
+engine/cell/src/curriculum_advisor.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.s
+.PHONY : engine/cell/src/curriculum_advisor.cpp.s
+
 engine/cell/src/doc_ingester.o: engine/cell/src/doc_ingester.cpp.o
 .PHONY : engine/cell/src/doc_ingester.o
 
@@ -2073,6 +2110,30 @@ engine/cell/src/wisdom_store.s: engine/cell/src/wisdom_store.cpp.s
 engine/cell/src/wisdom_store.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/wisdom_store.cpp.s
 .PHONY : engine/cell/src/wisdom_store.cpp.s
+
+engine/cell/src/youtube_learner.o: engine/cell/src/youtube_learner.cpp.o
+.PHONY : engine/cell/src/youtube_learner.o
+
+# target to build an object file
+engine/cell/src/youtube_learner.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.o
+.PHONY : engine/cell/src/youtube_learner.cpp.o
+
+engine/cell/src/youtube_learner.i: engine/cell/src/youtube_learner.cpp.i
+.PHONY : engine/cell/src/youtube_learner.i
+
+# target to preprocess a source file
+engine/cell/src/youtube_learner.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.i
+.PHONY : engine/cell/src/youtube_learner.cpp.i
+
+engine/cell/src/youtube_learner.s: engine/cell/src/youtube_learner.cpp.s
+.PHONY : engine/cell/src/youtube_learner.s
+
+# target to generate assembly for a file
+engine/cell/src/youtube_learner.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.s
+.PHONY : engine/cell/src/youtube_learner.cpp.s
 
 engine/core/src/dev_stats.o: engine/core/src/dev_stats.cpp.o
 .PHONY : engine/core/src/dev_stats.o
@@ -3130,6 +3191,30 @@ tests/unit/cell/cell_test.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell_test.dir/build.make CMakeFiles/nexus_cell_test.dir/tests/unit/cell/cell_test.cpp.s
 .PHONY : tests/unit/cell/cell_test.cpp.s
 
+tests/unit/cell/youtube_learner_test.o: tests/unit/cell/youtube_learner_test.cpp.o
+.PHONY : tests/unit/cell/youtube_learner_test.o
+
+# target to build an object file
+tests/unit/cell/youtube_learner_test.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_youtube_learner_test.dir/build.make CMakeFiles/nexus_youtube_learner_test.dir/tests/unit/cell/youtube_learner_test.cpp.o
+.PHONY : tests/unit/cell/youtube_learner_test.cpp.o
+
+tests/unit/cell/youtube_learner_test.i: tests/unit/cell/youtube_learner_test.cpp.i
+.PHONY : tests/unit/cell/youtube_learner_test.i
+
+# target to preprocess a source file
+tests/unit/cell/youtube_learner_test.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_youtube_learner_test.dir/build.make CMakeFiles/nexus_youtube_learner_test.dir/tests/unit/cell/youtube_learner_test.cpp.i
+.PHONY : tests/unit/cell/youtube_learner_test.cpp.i
+
+tests/unit/cell/youtube_learner_test.s: tests/unit/cell/youtube_learner_test.cpp.s
+.PHONY : tests/unit/cell/youtube_learner_test.s
+
+# target to generate assembly for a file
+tests/unit/cell/youtube_learner_test.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_youtube_learner_test.dir/build.make CMakeFiles/nexus_youtube_learner_test.dir/tests/unit/cell/youtube_learner_test.cpp.s
+.PHONY : tests/unit/cell/youtube_learner_test.cpp.s
+
 tests/unit/core/cartridge_runtime_test.o: tests/unit/core/cartridge_runtime_test.cpp.o
 .PHONY : tests/unit/core/cartridge_runtime_test.o
 
@@ -3503,6 +3588,7 @@ help:
 	@echo "... nexus_runtime"
 	@echo "... nexus_scale_policy_test"
 	@echo "... nexus_scan_envelope_test"
+	@echo "... nexus_youtube_learner_test"
 	@echo "... app/gameplay/src/arcade_physics.o"
 	@echo "... app/gameplay/src/arcade_physics.i"
 	@echo "... app/gameplay/src/arcade_physics.s"
@@ -3662,6 +3748,9 @@ help:
 	@echo "... engine/cell/src/agent_tool.o"
 	@echo "... engine/cell/src/agent_tool.i"
 	@echo "... engine/cell/src/agent_tool.s"
+	@echo "... engine/cell/src/curriculum_advisor.o"
+	@echo "... engine/cell/src/curriculum_advisor.i"
+	@echo "... engine/cell/src/curriculum_advisor.s"
 	@echo "... engine/cell/src/doc_ingester.o"
 	@echo "... engine/cell/src/doc_ingester.i"
 	@echo "... engine/cell/src/doc_ingester.s"
@@ -3701,6 +3790,9 @@ help:
 	@echo "... engine/cell/src/wisdom_store.o"
 	@echo "... engine/cell/src/wisdom_store.i"
 	@echo "... engine/cell/src/wisdom_store.s"
+	@echo "... engine/cell/src/youtube_learner.o"
+	@echo "... engine/cell/src/youtube_learner.i"
+	@echo "... engine/cell/src/youtube_learner.s"
 	@echo "... engine/core/src/dev_stats.o"
 	@echo "... engine/core/src/dev_stats.i"
 	@echo "... engine/core/src/dev_stats.s"
@@ -3833,6 +3925,9 @@ help:
 	@echo "... tests/unit/cell/cell_test.o"
 	@echo "... tests/unit/cell/cell_test.i"
 	@echo "... tests/unit/cell/cell_test.s"
+	@echo "... tests/unit/cell/youtube_learner_test.o"
+	@echo "... tests/unit/cell/youtube_learner_test.i"
+	@echo "... tests/unit/cell/youtube_learner_test.s"
 	@echo "... tests/unit/core/cartridge_runtime_test.o"
 	@echo "... tests/unit/core/cartridge_runtime_test.i"
 	@echo "... tests/unit/core/cartridge_runtime_test.s"

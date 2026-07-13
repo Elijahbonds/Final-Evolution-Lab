@@ -11,6 +11,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/agent_executor.cpp" "CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.o" "gcc" "CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.o.d"
   "/Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/agent_swarm.cpp" "CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.o" "gcc" "CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.o.d"
   "/Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/agent_tool.cpp" "CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.o" "gcc" "CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.o.d"
+  "/Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/curriculum_advisor.cpp" "CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.o" "gcc" "CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.o.d"
   "/Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/doc_ingester.cpp" "CMakeFiles/nexus_cell.dir/engine/cell/src/doc_ingester.cpp.o" "gcc" "CMakeFiles/nexus_cell.dir/engine/cell/src/doc_ingester.cpp.o.d"
   "/Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/experience_ledger.cpp" "CMakeFiles/nexus_cell.dir/engine/cell/src/experience_ledger.cpp.o" "gcc" "CMakeFiles/nexus_cell.dir/engine/cell/src/experience_ledger.cpp.o.d"
   "/Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/future_state_buffer.cpp" "CMakeFiles/nexus_cell.dir/engine/cell/src/future_state_buffer.cpp.o" "gcc" "CMakeFiles/nexus_cell.dir/engine/cell/src/future_state_buffer.cpp.o.d"
@@ -24,6 +25,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/spatial_sampler.cpp" "CMakeFiles/nexus_cell.dir/engine/cell/src/spatial_sampler.cpp.o" "gcc" "CMakeFiles/nexus_cell.dir/engine/cell/src/spatial_sampler.cpp.o.d"
   "/Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/web_auditor.cpp" "CMakeFiles/nexus_cell.dir/engine/cell/src/web_auditor.cpp.o" "gcc" "CMakeFiles/nexus_cell.dir/engine/cell/src/web_auditor.cpp.o.d"
   "/Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/wisdom_store.cpp" "CMakeFiles/nexus_cell.dir/engine/cell/src/wisdom_store.cpp.o" "gcc" "CMakeFiles/nexus_cell.dir/engine/cell/src/wisdom_store.cpp.o.d"
+  "/Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/youtube_learner.cpp" "CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.o" "gcc" "CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.o.d"
   )
 
 # Targets to which this target links which contain Fortran sources.

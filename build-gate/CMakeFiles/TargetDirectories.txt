@@ -23,6 +23,7 @@
 /Users/elijahbonds/Developer/FEL-nexus-build/build-gate/CMakeFiles/nexus_cartridge_test.dir
 /Users/elijahbonds/Developer/FEL-nexus-build/build-gate/CMakeFiles/nexus_scale_policy_test.dir
 /Users/elijahbonds/Developer/FEL-nexus-build/build-gate/CMakeFiles/nexus_cell_test.dir
+/Users/elijahbonds/Developer/FEL-nexus-build/build-gate/CMakeFiles/nexus_youtube_learner_test.dir
 /Users/elijahbonds/Developer/FEL-nexus-build/build-gate/CMakeFiles/nexus_realtime_test.dir
 /Users/elijahbonds/Developer/FEL-nexus-build/build-gate/CMakeFiles/nexus_renderer_test.dir
 /Users/elijahbonds/Developer/FEL-nexus-build/build-gate/CMakeFiles/nexus_console_tier_test.dir

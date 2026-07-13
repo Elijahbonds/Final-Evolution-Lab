@@ -12,6 +12,7 @@
 
 #include "nexus/cell/agent_swarm.h"
 #include "nexus/cell/cell_types.h"
+#include "nexus/cell/curriculum_advisor.h"
 #include "nexus/cell/doc_ingester.h"
 #include "nexus/cell/experience_ledger.h"
 #include "nexus/cell/future_state_buffer.h"
@@ -52,6 +53,7 @@ struct CellConfig {
   GEvalConfig            geval;
   WebAuditConfig         web_audit;
   AgentSwarmConfig       agent_swarm;
+  CurriculumAdvisorConfig advisor;
 };
 
 class SelfImprovementScheduler {
@@ -106,6 +108,12 @@ public:
   /// Return the top-100 WisdomStore entries as a JSON array (for web dashboard).
   [[nodiscard]] auto exportWisdomSnapshot() const -> nlohmann::json;
 
+  // ── Curriculum advisor (engine → sequencer seam) ──────────────────────────
+  /// Ranked skill-weakness focus areas from WisdomStore + ExperienceLedger.
+  /// Exposed over the cell.advisor.focus command/query; the backend adaptive
+  /// sequencer consumes this exact JSON shape (see curriculum_advisor.h).
+  [[nodiscard]] auto advisorFocusReport() const -> nlohmann::json;
+
   // ── Web audit (browser-based app critique) ────────────────────────────────
   /// Trigger an immediate web audit cycle (for cell.web_audit_now command).
   void triggerWebAudit();
@@ -154,6 +162,7 @@ private:
   GEvalScorer              m_scorer;
   WebAuditor               m_webAuditor;
   AgentSwarm               m_swarm;
+  CurriculumAdvisor        m_advisor;
   bool                     m_initialized{false};
 };
 

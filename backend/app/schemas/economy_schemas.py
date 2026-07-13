@@ -12,3 +12,14 @@ class WalletOut(BaseModel):
     shards: int = Field(description="Shard balance")
     prq_delta: float = Field(description="Accumulated PRQ delta")
 
+
+class LedgerEntryOut(BaseModel):
+    """One append-only economy transaction."""
+
+    id: str = Field(description="Transaction id")
+    transaction_type: str = Field(description="Movement type (earn/purchase/...)")
+    currency: str = Field(description="Currency (shards/xp/usd_cents)")
+    amount: int = Field(description="Signed amount")
+    metadata: dict = Field(default_factory=dict, description="Context metadata")
+    created_at: str | None = Field(default=None, description="ISO timestamp")
+

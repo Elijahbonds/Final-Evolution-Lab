@@ -78,6 +78,89 @@ class PurchaseOut(BaseModel):
     checkout_url: str | None = Field(default=None, description="Stripe Checkout URL")
 
 
+class ListingOut(BaseModel):
+    """Marketplace listing surface for one card."""
+
+    id: str = Field(description="Listing id")
+    card_id: str = Field(description="Card id")
+    curation_tier: str = Field(description="Curation tier (featured/curated/open)")
+    rating_avg: float = Field(description="Average star rating")
+    rating_count: int = Field(description="Number of ratings")
+    sales_count: int = Field(description="Completed sales")
+    rank_score: float = Field(description="Marketplace ranking score")
+    is_active: bool = Field(description="Listing availability")
+    card: CreatorCardOut | None = Field(default=None, description="Card details")
+
+
+OrderCurrency = Literal["shards", "usd"]
+
+
+class OrderRequest(BaseModel):
+    """Validated marketplace order request (idempotent)."""
+
+    card_id: str = Field(min_length=1, description="Card to purchase")
+    currency: OrderCurrency = Field(default="shards", description="Payment currency rail")
+    idempotency_key: str = Field(min_length=1, max_length=120, description="Client idempotency key")
+
+
+class OrderOut(BaseModel):
+    """One marketplace order row."""
+
+    order_id: str = Field(description="Order id")
+    buyer_id: str = Field(description="Buyer user id")
+    card_id: str = Field(description="Card id")
+    currency: str = Field(description="Currency rail (SHARDS/USD)")
+    amount_shards: int = Field(default=0, description="Shard amount (soft-currency orders)")
+    gross_cents: int = Field(default=0, description="Gross cents (hard-currency orders)")
+    store_fee_cents: int = Field(default=0, description="Store fee taken off gross")
+    net_cents: int = Field(default=0, description="Post-store-fee net")
+    creator_share_cents: int = Field(default=0, description="Creator accrual share")
+    platform_share_cents: int = Field(default=0, description="Platform retained share")
+    status: str = Field(description="Order status")
+    idempotent_replay: bool = Field(default=False, description="True when an existing order was returned")
+    wallet_after: dict | None = Field(default=None, description="Wallet snapshot after a shard order")
+
+
+class RatingIn(BaseModel):
+    """Star rating submission."""
+
+    stars: int = Field(ge=1, le=5, description="Stars 1-5")
+    comment: str = Field(default="", max_length=2000, description="Optional review text")
+
+
+class RatingOut(BaseModel):
+    """Recorded rating plus re-ranked listing state."""
+
+    rating_id: str = Field(description="Rating id")
+    card_id: str = Field(description="Rated card id")
+    reviewer_id: str = Field(description="Reviewer user id")
+    stars: int = Field(description="Stars 1-5")
+    comment: str = Field(default="", description="Review text")
+    listing: ListingOut | None = Field(default=None, description="Listing after re-rank")
+
+
+class PayoutAccountOut(BaseModel):
+    """Creator payout accrual balance."""
+
+    creator_id: str = Field(description="Creator id")
+    accrued_cents: int = Field(description="Accrued, unsettled cents")
+    paid_out_cents: int = Field(description="Lifetime settled cents")
+    threshold_cents: int = Field(description="Effective settlement threshold")
+    eligible_for_settlement: bool = Field(description="True when accrued >= threshold")
+    provider: str = Field(description="Configured payout provider (stubbed)")
+
+
+class PayoutSettlementOut(BaseModel):
+    """Threshold-gated settlement record."""
+
+    settlement_id: str = Field(description="Settlement id")
+    creator_id: str = Field(description="Creator id")
+    amount_cents: int = Field(description="Settled cents")
+    status: str = Field(description="Settlement status")
+    provider: str = Field(description="Provider that acknowledged the settlement")
+    provider_reference: str | None = Field(default=None, description="Provider reference")
+
+
 class PaymentIntentIn(BaseModel):
     """Direct payment intent request."""
 

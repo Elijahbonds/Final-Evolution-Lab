@@ -3,9 +3,11 @@
 // ModelTrainer, SelfImprovementScheduler, FutureStateBuffer, SpatialSampler,
 // IdleFeed (stub mode), and new cell.* commands.
 
+#include "nexus/cell/curriculum_advisor.h"
 #include "nexus/cell/experience_ledger.h"
 #include "nexus/cell/future_state_buffer.h"
 #include "nexus/cell/idle_feed.h"
+#include "nexus/cell/web_auditor.h"
 #include "nexus/cell/model_trainer.h"
 #include "nexus/cell/observation_bus.h"
 #include "nexus/cell/self_improvement_scheduler.h"
@@ -327,6 +329,241 @@ void idle_feed_stub_ingest() {
   feed.stop();
 }
 
+// ── IdleFeed hardened parsing / URL validation ──────────────────────────────
+
+void idle_feed_url_sanitization() {
+  using nexus::cell::IdleFeed;
+  require(IdleFeed::isSafeUrl("https://api.github.com/search/repositories?q=created:%3E2026-01-01&sort=stars"),
+          "normal https URL with query is safe");
+  require(IdleFeed::isSafeUrl("http://export.arxiv.org/rss/cs.AI"),
+          "http URL is safe");
+  require(!IdleFeed::isSafeUrl(""), "empty URL rejected");
+  require(!IdleFeed::isSafeUrl("ftp://example.com/x"), "non-http scheme rejected");
+  require(!IdleFeed::isSafeUrl("https://x.com/'; rm -rf /'"),
+          "single-quote shell breakout rejected");
+  require(!IdleFeed::isSafeUrl("https://x.com/`id`"), "backtick rejected");
+  require(!IdleFeed::isSafeUrl("https://x.com/a b"), "whitespace rejected");
+  require(!IdleFeed::isSafeUrl("https://x.com/a\nb"), "newline rejected");
+  require(!IdleFeed::isSafeUrl("https://x.com/a\\b"), "backslash rejected");
+  require(!IdleFeed::isSafeUrl(std::string(3000, 'a')), "oversized URL rejected");
+}
+
+void idle_feed_rss_parsing_hardened() {
+  using nexus::cell::IdleFeed;
+
+  // Well-formed feed: CDATA titles, entities, links.
+  const std::string rss =
+      "<rss><channel>"
+      "<item><title><![CDATA[Cool AI paper]]></title>"
+      "<link>https://arxiv.org/abs/1</link>"
+      "<description>ml &amp; physics &lt;tuning&gt;</description></item>"
+      "<item><title>Second</title><link>https://arxiv.org/abs/2</link>"
+      "<description>x</description></item>"
+      "</channel></rss>";
+  const auto items = IdleFeed::parseRss(rss, "arxiv_test", 10, 0.7);
+  require(items.size() == 2, "parseRss finds both items");
+  require(items[0].title == "Cool AI paper", "CDATA title extracted");
+  require(items[0].summary == "ml & physics <tuning>", "XML entities decoded");
+  require(items[0].url == "https://arxiv.org/abs/1", "link extracted");
+  require(items[0].score == 0.7, "default score applied");
+  require(items[0].source == "arxiv_test", "source name applied");
+
+  // Malformed: unterminated CDATA and truncated block must not crash.
+  const auto bad = IdleFeed::parseRss(
+      "<item><title><![CDATA[boom</title><link>https://a</link></item>",
+      "s", 10, 0.5);
+  require(bad.size() == 1, "unterminated CDATA still yields the item");
+  require(bad[0].title == "boom", "unterminated CDATA payload preserved");
+
+  // No closing </item>: no items, no crash.
+  const auto none = IdleFeed::parseRss("<item><title>t</title>", "s", 10, 0.5);
+  require(none.empty(), "unclosed item block yields nothing");
+
+  // max_items respected.
+  std::string many;
+  for (int i = 0; i < 50; ++i) { many += "<item><title>t</title></item>"; }
+  require(IdleFeed::parseRss(many, "s", 5, 0.5).size() == 5,
+          "parseRss caps at max_items");
+
+  // Unsafe link inside RSS is dropped (title kept).
+  const auto unsafeLink = IdleFeed::parseRss(
+      "<item><title>t</title><link>https://x.com/'`evil`'</link></item>",
+      "s", 10, 0.5);
+  require(unsafeLink.size() == 1 && unsafeLink[0].url.empty(),
+          "unsafe RSS link dropped");
+
+  // Titles/summaries are truncated to bounded sizes.
+  const std::string huge(5000, 'A');
+  const auto big = IdleFeed::parseRss(
+      "<item><title>" + huge + "</title><description>" + huge +
+          "</description></item>",
+      "s", 10, 0.5);
+  require(big.size() == 1, "oversized fields still parse");
+  require(big[0].title.size() <= 512, "title bounded");
+  require(big[0].summary.size() <= 2048, "summary bounded");
+}
+
+// ── WebAuditor hardened report parsing ───────────────────────────────────────
+
+void web_auditor_parse_hardened() {
+  using nexus::cell::WebAuditor;
+
+  // Valid report.
+  const auto rep = WebAuditor::parseReport(
+      R"({"url":"https://app.example.com","login_ok":true,"page_title":"Home",
+          "load_time_ms":210.5,
+          "findings":[{"category":"ux","severity":"warning","message":"slow nav"},
+                      {"category":"login","severity":"critical","message":"2fa broken"}]})");
+  require(!rep.raw_json.empty(), "valid report keeps raw_json");
+  require(rep.login_ok, "login_ok parsed");
+  require(rep.findings.size() == 2, "two findings parsed");
+  require(rep.findings[1].severity == nexus::cell::AuditSeverity::kCritical,
+          "severity mapped");
+
+  // Malformed JSON: raw_json cleared as the failure signal, no throw.
+  const auto bad = WebAuditor::parseReport("{not json at all");
+  require(bad.raw_json.empty(), "malformed JSON signals failure");
+  require(bad.findings.empty(), "malformed JSON yields no findings");
+
+  // Non-object JSON is rejected.
+  const auto arr = WebAuditor::parseReport("[1,2,3]");
+  require(arr.raw_json.empty(), "non-object JSON rejected");
+
+  // Wrong-typed fields must not crash (json exceptions swallowed).
+  const auto wrongTypes =
+      WebAuditor::parseReport(R"({"url":123,"findings":["not-an-object"]})");
+  require(wrongTypes.findings.empty(), "non-object findings skipped");
+
+  // Findings capped at kMaxFindings.
+  nlohmann::json big;
+  big["url"] = "https://x";
+  big["findings"] = nlohmann::json::array();
+  for (int i = 0; i < 600; ++i) {
+    big["findings"].push_back({{"category", "ux"}, {"message", "m"}});
+  }
+  const auto capped = WebAuditor::parseReport(big.dump());
+  require(capped.findings.size() == WebAuditor::kMaxFindings,
+          "findings capped at kMaxFindings");
+
+  // Oversized message/category truncated.
+  const std::string hugeMsg(10000, 'z');
+  const auto trunc = WebAuditor::parseReport(
+      nlohmann::json{{"url", "https://x"},
+                     {"findings", {{{"category", hugeMsg}, {"message", hugeMsg}}}}}
+          .dump());
+  require(trunc.findings.size() == 1, "oversized finding parsed");
+  require(trunc.findings[0].message.size() <= WebAuditor::kMaxMessageBytes,
+          "message bounded");
+  require(trunc.findings[0].category.size() <= WebAuditor::kMaxCategoryBytes,
+          "category bounded");
+}
+
+// ── CurriculumAdvisor (engine → sequencer seam) ──────────────────────────────
+
+void curriculum_advisor_focus_ranking() {
+  nexus::cell::ExperienceLedgerConfig lcfg;
+  lcfg.ledger_dir      = "/tmp/nexus_cell_test_advisor";
+  lcfg.max_records     = 200;
+  lcfg.flush_threshold = 1000;
+
+  nexus::cell::ExperienceLedger ledger(lcfg);
+  require(ledger.init().isOk(), "advisor ledger init");
+
+  // Weak skill: low, declining rewards.
+  for (int i = 0; i < 10; ++i) {
+    ledger.append({0, "basketball.jump_shot", {}, {}, {},
+                   0.35 - 0.03 * static_cast<double>(i)});
+  }
+  // Strong skill: high, stable rewards.
+  for (int i = 0; i < 10; ++i) {
+    ledger.append({0, "karate.block", {}, {}, {}, 0.9});
+  }
+  // Internal telemetry sources must be excluded from focus areas.
+  for (int i = 0; i < 10; ++i) {
+    ledger.append({0, "feed:hackernews", {}, {}, {}, 0.1});
+    ledger.append({0, "web_auditor", {}, {}, {}, 0.1});
+  }
+  // Below min_evidence: excluded.
+  ledger.append({0, "golf.swing", {}, {}, {}, 0.1});
+
+  nexus::cell::WisdomStoreConfig wcfg;
+  wcfg.wisdom_path = "/tmp/nexus_cell_wisdom_advisor.json";
+  nexus::cell::WisdomStore wisdom(wcfg);
+  wisdom.upsert({"basketball.jump_shot", "late release degrades outcomes", 0.8, 50, 0});
+  wisdom.upsert({"basketball.jump_shot", "higher arc improves outcomes", 0.6, 30, 0});
+
+  nexus::cell::CurriculumAdvisor advisor;
+  const auto areas = advisor.computeFocusAreas(ledger, wisdom);
+
+  require(!areas.empty(), "advisor produced focus areas");
+  require(areas[0].skill == "basketball.jump_shot",
+          "weakest skill ranked first");
+  require(areas[0].weakness_score > 0.5, "weak skill has high weakness score");
+  require(areas[0].trend == "declining", "declining rewards detected");
+  require(!areas[0].supporting_rules.empty(), "wisdom rules attached");
+  require(areas[0].recommendation == "prioritize",
+          "weak skill recommended for prioritization");
+
+  for (const auto& a : areas) {
+    require(a.skill != "feed:hackernews" && a.skill != "web_auditor",
+            "internal telemetry sources excluded");
+    require(a.skill != "golf.swing", "below-min-evidence skill excluded");
+    require(a.weakness_score >= 0.0 && a.weakness_score <= 1.0, "weakness in [0,1]");
+    require(a.confidence > 0.0 && a.confidence <= 1.0, "confidence in (0,1]");
+    require(a.priority >= 0.0 && a.priority <= 1.0, "priority in [0,1]");
+  }
+
+  bool sawStrong = false;
+  for (const auto& a : areas) {
+    if (a.skill == "karate.block") {
+      sawStrong = true;
+      require(a.recommendation == "maintain", "strong skill marked maintain");
+      require(a.priority < areas[0].priority, "strong skill ranked below weak");
+    }
+  }
+  require(sawStrong, "strong skill still reported (within max_focus_areas)");
+
+  // JSON report shape (the sequencer-seam contract).
+  const auto report = advisor.focusReport(ledger, wisdom);
+  require(report.value("version", 0) == 1, "report version 1");
+  require(report.contains("generated_at_ms"), "report has timestamp");
+  require(report.contains("focus_areas") && report["focus_areas"].is_array(),
+          "report has focus_areas array");
+  require(report.contains("inputs"), "report has inputs block");
+  const auto& first = report["focus_areas"][0];
+  require(first.contains("skill") && first.contains("weakness_score") &&
+              first.contains("confidence") && first.contains("priority") &&
+              first.contains("evidence_count") && first.contains("mean_reward") &&
+              first.contains("trend") && first.contains("recommendation") &&
+              first.contains("supporting_rules"),
+          "focus area carries the full seam contract");
+
+  ledger.shutdown();
+  wisdom.shutdown();
+}
+
+void curriculum_advisor_empty_inputs() {
+  nexus::cell::ExperienceLedgerConfig lcfg;
+  lcfg.ledger_dir = "/tmp/nexus_cell_test_advisor_empty";
+  nexus::cell::ExperienceLedger ledger(lcfg);
+  require(ledger.init().isOk(), "empty advisor ledger init");
+
+  nexus::cell::WisdomStoreConfig wcfg;
+  wcfg.wisdom_path = "/tmp/nexus_cell_wisdom_advisor_empty.json";
+  nexus::cell::WisdomStore wisdom(wcfg);
+
+  nexus::cell::CurriculumAdvisor advisor;
+  const auto areas = advisor.computeFocusAreas(ledger, wisdom);
+  require(areas.empty(), "no data yields no focus areas");
+
+  const auto report = advisor.focusReport(ledger, wisdom);
+  require(report["focus_areas"].is_array() && report["focus_areas"].empty(),
+          "empty report still well-formed");
+
+  ledger.shutdown();
+  wisdom.shutdown();
+}
+
 // ── CellPhase helpers ───────────────────────────────────────────────────────
 
 void cell_phase_transitions() {
@@ -524,6 +761,30 @@ void scheduler_cell_commands_via_router() {
   responses = server.processQueuedCommands(1);
   require(responses.size() == 1, "cell.reset_model has response");
 
+  // cell.advisor.focus (query form) — engine → sequencer seam
+  require(server.receiveJson(R"json({
+    "type": "query", "id": "af_001",
+    "payload": {"query": "cell.advisor.focus"}
+  })json").isOk(), "cell.advisor.focus query enqueued");
+  responses = server.processQueuedCommands(1);
+  require(responses.size() == 1,       "cell.advisor.focus has response");
+  require(responses[0].status == "ok", "cell.advisor.focus ok");
+  require(responses[0].payload.contains("focus_areas"),
+          "cell.advisor.focus payload has focus_areas");
+  require(responses[0].payload.value("version", 0) == 1,
+          "cell.advisor.focus payload versioned");
+
+  // cell.advisor.focus (command form) — same payload
+  require(server.receiveJson(R"json({
+    "type": "command", "id": "af_002",
+    "payload": {"command": "cell.advisor.focus", "params": {}}
+  })json").isOk(), "cell.advisor.focus command enqueued");
+  responses = server.processQueuedCommands(1);
+  require(responses.size() == 1,       "cell.advisor.focus command has response");
+  require(responses[0].status == "ok", "cell.advisor.focus command ok");
+  require(responses[0].payload.contains("focus_areas"),
+          "cell.advisor.focus command payload has focus_areas");
+
   server.shutdown();
   router.shutdown();
   sched.shutdown();
@@ -555,6 +816,13 @@ auto main() -> int {
   future_state_buffer_park_and_resolve();
   spatial_sampler_filter();
   idle_feed_stub_ingest();
+
+  idle_feed_url_sanitization();
+  idle_feed_rss_parsing_hardened();
+  web_auditor_parse_hardened();
+
+  curriculum_advisor_focus_ranking();
+  curriculum_advisor_empty_inputs();
 
   cell_phase_transitions();
 

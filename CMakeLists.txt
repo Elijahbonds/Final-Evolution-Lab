@@ -127,6 +127,8 @@ add_library(nexus_cell
   engine/cell/src/agent_executor.cpp
   engine/cell/src/agent_swarm.cpp
   engine/cell/src/agent_tool.cpp
+  engine/cell/src/curriculum_advisor.cpp
+  engine/cell/src/youtube_learner.cpp
 )
 target_include_directories(nexus_cell PUBLIC engine/cell/include)
 target_link_libraries(nexus_cell PUBLIC nexus_core nlohmann_json::nlohmann_json)
@@ -328,6 +330,10 @@ if(NEXUS_BUILD_TESTS)
   add_executable(nexus_cell_test tests/unit/cell/cell_test.cpp)
   target_link_libraries(nexus_cell_test PRIVATE nexus_cell nexus_ai_interface)
   add_test(NAME nexus_cell_test COMMAND nexus_cell_test)
+
+  add_executable(nexus_youtube_learner_test tests/unit/cell/youtube_learner_test.cpp)
+  target_link_libraries(nexus_youtube_learner_test PRIVATE nexus_cell)
+  add_test(NAME nexus_youtube_learner_test COMMAND nexus_youtube_learner_test)
 
   add_executable(nexus_realtime_test tests/unit/core/websocket_test.cpp)
   target_link_libraries(nexus_realtime_test PRIVATE nexus_core)

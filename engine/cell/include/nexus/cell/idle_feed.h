@@ -9,9 +9,12 @@
 // ResearchLoop can build WisdomStore entries about current best practices,
 // popular tools, and emerging techniques.
 //
-// Network calls are made via curl (same pattern as HttpClient). Set
-// IdleFeedConfig::stub_mode = true (or env NEXUS_CELL_FEED_STUB=1) to use
-// canned responses in unit tests and headless CI.
+// Network calls are made via curl (same pattern as HttpClient) with connect
+// and total timeouts, a bounded response buffer, and shell-safe URL
+// validation. Set IdleFeedConfig::stub_mode = true — or any of the env vars
+// NEXUS_CELL_FEED_STUB / NEXUS_HEADLESS / CI to a truthy value — to use
+// canned responses in unit tests and headless CI (graceful default: no live
+// network traffic from CI runners).
 
 #include <atomic>
 #include <chrono>
@@ -109,7 +112,26 @@ public:
   /// Returns a snapshot of the N most recently ingested items (thread-safe).
   [[nodiscard]] auto recentItems(std::size_t n = 20) const -> std::vector<FeedItem>;
 
+  // ── Hardened parsing / validation (public statics for unit tests) ─────────
+
+  /// Bounded RSS 2.0 <item> parser: caps items at max_items, caps each block
+  /// at 64 KiB, tolerates malformed / truncated CDATA, decodes the five
+  /// standard XML entities, and truncates titles/summaries. Never throws.
+  [[nodiscard]] static auto parseRss(const std::string& body,
+                                     const std::string& source_name,
+                                     std::size_t max_items,
+                                     double default_score)
+      -> std::vector<FeedItem>;
+
+  /// True when the URL is http(s) and contains only shell-safe URL characters.
+  /// Anything failing this check is never passed to the curl subprocess.
+  [[nodiscard]] static auto isSafeUrl(const std::string& url) -> bool;
+
 private:
+  /// True when live network calls must be skipped: config stub_mode or any of
+  /// NEXUS_CELL_FEED_STUB / NEXUS_HEADLESS / CI env vars are truthy.
+  [[nodiscard]] auto stubModeActive() const -> bool;
+
   void loop();
   void runOneCycle();
 

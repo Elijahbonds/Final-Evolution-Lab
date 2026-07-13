@@ -1111,6 +1111,7 @@ CMakeFiles/nexus_engine.dir/engine/core/src/engine.cpp.o: /Users/elijahbonds/Dev
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/agent_swarm.h \
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/agent_tool.h \
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/cell_types.h \
+  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/curriculum_advisor.h \
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/doc_ingester.h \
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/experience_ledger.h \
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/future_state_buffer.h \
@@ -2125,6 +2126,8 @@ CMakeFiles/nexus_engine.dir/engine/core/src/engine.cpp.o: /Users/elijahbonds/Dev
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__math/exponential_functions.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__math/copysign.h:
+
+/Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/curriculum_advisor.h:
 
 /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__locale_dir/wstring_convert.h:
 

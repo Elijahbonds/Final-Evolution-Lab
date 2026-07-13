@@ -22,8 +22,16 @@
 //   immediately.  All public methods are thread-safe.
 //
 // Stub mode:
-//   Set WebAuditConfig::stub_mode = true (or env NEXUS_WEB_AUDIT_STUB=1) to
-//   skip Playwright and return a canned report — for unit tests and headless CI.
+//   Set WebAuditConfig::stub_mode = true — or any of the env vars
+//   NEXUS_WEB_AUDIT_STUB / NEXUS_HEADLESS / CI to a truthy value — to skip
+//   Playwright and return a canned report. Graceful default for unit tests
+//   and headless CI: no browser or subprocess is ever launched there.
+//
+// Hardening:
+//   Artifact files larger than 8 MiB are rejected before reading; parsed
+//   reports are capped at 500 findings with bounded message/category sizes;
+//   the MCP CLI path and URL are validated against a shell-safe character
+//   allowlist before any subprocess is spawned.
 
 #include "nexus/cell/observation_bus.h"
 
@@ -143,6 +151,17 @@ public:
   [[nodiscard]] auto totalFindingsPushed() const -> std::uint64_t;
   [[nodiscard]] auto lastReport()         const -> WebAuditReport;
 
+  /// Parse the raw JSON string into a WebAuditReport. Never throws; on
+  /// malformed JSON the returned report's raw_json is empty (failure signal).
+  /// Findings are capped at kMaxFindings; messages/categories are truncated.
+  /// Public static so unit tests can exercise malformed inputs directly.
+  [[nodiscard]] static auto parseReport(const std::string& json) -> WebAuditReport;
+
+  static constexpr std::size_t kMaxFindings       = 500;
+  static constexpr std::size_t kMaxArtifactBytes  = 8 * 1024 * 1024;
+  static constexpr std::size_t kMaxMessageBytes   = 2048;
+  static constexpr std::size_t kMaxCategoryBytes  = 64;
+
 private:
   void loop();
   void runOneCycle();
@@ -155,9 +174,6 @@ private:
 
   /// Push findings from a report as kWebAudit observations.
   void pushReport(const WebAuditReport& report);
-
-  /// Parse the raw JSON string into a WebAuditReport.
-  [[nodiscard]] static auto parseReport(const std::string& json) -> WebAuditReport;
 
   /// FNV-1a hash used to skip already-pushed reports.
   [[nodiscard]] static auto fnv1aHash(const std::string& s) -> std::uint64_t;

@@ -296,6 +296,34 @@ CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/agent_tool.cpp -o CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.s
 
+CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.o: CMakeFiles/nexus_cell.dir/flags.make
+CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.o: /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/curriculum_advisor.cpp
+CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.o: CMakeFiles/nexus_cell.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/elijahbonds/Developer/FEL-nexus-build/build-gate/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Building CXX object CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.o -MF CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.o.d -o CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.o -c /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/curriculum_advisor.cpp
+
+CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/curriculum_advisor.cpp > CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.i
+
+CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/curriculum_advisor.cpp -o CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.s
+
+CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.o: CMakeFiles/nexus_cell.dir/flags.make
+CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.o: /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/youtube_learner.cpp
+CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.o: CMakeFiles/nexus_cell.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/elijahbonds/Developer/FEL-nexus-build/build-gate/CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Building CXX object CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.o -MF CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.o.d -o CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.o -c /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/youtube_learner.cpp
+
+CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/youtube_learner.cpp > CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.i
+
+CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/youtube_learner.cpp -o CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.s
+
 # Object files for target nexus_cell
 nexus_cell_OBJECTS = \
 "CMakeFiles/nexus_cell.dir/engine/cell/src/observation_bus.cpp.o" \
@@ -313,7 +341,9 @@ nexus_cell_OBJECTS = \
 "CMakeFiles/nexus_cell.dir/engine/cell/src/doc_ingester.cpp.o" \
 "CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.o" \
 "CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.o" \
-"CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.o"
+"CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.o" \
+"CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.o" \
+"CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.o"
 
 # External object files for target nexus_cell
 nexus_cell_EXTERNAL_OBJECTS =
@@ -334,9 +364,11 @@ libnexus_cell.a: CMakeFiles/nexus_cell.dir/engine/cell/src/doc_ingester.cpp.o
 libnexus_cell.a: CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.o
 libnexus_cell.a: CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.o
 libnexus_cell.a: CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.o
+libnexus_cell.a: CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.o
+libnexus_cell.a: CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.o
 libnexus_cell.a: CMakeFiles/nexus_cell.dir/build.make
 libnexus_cell.a: CMakeFiles/nexus_cell.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/elijahbonds/Developer/FEL-nexus-build/build-gate/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Linking CXX static library libnexus_cell.a"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/elijahbonds/Developer/FEL-nexus-build/build-gate/CMakeFiles --progress-num=$(CMAKE_PROGRESS_19) "Linking CXX static library libnexus_cell.a"
 	$(CMAKE_COMMAND) -P CMakeFiles/nexus_cell.dir/cmake_clean_target.cmake
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/nexus_cell.dir/link.txt --verbose=$(VERBOSE)
 

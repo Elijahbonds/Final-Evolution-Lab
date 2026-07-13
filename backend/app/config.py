@@ -46,6 +46,17 @@ class Settings(BaseSettings):
     stripe_webhook_secret: str | None = None
     marketplace_offline_payments: bool = True
 
+    # Marketplace payout split math (spec: config-driven, accrual-only — no real money moves).
+    # Store fee is taken off gross first (Apple 30%, or 15% small-business tier),
+    # then the post-fee net splits creator/platform (default 70/30).
+    marketplace_store_fee_pct: float = 0.30
+    marketplace_creator_share_pct: float = 0.70
+    payout_threshold_cents: int = 5000
+    payout_provider: str = "null"
+
+    # Minimum wall time between lesson open and quiz submit / module begin and complete.
+    education_min_active_seconds: int = 3
+
     vault_ws_path: str = "/ws/vault"
     hud_ws_path: str = "/ws/hud"
 

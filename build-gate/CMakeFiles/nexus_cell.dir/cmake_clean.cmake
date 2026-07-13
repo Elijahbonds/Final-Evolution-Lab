@@ -5,6 +5,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.o.d"
   "CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.o"
   "CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.o.d"
+  "CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.o"
+  "CMakeFiles/nexus_cell.dir/engine/cell/src/curriculum_advisor.cpp.o.d"
   "CMakeFiles/nexus_cell.dir/engine/cell/src/doc_ingester.cpp.o"
   "CMakeFiles/nexus_cell.dir/engine/cell/src/doc_ingester.cpp.o.d"
   "CMakeFiles/nexus_cell.dir/engine/cell/src/experience_ledger.cpp.o"
@@ -31,6 +33,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/nexus_cell.dir/engine/cell/src/web_auditor.cpp.o.d"
   "CMakeFiles/nexus_cell.dir/engine/cell/src/wisdom_store.cpp.o"
   "CMakeFiles/nexus_cell.dir/engine/cell/src/wisdom_store.cpp.o.d"
+  "CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.o"
+  "CMakeFiles/nexus_cell.dir/engine/cell/src/youtube_learner.cpp.o.d"
   "libnexus_cell.a"
   "libnexus_cell.pdb"
 )

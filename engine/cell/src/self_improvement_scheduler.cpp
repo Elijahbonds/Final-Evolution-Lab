@@ -34,7 +34,8 @@ SelfImprovementScheduler::SelfImprovementScheduler(CellConfig config)
       m_docs(m_config.docs),
       m_scorer(m_config.geval),
       m_webAuditor(m_config.web_audit),
-      m_swarm(m_config.agent_swarm) {}
+      m_swarm(m_config.agent_swarm),
+      m_advisor(m_config.advisor) {}
 
 SelfImprovementScheduler::~SelfImprovementScheduler() {
   if (m_initialized) {
@@ -213,6 +214,12 @@ auto SelfImprovementScheduler::exportWisdomSnapshot() const -> nlohmann::json {
   return arr;
 }
 
+// ── Curriculum advisor (engine → sequencer seam) ──────────────────────────
+
+auto SelfImprovementScheduler::advisorFocusReport() const -> nlohmann::json {
+  return m_advisor.focusReport(m_ledger, m_wisdom);
+}
+
 // ── Status ────────────────────────────────────────────────────────────────
 
 auto SelfImprovementScheduler::status() const -> CellStatus {
@@ -337,6 +344,11 @@ auto SelfImprovementScheduler::handleCommand(const std::string& command,
                           {"message",  "Agent task submitted — poll cell.agent_result"},
                           {"workers",  m_swarm.status().active_workers},
                           {"queued",   m_swarm.status().queued_tasks}}}};
+  }
+
+  if (command == "cell.advisor.focus") {
+    // Engine → sequencer seam: ranked skill-weakness focus areas.
+    return {{"id", id}, {"status", "ok"}, {"payload", advisorFocusReport()}};
   }
 
   return {{"id", id}, {"status", "error"}, {"error", "Unsupported cell command: " + command}};
@@ -537,6 +549,11 @@ auto SelfImprovementScheduler::handleQuery(const std::string& query,
                 {"duration_ms", res->duration_ms},
                 {"trace",       trace_json},
             }}};
+  }
+
+  if (query == "cell.advisor.focus") {
+    // Same payload as the command form — read-only, so both verbs work.
+    return {{"id", id}, {"status", "ok"}, {"payload", advisorFocusReport()}};
   }
 
   return {{"id", id}, {"status", "error"}, {"error", "Unsupported cell query: " + query}};

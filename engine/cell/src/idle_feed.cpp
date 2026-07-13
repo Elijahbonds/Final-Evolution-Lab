@@ -34,10 +34,31 @@ auto lowercase(std::string s) -> std::string {
   return s;
 }
 
-// ── Lightweight curl GET wrapper ─────────────────────────────────────────────
+// ── Env helpers ──────────────────────────────────────────────────────────────
+
+auto envTruthy(const char* name) -> bool {
+  const char* v = std::getenv(name);
+  return v != nullptr && v[0] != '\0' && std::strcmp(v, "0") != 0 &&
+         std::strcmp(v, "false") != 0;
+}
+
+// ── Hardening limits ─────────────────────────────────────────────────────────
+
+constexpr std::size_t kMaxHttpResponseBytes = 4 * 1024 * 1024; ///< 4 MiB cap
+constexpr std::size_t kMaxRssBlockBytes     = 64 * 1024;       ///< per <item>
+constexpr std::size_t kMaxTitleBytes        = 512;
+constexpr std::size_t kMaxSummaryBytes      = 2048;
+
+// ── Lightweight curl GET wrapper (bounded, timeouts, validated URL) ─────────
 
 auto curlGet(const std::string& url) -> std::string {
-  std::string cmd = "curl -s --max-time 10 -L "
+  // Defense in depth: the caller validates too, but never build a shell
+  // command from an unvalidated URL.
+  if (!nexus::cell::IdleFeed::isSafeUrl(url)) { return {}; }
+
+  std::string cmd = "curl -s --connect-timeout 5 --max-time 10 "
+                    "--max-filesize " + std::to_string(kMaxHttpResponseBytes) +
+                    " -L "
                     "-H 'User-Agent: NEXUS-CELL/1.0 (Final-Evolution-Lab)' "
                     "'";
   cmd += url;
@@ -49,9 +70,32 @@ auto curlGet(const std::string& url) -> std::string {
   result.reserve(65536);
   while (std::fgets(buf, sizeof(buf), pipe) != nullptr) {
     result += buf;
+    if (result.size() > kMaxHttpResponseBytes) {
+      result.resize(kMaxHttpResponseBytes); // hard cap regardless of server
+      break;
+    }
   }
   pclose(pipe); // NOLINT
   return result;
+}
+
+// ── XML entity decoding ──────────────────────────────────────────────────────
+
+auto decodeXmlEntities(std::string text) -> std::string {
+  // &amp; decoded last so "&amp;lt;" stays "&lt;" (no double decoding).
+  static constexpr std::pair<const char*, const char*> kEntities[] = {
+      {"&lt;", "<"}, {"&gt;", ">"}, {"&quot;", "\""},
+      {"&apos;", "'"}, {"&#39;", "'"}, {"&amp;", "&"},
+  };
+  for (const auto& [from, to] : kEntities) {
+    const std::size_t fromLen = std::strlen(from);
+    std::size_t pos = 0;
+    while ((pos = text.find(from, pos)) != std::string::npos) {
+      text.replace(pos, fromLen, to);
+      pos += std::strlen(to);
+    }
+  }
+  return text;
 }
 
 // ── Simple RSS/XML title extractor ───────────────────────────────────────────
@@ -80,10 +124,16 @@ auto xmlTag(const std::string& xml, const std::string& tag,
   if (end == std::string::npos) { return {"", std::string::npos}; }
 
   std::string text = xml.substr(start, end - start);
-  // Strip CDATA if present.
-  constexpr const char* kCdata = "<![CDATA[";
-  if (text.substr(0, 9) == kCdata) {
-    text = text.substr(9, text.size() - 9 - 3); // strip ]]>
+  // Strip CDATA if present — tolerate truncated / malformed CDATA sections.
+  constexpr const char* kCdata    = "<![CDATA[";
+  constexpr std::size_t kCdataLen = 9;
+  if (text.rfind(kCdata, 0) == 0) {
+    const std::size_t closer = text.rfind("]]>");
+    if (closer != std::string::npos && closer >= kCdataLen) {
+      text = text.substr(kCdataLen, closer - kCdataLen);
+    } else {
+      text = text.substr(kCdataLen); // unterminated CDATA: keep the payload
+    }
   }
   return {text, end + close.size()};
 }
@@ -170,9 +220,8 @@ void IdleFeed::runOneCycle() {
   std::size_t pushed = 0;
 
   // Stub mode: use canned items instead of live network calls.
-  if (m_config.stub_mode ||
-      (std::getenv("NEXUS_CELL_FEED_STUB") != nullptr &&
-       std::getenv("NEXUS_CELL_FEED_STUB")[0] != '0')) {
+  // Graceful default in headless/CI environments (NEXUS_HEADLESS / CI).
+  if (stubModeActive()) {
     for (const auto& item : stubItems()) {
       if (pushed >= m_config.max_items_per_cycle) { break; }
       pushItem(item);
@@ -314,34 +363,8 @@ auto IdleFeed::fetchArXiv(const FeedSource& src) -> std::vector<FeedItem> {
       src.url.empty() ? "https://export.arxiv.org/rss/cs.AI" : src.url;
   const std::string body = httpGet(url);
   if (body.empty()) { return {}; }
-
-  std::vector<FeedItem> out;
-  std::size_t pos = 0;
-  while (out.size() < src.max_items) {
-    // Find next <item>
-    const std::size_t itemStart = body.find("<item>", pos);
-    if (itemStart == std::string::npos) { break; }
-    const std::size_t itemEnd = body.find("</item>", itemStart);
-    if (itemEnd == std::string::npos) { break; }
-    const std::string block = body.substr(itemStart, itemEnd - itemStart);
-
-    auto [title, _t]   = xmlTag(block, "title");
-    auto [link, _l]    = xmlTag(block, "link");
-    auto [descr, _d]   = xmlTag(block, "description");
-
-    if (!title.empty()) {
-      FeedItem fi;
-      fi.source  = src.name;
-      fi.title   = title;
-      fi.url     = link;
-      fi.summary = descr.substr(0, 300);
-      fi.score   = 0.7; // arXiv papers get a fixed high score
-      fi.tags    = deriveTags(title + " " + descr);
-      out.push_back(std::move(fi));
-    }
-    pos = itemEnd + 7;
-  }
-  return out;
+  // arXiv papers get a fixed high score.
+  return parseRss(body, src.name, src.max_items, 0.7);
 }
 
 auto IdleFeed::fetchDevTo(const FeedSource& src) -> std::vector<FeedItem> {
@@ -383,33 +406,78 @@ auto IdleFeed::fetchCustomRss(const FeedSource& src) -> std::vector<FeedItem> {
   if (src.url.empty()) { return {}; }
   const std::string body = httpGet(src.url);
   if (body.empty()) { return {}; }
+  return parseRss(body, src.name, src.max_items, 0.5);
+}
 
+// ── Hardened shared RSS parser ───────────────────────────────────────────────
+
+auto IdleFeed::parseRss(const std::string& body,
+                        const std::string& source_name,
+                        std::size_t max_items,
+                        double default_score) -> std::vector<FeedItem> {
   std::vector<FeedItem> out;
   std::size_t pos = 0;
-  while (out.size() < src.max_items) {
+  // Iteration guard independent of max_items so a pathological body cannot
+  // spin the loop even when every candidate block is rejected.
+  std::size_t scanned = 0;
+  constexpr std::size_t kMaxItemsScanned = 1024;
+
+  while (out.size() < max_items && scanned < kMaxItemsScanned) {
+    ++scanned;
     const std::size_t itemStart = body.find("<item>", pos);
     if (itemStart == std::string::npos) { break; }
     const std::size_t itemEnd = body.find("</item>", itemStart);
     if (itemEnd == std::string::npos) { break; }
+    pos = itemEnd + 7;
+
+    // Bounded per-item block: oversized blocks are skipped, not truncated,
+    // so a single hostile item cannot dominate memory or yield garbage.
+    if (itemEnd - itemStart > kMaxRssBlockBytes) { continue; }
     const std::string block = body.substr(itemStart, itemEnd - itemStart);
 
     auto [title, _t] = xmlTag(block, "title");
     auto [link, _l]  = xmlTag(block, "link");
     auto [desc, _d]  = xmlTag(block, "description");
 
-    if (!title.empty()) {
-      FeedItem fi;
-      fi.source  = src.name;
-      fi.title   = title;
-      fi.url     = link;
-      fi.summary = desc.substr(0, 300);
-      fi.score   = 0.5;
-      fi.tags    = deriveTags(title + " " + desc);
-      out.push_back(std::move(fi));
-    }
-    pos = itemEnd + 7;
+    if (title.empty()) { continue; }
+
+    FeedItem fi;
+    fi.source  = source_name;
+    fi.title   = decodeXmlEntities(std::move(title)).substr(0, kMaxTitleBytes);
+    fi.url     = isSafeUrl(link) ? link : std::string{};
+    fi.summary = decodeXmlEntities(std::move(desc)).substr(0, kMaxSummaryBytes);
+    fi.score   = default_score;
+    fi.tags    = deriveTags(fi.title + " " + fi.summary);
+    out.push_back(std::move(fi));
   }
   return out;
+}
+
+// ── URL validation ───────────────────────────────────────────────────────────
+
+auto IdleFeed::isSafeUrl(const std::string& url) -> bool {
+  if (url.empty() || url.size() > 2048) { return false; }
+  if (url.rfind("http://", 0) != 0 && url.rfind("https://", 0) != 0) {
+    return false;
+  }
+  // Allowlist of RFC 3986 URL characters. Everything the shell could abuse
+  // inside single quotes (the quote itself, backslash-newline tricks,
+  // whitespace, control bytes) is absent from this set.
+  static constexpr const char* kExtra = "-._~:/?#[]@!$&()*+,;=%";
+  for (const unsigned char c : url) {
+    if (c == '\0') { return false; } // strchr would match the terminator
+    if (std::isalnum(c) == 0 && std::strchr(kExtra, static_cast<char>(c)) == nullptr) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// ── Stub-mode resolution ─────────────────────────────────────────────────────
+
+auto IdleFeed::stubModeActive() const -> bool {
+  return m_config.stub_mode || envTruthy("NEXUS_CELL_FEED_STUB") ||
+         envTruthy("NEXUS_HEADLESS") || envTruthy("CI");
 }
 
 // ── Stub mode ─────────────────────────────────────────────────────────────────

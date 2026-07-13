@@ -44,17 +44,40 @@ auto severityReward(AuditSeverity s) -> double {
   return 0.5;
 }
 
+auto envTruthy(const char* name) -> bool {
+  const char* v = std::getenv(name);
+  return v != nullptr && v[0] != '\0' && std::strcmp(v, "0") != 0 &&
+         std::strcmp(v, "false") != 0;
+}
+
+// A filesystem path is shell-safe when it contains only characters that
+// cannot break out of (or inject into) the command we build around it.
+auto isShellSafePath(const std::string& path) -> bool {
+  if (path.empty() || path.size() > 1024) { return false; }
+  for (const unsigned char c : path) {
+    const bool ok = std::isalnum(c) != 0 || c == '/' || c == '.' ||
+                    c == '-' || c == '_' || c == '+';
+    if (!ok) { return false; }
+  }
+  return true;
+}
+
+auto truncated(std::string s, std::size_t max) -> std::string {
+  if (s.size() > max) { s.resize(max); }
+  return s;
+}
+
 } // namespace
 
 // ── Constructor / Destructor ──────────────────────────────────────────────────
 
 WebAuditor::WebAuditor(WebAuditConfig config) : m_config(std::move(config)) {
-  // Allow env-var override for stub mode (CI / unit tests).
-  if (!m_config.stub_mode) {
-    const char* env = std::getenv("NEXUS_WEB_AUDIT_STUB");
-    if (env != nullptr && std::string{env} == "1") {
-      m_config.stub_mode = true;
-    }
+  // Allow env-var override for stub mode, and default to stub in headless /
+  // CI environments so no browser or subprocess is ever launched there.
+  if (!m_config.stub_mode &&
+      (envTruthy("NEXUS_WEB_AUDIT_STUB") || envTruthy("NEXUS_HEADLESS") ||
+       envTruthy("CI"))) {
+    m_config.stub_mode = true;
   }
 }
 
@@ -180,6 +203,13 @@ void WebAuditor::triggerMcpAudit() {
     return;
   }
 
+  // Never build a shell command from unvalidated inputs.
+  if (!isShellSafePath(m_config.mcp_cli_path)) {
+    NEXUS_LOG_WARN(LogChannel::kCell,
+                   "WebAuditor: mcp_cli_path contains unsafe characters — audit skipped");
+    return;
+  }
+
   // Build a minimal JSON payload that the web_audit MCP tool understands.
   nlohmann::json params;
   params["url"]       = m_config.url;
@@ -240,6 +270,14 @@ void WebAuditor::triggerMcpAudit() {
 auto WebAuditor::readArtifact() const -> WebAuditReport {
   std::error_code ec;
   if (!std::filesystem::exists(m_config.artifact_path, ec)) {
+    return {};
+  }
+  const auto fileSize = std::filesystem::file_size(m_config.artifact_path, ec);
+  if (ec || fileSize > kMaxArtifactBytes) {
+    NEXUS_LOG_WARN(LogChannel::kCell,
+                   "WebAuditor: artifact rejected (unreadable or > " +
+                       std::to_string(kMaxArtifactBytes) + " bytes): " +
+                       m_config.artifact_path);
     return {};
   }
   std::ifstream f(m_config.artifact_path);
@@ -308,29 +346,41 @@ auto WebAuditor::parseReport(const std::string& jsonText) -> WebAuditReport {
 
   try {
     const auto j = nlohmann::json::parse(jsonText);
+    if (!j.is_object()) {
+      report.raw_json.clear();
+      return report;
+    }
 
     report.url          = j.value("url", "");
     report.login_ok     = j.value("login_ok", false);
-    report.page_title   = j.value("page_title", "");
+    report.page_title   = truncated(j.value("page_title", ""), kMaxMessageBytes);
     report.load_time_ms = j.value("load_time_ms", 0.0);
     report.timestamp_ms = j.value("timestamp_ms", std::uint64_t{0});
 
     if (j.contains("findings") && j["findings"].is_array()) {
       for (const auto& f : j["findings"]) {
+        if (report.findings.size() >= kMaxFindings) {
+          NEXUS_LOG_WARN(LogChannel::kCell,
+                         "WebAuditor: findings capped at " +
+                             std::to_string(kMaxFindings));
+          break;
+        }
+        if (!f.is_object()) { continue; }
         WebAuditFinding finding;
-        finding.category       = f.value("category", "ux");
+        finding.category       = truncated(f.value("category", "ux"), kMaxCategoryBytes);
         finding.severity       = severityFromString(f.value("severity", "info"));
-        finding.message        = f.value("message", "");
+        finding.message        = truncated(f.value("message", ""), kMaxMessageBytes);
         finding.url            = f.value("url", "");
         finding.screenshot_b64 = f.value("screenshot_b64", "");
         finding.value          = f.value("value", 0.0);
         report.findings.push_back(std::move(finding));
       }
     }
-  } catch (const nlohmann::json::parse_error& e) {
+  } catch (const nlohmann::json::exception& e) {
     NEXUS_LOG_WARN(LogChannel::kCell,
-                   std::string("WebAuditor: JSON parse error — ") + e.what());
+                   std::string("WebAuditor: JSON error — ") + e.what());
     report.raw_json.clear(); // Signal failure to caller.
+    report.findings.clear();
   }
 
   return report;
