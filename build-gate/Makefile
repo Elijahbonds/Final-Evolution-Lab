@@ -1690,6 +1690,78 @@ engine/assets/src/mesh_importer.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_renderer.dir/build.make CMakeFiles/nexus_renderer.dir/engine/assets/src/mesh_importer.cpp.s
 .PHONY : engine/assets/src/mesh_importer.cpp.s
 
+engine/cell/src/agent_executor.o: engine/cell/src/agent_executor.cpp.o
+.PHONY : engine/cell/src/agent_executor.o
+
+# target to build an object file
+engine/cell/src/agent_executor.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.o
+.PHONY : engine/cell/src/agent_executor.cpp.o
+
+engine/cell/src/agent_executor.i: engine/cell/src/agent_executor.cpp.i
+.PHONY : engine/cell/src/agent_executor.i
+
+# target to preprocess a source file
+engine/cell/src/agent_executor.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.i
+.PHONY : engine/cell/src/agent_executor.cpp.i
+
+engine/cell/src/agent_executor.s: engine/cell/src/agent_executor.cpp.s
+.PHONY : engine/cell/src/agent_executor.s
+
+# target to generate assembly for a file
+engine/cell/src/agent_executor.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.s
+.PHONY : engine/cell/src/agent_executor.cpp.s
+
+engine/cell/src/agent_swarm.o: engine/cell/src/agent_swarm.cpp.o
+.PHONY : engine/cell/src/agent_swarm.o
+
+# target to build an object file
+engine/cell/src/agent_swarm.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.o
+.PHONY : engine/cell/src/agent_swarm.cpp.o
+
+engine/cell/src/agent_swarm.i: engine/cell/src/agent_swarm.cpp.i
+.PHONY : engine/cell/src/agent_swarm.i
+
+# target to preprocess a source file
+engine/cell/src/agent_swarm.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.i
+.PHONY : engine/cell/src/agent_swarm.cpp.i
+
+engine/cell/src/agent_swarm.s: engine/cell/src/agent_swarm.cpp.s
+.PHONY : engine/cell/src/agent_swarm.s
+
+# target to generate assembly for a file
+engine/cell/src/agent_swarm.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.s
+.PHONY : engine/cell/src/agent_swarm.cpp.s
+
+engine/cell/src/agent_tool.o: engine/cell/src/agent_tool.cpp.o
+.PHONY : engine/cell/src/agent_tool.o
+
+# target to build an object file
+engine/cell/src/agent_tool.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.o
+.PHONY : engine/cell/src/agent_tool.cpp.o
+
+engine/cell/src/agent_tool.i: engine/cell/src/agent_tool.cpp.i
+.PHONY : engine/cell/src/agent_tool.i
+
+# target to preprocess a source file
+engine/cell/src/agent_tool.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.i
+.PHONY : engine/cell/src/agent_tool.cpp.i
+
+engine/cell/src/agent_tool.s: engine/cell/src/agent_tool.cpp.s
+.PHONY : engine/cell/src/agent_tool.s
+
+# target to generate assembly for a file
+engine/cell/src/agent_tool.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.s
+.PHONY : engine/cell/src/agent_tool.cpp.s
+
 engine/cell/src/doc_ingester.o: engine/cell/src/doc_ingester.cpp.o
 .PHONY : engine/cell/src/doc_ingester.o
 
@@ -3581,6 +3653,15 @@ help:
 	@echo "... engine/assets/src/mesh_importer.o"
 	@echo "... engine/assets/src/mesh_importer.i"
 	@echo "... engine/assets/src/mesh_importer.s"
+	@echo "... engine/cell/src/agent_executor.o"
+	@echo "... engine/cell/src/agent_executor.i"
+	@echo "... engine/cell/src/agent_executor.s"
+	@echo "... engine/cell/src/agent_swarm.o"
+	@echo "... engine/cell/src/agent_swarm.i"
+	@echo "... engine/cell/src/agent_swarm.s"
+	@echo "... engine/cell/src/agent_tool.o"
+	@echo "... engine/cell/src/agent_tool.i"
+	@echo "... engine/cell/src/agent_tool.s"
 	@echo "... engine/cell/src/doc_ingester.o"
 	@echo "... engine/cell/src/doc_ingester.i"
 	@echo "... engine/cell/src/doc_ingester.s"

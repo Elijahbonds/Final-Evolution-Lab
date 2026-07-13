@@ -254,6 +254,48 @@ CMakeFiles/nexus_cell.dir/engine/cell/src/doc_ingester.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/nexus_cell.dir/engine/cell/src/doc_ingester.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/doc_ingester.cpp -o CMakeFiles/nexus_cell.dir/engine/cell/src/doc_ingester.cpp.s
 
+CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.o: CMakeFiles/nexus_cell.dir/flags.make
+CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.o: /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/agent_executor.cpp
+CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.o: CMakeFiles/nexus_cell.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/elijahbonds/Developer/FEL-nexus-build/build-gate/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.o -MF CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.o.d -o CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.o -c /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/agent_executor.cpp
+
+CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/agent_executor.cpp > CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.i
+
+CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/agent_executor.cpp -o CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.s
+
+CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.o: CMakeFiles/nexus_cell.dir/flags.make
+CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.o: /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/agent_swarm.cpp
+CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.o: CMakeFiles/nexus_cell.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/elijahbonds/Developer/FEL-nexus-build/build-gate/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.o -MF CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.o.d -o CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.o -c /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/agent_swarm.cpp
+
+CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/agent_swarm.cpp > CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.i
+
+CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/agent_swarm.cpp -o CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.s
+
+CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.o: CMakeFiles/nexus_cell.dir/flags.make
+CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.o: /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/agent_tool.cpp
+CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.o: CMakeFiles/nexus_cell.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/elijahbonds/Developer/FEL-nexus-build/build-gate/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building CXX object CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.o -MF CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.o.d -o CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.o -c /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/agent_tool.cpp
+
+CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/agent_tool.cpp > CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.i
+
+CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/agent_tool.cpp -o CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.s
+
 # Object files for target nexus_cell
 nexus_cell_OBJECTS = \
 "CMakeFiles/nexus_cell.dir/engine/cell/src/observation_bus.cpp.o" \
@@ -268,7 +310,10 @@ nexus_cell_OBJECTS = \
 "CMakeFiles/nexus_cell.dir/engine/cell/src/idle_feed.cpp.o" \
 "CMakeFiles/nexus_cell.dir/engine/cell/src/geval_scorer.cpp.o" \
 "CMakeFiles/nexus_cell.dir/engine/cell/src/web_auditor.cpp.o" \
-"CMakeFiles/nexus_cell.dir/engine/cell/src/doc_ingester.cpp.o"
+"CMakeFiles/nexus_cell.dir/engine/cell/src/doc_ingester.cpp.o" \
+"CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.o" \
+"CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.o" \
+"CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.o"
 
 # External object files for target nexus_cell
 nexus_cell_EXTERNAL_OBJECTS =
@@ -286,9 +331,12 @@ libnexus_cell.a: CMakeFiles/nexus_cell.dir/engine/cell/src/idle_feed.cpp.o
 libnexus_cell.a: CMakeFiles/nexus_cell.dir/engine/cell/src/geval_scorer.cpp.o
 libnexus_cell.a: CMakeFiles/nexus_cell.dir/engine/cell/src/web_auditor.cpp.o
 libnexus_cell.a: CMakeFiles/nexus_cell.dir/engine/cell/src/doc_ingester.cpp.o
+libnexus_cell.a: CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.o
+libnexus_cell.a: CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.o
+libnexus_cell.a: CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.o
 libnexus_cell.a: CMakeFiles/nexus_cell.dir/build.make
 libnexus_cell.a: CMakeFiles/nexus_cell.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/elijahbonds/Developer/FEL-nexus-build/build-gate/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Linking CXX static library libnexus_cell.a"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/elijahbonds/Developer/FEL-nexus-build/build-gate/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Linking CXX static library libnexus_cell.a"
 	$(CMAKE_COMMAND) -P CMakeFiles/nexus_cell.dir/cmake_clean_target.cmake
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/nexus_cell.dir/link.txt --verbose=$(VERBOSE)
 

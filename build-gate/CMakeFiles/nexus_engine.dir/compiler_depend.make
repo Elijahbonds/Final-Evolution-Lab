@@ -1107,6 +1107,9 @@ CMakeFiles/nexus_engine.dir/engine/core/src/engine.cpp.o: /Users/elijahbonds/Dev
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/ai_interface/include/nexus/ai/agent_transport.h \
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/ai_interface/include/nexus/ai/command_router.h \
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/ai_interface/include/nexus/ai/command_schema.h \
+  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/agent_executor.h \
+  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/agent_swarm.h \
+  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/agent_tool.h \
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/cell_types.h \
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/doc_ingester.h \
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/experience_ledger.h \
@@ -1298,6 +1301,12 @@ CMakeFiles/nexus_engine.dir/engine/core/src/engine.cpp.o: /Users/elijahbonds/Dev
 /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/future_state_buffer.h:
 
 /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/cell_types.h:
+
+/Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/agent_tool.h:
+
+/Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/agent_swarm.h:
+
+/Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/agent_executor.h:
 
 /Users/elijahbonds/Developer/FEL-nexus-build/engine/ai_interface/include/nexus/ai/command_schema.h:
 

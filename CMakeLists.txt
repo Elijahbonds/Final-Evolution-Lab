@@ -124,6 +124,9 @@ add_library(nexus_cell
   engine/cell/src/geval_scorer.cpp
   engine/cell/src/web_auditor.cpp
   engine/cell/src/doc_ingester.cpp
+  engine/cell/src/agent_executor.cpp
+  engine/cell/src/agent_swarm.cpp
+  engine/cell/src/agent_tool.cpp
 )
 target_include_directories(nexus_cell PUBLIC engine/cell/include)
 target_link_libraries(nexus_cell PUBLIC nexus_core nlohmann_json::nlohmann_json)

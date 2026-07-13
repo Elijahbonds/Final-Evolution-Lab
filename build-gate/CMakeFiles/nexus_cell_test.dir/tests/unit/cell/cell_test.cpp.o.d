@@ -1154,9 +1154,12 @@ CMakeFiles/nexus_cell_test.dir/tests/unit/cell/cell_test.cpp.o: \
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/cell_types.h \
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/observation_bus.h \
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/self_improvement_scheduler.h \
+  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/agent_swarm.h \
+  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/agent_executor.h \
+  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/agent_tool.h \
+  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/wisdom_store.h \
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/doc_ingester.h \
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/geval_scorer.h \
-  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/wisdom_store.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/unordered_set \
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/research_loop.h \
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/spatial_sampler.h \

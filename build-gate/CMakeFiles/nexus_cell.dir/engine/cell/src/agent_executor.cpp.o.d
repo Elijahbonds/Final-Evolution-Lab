@@ -1,6 +1,7 @@
-CMakeFiles/nexus_cell.dir/engine/cell/src/hardware_telemetry_bridge.cpp.o: \
-  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/hardware_telemetry_bridge.cpp \
-  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/hardware_telemetry_bridge.h \
+CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.o: \
+  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/src/agent_executor.cpp \
+  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/agent_executor.h \
+  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/agent_tool.h \
   /opt/homebrew/include/nlohmann/json.hpp \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/algorithm \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__config \
@@ -1104,33 +1105,11 @@ CMakeFiles/nexus_cell.dir/engine/cell/src/hardware_telemetry_bridge.cpp.o: \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/any \
   /opt/homebrew/include/nlohmann/detail/macro_unscope.hpp \
   /opt/homebrew/include/nlohmann/thirdparty/hedley/hedley_undef.hpp \
-  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/self_improvement_scheduler.h \
-  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/agent_swarm.h \
-  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/agent_executor.h \
-  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/agent_tool.h \
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/observation_bus.h \
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/wisdom_store.h \
   /Users/elijahbonds/Developer/FEL-nexus-build/engine/core/include/nexus/core/result.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/sstream \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/condition_variable \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__stop_token/stop_callback.h \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__stop_token/intrusive_shared_ptr.h \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__stop_token/stop_state.h \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__stop_token/atomic_unique_lock.h \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__stop_token/intrusive_list_view.h \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__stop_token/stop_token.h \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/thread \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__thread/this_thread.h \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__thread/thread.h \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__thread/jthread.h \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__stop_token/stop_source.h \
-  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/cell_types.h \
-  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/doc_ingester.h \
-  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/geval_scorer.h \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/unordered_set \
-  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/experience_ledger.h \
-  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/future_state_buffer.h \
-  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/idle_feed.h \
+  /Users/elijahbonds/Developer/FEL-nexus-build/engine/core/include/nexus/core/log.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/chrono \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__chrono/calendar.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__chrono/day.h \
@@ -1160,8 +1139,4 @@ CMakeFiles/nexus_cell.dir/engine/cell/src/hardware_telemetry_bridge.cpp.o: \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__charconv/from_chars_floating_point.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__charconv/from_chars_result.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__charconv/from_chars_integral.h \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__charconv/to_chars.h \
-  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/model_trainer.h \
-  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/research_loop.h \
-  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/spatial_sampler.h \
-  /Users/elijahbonds/Developer/FEL-nexus-build/engine/cell/include/nexus/cell/web_auditor.h
+  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__charconv/to_chars.h

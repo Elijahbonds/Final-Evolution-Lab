@@ -1,4 +1,10 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.o"
+  "CMakeFiles/nexus_cell.dir/engine/cell/src/agent_executor.cpp.o.d"
+  "CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.o"
+  "CMakeFiles/nexus_cell.dir/engine/cell/src/agent_swarm.cpp.o.d"
+  "CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.o"
+  "CMakeFiles/nexus_cell.dir/engine/cell/src/agent_tool.cpp.o.d"
   "CMakeFiles/nexus_cell.dir/engine/cell/src/doc_ingester.cpp.o"
   "CMakeFiles/nexus_cell.dir/engine/cell/src/doc_ingester.cpp.o.d"
   "CMakeFiles/nexus_cell.dir/engine/cell/src/experience_ledger.cpp.o"
