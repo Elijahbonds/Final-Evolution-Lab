@@ -1,0 +1,16 @@
+nexus_protocol_test 2 0.00180423
+nexus_agent_cli_test 2 0.00279919
+nexus_gameplay_test 0 0
+nexus_scan_envelope_test 2 0.00208358
+nexus_generative_test 2 0.00412396
+nexus_physics_test 2 0.00128646
+nexus_physics_advanced_test 2 0.00107715
+nexus_job_system_test 2 0.0044129
+nexus_cartridge_test 2 0.000881125
+nexus_scale_policy_test 2 0.00070327
+nexus_cell_test 2 0.0570631
+nexus_realtime_test 2 0.00155706
+nexus_renderer_test 2 1.28042
+nexus_console_tier_test 2 0.00333342
+---
+nexus_gameplay_test

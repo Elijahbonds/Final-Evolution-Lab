@@ -405,8 +405,10 @@ void gameplay_update_drains_agent_commands_before_throw_catch() {
 }
 
 void arena_mode_registry_lists_nineteen_modes() {
-  require(nexus::gameplay::ArenaModeRegistry::allModes().size() == 19,
-          "arena registry exposes 19 modes");
+  // 20 = the original 19 + movement_lab (education module, added with the
+  // MovementLabMode commit that grew the registry without updating this).
+  require(nexus::gameplay::ArenaModeRegistry::allModes().size() == 20,
+          "arena registry exposes 20 modes");
   const auto dunk = nexus::gameplay::ArenaModeRegistry::find("basketball_dunk");
   require(dunk.has_value(), "basketball_dunk found");
   require(dunk->venueToken == "Venice_Beach_Court", "dunk venue token");

@@ -1,0 +1,41 @@
+file(REMOVE_RECURSE
+  "CMakeFiles/nexus_renderer.dir/engine/assets/src/mesh_importer.cpp.o"
+  "CMakeFiles/nexus_renderer.dir/engine/assets/src/mesh_importer.cpp.o.d"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/animation_player.cpp.o"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/animation_player.cpp.o.d"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/arena_scene.cpp.o"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/arena_scene.cpp.o.d"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/bloom_runtime.cpp.o"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/bloom_runtime.cpp.o.d"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/camera.cpp.o"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/camera.cpp.o.d"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/console_tier_lod.cpp.o"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/console_tier_lod.cpp.o.d"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/frustum.cpp.o"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/frustum.cpp.o.d"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/lighting.cpp.o"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/lighting.cpp.o.d"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/material.cpp.o"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/material.cpp.o.d"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/mesh.cpp.o"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/mesh.cpp.o.d"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/mesh_lod.cpp.o"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/mesh_lod.cpp.o.d"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/metal_renderer.mm.o"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/metal_renderer.mm.o.d"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/post_process.cpp.o"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/post_process.cpp.o.d"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/scene.cpp.o"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/scene.cpp.o.d"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/shadow_runtime.cpp.o"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/shadow_runtime.cpp.o.d"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/vulkan_renderer.cpp.o"
+  "CMakeFiles/nexus_renderer.dir/engine/renderer/src/vulkan_renderer.cpp.o.d"
+  "libnexus_renderer.a"
+  "libnexus_renderer.pdb"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang CXX)
+  include(CMakeFiles/nexus_renderer.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

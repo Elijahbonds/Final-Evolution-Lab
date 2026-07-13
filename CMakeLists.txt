@@ -121,6 +121,9 @@ add_library(nexus_cell
   engine/cell/src/spatial_sampler.cpp
   engine/cell/src/hardware_telemetry_bridge.cpp
   engine/cell/src/idle_feed.cpp
+  engine/cell/src/geval_scorer.cpp
+  engine/cell/src/web_auditor.cpp
+  engine/cell/src/doc_ingester.cpp
 )
 target_include_directories(nexus_cell PUBLIC engine/cell/include)
 target_link_libraries(nexus_cell PUBLIC nexus_core nlohmann_json::nlohmann_json)
@@ -182,6 +185,7 @@ add_library(nexus_gameplay
   app/gameplay/src/venue_volume_registry.cpp
   app/gameplay/src/venice_pickup_mode.cpp
   app/gameplay/src/voxel_command_parser.cpp
+  app/gameplay/src/movement_lab_mode.cpp
   app/gameplay/src/wave_spawner.cpp
   app/gameplay/src/who_scene_it_mode.cpp
 )
