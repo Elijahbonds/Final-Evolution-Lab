@@ -20,8 +20,9 @@ auto channelName(LogChannel channel) -> const char* {
     return "creative";
   case LogChannel::kGenerative:
     return "generative";
-  }
-  return "unknown";
+  case LogChannel::kCell:
+    return "cell";
+  }  return "unknown";
 }
 
 void writeLog(const char* level, LogChannel channel, std::string_view message) {

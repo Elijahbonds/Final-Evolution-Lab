@@ -3248,6 +3248,7 @@ struct GamePlayView: View {
         case .whoSceneIt: ["Freeze", "Spot Star", "Recall"]
         case .courtCarnival: ["Pad Hit", "Dice Roll", "Mini Win"]
         case .marketBrowse: ["Browse", "Scan", "Vault"]
+        case .movementLab: ["Start Drill", "Complete", "Progress"]
         }
     }
 
@@ -4071,6 +4072,8 @@ struct GamePlayView: View {
             return 50
         case .marketBrowse:
             return 10
+        case .movementLab:
+            return 0
         }
     }
 

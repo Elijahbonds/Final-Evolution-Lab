@@ -2,6 +2,7 @@
 
 #include "nexus/ai/agent_server.h"
 #include "nexus/ai/command_schema.h"
+#include "nexus/cell/self_improvement_scheduler.h"
 #include "nexus/core/dev_stats.h"
 #include "nexus/core/engine_scale_policy.h"
 #include "nexus/core/log.h"
@@ -26,7 +27,8 @@ auto Engine::init(EngineConfig config,
                   renderer::VulkanRenderer* renderer,
                   physics::PhysicsWorld* physics,
                   ai::AgentServer* agentServer,
-                  ApplicationUpdateHook* applicationHook) -> Result<void> {
+                  ApplicationUpdateHook* applicationHook,
+                  cell::SelfImprovementScheduler* cell) -> Result<void> {
   if (renderer == nullptr || physics == nullptr || agentServer == nullptr) {
     return Result<void>::err("Engine dependencies must not be null");
   }
@@ -36,6 +38,7 @@ auto Engine::init(EngineConfig config,
   m_physics = physics;
   m_agentServer = agentServer;
   m_applicationHook = applicationHook;
+  m_cell = cell;
   m_accumulatorSeconds = 0.0;
   m_latestAgentResponses.clear();
   m_playtestFrameCounter = 0;
@@ -83,6 +86,11 @@ void Engine::tick(double frameTimeSeconds) {
   m_perfMonitor.beginFrame();
   m_renderer->pollInput();
 
+  // Non-blocking CELL tick — flushes observation bus each frame.
+  if (m_cell != nullptr) {
+    m_cell->tick();
+  }
+
   const double smoothedFrameSeconds =
       m_framePacer.smoothDelta(frameTimeSeconds, m_config.maxFrameTimeSeconds);
 
@@ -92,7 +100,29 @@ void Engine::tick(double frameTimeSeconds) {
 
   m_accumulatorSeconds += frameTimeSeconds;
   while (m_accumulatorSeconds >= m_config.fixedTimestepSeconds) {
-    m_physics->step(m_config.fixedTimestepSeconds);
+    // Predictive telemetry: snapshot physics state, predict outcome, step, resolve.
+    if (m_cell != nullptr && m_physics != nullptr) {
+      const auto& bodies = m_physics->bodies();
+      if (!bodies.empty()) {
+        const auto& b0 = bodies[0];
+        const nlohmann::json ctx = {
+            {"pos_x", b0.position.x}, {"pos_y", b0.position.y}, {"pos_z", b0.position.z},
+            {"vel_x", b0.velocity.x}, {"vel_y", b0.velocity.y}, {"vel_z", b0.velocity.z},
+        };
+        m_cell->predictOutcome("physics", ctx);
+        m_physics->step(m_config.fixedTimestepSeconds);
+        const auto& b1 = m_physics->bodies()[0];
+        const nlohmann::json actual = {
+            {"pos_x", b1.position.x}, {"pos_y", b1.position.y}, {"pos_z", b1.position.z},
+            {"vel_x", b1.velocity.x}, {"vel_y", b1.velocity.y}, {"vel_z", b1.velocity.z},
+        };
+        m_cell->resolveOutcome("physics", actual);
+      } else {
+        m_physics->step(m_config.fixedTimestepSeconds);
+      }
+    } else {
+      m_physics->step(m_config.fixedTimestepSeconds);
+    }
     m_accumulatorSeconds -= m_config.fixedTimestepSeconds;
   }
 
@@ -103,6 +133,14 @@ void Engine::tick(double frameTimeSeconds) {
   m_renderer->advanceScene(smoothedFrameSeconds);
   m_renderer->renderFrame();
   m_perfMonitor.endFrame();
+
+  // Observe frame telemetry into CELL.
+  if (m_cell != nullptr) {
+    m_cell->observeFrame(
+        static_cast<double>(m_perfMonitor.fps()),
+        static_cast<double>(m_perfMonitor.frameTimeMs()),
+        static_cast<int>(m_perfMonitor.getTier()));
+  }
 
   const auto drawStats = m_renderer->lastFrameDrawStats();
   const FrameDevStats frameStats{

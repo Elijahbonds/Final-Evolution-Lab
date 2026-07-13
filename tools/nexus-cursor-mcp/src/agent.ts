@@ -6,6 +6,7 @@ const ALLOWED_COMMAND_PREFIXES = [
   "fitness.",
   "world.",
   "entity.",
+  "cell.",
 ];
 
 function extractCommandName(payload: unknown): string | null {

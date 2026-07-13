@@ -21,7 +21,11 @@
     "read_state",
     "list_artifacts",
     "studio_open_file",
-    "studio_run_playtest"
+    "studio_run_playtest",
+    "web_audit",
+    "cell_agent",
+    "cell_agent_status",
+    "cell_agent_result"
   ],
   "tools": {
     "list_modes": {
@@ -132,7 +136,11 @@
         "studio_open_file",
         "studio_run_playtest",
         "list_artifacts",
-        "nexus_scan_playtest"
+        "nexus_scan_playtest",
+        "web_audit",
+        "cell_agent",
+        "cell_agent_status",
+        "cell_agent_result"
       ]
     },
     "read_file": {
@@ -334,6 +342,122 @@
         "required": [
           "mode_id"
         ]
+      }
+    },
+    "web_audit": {
+      "description": "Open a URL with a headless Playwright browser, optionally follow a login flow, run scripted interaction steps, and collect UX/performance/accessibility findings. Results are written to artifacts/web-audit/latest.json and fed into CELL via kWebAudit observations.",
+      "hosts": [
+        "cursor_mcp",
+        "ios_app"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Top-level URL to audit (e.g. https://finalevolution.abacusai.app/login)"
+          },
+          "credentials": {
+            "type": "object",
+            "description": "Optional login credentials. Supported keys: email, username, password.",
+            "properties": {
+              "email": { "type": "string" },
+              "username": { "type": "string" },
+              "password": { "type": "string" }
+            }
+          },
+          "steps": {
+            "type": "array",
+            "description": "Optional scripted audit steps to execute after login.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "enum": ["navigate", "click", "fill", "assert_text", "screenshot"]
+                },
+                "selector": { "type": "string", "description": "CSS selector" },
+                "value": { "type": "string", "description": "Text to fill or assert" },
+                "url": { "type": "string", "description": "URL for navigate action" }
+              },
+              "required": ["action"]
+            }
+          },
+          "stub_mode": {
+            "type": "boolean",
+            "description": "When true, skip Playwright and use a lightweight HTTP fetch (CI / offline)."
+          },
+          "timeout_ms": {
+            "type": "number",
+            "description": "Max milliseconds for initial navigation (default 15000)."
+          }
+        },
+        "required": ["url"]
+      }
+    },
+    "cell_agent": {
+      "description": "Submit a task to the CELL zero-cost local AI agent swarm. The agent uses WisdomStore heuristics and git/terminal/IDE tools in a ReAct loop — no token API, no per-query cost. Returns a task_id; poll results with cell_agent_result.",
+      "hosts": [
+        "cursor_mcp",
+        "ios_app"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "Natural-language task description (e.g. 'Show recent git changes', 'Find all TODO comments in engine/cell')"
+          },
+          "tools": {
+            "type": "array",
+            "description": "Tool names the agent may use. Defaults to all: [\"git\", \"terminal\", \"ide_file\"]",
+            "items": {
+              "type": "string",
+              "enum": ["git", "terminal", "ide_file"]
+            }
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Optional stable task identifier for later polling. Auto-generated if omitted."
+          },
+          "max_steps": {
+            "type": "number",
+            "description": "Maximum ReAct steps (1–20, default 10)."
+          },
+          "wisdom_weight": {
+            "type": "number",
+            "description": "0–1 weight for WisdomStore heuristics vs keyword scoring (default 0.6)."
+          }
+        },
+        "required": ["prompt"]
+      }
+    },
+    "cell_agent_status": {
+      "description": "Query the CELL agent swarm health: active workers, queued tasks, completed/failed counts.",
+      "hosts": [
+        "cursor_mcp",
+        "ios_app"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    "cell_agent_result": {
+      "description": "Poll the result of a previously submitted CELL agent task. Returns ready=false while the task is still running, or the full trace and summary when complete.",
+      "hosts": [
+        "cursor_mcp",
+        "ios_app"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "The task_id returned by cell_agent."
+          }
+        },
+        "required": ["task_id"]
       }
     }
   }

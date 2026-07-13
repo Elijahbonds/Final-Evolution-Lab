@@ -261,6 +261,8 @@ struct GameSceneHostView: UIViewRepresentable {
                 return MovementBounds(minX: -2.4, maxX: 2.4, minZ: -1.6, maxZ: 1.6, speed: 0.055)
             case .courtCarnival:
                 return MovementBounds(minX: -4.5, maxX: 4.5, minZ: -2.8, maxZ: 2.8, speed: 0.12)
+            case .movementLab:
+                return MovementBounds(minX: -2.0, maxX: 2.0, minZ: -2.0, maxZ: 2.0, speed: 0.06)
             }
         }
 

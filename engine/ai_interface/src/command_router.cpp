@@ -2,6 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "nexus/cell/self_improvement_scheduler.h"
 #include "nexus/core/log.h"
 #include "nexus/creative/voxel_world.h"
 #include "nexus/creative/world_manipulator.h"
@@ -99,6 +100,16 @@ auto CommandRouter::route(const AgentMessage& message) -> AgentResponse {
       return m_gameplayHandler->handleGameplayQuery(queryName, message.payload, message.id);
     }
 
+    if (m_cell != nullptr && cell::SelfImprovementScheduler::ownsCellQuery(queryName)) {
+      const auto j = m_cell->handleQuery(queryName, message.payload, message.id);
+      AgentResponse resp;
+      resp.id      = message.id;
+      resp.status  = j.value("status", "ok");
+      resp.payload = j.contains("payload") ? j["payload"] : nlohmann::json::object();
+      resp.error   = j.value("error", "");
+      return resp;
+    }
+
     return {message.id, "error", {}, "Unsupported query"};
   }
 
@@ -143,11 +154,25 @@ auto CommandRouter::route(const AgentMessage& message) -> AgentResponse {
     return m_gameplayHandler->handleGameplayCommand(command, params, message.id);
   }
 
+  if (m_cell != nullptr && cell::SelfImprovementScheduler::ownsCellCommand(command)) {
+    const auto j = m_cell->handleCommand(command, params, message.id);
+    AgentResponse resp;
+    resp.id      = message.id;
+    resp.status  = j.value("status", "ok");
+    resp.payload = j.contains("payload") ? j["payload"] : nlohmann::json::object();
+    resp.error   = j.value("error", "");
+    return resp;
+  }
+
   return {message.id, "error", {}, "Unsupported command"};
 }
 
 void CommandRouter::setGameplayHandler(GameplayCommandHandler* gameplayHandler) {
   m_gameplayHandler = gameplayHandler;
+}
+
+void CommandRouter::setCellScheduler(cell::SelfImprovementScheduler* cell) {
+  m_cell = cell;
 }
 
 auto CommandRouter::generativePipeline() const -> generative::GenerativePipeline* {
@@ -159,6 +184,7 @@ void CommandRouter::shutdown() {
   m_voxelWorld = nullptr;
   m_generativePipeline = nullptr;
   m_gameplayHandler = nullptr;
+  m_cell = nullptr;
   NEXUS_LOG_INFO(LogChannel::kAI, "Command router shutdown");
 }
 

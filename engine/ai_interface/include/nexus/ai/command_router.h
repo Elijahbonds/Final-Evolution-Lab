@@ -14,6 +14,10 @@ namespace nexus::generative {
 class GenerativePipeline;
 }
 
+namespace nexus::cell {
+class SelfImprovementScheduler;
+}
+
 namespace nexus::ai {
 
 class GameplayCommandHandler {
@@ -38,6 +42,7 @@ public:
             generative::GenerativePipeline* generativePipeline = nullptr) -> Result<void>;
   [[nodiscard]] auto route(const AgentMessage& message) -> AgentResponse;
   void setGameplayHandler(GameplayCommandHandler* gameplayHandler);
+  void setCellScheduler(cell::SelfImprovementScheduler* cell);
   [[nodiscard]] auto generativePipeline() const -> generative::GenerativePipeline*;
   void shutdown();
 
@@ -46,6 +51,7 @@ private:
   creative::VoxelWorld* m_voxelWorld{nullptr};
   generative::GenerativePipeline* m_generativePipeline{nullptr};
   GameplayCommandHandler* m_gameplayHandler{nullptr};
+  cell::SelfImprovementScheduler* m_cell{nullptr};
 };
 
 } // namespace nexus::ai

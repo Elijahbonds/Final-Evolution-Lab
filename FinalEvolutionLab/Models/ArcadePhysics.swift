@@ -348,6 +348,14 @@ nonisolated struct GamePhysicsConfig: Sendable {
                 floorShakeAmplitude: 0.0,
                 particleTrailDensity: 0
             )
+        case .movementLab:
+            return GamePhysicsConfig(
+                jumpHeight: 0.0,
+                moveSpeed: 0.5,
+                impactIntensity: 0.0,
+                floorShakeAmplitude: 0.0,
+                particleTrailDensity: 0
+            )
         }
     }
 }

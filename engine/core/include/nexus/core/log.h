@@ -11,6 +11,7 @@ enum class LogChannel {
   kAI,
   kCreative,
   kGenerative,
+  kCell,
 };
 
 class Log {

@@ -7,7 +7,7 @@ namespace nexus::gameplay {
 
 namespace {
 
-constexpr std::array<ArenaModeConfig, 19> kModes{{
+constexpr std::array<ArenaModeConfig, 20> kModes{{
     {.id = "basketball_h2h",
      .displayName = "Head to Head",
      .venueToken = "Venice_Beach_Court",
@@ -216,6 +216,17 @@ constexpr std::array<ArenaModeConfig, 19> kModes{{
      .nexusMeshPath = "assets/nexus/imported/luma_venice_shop_environment_model_fbx_mobile.nexusmesh.json",
      .legacyUeMapAlias = "/Game/FEL/Maps/Vault_Shop",
      .inputScheme = "drag_tap",
+     .modeWeight = 0.0F,
+     .defaultMatchDurationSeconds = 0.0F,
+     .scoringEnabled = false,
+     .releaseState = ArenaReleaseState::kNonGameModule},
+    {.id = "movement_lab",
+     .displayName = "Movement Lab",
+     .venueToken = "Movement_Lab",
+     .vaultDisplayMode = "movement_lab",
+     .nexusMeshPath = "assets/nexus/imported/movement_lab_preview_placeholder.nexusmesh.json",
+     .legacyUeMapAlias = "/Game/FEL/Venues/MovementLab/MovementLab",
+     .inputScheme = "rhythm_tap",
      .modeWeight = 0.0F,
      .defaultMatchDurationSeconds = 0.0F,
      .scoringEnabled = false,

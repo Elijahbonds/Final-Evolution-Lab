@@ -7,14 +7,21 @@
 #include "nexus/gameplay/brain_brawl_mode.h"
 #include "nexus/gameplay/court_carnival_mode.h"
 #include "nexus/gameplay/dunk_contest_mode.h"
+#include "nexus/gameplay/football_kick_return_mode.h"
+#include "nexus/gameplay/golf_closest_pin_mode.h"
 #include "nexus/gameplay/gymnastics_mode.h"
+#include "nexus/gameplay/home_run_derby_mode.h"
 #include "nexus/gameplay/karate_endless_mode.h"
 #include "nexus/gameplay/gameplay_manager.h"
 #include "nexus/gameplay/skateboarding_mode.h"
 #include "nexus/gameplay/snowboarding_mode.h"
+#include "nexus/gameplay/soccer_penalty_mode.h"
 #include "nexus/gameplay/surfing_mode.h"
+#include "nexus/gameplay/tennis_rally_mode.h"
 #include "nexus/gameplay/throw_catch_physics.h"
 #include "nexus/gameplay/venice_pickup_mode.h"
+#include "nexus/gameplay/volleyball_rally_mode.h"
+#include "nexus/gameplay/movement_lab_mode.h"
 #include "nexus/gameplay/outcome_sport_mode.h"
 #include "nexus/gameplay/who_scene_it_mode.h"
 
@@ -40,6 +47,13 @@ enum class ActiveModeKind : std::uint8_t {
   kOutcomeSport = 11,
   kSurfing = 12,
   kMarketBrowse = 13,
+  kHomeRunDerby = 14,
+  kFootballKickReturn = 15,
+  kSoccerPenalty = 16,
+  kTennisRally = 17,
+  kGolfClosestPin = 18,
+  kVolleyballRally = 19,
+  kMovementLab = 20,
 };
 
 class ModeRuntime {
@@ -77,6 +91,13 @@ private:
   SurfingMode m_surfing;
   WhoSceneItMode m_whoSceneIt;
   OutcomeSportMode m_outcomeSport;
+  HomeRunDerbyMode m_homeRunDerby;
+  FootballKickReturnMode m_footballKickReturn;
+  SoccerPenaltyMode m_soccerPenalty;
+  TennisRallyMode m_tennisRally;
+  GolfClosestPinMode m_golf;
+  VolleyballRallyMode m_volleyball;
+  MovementLabMode m_movementLab;
   std::uint64_t m_lastThrowPulseCount{0};
   std::int32_t m_browseItemsViewed{0};
 };

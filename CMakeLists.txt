@@ -110,6 +110,24 @@ target_link_libraries(nexus_generative PUBLIC
   nlohmann_json::nlohmann_json
 )
 
+add_library(nexus_cell
+  engine/cell/src/observation_bus.cpp
+  engine/cell/src/experience_ledger.cpp
+  engine/cell/src/wisdom_store.cpp
+  engine/cell/src/research_loop.cpp
+  engine/cell/src/model_trainer.cpp
+  engine/cell/src/self_improvement_scheduler.cpp
+  engine/cell/src/future_state_buffer.cpp
+  engine/cell/src/spatial_sampler.cpp
+  engine/cell/src/hardware_telemetry_bridge.cpp
+  engine/cell/src/idle_feed.cpp
+)
+target_include_directories(nexus_cell PUBLIC engine/cell/include)
+target_link_libraries(nexus_cell PUBLIC nexus_core nlohmann_json::nlohmann_json)
+if(UNIX AND NOT APPLE)
+  target_link_libraries(nexus_cell PUBLIC pthread)
+endif()
+
 add_library(nexus_ai_interface
   engine/ai_interface/src/agent_server.cpp
   engine/ai_interface/src/agent_transport.cpp
@@ -120,7 +138,7 @@ add_library(nexus_ai_interface
   engine/ai_interface/src/text_prompt_adapter.cpp
 )
 target_include_directories(nexus_ai_interface PUBLIC engine/ai_interface/include)
-target_link_libraries(nexus_ai_interface PUBLIC nexus_core nexus_creative nexus_generative nlohmann_json::nlohmann_json)
+target_link_libraries(nexus_ai_interface PUBLIC nexus_core nexus_creative nexus_generative nexus_cell nlohmann_json::nlohmann_json)
 if(UNIX AND NOT APPLE)
   target_link_libraries(nexus_ai_interface PUBLIC pthread)
 endif()
@@ -138,11 +156,13 @@ add_library(nexus_gameplay
   app/gameplay/src/fel_bridge_service.cpp
   app/gameplay/src/fel_session_types.cpp
   app/gameplay/src/fitness_data.cpp
+  app/gameplay/src/football_kick_return_mode.cpp
   app/gameplay/src/game_prompt_adapter.cpp
   app/gameplay/src/gameplay_application.cpp
   app/gameplay/src/gameplay_manager.cpp
   app/gameplay/src/gymnastics_mode.cpp
   app/gameplay/src/health_system.cpp
+  app/gameplay/src/home_run_derby_mode.cpp
   app/gameplay/src/hud_relay_service.cpp
   app/gameplay/src/karate_endless_mode.cpp
   app/gameplay/src/mode_runtime.cpp
@@ -151,9 +171,13 @@ add_library(nexus_gameplay
   app/gameplay/src/qte_system.cpp
   app/gameplay/src/scan_envelope_mapper.cpp
   app/gameplay/src/session_receipt_client.cpp
+  app/gameplay/src/soccer_penalty_mode.cpp
   app/gameplay/src/skateboarding_mode.cpp
   app/gameplay/src/snowboarding_mode.cpp
   app/gameplay/src/surfing_mode.cpp
+  app/gameplay/src/tennis_rally_mode.cpp
+  app/gameplay/src/golf_closest_pin_mode.cpp
+  app/gameplay/src/volleyball_rally_mode.cpp
   app/gameplay/src/throw_catch_physics.cpp
   app/gameplay/src/venue_volume_registry.cpp
   app/gameplay/src/venice_pickup_mode.cpp
@@ -217,6 +241,7 @@ if(NEXUS_ENABLE_RENDERER)
     nexus_physics
     nexus_renderer
     nexus_ai_interface
+    nexus_cell
   )
 endif()
 
@@ -292,6 +317,10 @@ if(NEXUS_BUILD_TESTS)
   add_executable(nexus_scale_policy_test tests/unit/core/engine_scale_policy_test.cpp)
   target_link_libraries(nexus_scale_policy_test PRIVATE nexus_core)
   add_test(NAME nexus_scale_policy_test COMMAND nexus_scale_policy_test)
+
+  add_executable(nexus_cell_test tests/unit/cell/cell_test.cpp)
+  target_link_libraries(nexus_cell_test PRIVATE nexus_cell nexus_ai_interface)
+  add_test(NAME nexus_cell_test COMMAND nexus_cell_test)
 
   add_executable(nexus_realtime_test tests/unit/core/websocket_test.cpp)
   target_link_libraries(nexus_realtime_test PRIVATE nexus_core)

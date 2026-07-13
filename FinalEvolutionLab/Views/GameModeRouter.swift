@@ -62,6 +62,9 @@ struct GameModeRouter: View {
         case .marketBrowse:
             // Not a game session — no PRQ delta, no session receipt, no shards per round.
             MarketBrowseView(viewModel: viewModel)
+        case .movementLab:
+            // Education module — Bonds Bounce Blueprint curriculum. Non-scoring, non-game session.
+            MovementLabView(gameMode: gameMode)
         }
     }
 }

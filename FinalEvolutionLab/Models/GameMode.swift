@@ -29,6 +29,8 @@ nonisolated enum GameModeId: String, Codable, Sendable, CaseIterable, Identifiab
     case courtCarnival = "court_carnival"
     /// Module library browser.
     case marketBrowse = "market_browse"
+    /// Bonds Bounce Blueprint education curriculum — non-scoring movement lab.
+    case movementLab = "movement_lab"
 
     var id: String { rawValue }
 }
@@ -84,6 +86,8 @@ extension GameModeId {
             return .sim
         case .marketBrowse:
             return .preview
+        case .movementLab:
+            return .nonGame
         }
     }
 
@@ -171,6 +175,8 @@ extension GameModeId {
             return .partyBoard
         case .marketBrowse:
             return .dragTap
+        case .movementLab:
+            return .rhythmTap
         }
     }
 }
@@ -301,15 +307,15 @@ struct GameModeRegistry {
 
     /// Every playable arena mode — full lineup ships available; per-mode capability
     /// badges (prod/sim/staging) stay honest via ``GameModeId/nexusCapabilityTier``.
-    static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases).subtracting([.marketBrowse])
+    static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases).subtracting([.marketBrowse, .movementLab])
 
-    /// All 20 mode IDs from `arena_mode_registry.cpp` — keep in sync when adding modes.
+    /// All mode IDs from `arena_mode_registry.cpp` — keep in sync when adding modes.
     static let arenaRegistryModeIds: [GameModeId] = [
         .basketballHeadToHead, .basketballDunkContestIRL, .basketballDunkContest3D, .basketball3v3,
         .karate, .karateEndless,
         .baseball, .football, .soccer, .golf, .tennis, .volleyball,
         .gymnastics, .surfing, .skateboarding, .snowboarding,
-        .brainBrawl, .whoSceneIt, .courtCarnival, .marketBrowse,
+        .brainBrawl, .whoSceneIt, .courtCarnival, .marketBrowse, .movementLab,
     ]
 
     static var nexusSprintModes: [GameMode] {
@@ -565,6 +571,18 @@ struct GameModeRegistry {
             hint: "Browse the vault · scan venues · shop collectibles",
             releaseState: .preview
         ),
+        GameMode(
+            id: .movementLab,
+            name: "Movement Lab",
+            subtitle: "Bonds Bounce Blueprint",
+            sport: .academy,
+            iconName: "figure.run",
+            accentColor: Color(red: 0.45, green: 0.55, blue: 0.95),
+            multiplayerType: .solo,
+            environmentName: "Movement Lab",
+            hint: "Learn the Bonds Bounce system · 6 drills · PRQ feedback",
+            releaseState: .preview
+        ),
     ]
 
     static func mode(for id: GameModeId) -> GameMode {
@@ -580,6 +598,8 @@ struct GameModeRegistry {
             return mode(for: .basketballDunkContest3D)
         case "market_browse", "module_library", "vault_shop":
             return mode(for: .marketBrowse)
+        case "movement_lab":
+            return mode(for: .movementLab)
         default:
             break
         }

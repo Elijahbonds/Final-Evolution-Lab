@@ -285,6 +285,15 @@
       "kind": "marker",
       "imported_mesh": "demo_venue_marker.nexusmesh.json",
       "fallback": "none"
+    },
+    {
+      "id": "movement_lab_preview_placeholder",
+      "name": "Movement Lab Preview Placeholder",
+      "source": "procedural",
+      "kind": "marker",
+      "note": "4-tris procedural stub for Movement Lab education venue. Not a production mesh.",
+      "imported_mesh": "movement_lab_preview_placeholder.nexusmesh.json",
+      "fallback": "arena_grid"
     }
   ],
   "venues": [
@@ -435,6 +444,16 @@
       ],
       "environment_asset_id": "luma_venice_shop_environment_model_fbx",
       "unreal_open_level": "/Game/FEL/Venues/Luma_Venice_Shop/Luma_Venice_Shop"
+    },
+    {
+      "venue_key": "movement_lab",
+      "display_name": "Movement Lab",
+      "fel_venue_id": "Movement_Lab",
+      "mode_ids": [
+        "movement_lab"
+      ],
+      "environment_asset_id": "movement_lab_preview_placeholder",
+      "unreal_open_level": "/Game/FEL/Venues/MovementLab/MovementLab"
     }
   ],
   "environment_scans": []

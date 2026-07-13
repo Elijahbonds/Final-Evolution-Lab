@@ -15,6 +15,10 @@ class AgentResponse;
 class AgentServer;
 }
 
+namespace nexus::cell {
+class SelfImprovementScheduler;
+}
+
 namespace nexus::physics {
 class PhysicsWorld;
 }
@@ -47,7 +51,8 @@ public:
             renderer::VulkanRenderer* renderer,
             physics::PhysicsWorld* physics,
             ai::AgentServer* agentServer,
-            ApplicationUpdateHook* applicationHook = nullptr) -> Result<void>;
+            ApplicationUpdateHook* applicationHook = nullptr,
+            cell::SelfImprovementScheduler* cell = nullptr) -> Result<void>;
   void run();
   void requestStop();
   void shutdown();
@@ -64,6 +69,7 @@ private:
   renderer::VulkanRenderer* m_renderer{nullptr};
   physics::PhysicsWorld* m_physics{nullptr};
   ai::AgentServer* m_agentServer{nullptr};
+  cell::SelfImprovementScheduler* m_cell{nullptr};
   ApplicationUpdateHook* m_applicationHook{nullptr};
   JobSystem m_jobSystem{};
   PerfMonitor m_perfMonitor{};
