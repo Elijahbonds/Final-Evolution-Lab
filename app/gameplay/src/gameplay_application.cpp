@@ -223,6 +223,7 @@ auto GameplayApplication::handleGameplayCommand(std::string_view command,
       command.rfind("fel.tennis.", 0) == 0 ||
       command.rfind("fel.golf.", 0) == 0 ||
       command.rfind("fel.volleyball.", 0) == 0 ||
+      command.rfind("fel.movement_lab.", 0) == 0 ||
       command.rfind("fel.mode.", 0) == 0) {
     const auto modeResult = m_modeRuntime.handleCommand(command, safeParams);
     if (modeResult.isErr()) {
