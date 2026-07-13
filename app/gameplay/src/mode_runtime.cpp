@@ -12,8 +12,7 @@ namespace nexus::gameplay {
 namespace {
 
 [[nodiscard]] auto isOutcomeSportMode(std::string_view modeId) -> bool {
-  return modeId == "basketball_3v3" || modeId == "karate_h2h" || modeId == "golf" ||
-         modeId == "volleyball";
+  return modeId == "basketball_3v3" || modeId == "karate_h2h";
 }
 
 } // namespace
@@ -60,6 +59,8 @@ auto ModeRuntime::setMode(std::string_view modeId) -> Result<void> {
   m_footballKickReturn.reset();
   m_soccerPenalty.reset();
   m_tennisRally.reset();
+  m_golf.reset();
+  m_volleyball.reset();
   m_lastThrowPulseCount = 0;
   m_browseItemsViewed = 0;
 
@@ -91,6 +92,10 @@ auto ModeRuntime::setMode(std::string_view modeId) -> Result<void> {
     m_kind = ActiveModeKind::kSoccerPenalty;
   } else if (modeId == "tennis") {
     m_kind = ActiveModeKind::kTennisRally;
+  } else if (modeId == "golf") {
+    m_kind = ActiveModeKind::kGolfClosestPin;
+  } else if (modeId == "volleyball") {
+    m_kind = ActiveModeKind::kVolleyballRally;
   } else if (modeId == "market_browse") {
     m_kind = ActiveModeKind::kMarketBrowse;
     m_browseItemsViewed = 0;
@@ -127,6 +132,8 @@ void ModeRuntime::reset() {
   m_footballKickReturn.reset();
   m_soccerPenalty.reset();
   m_tennisRally.reset();
+  m_golf.reset();
+  m_volleyball.reset();
   m_lastThrowPulseCount = 0;
   m_browseItemsViewed = 0;
 }
@@ -163,6 +170,10 @@ void ModeRuntime::update(double deltaSeconds) {
     m_soccerPenalty.update(deltaSeconds);
   } else if (m_kind == ActiveModeKind::kTennisRally) {
     m_tennisRally.update(deltaSeconds);
+  } else if (m_kind == ActiveModeKind::kGolfClosestPin) {
+    m_golf.update(deltaSeconds);
+  } else if (m_kind == ActiveModeKind::kVolleyballRally) {
+    m_volleyball.update(deltaSeconds);
   }
 }
 
@@ -531,6 +542,50 @@ auto ModeRuntime::handleCommand(std::string_view command, const nlohmann::json& 
     }
   }
 
+  if (m_kind == ActiveModeKind::kGolfClosestPin) {
+    if (!params.is_object()) {
+      return Result<nlohmann::json>::err("golf command params must be object");
+    }
+    if (command == "fel.golf.tee_shot") {
+      const float power = params.value("power", 0.80F);
+      const float alignment = params.value("alignment", 0.0F);
+      return m_golf.teeShot(power, alignment);
+    }
+    if (command == "fel.golf.approach") {
+      const float power = params.value("power", 0.70F);
+      const float accuracy = params.value("accuracy", 0.75F);
+      const std::string club = params.value("club", "iron");
+      return m_golf.approach(power, accuracy, club);
+    }
+    if (command == "fel.golf.putt") {
+      const float power = params.value("power", 0.55F);
+      const float line = params.value("line", 0.0F);
+      return m_golf.putt(power, line);
+    }
+  }
+
+  if (m_kind == ActiveModeKind::kVolleyballRally) {
+    if (!params.is_object()) {
+      return Result<nlohmann::json>::err("volleyball command params must be object");
+    }
+    if (command == "fel.volleyball.serve") {
+      const float power = params.value("power", 0.75F);
+      const float placement = params.value("placement", 0.5F);
+      return m_volleyball.serve(power, placement);
+    }
+    if (command == "fel.volleyball.set") {
+      const float accuracy = params.value("accuracy", 0.75F);
+      const std::string setType = params.value("set_type", "high");
+      return m_volleyball.set_(accuracy, setType);
+    }
+    if (command == "fel.volleyball.spike") {
+      const float timing = params.value("timing", 0.80F);
+      const float power = params.value("power", 0.80F);
+      const std::string angle = params.value("angle", "cross");
+      return m_volleyball.spike(timing, power, angle);
+    }
+  }
+
   if (command == "fel.mode.get_state") {
     return Result<nlohmann::json>::ok(stateJson());
   }
@@ -583,6 +638,10 @@ auto ModeRuntime::stateJson() const -> nlohmann::json {
     payload["soccer_penalty"] = m_soccerPenalty.stateJson();
   } else if (m_kind == ActiveModeKind::kTennisRally) {
     payload["tennis_rally"] = m_tennisRally.stateJson();
+  } else if (m_kind == ActiveModeKind::kGolfClosestPin) {
+    payload["golf_closest_pin"] = m_golf.stateJson();
+  } else if (m_kind == ActiveModeKind::kVolleyballRally) {
+    payload["volleyball_rally"] = m_volleyball.stateJson();
   } else if (m_kind == ActiveModeKind::kMarketBrowse) {
     payload["market_browse"] = {
         {"items_viewed", m_browseItemsViewed},
@@ -638,6 +697,12 @@ auto ModeRuntime::shouldAutoEndSession() const -> bool {
   }
   if (m_kind == ActiveModeKind::kTennisRally) {
     return m_tennisRally.isMatchOver();
+  }
+  if (m_kind == ActiveModeKind::kGolfClosestPin) {
+    return m_golf.isRoundOver();
+  }
+  if (m_kind == ActiveModeKind::kVolleyballRally) {
+    return m_volleyball.isMatchOver();
   }
   if (m_kind == ActiveModeKind::kMarketBrowse) {
     return false;
@@ -718,6 +783,19 @@ auto ModeRuntime::sessionScoreInput() const -> MatchScoreInput {
     input.opponentSets = m_tennisRally.opponentSets();
     input.playerScore = static_cast<float>(m_tennisRally.playerSets());
     input.opponentScore = static_cast<float>(m_tennisRally.opponentSets());
+  } else if (m_kind == ActiveModeKind::kGolfClosestPin) {
+    input.playerStrokes = m_golf.totalStrokes();
+    input.parStrokes = GolfClosestPinMode::kCoursePar;
+    input.playerScore = static_cast<float>(m_golf.totalStrokes());
+    input.opponentScore = static_cast<float>(GolfClosestPinMode::kCoursePar);
+    input.stagingScore = m_golf.holesCompleted();
+  } else if (m_kind == ActiveModeKind::kVolleyballRally) {
+    input.playerSets = m_volleyball.playerSets();
+    input.opponentSets = m_volleyball.opponentSets();
+    input.playerPoints = m_volleyball.playerPoints();
+    input.opponentPoints = m_volleyball.opponentPoints();
+    input.playerScore = static_cast<float>(m_volleyball.playerSets());
+    input.opponentScore = static_cast<float>(m_volleyball.opponentSets());
   }
   return input;
 }
@@ -821,6 +899,12 @@ auto ModeRuntime::modeSpecificPayload() const -> nlohmann::json {
   }
   if (m_kind == ActiveModeKind::kOutcomeSport) {
     return {{"outcome_sport", m_outcomeSport.stateJson()}};
+  }
+  if (m_kind == ActiveModeKind::kGolfClosestPin) {
+    return {{"golf_closest_pin", m_golf.stateJson()}};
+  }
+  if (m_kind == ActiveModeKind::kVolleyballRally) {
+    return {{"volleyball_rally", m_volleyball.stateJson()}};
   }
   return nlohmann::json::object();
 }

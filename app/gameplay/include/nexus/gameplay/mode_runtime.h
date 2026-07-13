@@ -8,6 +8,7 @@
 #include "nexus/gameplay/court_carnival_mode.h"
 #include "nexus/gameplay/dunk_contest_mode.h"
 #include "nexus/gameplay/football_kick_return_mode.h"
+#include "nexus/gameplay/golf_closest_pin_mode.h"
 #include "nexus/gameplay/gymnastics_mode.h"
 #include "nexus/gameplay/home_run_derby_mode.h"
 #include "nexus/gameplay/karate_endless_mode.h"
@@ -19,6 +20,7 @@
 #include "nexus/gameplay/tennis_rally_mode.h"
 #include "nexus/gameplay/throw_catch_physics.h"
 #include "nexus/gameplay/venice_pickup_mode.h"
+#include "nexus/gameplay/volleyball_rally_mode.h"
 #include "nexus/gameplay/outcome_sport_mode.h"
 #include "nexus/gameplay/who_scene_it_mode.h"
 
@@ -48,6 +50,8 @@ enum class ActiveModeKind : std::uint8_t {
   kFootballKickReturn = 15,
   kSoccerPenalty = 16,
   kTennisRally = 17,
+  kGolfClosestPin = 18,
+  kVolleyballRally = 19,
 };
 
 class ModeRuntime {
@@ -89,6 +93,8 @@ private:
   FootballKickReturnMode m_footballKickReturn;
   SoccerPenaltyMode m_soccerPenalty;
   TennisRallyMode m_tennisRally;
+  GolfClosestPinMode m_golf;
+  VolleyballRallyMode m_volleyball;
   std::uint64_t m_lastThrowPulseCount{0};
   std::int32_t m_browseItemsViewed{0};
 };

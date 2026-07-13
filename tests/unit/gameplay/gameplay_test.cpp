@@ -19,6 +19,8 @@
 #include "nexus/gameplay/hud_relay_service.h"
 #include "nexus/gameplay/mode_runtime.h"
 #include "nexus/gameplay/outcome_sport_mode.h"
+#include "nexus/gameplay/golf_closest_pin_mode.h"
+#include "nexus/gameplay/volleyball_rally_mode.h"
 #include "nexus/gameplay/prq_engine.h"
 #include "nexus/gameplay/session_receipt_client.h"
 #include "nexus/gameplay/surfing_mode.h"
@@ -1793,14 +1795,29 @@ void flagship_outcome_sport_validate_only_integration() {
               .status == "ok",
           "volleyball session starts");
 
+  // Volleyball now uses dedicated VolleyballRallyMode — drive points via serve + spike cycle
   for (int i = 0; i < 60; ++i) {
     if (gameplay.mode_runtime().shouldAutoEndSession()) {
       break;
     }
-    require(gameplay.handleGameplayCommand(
-                "fel.sport.pulse", {{"success", true}, {"timing", 0.88F}}, "volleyball_pulse")
-                .status == "ok",
-            "volleyball sport pulse ok");
+    // Serve in-play (moderate power, center placement — triggers rally phase)
+    const auto srv = gameplay.handleGameplayCommand(
+        "fel.volleyball.serve",
+        {{"power", 0.70F}, {"placement", 0.20F}},
+        "volleyball_serve_loop");
+    require(srv.status == "ok", "volleyball serve loop ok");
+    // If still in rally phase after serve, spike to win the point
+    if (gameplay.mode_runtime().activeKind() ==
+        nexus::gameplay::ActiveModeKind::kVolleyballRally) {
+      const auto st = gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "vball_phase");
+      if (st.payload["volleyball_rally"]["phase"].get<int>() ==
+          static_cast<int>(nexus::gameplay::VolleyballPhase::kRally)) {
+        gameplay.handleGameplayCommand(
+            "fel.volleyball.spike",
+            {{"timing", 0.92F}, {"power", 0.85F}, {"angle", "line"}},
+            "volleyball_spike_loop");
+      }
+    }
     gameplay.update(0.05, physics, {});
   }
 
@@ -2889,6 +2906,139 @@ void karate_h2h_session_end_dispatches_receipt() {
       "karate h2h receipt includes outcome_sport state");
 }
 
+void flagship_golf_closest_pin_validate_only_integration() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  nexus::physics::PhysicsWorld physics;
+  require(physics.init({}).isOk(), "physics init");
+
+  const auto mode = nexus::gameplay::ArenaModeRegistry::find("golf");
+  require(mode.has_value(), "golf mode registered");
+  require(mode->venueToken == "Links_Course", "golf uses links course");
+  require(mode->nexusMeshPath.find("golf_course") != std::string::npos,
+          "golf bundled links course mesh");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "golf"}, {"user_id", "flagship_golf"}},
+              "golf_start")
+              .status == "ok",
+          "golf session starts");
+
+  // Tee shot — straight powerful drive
+  const auto tee1 = gameplay.handleGameplayCommand(
+      "fel.golf.tee_shot", {{"power", 0.90F}, {"alignment", 0.0F}}, "golf_tee1");
+  require(tee1.status == "ok", "golf tee shot ok");
+  require(tee1.payload.contains("tee_shot"), "golf tee shot payload present");
+  require(tee1.payload["tee_shot"].value("distance_to_pin", 0.0F) < 100.0F,
+          "golf tee shot reduces distance to pin");
+
+  // Approach shot with wedge
+  const auto approach1 = gameplay.handleGameplayCommand(
+      "fel.golf.approach",
+      {{"power", 0.75F}, {"accuracy", 0.80F}, {"club", "wedge"}},
+      "golf_approach1");
+  require(approach1.status == "ok", "golf approach ok");
+  require(approach1.payload["approach"].value("on_green", false), "golf wedge lands on green");
+
+  // Putt to finish the hole
+  const auto putt1 = gameplay.handleGameplayCommand(
+      "fel.golf.putt", {{"power", 0.55F}, {"line", 0.0F}}, "golf_putt1");
+  require(putt1.status == "ok", "golf putt ok");
+  require(putt1.payload["putt"].value("holed", false), "golf putt sinks");
+
+  // State query — hole 1 complete
+  const auto state =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "golf_state1");
+  require(state.status == "ok", "golf state ok");
+  require(state.payload["golf_closest_pin"]["holes_completed"].get<int>() >= 1,
+          "golf records first hole completed");
+  require(state.payload["golf_closest_pin"]["course_par"].get<int>() ==
+              nexus::gameplay::GolfClosestPinMode::kCoursePar,
+          "golf course par is 36");
+
+  // Hole-in-one scenario (power 0.95, perfect alignment)
+  const auto tee_hio = gameplay.handleGameplayCommand(
+      "fel.golf.tee_shot", {{"power", 0.95F}, {"alignment", 0.0F}}, "golf_hio");
+  require(tee_hio.status == "ok", "golf hole-in-one tee shot ok");
+  require(tee_hio.payload["tee_shot"].value("result", "") == "hole_in_one",
+          "golf perfect tee shot is hole in one");
+
+  const auto end = gameplay.handleGameplayCommand(
+      "fel.arena.end_session", {{"use_live_scores", true}}, "golf_end");
+  require(end.status == "ok", "golf session ends");
+  require(end.payload.contains("outcome"), "golf outcome present");
+
+  physics.shutdown();
+}
+
+void flagship_volleyball_rally_validate_only_integration() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  nexus::physics::PhysicsWorld physics;
+  require(physics.init({}).isOk(), "physics init");
+
+  const auto mode = nexus::gameplay::ArenaModeRegistry::find("volleyball");
+  require(mode.has_value(), "volleyball mode registered");
+  require(mode->venueToken == "Sand_Court", "volleyball uses sand court");
+  require(mode->nexusMeshPath.find("volleyball") != std::string::npos,
+          "volleyball bundled sand court mesh");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "volleyball"}, {"user_id", "flagship_volleyball"}},
+              "vball_start")
+              .status == "ok",
+          "volleyball session starts");
+
+  // Ace serve — high power + edge placement
+  const auto serve_ace = gameplay.handleGameplayCommand(
+      "fel.volleyball.serve",
+      {{"power", 0.90F}, {"placement", 0.80F}},
+      "vball_serve_ace");
+  require(serve_ace.status == "ok", "volleyball ace serve ok");
+  require(serve_ace.payload["serve"].value("result", "") == "ace", "volleyball ace on edge serve");
+
+  // In-play serve that goes to rally
+  const auto serve_in = gameplay.handleGameplayCommand(
+      "fel.volleyball.serve",
+      {{"power", 0.70F}, {"placement", 0.30F}},
+      "vball_serve_in");
+  require(serve_in.status == "ok", "volleyball in-play serve ok");
+
+  // Set (if rally phase — may or may not apply based on prior serve result)
+  gameplay.handleGameplayCommand(
+      "fel.volleyball.set",
+      {{"accuracy", 0.80F}, {"set_type", "quick"}},
+      "vball_set_quick");
+
+  // Spike kill — high timing + power + line angle
+  const auto spike_kill = gameplay.handleGameplayCommand(
+      "fel.volleyball.spike",
+      {{"timing", 0.92F}, {"power", 0.85F}, {"angle", "line"}},
+      "vball_spike_kill");
+  require(spike_kill.status == "ok", "volleyball spike ok");
+
+  // State check
+  const auto state =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "vball_state");
+  require(state.status == "ok", "volleyball state ok");
+  require(state.payload["volleyball_rally"]["win_target_points"].get<int>() ==
+              nexus::gameplay::VolleyballRallyMode::kPointsToWinSet,
+          "volleyball win target is 25");
+  require(state.payload["volleyball_rally"].contains("aces"), "volleyball exposes aces");
+  require(state.payload["volleyball_rally"].contains("kills"), "volleyball exposes kills");
+
+  const auto end = gameplay.handleGameplayCommand(
+      "fel.arena.end_session", {{"use_live_scores", true}}, "vball_end");
+  require(end.status == "ok", "volleyball session ends");
+  require(end.payload.contains("outcome"), "volleyball outcome present");
+
+  physics.shutdown();
+}
+
 } // namespace
 
 auto main() -> int {
@@ -2950,6 +3100,8 @@ auto main() -> int {
   flagship_soccer_penalty_validate_only_integration();
   flagship_tennis_rally_validate_only_integration();
   flagship_who_scene_it_validate_only_integration();
+  flagship_golf_closest_pin_validate_only_integration();
+  flagship_volleyball_rally_validate_only_integration();
   session_receipt_body_matches_api_contract();
   flagship_modes_emit_post_ready_receipts();
   venice_pickup_action_scores_and_reaches_win_target();

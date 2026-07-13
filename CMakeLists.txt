@@ -158,6 +158,8 @@ add_library(nexus_gameplay
   app/gameplay/src/snowboarding_mode.cpp
   app/gameplay/src/surfing_mode.cpp
   app/gameplay/src/tennis_rally_mode.cpp
+  app/gameplay/src/golf_closest_pin_mode.cpp
+  app/gameplay/src/volleyball_rally_mode.cpp
   app/gameplay/src/throw_catch_physics.cpp
   app/gameplay/src/venue_volume_registry.cpp
   app/gameplay/src/venice_pickup_mode.cpp
