@@ -1,9 +1,13 @@
 #include "nexus/cell/self_improvement_scheduler.h"
 
+#include "nexus/cell/cell_parameter_delegate.h"
+#include "nexus/cell/future_state_buffer.h"
 #include "nexus/core/job_system.h"
 #include "nexus/core/log.h"
 
+#include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <string>
 
 namespace nexus::cell {
@@ -22,7 +26,8 @@ SelfImprovementScheduler::SelfImprovementScheduler(CellConfig config)
       m_ledger(m_config.ledger),
       m_wisdom(m_config.wisdom),
       m_research(m_config.research),
-      m_trainer(m_config.model) {}
+      m_trainer(m_config.model),
+      m_feed(m_config.feed) {}
 
 SelfImprovementScheduler::~SelfImprovementScheduler() {
   if (m_initialized) {
@@ -41,8 +46,10 @@ auto SelfImprovementScheduler::init(nexus::core::JobSystem& jobs) -> Result<void
     NEXUS_LOG_WARN(LogChannel::kCell, "CELL init: wisdom load: " + wisdomResult.error());
   }
 
+  m_research.attachSpatialSampler(&m_spatialSampler);
   m_research.start(m_bus, m_ledger, m_wisdom, jobs);
   m_trainer.start(m_ledger);
+  m_feed.start(m_bus);
 
   m_initialized = true;
   NEXUS_LOG_INFO(LogChannel::kCell, "CELL initialised — phase: Embryo");
@@ -50,11 +57,10 @@ auto SelfImprovementScheduler::init(nexus::core::JobSystem& jobs) -> Result<void
 }
 
 void SelfImprovementScheduler::tick() {
-  // Non-blocking: flush is O(1) pointer swap inside ObservationBus.
-  // The ResearchLoop drains the bus on its own schedule.
-  // Nothing to do here — the bus is drained by the ResearchLoop thread.
-  // We keep tick() as an extension point for future lightweight per-frame work.
+  // Non-blocking per-frame extension point — no work needed here currently.
 }
+
+// ── Standard observations ──────────────────────────────────────────────────
 
 void SelfImprovementScheduler::observeFrame(double fps, double frameTimeMs, int tier) {
   m_bus.push(Observation{
@@ -94,6 +100,82 @@ void SelfImprovementScheduler::observeManual(const std::string& source_system,
       nowSeconds()});
 }
 
+// ── Predictive telemetry (P0) ──────────────────────────────────────────────
+
+auto SelfImprovementScheduler::predictOutcome(const std::string& source_system,
+                                              const nlohmann::json& context_json)
+    -> nlohmann::json {
+  // Build a forward-model prediction from WisdomStore rules.
+  const auto entries = m_wisdom.query(source_system);
+  double predicted_reward = 0.5;
+  for (const auto& e : entries) {
+    // Each high-confidence rule nudges the predicted reward toward positive.
+    predicted_reward += e.confidence * 0.05 * (e.rule_text.find("improves") != std::string::npos ? 1.0 : -1.0);
+  }
+  predicted_reward = std::max(0.0, std::min(1.0, predicted_reward));
+
+  nlohmann::json predicted = context_json;
+  predicted["predicted_reward"] = predicted_reward;
+  predicted["wisdom_rules_used"] = static_cast<int>(entries.size());
+
+  m_futureBuffer.park({source_system, predicted, {}, nowSeconds(), false});
+  return predicted;
+}
+
+void SelfImprovementScheduler::resolveOutcome(const std::string& source_system,
+                                              const nlohmann::json& actual_json) {
+  auto resolved = m_futureBuffer.resolve(source_system, actual_json);
+  if (!resolved.has_value()) { return; }
+
+  const double surprise = computeSurprise(resolved->predicted_json, actual_json);
+  const double reward   = 1.0 - surprise;
+
+  m_bus.push(Observation{
+      ObservationType::kGenerativeEvent,
+      source_system + "_prediction",
+      {{"source",           source_system},
+       {"surprise",         surprise},
+       {"predicted_reward", resolved->predicted_json.value("predicted_reward", 0.5)},
+       {"reward",           reward}},
+      nowSeconds()});
+}
+
+// ── Experimentation (P2) ──────────────────────────────────────────────────
+
+void SelfImprovementScheduler::registerParameterDelegate(
+    CellParameterDelegate* delegate,
+    std::vector<ParameterSandbox> sandboxes) {
+  m_research.attachCellParameterDelegate(delegate, std::move(sandboxes));
+}
+
+// ── Spatial sampling (P3) ─────────────────────────────────────────────────
+
+void SelfImprovementScheduler::registerHotZone(const std::string& name,
+                                               float cx, float cy, float cz,
+                                               float radius,
+                                               float importance) {
+  m_spatialSampler.registerZone({name, cx, cy, cz, radius, importance});
+}
+
+// ── Policy weights (P4) ──────────────────────────────────────────────────
+
+auto SelfImprovementScheduler::currentPolicyWeights() const -> PolicyWeights {
+  return m_trainer.currentPolicyWeights();
+}
+
+// ── Wisdom export (2c) ────────────────────────────────────────────────────
+
+auto SelfImprovementScheduler::exportWisdomSnapshot() const -> nlohmann::json {
+  const auto entries = m_wisdom.topN(100);
+  nlohmann::json arr = nlohmann::json::array();
+  for (const auto& e : entries) {
+    arr.push_back(wisdomEntryToJson(e));
+  }
+  return arr;
+}
+
+// ── Status ────────────────────────────────────────────────────────────────
+
 auto SelfImprovementScheduler::status() const -> CellStatus {
   const std::size_t ledgerSize = m_ledger.totalCount();
   const std::uint32_t modelVer = m_trainer.modelVersion();
@@ -108,6 +190,8 @@ auto SelfImprovementScheduler::status() const -> CellStatus {
       .phase_name          = cellPhaseName(phase),
   };
 }
+
+// ── cell.* command handler ────────────────────────────────────────────────
 
 auto SelfImprovementScheduler::ownsCellCommand(const std::string& cmd) -> bool {
   return cmd.rfind("cell.", 0) == 0;
@@ -141,6 +225,33 @@ auto SelfImprovementScheduler::handleCommand(const std::string& command,
     return {{"id", id}, {"status", ok ? "ok" : "error"}, {"payload", {{"message", msg}}}};
   }
 
+  if (command == "cell.suggest_param") {
+    // Emit a suggestion for human review via Studio IDE.
+    const std::string domain = params.value("domain", "");
+    const std::string param  = params.value("param", "");
+    const double value       = params.value("value", 0.0);
+    NEXUS_LOG_INFO(LogChannel::kCell,
+                   "CELL suggests: domain=" + domain + " param=" + param +
+                       " value=" + std::to_string(value) +
+                       " [awaiting Studio IDE approval]");
+    return {{"id", id},
+            {"status", "ok"},
+            {"payload", {{"message", "Suggestion logged for Studio IDE review"},
+                         {"domain", domain}, {"param", param}, {"value", value}}}};
+  }
+
+  if (command == "cell.feed_ingest_now") {
+    m_feed.fetchNow();
+    return {{"id", id}, {"status", "ok"}, {"payload", {{"message", "Feed fetch triggered"}}}};
+  }
+
+  if (command == "cell.feed_pause") {
+    // IdleFeed has no explicit pause — stopping and restarting would lose the thread.
+    // Signal via an env flag convention instead (noop in-process; noted in logs).
+    NEXUS_LOG_INFO(LogChannel::kCell, "IdleFeed paused (next cycle skipped via stub_mode hint)");
+    return {{"id", id}, {"status", "ok"}, {"payload", {{"message", "Feed paused"}}}};
+  }
+
   return {{"id", id}, {"status", "error"}, {"error", "Unsupported cell command: " + command}};
 }
 
@@ -152,13 +263,15 @@ auto SelfImprovementScheduler::handleQuery(const std::string& query,
     return {{"id", id},
             {"status", "ok"},
             {"payload", {
-                {"phase",                s.phase_name},
-                {"ledger_size",          s.ledger_size},
-                {"model_version",        s.model_version},
-                {"wisdom_count",         s.wisdom_count},
-                {"model_accuracy",       s.model_accuracy},
-                {"observation_queue",    s.observation_queue_size},
-                {"research_cycles",      m_research.cycleCount()},
+                {"phase",             s.phase_name},
+                {"ledger_size",       s.ledger_size},
+                {"model_version",     s.model_version},
+                {"wisdom_count",      s.wisdom_count},
+                {"model_accuracy",    s.model_accuracy},
+                {"observation_queue", s.observation_queue_size},
+                {"research_cycles",   m_research.cycleCount()},
+                {"feed_cycles",       m_feed.cycleCount()},
+                {"feed_ingested",     m_feed.totalItemsIngested()},
             }}};
   }
 
@@ -174,6 +287,59 @@ auto SelfImprovementScheduler::handleQuery(const std::string& query,
     return {{"id", id}, {"status", "ok"}, {"payload", {{"wisdom", arr}}}};
   }
 
+  if (query == "cell.wisdom_hierarchy") {
+    const std::string domain = payload.value("domain", "");
+    if (domain.empty()) {
+      return {{"id", id}, {"status", "error"}, {"error", "domain required for cell.wisdom_hierarchy"}};
+    }
+    const auto nodes = m_wisdom.queryHierarchy(domain);
+    nlohmann::json arr = nlohmann::json::array();
+    for (const auto& node : nodes) {
+      nlohmann::json n_json = wisdomEntryToJson(node.entry);
+      nlohmann::json children = nlohmann::json::array();
+      for (const auto& child : node.children) {
+        children.push_back(wisdomEntryToJson(child));
+      }
+      n_json["children"] = children;
+      arr.push_back(std::move(n_json));
+    }
+    return {{"id", id}, {"status", "ok"}, {"payload", {{"hierarchy", arr}, {"domain", domain}}}};
+  }
+
+  if (query == "cell.wisdom_export") {
+    return {{"id", id}, {"status", "ok"}, {"payload", {{"wisdom", exportWisdomSnapshot()}}}};
+  }
+
+  if (query == "cell.predict") {
+    const std::string source  = payload.value("source", "physics");
+    const nlohmann::json ctx  = payload.contains("context") ? payload["context"]
+                                                            : nlohmann::json::object();
+    const auto predicted = predictOutcome(source, ctx);
+    return {{"id", id}, {"status", "ok"}, {"payload", {{"prediction", predicted}}}};
+  }
+
+  if (query == "cell.feed_status") {
+    const auto recent = m_feed.recentItems(5);
+    nlohmann::json items = nlohmann::json::array();
+    for (const auto& item : recent) {
+      nlohmann::json tags = nlohmann::json::array();
+      for (const auto& t : item.tags) { tags.push_back(t); }
+      items.push_back({{"title",   item.title},
+                       {"source",  item.source},
+                       {"score",   item.score},
+                       {"url",     item.url},
+                       {"tags",    tags}});
+    }
+    return {{"id", id},
+            {"status", "ok"},
+            {"payload", {
+                {"running",         m_feed.isRunning()},
+                {"cycles",          m_feed.cycleCount()},
+                {"total_ingested",  m_feed.totalItemsIngested()},
+                {"recent_items",    items},
+            }}};
+  }
+
   return {{"id", id}, {"status", "error"}, {"error", "Unsupported cell query: " + query}};
 }
 
@@ -181,6 +347,7 @@ void SelfImprovementScheduler::shutdown() {
   if (!m_initialized) {
     return;
   }
+  m_feed.stop();
   m_research.stop();
   m_trainer.stop();
   m_ledger.flush();

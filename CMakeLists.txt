@@ -117,6 +117,10 @@ add_library(nexus_cell
   engine/cell/src/research_loop.cpp
   engine/cell/src/model_trainer.cpp
   engine/cell/src/self_improvement_scheduler.cpp
+  engine/cell/src/future_state_buffer.cpp
+  engine/cell/src/spatial_sampler.cpp
+  engine/cell/src/hardware_telemetry_bridge.cpp
+  engine/cell/src/idle_feed.cpp
 )
 target_include_directories(nexus_cell PUBLIC engine/cell/include)
 target_link_libraries(nexus_cell PUBLIC nexus_core nlohmann_json::nlohmann_json)

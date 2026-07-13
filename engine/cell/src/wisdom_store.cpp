@@ -73,9 +73,15 @@ void WisdomStore::upsert(WisdomEntry entry) {
   std::scoped_lock lock(m_mutex);
   for (auto& existing : m_entries) {
     if (existing.domain == entry.domain && existing.rule_text == entry.rule_text) {
-      existing.confidence    = std::max(existing.confidence, entry.confidence);
-      existing.evidence_count += entry.evidence_count;
-      existing.last_updated_ms = entry.last_updated_ms;
+      existing.confidence      = std::max(existing.confidence, entry.confidence);
+      existing.evidence_count  += entry.evidence_count;
+      existing.last_updated_ms  = entry.last_updated_ms;
+      // Preserve hierarchy metadata on merge — if a more specific version arrives,
+      // update tier and parent.
+      if (entry.tier == WisdomTier::kMechanical) {
+        existing.tier             = WisdomTier::kMechanical;
+        existing.parent_rule_text = entry.parent_rule_text;
+      }
       return;
     }
   }
@@ -120,6 +126,61 @@ auto WisdomStore::topN(std::size_t n) const -> std::vector<WisdomEntry> {
 auto WisdomStore::count() const -> std::size_t {
   std::scoped_lock lock(m_mutex);
   return m_entries.size();
+}
+
+auto WisdomStore::queryHierarchy(const std::string& domain) const
+    -> std::vector<WisdomNode> {
+  std::scoped_lock lock(m_mutex);
+
+  // Collect all entries for this domain.
+  std::vector<WisdomEntry> tactical, mechanical;
+  for (const auto& e : m_entries) {
+    if (e.domain != domain) { continue; }
+    if (e.tier == WisdomTier::kMechanical) {
+      mechanical.push_back(e);
+    } else {
+      tactical.push_back(e);
+    }
+  }
+
+  // Sort tactical nodes by confidence descending.
+  std::sort(tactical.begin(), tactical.end(),
+            [](const WisdomEntry& a, const WisdomEntry& b) {
+              return a.confidence > b.confidence;
+            });
+
+  // Build hierarchy: for each tactical entry, find its mechanical children.
+  std::vector<WisdomNode> nodes;
+  nodes.reserve(tactical.size());
+  for (auto& t : tactical) {
+    WisdomNode node;
+    node.entry = std::move(t);
+    for (const auto& m : mechanical) {
+      if (m.parent_rule_text == node.entry.rule_text) {
+        node.children.push_back(m);
+      }
+    }
+    // Sort children by confidence descending.
+    std::sort(node.children.begin(), node.children.end(),
+              [](const WisdomEntry& a, const WisdomEntry& b) {
+                return a.confidence > b.confidence;
+              });
+    nodes.push_back(std::move(node));
+  }
+
+  // Append orphaned mechanical entries (no matching tactical parent) as root nodes.
+  for (const auto& m : mechanical) {
+    const bool hasParent = std::any_of(nodes.begin(), nodes.end(), [&](const WisdomNode& n) {
+      return n.entry.rule_text == m.parent_rule_text;
+    });
+    if (!hasParent) {
+      WisdomNode orphan;
+      orphan.entry = m;
+      nodes.push_back(std::move(orphan));
+    }
+  }
+
+  return nodes;
 }
 
 void WisdomStore::shutdown() {

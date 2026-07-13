@@ -7,27 +7,33 @@
 // parallelise the analyse step across ledger records.
 //
 // Cycle steps:
-//   1. Harvest  — drain ObservationBus, write ExperienceRecords to ledger
-//   2. Analyse  — extract numeric features per domain, correlate with reward
-//   3. Hypothesise — generate WisdomEntry candidates from strong correlations
-//   4. Validate — require minimum evidence_count before acceptance
-//   5. Commit   — upsert surviving entries into WisdomStore
+//   1. Harvest      — drain ObservationBus, write ExperienceRecords to ledger
+//   2. Analyse      — extract numeric features per domain, correlate with reward
+//   3. Hypothesise  — generate WisdomEntry candidates from strong correlations
+//   4. Validate     — require minimum evidence_count before acceptance
+//   5. Commit       — upsert surviving entries into WisdomStore
+//   6. Experiment   — nudge a low-confidence parameter (kImperfectForm+ only)
+
+#include "nexus/cell/cell_types.h"
 
 #include <atomic>
 #include <condition_variable>
 #include <chrono>
 #include <mutex>
 #include <thread>
+#include <vector>
 
 namespace nexus::core {
 class JobSystem;
 }
 
 namespace nexus::cell {
+class CellParameterDelegate;
 class ObservationBus;
 class ExperienceLedger;
+class SpatialSampler;
 class WisdomStore;
-}
+} // namespace nexus::cell
 
 namespace nexus::cell {
 
@@ -47,7 +53,7 @@ public:
   explicit ResearchLoop(ResearchLoopConfig config = {});
   ~ResearchLoop();
 
-  ResearchLoop(const ResearchLoop&) = delete;
+  ResearchLoop(const ResearchLoop&)            = delete;
   auto operator=(const ResearchLoop&) -> ResearchLoop& = delete;
 
   void start(ObservationBus& bus,
@@ -59,6 +65,14 @@ public:
   /// Force an immediate cycle (for testing / cell.train_now).
   void runCycleNow();
 
+  /// Attach a parameter delegate and its configurable sandboxes.
+  /// Must be called before start() or guarded externally.
+  void attachCellParameterDelegate(CellParameterDelegate* delegate,
+                                   std::vector<ParameterSandbox> sandboxes);
+
+  /// Attach a spatial sampler that pre-filters records before analysis.
+  void attachSpatialSampler(SpatialSampler* sampler);
+
   [[nodiscard]] auto isRunning() const -> bool;
   [[nodiscard]] auto cycleCount() const -> std::uint64_t;
 
@@ -67,12 +81,23 @@ private:
   void runOneCycle();
   void harvest();
   void analyseAndCommit();
+  void experimentationPhase(CellPhase phase);
 
   ResearchLoopConfig      m_config;
   ObservationBus*         m_bus{nullptr};
   ExperienceLedger*        m_ledger{nullptr};
   WisdomStore*            m_wisdom{nullptr};
   nexus::core::JobSystem* m_jobs{nullptr};
+
+  // Experimentation state
+  CellParameterDelegate*        m_delegate{nullptr};
+  std::vector<ParameterSandbox> m_sandboxes;
+  int                           m_activeExperimentIdx{-1};
+  double                        m_baselineRewardSum{0.0};
+  std::size_t                   m_baselineRewardCount{0};
+
+  // Spatial sampler
+  SpatialSampler* m_spatialSampler{nullptr};
 
   std::thread              m_thread;
   std::mutex               m_mutex;

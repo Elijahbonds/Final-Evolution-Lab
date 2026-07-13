@@ -100,7 +100,29 @@ void Engine::tick(double frameTimeSeconds) {
 
   m_accumulatorSeconds += frameTimeSeconds;
   while (m_accumulatorSeconds >= m_config.fixedTimestepSeconds) {
-    m_physics->step(m_config.fixedTimestepSeconds);
+    // Predictive telemetry: snapshot physics state, predict outcome, step, resolve.
+    if (m_cell != nullptr && m_physics != nullptr) {
+      const auto& bodies = m_physics->bodies();
+      if (!bodies.empty()) {
+        const auto& b0 = bodies[0];
+        const nlohmann::json ctx = {
+            {"pos_x", b0.position.x}, {"pos_y", b0.position.y}, {"pos_z", b0.position.z},
+            {"vel_x", b0.velocity.x}, {"vel_y", b0.velocity.y}, {"vel_z", b0.velocity.z},
+        };
+        m_cell->predictOutcome("physics", ctx);
+        m_physics->step(m_config.fixedTimestepSeconds);
+        const auto& b1 = m_physics->bodies()[0];
+        const nlohmann::json actual = {
+            {"pos_x", b1.position.x}, {"pos_y", b1.position.y}, {"pos_z", b1.position.z},
+            {"vel_x", b1.velocity.x}, {"vel_y", b1.velocity.y}, {"vel_z", b1.velocity.z},
+        };
+        m_cell->resolveOutcome("physics", actual);
+      } else {
+        m_physics->step(m_config.fixedTimestepSeconds);
+      }
+    } else {
+      m_physics->step(m_config.fixedTimestepSeconds);
+    }
     m_accumulatorSeconds -= m_config.fixedTimestepSeconds;
   }
 

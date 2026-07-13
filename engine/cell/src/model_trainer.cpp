@@ -86,6 +86,15 @@ auto ModelTrainer::predict(const std::unordered_map<std::string, double>& featur
   return std::max(-1.0, std::min(1.0, score));
 }
 
+auto ModelTrainer::currentPolicyWeights() const -> PolicyWeights {
+  PolicyWeights pw;
+  std::scoped_lock lock(m_weightsMutex);
+  pw.weights       = m_weights;
+  pw.bias          = m_bias;
+  pw.model_version = m_version.load(std::memory_order_relaxed);
+  return pw;
+}
+
 auto ModelTrainer::modelVersion() const -> std::uint32_t {
   return m_version.load(std::memory_order_relaxed);
 }

@@ -10,6 +10,8 @@
 // The previous version is kept as a rollback target.  If the new model
 // regresses (mean absolute error increases), it is automatically abandoned.
 
+#include "nexus/cell/cell_types.h"
+
 #include <nlohmann/json.hpp>
 
 #include <atomic>
@@ -52,6 +54,9 @@ public:
 
   /// Predict expected reward for a given feature map.
   [[nodiscard]] auto predict(const std::unordered_map<std::string, double>& features) const -> double;
+
+  /// Return a snapshot of the current model weights for policy-guided physics scaling.
+  [[nodiscard]] auto currentPolicyWeights() const -> PolicyWeights;
 
   [[nodiscard]] auto modelVersion() const -> std::uint32_t;
   [[nodiscard]] auto lastMae() const -> double;

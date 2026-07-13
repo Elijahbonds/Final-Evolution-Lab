@@ -1,7 +1,9 @@
 #include "nexus/cell/research_loop.h"
 
+#include "nexus/cell/cell_parameter_delegate.h"
 #include "nexus/cell/experience_ledger.h"
 #include "nexus/cell/observation_bus.h"
+#include "nexus/cell/spatial_sampler.h"
 #include "nexus/cell/wisdom_store.h"
 #include "nexus/core/job_system.h"
 #include "nexus/core/log.h"
@@ -52,6 +54,8 @@ auto rewardFromObservation(const Observation& obs) -> double {
   case ObservationType::kError:
     return 0.0;
   case ObservationType::kManual:
+  case ObservationType::kHardwareTelemetry:
+  case ObservationType::kExternalKnowledge:
     return obs.data.value("reward", 0.5);
   default:
     return 0.5;
@@ -112,6 +116,16 @@ void ResearchLoop::runCycleNow() {
   m_cv.notify_one();
 }
 
+void ResearchLoop::attachCellParameterDelegate(CellParameterDelegate* delegate,
+                                                std::vector<ParameterSandbox> sandboxes) {
+  m_delegate  = delegate;
+  m_sandboxes = std::move(sandboxes);
+}
+
+void ResearchLoop::attachSpatialSampler(SpatialSampler* sampler) {
+  m_spatialSampler = sampler;
+}
+
 auto ResearchLoop::isRunning() const -> bool {
   return m_running.load(std::memory_order_acquire);
 }
@@ -145,6 +159,12 @@ void ResearchLoop::runOneCycle() {
   if (saveResult.isErr()) {
     NEXUS_LOG_WARN(LogChannel::kCell, "ResearchLoop: wisdom save error: " + saveResult.error());
   }
+
+  // Experimentation phase — only in kImperfectForm and kPerfectForm.
+  const std::size_t ledgerSize = m_ledger ? m_ledger->totalCount() : 0;
+  const CellPhase phase = cellPhaseFrom(ledgerSize, 0);
+  experimentationPhase(phase);
+
   m_cycleCount.fetch_add(1, std::memory_order_relaxed);
 }
 
@@ -168,9 +188,17 @@ void ResearchLoop::analyseAndCommit() {
     return;
   }
 
-  const auto records = m_ledger->queryRecent(m_config.analysis_window);
+  auto records = m_ledger->queryRecent(m_config.analysis_window);
   if (records.size() < m_config.min_evidence) {
     return;
+  }
+
+  // Spatial filtering: discard records outside hot zones (if sampler attached).
+  if (m_spatialSampler != nullptr) {
+    records = m_spatialSampler->filterRecords(std::move(records));
+    if (records.size() < m_config.min_evidence) {
+      return;
+    }
   }
 
   // Group feature→reward pairs by domain.
@@ -228,12 +256,119 @@ void ResearchLoop::analyseAndCommit() {
           " (delta=" + std::to_string(static_cast<int>(std::abs(delta) * 100)) + "%, n=" +
           std::to_string(pairs.size()) + ")";
 
+      // ── Tier classification ────────────────────────────────────────────────
+      // Features with one or more dots in their path are mechanical sub-rules
+      // (e.g. "physics.velocity.x"). Top-level features are tactical heuristics.
+      const std::size_t dotCount = std::count(feature.begin(), feature.end(), '.');
+      const WisdomTier tier = (dotCount >= 1) ? WisdomTier::kMechanical : WisdomTier::kTactical;
+
+      // For mechanical entries, derive the parent rule_text from the prefix.
+      std::string parentRuleText;
+      if (tier == WisdomTier::kMechanical) {
+        const std::size_t lastDot = feature.rfind('.');
+        const std::string parentFeature = feature.substr(0, lastDot);
+        // The parent rule would have the same direction/impact pattern.
+        parentRuleText = direction + " " + parentFeature + " " + impact + " outcomes";
+      }
+
       WisdomEntry entry;
-      entry.domain         = domain;
-      entry.rule_text      = rule;
-      entry.confidence     = std::min(1.0, std::abs(delta));
-      entry.evidence_count = static_cast<std::uint64_t>(pairs.size());
+      entry.domain           = domain;
+      entry.rule_text        = rule;
+      entry.confidence       = std::min(1.0, std::abs(delta));
+      entry.evidence_count   = static_cast<std::uint64_t>(pairs.size());
+      entry.tier             = tier;
+      entry.parent_rule_text = parentRuleText;
       m_wisdom->upsert(std::move(entry));
+    }
+  }
+}
+
+void ResearchLoop::experimentationPhase(CellPhase phase) {
+  // Gate: only run in kImperfectForm or kPerfectForm.
+  if (phase < CellPhase::kImperfectForm) { return; }
+  if (m_delegate == nullptr || m_sandboxes.empty()) { return; }
+  if (m_ledger == nullptr) { return; }
+
+  const std::uint64_t cycle = m_cycleCount.load(std::memory_order_relaxed);
+
+  if (m_activeExperimentIdx < 0) {
+    // Start a new experiment: pick the sandbox corresponding to the WisdomEntry
+    // with the lowest confidence in any domain (most uncertain = most to learn).
+    int bestIdx = 0;
+    double lowestConf = 1.0;
+    for (int i = 0; i < static_cast<int>(m_sandboxes.size()); ++i) {
+      if (m_sandboxes[i].active) { continue; }
+      // Use delegate to check the parameter exists.
+      const double cur = m_delegate->getParam(m_sandboxes[i].name);
+      // Estimate "uncertainty" as distance from mid-range.
+      const auto& sb = m_sandboxes[i];
+      const double mid = (sb.min_value + sb.max_value) * 0.5;
+      const double dist = std::abs(cur - mid) / std::max(1e-6, sb.max_value - sb.min_value);
+      if (dist < lowestConf) { lowestConf = dist; bestIdx = i; }
+    }
+
+    auto& sb = m_sandboxes[bestIdx];
+    sb.rollback_value          = m_delegate->getParam(sb.name);
+    sb.current_value           = sb.rollback_value;
+    sb.experiment_start_cycle  = cycle;
+
+    // Compute baseline mean reward from recent ledger records.
+    const auto recent = m_ledger->queryRecent(50);
+    double rewardSum = 0.0;
+    for (const auto& r : recent) { rewardSum += r.reward_signal; }
+    sb.baseline_reward = recent.empty() ? 0.5
+                                        : rewardSum / static_cast<double>(recent.size());
+
+    // Apply a +step nudge, clamped to [min, max].
+    const double nudged = std::min(sb.max_value,
+                                    std::max(sb.min_value, sb.current_value + sb.step_size));
+    m_delegate->setParam(sb.name, nudged);
+    sb.current_value = nudged;
+    sb.active        = true;
+    m_activeExperimentIdx = bestIdx;
+    m_baselineRewardSum   = 0.0;
+    m_baselineRewardCount = 0;
+
+    NEXUS_LOG_INFO(LogChannel::kCell,
+                   "ExperimentationPhase: nudging '" + sb.name + "' " +
+                       std::to_string(sb.rollback_value) + " -> " +
+                       std::to_string(nudged));
+  } else {
+    // An experiment is in progress — evaluate or continue.
+    auto& sb = m_sandboxes[m_activeExperimentIdx];
+    const std::uint64_t elapsed = cycle - sb.experiment_start_cycle;
+
+    // Accumulate reward during evaluation window.
+    const auto recent = m_ledger->queryRecent(10);
+    double sum = 0.0;
+    for (const auto& r : recent) { sum += r.reward_signal; }
+    if (!recent.empty()) {
+      m_baselineRewardSum += sum / static_cast<double>(recent.size());
+      ++m_baselineRewardCount;
+    }
+
+    if (elapsed >= static_cast<std::uint64_t>(sb.evaluation_cycles)) {
+      const double newMean = (m_baselineRewardCount > 0)
+                                 ? m_baselineRewardSum /
+                                       static_cast<double>(m_baselineRewardCount)
+                                 : 0.0;
+
+      if (newMean >= sb.baseline_reward + m_config.min_delta) {
+        // Improvement confirmed: commit the nudge.
+        sb.rollback_value = sb.current_value;
+        NEXUS_LOG_INFO(LogChannel::kCell,
+                       "ExperimentationPhase: committed '" + sb.name +
+                           "'=" + std::to_string(sb.current_value) +
+                           " (reward +" + std::to_string(newMean - sb.baseline_reward) + ")");
+      } else {
+        // No improvement: roll back.
+        m_delegate->setParam(sb.name, sb.rollback_value);
+        sb.current_value = sb.rollback_value;
+        NEXUS_LOG_INFO(LogChannel::kCell,
+                       "ExperimentationPhase: rolled back '" + sb.name + "'");
+      }
+      sb.active             = false;
+      m_activeExperimentIdx = -1;
     }
   }
 }
