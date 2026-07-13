@@ -1,5 +1,6 @@
 #include "nexus/cell/self_improvement_scheduler.h"
 
+#include "nexus/cell/agent_swarm.h"
 #include "nexus/cell/cell_parameter_delegate.h"
 #include "nexus/cell/doc_ingester.h"
 #include "nexus/cell/future_state_buffer.h"
@@ -32,7 +33,8 @@ SelfImprovementScheduler::SelfImprovementScheduler(CellConfig config)
       m_feed(m_config.feed),
       m_docs(m_config.docs),
       m_scorer(m_config.geval),
-      m_webAuditor(m_config.web_audit) {}
+      m_webAuditor(m_config.web_audit),
+      m_swarm(m_config.agent_swarm) {}
 
 SelfImprovementScheduler::~SelfImprovementScheduler() {
   if (m_initialized) {
@@ -63,6 +65,9 @@ auto SelfImprovementScheduler::init(nexus::core::JobSystem& jobs) -> Result<void
 
   // Ingest project documentation into WisdomStore (RAG seed).
   m_docs.ingest(m_wisdom, m_scorer);
+
+  // Start agent swarm (zero-cost local AI workers).
+  m_swarm.start(m_wisdom, m_bus);
 
   m_initialized = true;
   NEXUS_LOG_INFO(LogChannel::kCell, "CELL initialised — phase: Embryo");
@@ -182,6 +187,21 @@ void SelfImprovementScheduler::triggerWebAudit() {
   m_webAuditor.auditNow();
 }
 
+// ── Agent Swarm ───────────────────────────────────────────────────────────────
+
+auto SelfImprovementScheduler::submitAgentTask(AgentTask task) -> std::string {
+  return m_swarm.submit(std::move(task));
+}
+
+auto SelfImprovementScheduler::agentTaskResult(const std::string& task_id) const
+    -> std::optional<AgentResult> {
+  return m_swarm.result(task_id);
+}
+
+auto SelfImprovementScheduler::agentSwarmStatus() const -> AgentSwarmStatus {
+  return m_swarm.status();
+}
+
 // ── Wisdom export (2c) ────────────────────────────────────────────────────
 
 auto SelfImprovementScheduler::exportWisdomSnapshot() const -> nlohmann::json {
@@ -285,6 +305,38 @@ auto SelfImprovementScheduler::handleCommand(const std::string& command,
   if (command == "cell.web_audit_now") {
     m_webAuditor.auditNow();
     return {{"id", id}, {"status", "ok"}, {"payload", {{"message", "Web audit triggered"}}}};
+  }
+
+  if (command == "cell.agent_run") {
+    // Submit a task to the CELL agent swarm.
+    // params: { "prompt": "...", "tools": ["git","terminal","ide_file"],
+    //           "max_steps": 10, "task_id": "optional" }
+    AgentTask task;
+    task.prompt        = params.value("prompt", "");
+    task.task_id       = params.value("task_id", "");
+    task.max_steps     = params.value("max_steps", std::uint32_t{10});
+    task.wisdom_weight = params.value("wisdom_weight", 0.6);
+
+    if (task.prompt.empty()) {
+      return {{"id", id}, {"status", "error"}, {"error", "prompt required for cell.agent_run"}};
+    }
+
+    // Populate allowed tools (default: all three)
+    if (params.contains("tools") && params["tools"].is_array()) {
+      for (const auto& t : params["tools"]) {
+        task.allowed_tools.push_back(t.get<std::string>());
+      }
+    } else {
+      task.allowed_tools = {"git", "terminal", "ide_file"};
+    }
+
+    const std::string task_id = m_swarm.submit(std::move(task));
+    return {{"id", id},
+            {"status", "ok"},
+            {"payload", {{"task_id",  task_id},
+                          {"message",  "Agent task submitted — poll cell.agent_result"},
+                          {"workers",  m_swarm.status().active_workers},
+                          {"queued",   m_swarm.status().queued_tasks}}}};
   }
 
   return {{"id", id}, {"status", "error"}, {"error", "Unsupported cell command: " + command}};
@@ -433,6 +485,60 @@ auto SelfImprovementScheduler::handleQuery(const std::string& query,
             }}};
   }
 
+  if (query == "cell.agent_status") {
+    const auto s = m_swarm.status();
+    return {{"id", id},
+            {"status", "ok"},
+            {"payload", {
+                {"active_workers",  s.active_workers},
+                {"queued_tasks",    s.queued_tasks},
+                {"completed_tasks", s.completed_tasks},
+                {"failed_tasks",    s.failed_tasks},
+                {"swarm_running",   m_swarm.isRunning()},
+                {"max_workers",     m_config.agent_swarm.max_workers},
+                {"repo_root",       m_config.agent_swarm.repo_root},
+            }}};
+  }
+
+  if (query == "cell.agent_result") {
+    const std::string task_id = payload.value("task_id", "");
+    if (task_id.empty()) {
+      return {{"id", id}, {"status", "error"}, {"error", "task_id required for cell.agent_result"}};
+    }
+    const auto res = m_swarm.result(task_id);
+    if (!res.has_value()) {
+      return {{"id", id},
+              {"status", "ok"},
+              {"payload", {{"task_id", task_id}, {"ready", false}}}};
+    }
+    // Serialize the trace
+    nlohmann::json trace_json = nlohmann::json::array();
+    for (const auto& step : res->trace) {
+      trace_json.push_back({
+          {"step",         step.step},
+          {"thought",      step.thought},
+          {"tool",         step.tool_name},
+          {"tool_params",  step.tool_params},
+          {"ok",           step.tool_result.ok},
+          {"output",       step.tool_result.output.substr(
+                               0, std::min<std::size_t>(512, step.tool_result.output.size()))},
+          {"error",        step.tool_result.error},
+          {"duration_ms",  step.tool_result.duration_ms},
+      });
+    }
+    return {{"id", id},
+            {"status", "ok"},
+            {"payload", {
+                {"ready",       true},
+                {"task_id",     res->task_id},
+                {"ok",          res->ok},
+                {"summary",     res->summary},
+                {"steps_used",  res->steps_used},
+                {"duration_ms", res->duration_ms},
+                {"trace",       trace_json},
+            }}};
+  }
+
   return {{"id", id}, {"status", "error"}, {"error", "Unsupported cell query: " + query}};
 }
 
@@ -440,6 +546,7 @@ void SelfImprovementScheduler::shutdown() {
   if (!m_initialized) {
     return;
   }
+  m_swarm.stop();
   m_webAuditor.stop();
   m_feed.stop();
   m_research.stop();
