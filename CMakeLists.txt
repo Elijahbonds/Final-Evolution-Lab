@@ -110,6 +110,20 @@ target_link_libraries(nexus_generative PUBLIC
   nlohmann_json::nlohmann_json
 )
 
+add_library(nexus_cell
+  engine/cell/src/observation_bus.cpp
+  engine/cell/src/experience_ledger.cpp
+  engine/cell/src/wisdom_store.cpp
+  engine/cell/src/research_loop.cpp
+  engine/cell/src/model_trainer.cpp
+  engine/cell/src/self_improvement_scheduler.cpp
+)
+target_include_directories(nexus_cell PUBLIC engine/cell/include)
+target_link_libraries(nexus_cell PUBLIC nexus_core nlohmann_json::nlohmann_json)
+if(UNIX AND NOT APPLE)
+  target_link_libraries(nexus_cell PUBLIC pthread)
+endif()
+
 add_library(nexus_ai_interface
   engine/ai_interface/src/agent_server.cpp
   engine/ai_interface/src/agent_transport.cpp
@@ -120,7 +134,7 @@ add_library(nexus_ai_interface
   engine/ai_interface/src/text_prompt_adapter.cpp
 )
 target_include_directories(nexus_ai_interface PUBLIC engine/ai_interface/include)
-target_link_libraries(nexus_ai_interface PUBLIC nexus_core nexus_creative nexus_generative nlohmann_json::nlohmann_json)
+target_link_libraries(nexus_ai_interface PUBLIC nexus_core nexus_creative nexus_generative nexus_cell nlohmann_json::nlohmann_json)
 if(UNIX AND NOT APPLE)
   target_link_libraries(nexus_ai_interface PUBLIC pthread)
 endif()
@@ -223,6 +237,7 @@ if(NEXUS_ENABLE_RENDERER)
     nexus_physics
     nexus_renderer
     nexus_ai_interface
+    nexus_cell
   )
 endif()
 
@@ -298,6 +313,10 @@ if(NEXUS_BUILD_TESTS)
   add_executable(nexus_scale_policy_test tests/unit/core/engine_scale_policy_test.cpp)
   target_link_libraries(nexus_scale_policy_test PRIVATE nexus_core)
   add_test(NAME nexus_scale_policy_test COMMAND nexus_scale_policy_test)
+
+  add_executable(nexus_cell_test tests/unit/cell/cell_test.cpp)
+  target_link_libraries(nexus_cell_test PRIVATE nexus_cell nexus_ai_interface)
+  add_test(NAME nexus_cell_test COMMAND nexus_cell_test)
 
   add_executable(nexus_realtime_test tests/unit/core/websocket_test.cpp)
   target_link_libraries(nexus_realtime_test PRIVATE nexus_core)

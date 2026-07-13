@@ -2,6 +2,7 @@
 
 #include "nexus/ai/agent_server.h"
 #include "nexus/ai/command_schema.h"
+#include "nexus/cell/self_improvement_scheduler.h"
 #include "nexus/core/dev_stats.h"
 #include "nexus/core/engine_scale_policy.h"
 #include "nexus/core/log.h"
@@ -26,7 +27,8 @@ auto Engine::init(EngineConfig config,
                   renderer::VulkanRenderer* renderer,
                   physics::PhysicsWorld* physics,
                   ai::AgentServer* agentServer,
-                  ApplicationUpdateHook* applicationHook) -> Result<void> {
+                  ApplicationUpdateHook* applicationHook,
+                  cell::SelfImprovementScheduler* cell) -> Result<void> {
   if (renderer == nullptr || physics == nullptr || agentServer == nullptr) {
     return Result<void>::err("Engine dependencies must not be null");
   }
@@ -36,6 +38,7 @@ auto Engine::init(EngineConfig config,
   m_physics = physics;
   m_agentServer = agentServer;
   m_applicationHook = applicationHook;
+  m_cell = cell;
   m_accumulatorSeconds = 0.0;
   m_latestAgentResponses.clear();
   m_playtestFrameCounter = 0;
@@ -83,6 +86,11 @@ void Engine::tick(double frameTimeSeconds) {
   m_perfMonitor.beginFrame();
   m_renderer->pollInput();
 
+  // Non-blocking CELL tick — flushes observation bus each frame.
+  if (m_cell != nullptr) {
+    m_cell->tick();
+  }
+
   const double smoothedFrameSeconds =
       m_framePacer.smoothDelta(frameTimeSeconds, m_config.maxFrameTimeSeconds);
 
@@ -103,6 +111,14 @@ void Engine::tick(double frameTimeSeconds) {
   m_renderer->advanceScene(smoothedFrameSeconds);
   m_renderer->renderFrame();
   m_perfMonitor.endFrame();
+
+  // Observe frame telemetry into CELL.
+  if (m_cell != nullptr) {
+    m_cell->observeFrame(
+        static_cast<double>(m_perfMonitor.fps()),
+        static_cast<double>(m_perfMonitor.frameTimeMs()),
+        static_cast<int>(m_perfMonitor.getTier()));
+  }
 
   const auto drawStats = m_renderer->lastFrameDrawStats();
   const FrameDevStats frameStats{
