@@ -115,6 +115,7 @@ export function TriviaArenaView({ onBack }) {
       handleTimeout();
     }
     return () => clearTimeout(timerRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState, timeLeft, isAnswered]);
 
   const startNewGame = () => {

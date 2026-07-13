@@ -668,7 +668,8 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
     } catch (_e) {
       addLog(`[Error] Reward commit failed; showing local estimate.`);
     }
-  }, [mode.id, score, maxCombo, onComplete]);
+  }, // eslint-disable-next-line react-hooks/exhaustive-deps
+  [mode.id, score, maxCombo, onComplete]);
 
   useEffect(() => {
     if (timeLeft <= 0 && gameActive) { finalizeGame(); }
@@ -1396,6 +1397,7 @@ const BrainBrawlView = ({ onBack }) => {
       answerQuestion(-1); // Time's up
     }
     return () => clearTimeout(timerRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState, timeLeft]);
 
   const startGame = async () => {
