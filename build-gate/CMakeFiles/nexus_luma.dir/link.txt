@@ -1,2 +1,0 @@
-/usr/bin/ar qc libnexus_luma.a CMakeFiles/nexus_luma.dir/engine/luma/src/luma_adapter.cpp.o
-/usr/bin/ranlib libnexus_luma.a

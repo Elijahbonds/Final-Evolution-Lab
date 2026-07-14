@@ -1,2 +1,0 @@
-/usr/bin/ar qc libnexus_engine.a CMakeFiles/nexus_engine.dir/engine/core/src/engine.cpp.o
-/usr/bin/ranlib libnexus_engine.a

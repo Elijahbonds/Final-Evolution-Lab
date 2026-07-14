@@ -1,1 +1,0 @@
-/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/nexus_realtime_test.dir/link.d CMakeFiles/nexus_realtime_test.dir/tests/unit/core/websocket_test.cpp.o -o nexus_realtime_test  libnexus_core.a

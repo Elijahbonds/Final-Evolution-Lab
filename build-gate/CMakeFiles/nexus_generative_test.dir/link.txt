@@ -1,1 +1,0 @@
-/usr/bin/c++ -O3 -DNDEBUG -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/nexus_generative_test.dir/tests/unit/generative/generative_test.cpp.o -o nexus_generative_test  libnexus_generative.a libnexus_ai_interface.a libnexus_generative.a libnexus_assets.a libnexus_luma.a libnexus_creative.a libnexus_cell.a libnexus_core.a

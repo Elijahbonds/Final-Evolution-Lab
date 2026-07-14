@@ -161,3 +161,6 @@ dataconnect/.dataconnect/
 
 
 build_cell/
+
+# CMake build trees (Copilot committed build-headless/build-story/build-gate twice — never again)
+build-*/

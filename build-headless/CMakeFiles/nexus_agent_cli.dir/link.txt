@@ -1,1 +1,0 @@
-/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/nexus_agent_cli.dir/link.d CMakeFiles/nexus_agent_cli.dir/tools/nexus_agent_cli/main.cpp.o -o nexus_agent_cli  libnexus_agent_cli_lib.a libnexus_gameplay.a libnexus_ai_interface.a libnexus_cell.a -lpthread libnexus_generative.a libnexus_creative.a libnexus_assets.a libnexus_luma.a libnexus_physics.a libnexus_core.a

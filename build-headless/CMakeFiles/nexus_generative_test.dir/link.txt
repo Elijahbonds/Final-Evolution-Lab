@@ -1,1 +1,0 @@
-/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/nexus_generative_test.dir/link.d CMakeFiles/nexus_generative_test.dir/tests/unit/generative/generative_test.cpp.o -o nexus_generative_test  libnexus_generative.a libnexus_ai_interface.a libnexus_generative.a libnexus_assets.a libnexus_luma.a libnexus_creative.a libnexus_cell.a libnexus_core.a -lpthread

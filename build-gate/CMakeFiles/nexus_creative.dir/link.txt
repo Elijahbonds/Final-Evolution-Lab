@@ -1,2 +1,0 @@
-/usr/bin/ar qc libnexus_creative.a CMakeFiles/nexus_creative.dir/engine/creative/src/voxel_world.cpp.o CMakeFiles/nexus_creative.dir/engine/creative/src/world_manipulator.cpp.o
-/usr/bin/ranlib libnexus_creative.a

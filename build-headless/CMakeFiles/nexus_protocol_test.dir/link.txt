@@ -1,1 +1,0 @@
-/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/nexus_protocol_test.dir/link.d CMakeFiles/nexus_protocol_test.dir/tests/unit/ai_interface/command_test.cpp.o -o nexus_protocol_test  libnexus_ai_interface.a libnexus_generative.a libnexus_creative.a libnexus_assets.a libnexus_luma.a libnexus_cell.a libnexus_core.a -lpthread

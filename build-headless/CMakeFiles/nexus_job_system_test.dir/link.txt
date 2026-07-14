@@ -1,1 +1,0 @@
-/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/nexus_job_system_test.dir/link.d CMakeFiles/nexus_job_system_test.dir/tests/unit/core/job_system_test.cpp.o -o nexus_job_system_test  libnexus_core.a
