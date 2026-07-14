@@ -22,6 +22,7 @@ void CourtCarnivalMode::reset() {
   m_diceRolls = 0;
   m_lastDiceValue = 0;
   m_hotPotatoThrows = 0;
+  m_tokenPos = 0;
 }
 
 void CourtCarnivalMode::update(double deltaSeconds) {
@@ -78,17 +79,31 @@ auto CourtCarnivalMode::rollDice() -> Result<nlohmann::json> {
   m_lastDiceValue = dist(rng);
   ++m_diceRolls;
 
+  // Move token on the 3D board.
+  const int prevPos = m_tokenPos;
+  m_tokenPos = (m_tokenPos + m_lastDiceValue) % kBoardSpaceCount;
+
   const int bonus = m_lastDiceValue >= 5 ? 3 : m_lastDiceValue >= 3 ? 1 : 0;
   m_playerScore = std::min(m_playerScore + bonus, kWinScore);
   if (m_playerScore >= kWinScore) {
     m_phase = CarnivalPhase::kMatchWon;
   }
 
+  // Resolve the space the token landed on.
+  resolveSpaceLanding(m_tokenPos);
+
+  const auto& space = kCarnivalBoard[static_cast<std::size_t>(m_tokenPos)];
+  const auto  pos   = space.worldPos;
+
   nlohmann::json payload = stateJson();
   payload["dice"] = {
       {"value", m_lastDiceValue},
       {"bonus_points", bonus},
       {"rolls", m_diceRolls},
+      {"from_space", prevPos},
+      {"to_space", m_tokenPos},
+      {"space_type", spaceTypeLabel(space.type)},
+      {"token_world_pos", {{"x", pos.x}, {"y", pos.y}, {"z", pos.z}}},
   };
   return Result<nlohmann::json>::ok(std::move(payload));
 }
@@ -178,6 +193,8 @@ void CourtCarnivalMode::completeRound(int points) {
 }
 
 auto CourtCarnivalMode::stateJson() const -> nlohmann::json {
+  const auto& space = kCarnivalBoard[static_cast<std::size_t>(m_tokenPos)];
+  const auto  pos   = space.worldPos;
   return {
       {"phase", static_cast<int>(m_phase)},
       {"active_pad", padLabel(m_activePad)},
@@ -190,7 +207,59 @@ auto CourtCarnivalMode::stateJson() const -> nlohmann::json {
       {"last_dice", m_lastDiceValue},
       {"hot_potato_throws", m_hotPotatoThrows},
       {"match_complete", isMatchComplete()},
+      // Board game state
+      {"token_position", m_tokenPos},
+      {"space_type", spaceTypeLabel(space.type)},
+      {"token_world_pos", {{"x", pos.x}, {"y", pos.y}, {"z", pos.z}}},
   };
 }
 
+// ── New board-game helpers ───────────────────────────────────────────────────
+
+auto CourtCarnivalMode::spaceTypeLabel(CarnivalSpaceType t) -> const char* {
+  switch (t) {
+  case CarnivalSpaceType::kTrickShot:   return "trick_shot";
+  case CarnivalSpaceType::kHotPotato:   return "hot_potato";
+  case CarnivalSpaceType::kRhythmBoard: return "rhythm_board";
+  case CarnivalSpaceType::kAtwLandmark: return "atw_landmark";
+  case CarnivalSpaceType::kBonus:       return "bonus";
+  case CarnivalSpaceType::kObstacle:    return "obstacle";
+  }
+  return "unknown";
+}
+
+auto CourtCarnivalMode::spaceTopad(CarnivalSpaceType t) -> CarnivalPad {
+  switch (t) {
+  case CarnivalSpaceType::kHotPotato:   return CarnivalPad::kHotPotato;
+  case CarnivalSpaceType::kRhythmBoard: return CarnivalPad::kRhythmBoard;
+  case CarnivalSpaceType::kAtwLandmark: return CarnivalPad::kAtwLandmark;
+  default:                               return CarnivalPad::kTrickShot;
+  }
+}
+
+void CourtCarnivalMode::resolveSpaceLanding(int spaceIndex) {
+  const auto& space = kCarnivalBoard[static_cast<std::size_t>(spaceIndex)];
+  switch (space.type) {
+  case CarnivalSpaceType::kBonus:
+    // Award bonus points immediately; no pad mini-game needed.
+    m_playerScore = std::min(m_playerScore + space.bonusValue, kWinScore);
+    if (m_playerScore >= kWinScore) {
+      m_phase = CarnivalPhase::kMatchWon;
+    }
+    break;
+  case CarnivalSpaceType::kObstacle:
+    // Opponent gets a free point.
+    m_opponentScore = std::min(m_opponentScore + 1, kWinScore);
+    break;
+  case CarnivalSpaceType::kTrickShot:
+  case CarnivalSpaceType::kHotPotato:
+  case CarnivalSpaceType::kRhythmBoard:
+  case CarnivalSpaceType::kAtwLandmark:
+    // Auto-begin the associated pad round so the player is prompted.
+    beginRound(spaceTopad(space.type));
+    break;
+  }
+}
+
 } // namespace nexus::gameplay
+

@@ -138,6 +138,7 @@ add_library(nexus_gameplay
   app/gameplay/src/fel_bridge_service.cpp
   app/gameplay/src/fel_session_types.cpp
   app/gameplay/src/fitness_data.cpp
+  app/gameplay/src/flight_system.cpp
   app/gameplay/src/game_prompt_adapter.cpp
   app/gameplay/src/gameplay_application.cpp
   app/gameplay/src/gameplay_manager.cpp
@@ -149,12 +150,15 @@ add_library(nexus_gameplay
   app/gameplay/src/outcome_sport_mode.cpp
   app/gameplay/src/prq_engine.cpp
   app/gameplay/src/qte_system.cpp
+  app/gameplay/src/rail_grind_system.cpp
   app/gameplay/src/scan_envelope_mapper.cpp
   app/gameplay/src/session_receipt_client.cpp
   app/gameplay/src/skateboarding_mode.cpp
   app/gameplay/src/character_anim_state.cpp
   app/gameplay/src/snowboarding_mode.cpp
   app/gameplay/src/soccer_mode.cpp
+  app/gameplay/src/stage_stream_manager.cpp
+  app/gameplay/src/story_mode.cpp
   app/gameplay/src/surfing_mode.cpp
   app/gameplay/src/throw_catch_physics.cpp
   app/gameplay/src/venue_volume_registry.cpp

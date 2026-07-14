@@ -12,6 +12,7 @@
 #include "nexus/gameplay/gameplay_manager.h"
 #include "nexus/gameplay/skateboarding_mode.h"
 #include "nexus/gameplay/snowboarding_mode.h"
+#include "nexus/gameplay/story_mode.h"
 #include "nexus/gameplay/surfing_mode.h"
 #include "nexus/gameplay/throw_catch_physics.h"
 #include "nexus/gameplay/venice_pickup_mode.h"
@@ -45,6 +46,7 @@ enum class ActiveModeKind : std::uint8_t {
   kOutcomeSport = 11,
   kSurfing = 12,
   kMarketBrowse = 13,
+  kStoryCarnival = 14,
 };
 
 class ModeRuntime {
@@ -82,6 +84,7 @@ private:
   SurfingMode m_surfing;
   WhoSceneItMode m_whoSceneIt;
   OutcomeSportMode m_outcomeSport;
+  StoryMode m_story;
   std::uint64_t m_lastThrowPulseCount{0};
   std::int32_t m_browseItemsViewed{0};
 };

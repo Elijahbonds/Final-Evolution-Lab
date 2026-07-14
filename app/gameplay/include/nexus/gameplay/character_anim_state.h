@@ -87,6 +87,24 @@ namespace clips {
   inline constexpr std::string_view kSurfCarve    = "surf_carve_cutback";
   inline constexpr std::string_view kSurfAerial   = "surf_aerial_360";
   inline constexpr std::string_view kSurfTube     = "surf_tube_crouch";
+
+  // ── Story / traversal (KH1 + SA2 inspired) ───────────────────────────────
+  // Rail grind clips (Sonic Adventure Battle 2 style)
+  inline constexpr std::string_view kGrindEnter   = "grind_enter_lock";   // snap to rail
+  inline constexpr std::string_view kGrindLoop    = "grind_loop_slide";   // sliding on rail
+  inline constexpr std::string_view kGrindTrick   = "grind_trick_pose";   // mid-rail trick
+  inline constexpr std::string_view kGrindJump    = "grind_jump_exit";    // jump off rail end
+
+  // Flight / glide clips (Kingdom Hearts 1 Glide ability)
+  inline constexpr std::string_view kFlightLaunch = "flight_launch_burst"; // initial takeoff
+  inline constexpr std::string_view kFlightGlide  = "flight_glide_loop";   // sustained glide
+  inline constexpr std::string_view kFlightBoost  = "flight_boost_surge";  // PRQ boost burst
+  inline constexpr std::string_view kFlightLand   = "flight_land_soft";    // touch down
+
+  // Board game traversal
+  inline constexpr std::string_view kBoardMove    = "board_token_hop";     // moving token
+  inline constexpr std::string_view kBoardLand    = "board_token_land";    // landing on space
+  inline constexpr std::string_view kBoardBoss    = "board_boss_ready";    // boss trigger pose
 } // namespace clips
 
 // ──────────────────────────────────────────────────────────────────────────────

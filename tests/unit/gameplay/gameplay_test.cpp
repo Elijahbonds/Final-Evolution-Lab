@@ -403,14 +403,19 @@ void gameplay_update_drains_agent_commands_before_throw_catch() {
 }
 
 void arena_mode_registry_lists_nineteen_modes() {
-  require(nexus::gameplay::ArenaModeRegistry::allModes().size() == 19,
-          "arena registry exposes 19 modes");
+  require(nexus::gameplay::ArenaModeRegistry::allModes().size() == 20,
+          "arena registry exposes 20 modes");
   const auto dunk = nexus::gameplay::ArenaModeRegistry::find("basketball_dunk");
   require(dunk.has_value(), "basketball_dunk found");
   require(dunk->venueToken == "Venice_Beach_Court", "dunk venue token");
   require(dunk->nexusMeshPath.find(".nexusmesh.json") != std::string_view::npos,
           "dunk nexus mesh path");
   require(dunk->legacyUeMapAlias.find("/Game/FEL/Maps/") == 0, "dunk legacy ue alias");
+  const auto story = nexus::gameplay::ArenaModeRegistry::find("story_carnival");
+  require(story.has_value(), "story_carnival registered");
+  require(story->venueToken == "Venice_Beach_Court", "story carnival uses venice venue");
+  require(story->releaseState == nexus::gameplay::ArenaReleaseState::kStaging,
+          "story carnival is staging release");
 }
 
 void arena_mode_registry_production_modes_match_validate_script() {
@@ -1530,6 +1535,91 @@ void flagship_court_carnival_validate_only_integration() {
       gameplay.handleGameplayQuery("fel.query.get_fitness_state", {}, "carnival_fitness_q");
   require(fitnessQuery.payload["throw_catch_hints"].is_object(),
           "fitness query includes throw-catch hints");
+
+  physics.shutdown();
+}
+
+void flagship_story_carnival_validate_only_integration() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  nexus::physics::PhysicsWorld physics;
+  require(physics.init({}).isOk(), "physics init");
+
+  // Registry check
+  const auto mode = nexus::gameplay::ArenaModeRegistry::find("story_carnival");
+  require(mode.has_value(), "story_carnival mode registered");
+  require(mode->venueToken == "Venice_Beach_Court", "story carnival uses venice venue");
+  require(mode->releaseState == nexus::gameplay::ArenaReleaseState::kStaging,
+          "story carnival is staging");
+
+  // Session start
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "story_carnival"}, {"user_id", "flagship_story"}},
+              "story_start")
+              .status == "ok",
+          "story carnival session starts");
+
+  // Roll dice and move token on the 3D board
+  auto roll = gameplay.handleGameplayCommand("fel.story.roll", {}, "story_roll");
+  require(roll.status == "ok", "story roll command ok");
+  require(roll.payload.contains("dice_roll"), "roll contains dice_roll");
+  const int diceVal = roll.payload["dice_roll"]["value"].get<int>();
+  require(diceVal >= 1 && diceVal <= 6, "dice value in valid range");
+  require(roll.payload["dice_roll"].contains("space_type"), "roll reports space type");
+
+  // Jump
+  auto jump = gameplay.handleGameplayCommand("fel.story.jump", {}, "story_jump");
+  require(jump.status == "ok", "story jump ok");
+
+  // Activate flight (requires jumping phase first)
+  auto fly = gameplay.handleGameplayCommand("fel.story.fly", {}, "story_fly");
+  require(fly.status == "ok", "story flight activation ok");
+
+  // Try to grind snap — boardwalk north rail starts at (-12, 1.2, -9.5) in metres
+  // The snap radius is 1.5m; use a position near the rail start.
+  auto grind = gameplay.handleGameplayCommand(
+      "fel.story.grind_snap",
+      {{"x", -11.5F}, {"y", 1.2F}, {"z", -9.5F}},
+      "story_grind");
+  require(grind.status == "ok", "story grind snap ok");
+  require(grind.payload.value("rail_id", "") == "boardwalk_north",
+          "grind snapped to boardwalk_north rail");
+
+  // Mid-grind trick
+  auto trick = gameplay.handleGameplayCommand(
+      "fel.story.grind_trick",
+      {{"trick", "nosegrind"}},
+      "story_trick");
+  require(trick.status == "ok", "story grind trick ok");
+  require(trick.payload["bonus"].get<float>() > 0.0F, "trick bonus > 0");
+
+  // Exit grind
+  auto exitGrind = gameplay.handleGameplayCommand("fel.story.grind_exit", {}, "story_grind_exit");
+  require(exitGrind.status == "ok", "story grind exit ok");
+
+  // Travel to Court Floor zone (id=1)
+  auto travel = gameplay.handleGameplayCommand(
+      "fel.story.travel",
+      {{"zone", 1}},
+      "story_travel");
+  require(travel.status == "ok", "story zone travel ok");
+  require(travel.payload["zone"].get<int>() == 1, "travel zone matches");
+
+  // Advance update ticks to simulate streaming
+  for (int i = 0; i < 5; ++i) {
+    gameplay.update(0.05, physics, {});
+  }
+
+  // HUD poll should report story mode
+  const auto hud = gameplay.handleGameplayQuery("fel.hud.poll", {}, "story_hud");
+  require(hud.payload["payload"]["mode_id"].get<std::string>() == "story_carnival",
+          "hud reports story_carnival mode");
+
+  // Mode-specific payload has story state
+  const auto stateResult = gameplay.handleGameplayCommand("fel.mode.get_state", {}, "story_state");
+  require(stateResult.status == "ok", "get_state ok for story");
 
   physics.shutdown();
 }
@@ -2769,6 +2859,7 @@ auto main() -> int {
   flagship_karate_kata_validate_only_integration();
   flagship_venice_pickup_validate_only_integration();
   flagship_court_carnival_validate_only_integration();
+  flagship_story_carnival_validate_only_integration();
   flagship_gymnastics_validate_only_integration();
   flagship_brain_brawl_validate_only_integration();
   flagship_skateboarding_validate_only_integration();

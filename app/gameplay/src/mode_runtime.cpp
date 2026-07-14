@@ -83,6 +83,9 @@ auto ModeRuntime::setMode(std::string_view modeId) -> Result<void> {
   } else if (modeId == "market_browse") {
     m_kind = ActiveModeKind::kMarketBrowse;
     m_browseItemsViewed = 0;
+  } else if (modeId == "story_carnival") {
+    m_kind = ActiveModeKind::kStoryCarnival;
+    m_story.reset();
   } else if (isOutcomeSportMode(modeId)) {
     m_kind = ActiveModeKind::kOutcomeSport;
     m_outcomeSport.reset(modeId);
@@ -112,6 +115,7 @@ void ModeRuntime::reset() {
   m_surfing.reset();
   m_whoSceneIt.reset();
   m_outcomeSport.reset();
+  m_story.reset();
   m_lastThrowPulseCount = 0;
   m_browseItemsViewed = 0;
 }
@@ -140,6 +144,8 @@ void ModeRuntime::update(double deltaSeconds) {
     m_whoSceneIt.update(deltaSeconds);
   } else if (m_kind == ActiveModeKind::kOutcomeSport) {
     m_outcomeSport.update(deltaSeconds);
+  } else if (m_kind == ActiveModeKind::kStoryCarnival) {
+    m_story.update(deltaSeconds);
   }
 }
 
@@ -488,6 +494,58 @@ auto ModeRuntime::handleCommand(std::string_view command, const nlohmann::json& 
     }
   }
 
+  if (m_kind == ActiveModeKind::kStoryCarnival) {
+    if (command == "fel.story.roll") {
+      return m_story.rollAndMove();
+    }
+    if (command == "fel.story.jump") {
+      return m_story.jump();
+    }
+    if (command == "fel.story.fly") {
+      return m_story.activateFlight();
+    }
+    if (command == "fel.story.fly_boost") {
+      return m_story.triggerFlightBoost();
+    }
+    if (command == "fel.story.grind_snap") {
+      const float px = params.value("x", 0.0F);
+      const float py = params.value("y", 0.0F);
+      const float pz = params.value("z", 0.0F);
+      return m_story.tryGrindSnap(px, py, pz);
+    }
+    if (command == "fel.story.grind_trick") {
+      const std::string trick = params.value("trick", "nosegrind");
+      return m_story.grindTrick(trick);
+    }
+    if (command == "fel.story.grind_exit") {
+      return m_story.exitGrind();
+    }
+    if (command == "fel.story.boss_enter") {
+      return m_story.enterBossZone();
+    }
+    if (command == "fel.story.boss_combat") {
+      const std::string actionStr = params.value("action", "light_strike");
+      CombatAction action = CombatAction::kLightStrike;
+      if (actionStr == "heavy_strike") {
+        action = CombatAction::kHeavyStrike;
+      } else if (actionStr == "block") {
+        action = CombatAction::kBlock;
+      } else if (actionStr == "dodge") {
+        action = CombatAction::kDodge;
+      } else if (actionStr == "counter") {
+        action = CombatAction::kCounter;
+      }
+      return m_story.bossCombat(action);
+    }
+    if (command == "fel.story.travel") {
+      const int zoneInt = params.value("zone", 0);
+      if (zoneInt < 0 || zoneInt >= static_cast<int>(StageZoneId::kCount)) {
+        return Result<nlohmann::json>::err("invalid zone id");
+      }
+      return m_story.travelToZone(static_cast<StageZoneId>(zoneInt));
+    }
+  }
+
   if (command == "fel.mode.get_state") {
     return Result<nlohmann::json>::ok(stateJson());
   }
@@ -575,6 +633,9 @@ auto ModeRuntime::shouldAutoEndSession() const -> bool {
   }
   if (m_kind == ActiveModeKind::kOutcomeSport) {
     return m_outcomeSport.isMatchComplete();
+  }
+  if (m_kind == ActiveModeKind::kStoryCarnival) {
+    return m_story.isComplete();
   }
   if (m_kind == ActiveModeKind::kMarketBrowse) {
     return false;
@@ -738,6 +799,9 @@ auto ModeRuntime::modeSpecificPayload() const -> nlohmann::json {
   }
   if (m_kind == ActiveModeKind::kOutcomeSport) {
     return {{"outcome_sport", m_outcomeSport.stateJson()}};
+  }
+  if (m_kind == ActiveModeKind::kStoryCarnival) {
+    return {{"story", m_story.stateJson()}};
   }
   return nlohmann::json::object();
 }
