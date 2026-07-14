@@ -110,6 +110,41 @@ merge source.
    otherwise they're inventory, not progress.
 Everything else (story mode, board game, committed artifacts): leave on the branch.
 
+### SECOND AUDIT — 6 newer commits `a2bc8a4..058fa2c` (audited 2026-07-15)
+
+**Gate re-verified on tip `058fa2c`: 16/16 ctest green** (two new suites:
+`cell_test` 225 lines, `dunk_contest_test` 295 lines). All 9 new `.cpp` files
+wired into CMake.
+
+**Headline: Copilot implemented the cost doctrine** (`abe1d55`) — this is now the
+TOP cherry-pick after the security fixes:
+- `engine/cell`: **BudgetMeter** (per-subsystem caps), **MasteryTracker** (real
+  Bayesian Knowledge Tracing per user×skill — the doctrine's deterministic
+  sequencing math), **BatchLearner** (nightly batch), ExperienceLedger,
+  WisdomStore, SelfImprovementScheduler, ResearchLoop.
+- `runtime/nexus`: **LessonQueue** + **ProviderRouter** with role-based routes and
+  `lesson_serve → {}` (deterministic/cached, no LLM in the serve path — doctrine
+  rule 2 honored).
+- `tools/`: nexus-evals with golden-set fixtures, nexus-author, cell-distill.
+- **⚠ Gap to fix when porting: ProviderRouter has NO compliance denylist.** The
+  doctrine's hard rule (no Neuromechanic/biometric/likeness/EU-AI-Act content to
+  Tencent-hosted providers) must be added to the router before any Tencent
+  provider entry exists.
+
+Also on it:
+- `c130fff` dunk C++ (miss path, combo multiplier, ghost difficulty) — clean work,
+  left `TODO(elijah)` on tuning constants as required. Note this is the **C++
+  dunk**, not the web Babylon slice.
+- `971e21f` Swift karate + skate/snow/surf view enhancements (678 lines, iOS
+  runtime — off the priority track but self-contained).
+- `058fa2c` 591-line per-mode inspiration audit doc.
+- `a2bc8a4` Copilot committed the standing-discipline COPILOT.md… then violated
+  its rule 2 **fourteen minutes later** with a full `build-gate/` dump (`a7ae364`,
+  556 files) plus more artifacts inside `c130fff` (~200k lines total).
+  **Enforcement is now mechanical, not prose:** `nexus/platform-core` commit
+  `9462126` purged 1,261 previously-tracked artifacts and gitignores `build-*/`,
+  so artifact dumps can no longer merge. Strip them when cherry-picking.
+
 ---
 
 
