@@ -46,6 +46,262 @@ private enum DunkGamePhase {
 
 private let TOTAL_ROUNDS = 3
 
+// MARK: - Mocap-Driven Pose System
+// Keyframe data represents key body positions sampled from mocap recordings.
+// All coordinate offsets are in canvas-space pixels relative to the figure's anchor points.
+
+private struct DunkBodyPose {
+    var dunkerArmX: CGFloat     // dunking arm endpoint X relative to shoulderX
+    var dunkerArmY: CGFloat     // dunking arm endpoint Y relative to shoulderY (negative = up)
+    var offArmX: CGFloat        // off-arm endpoint X relative to shoulderX
+    var offArmY: CGFloat        // off-arm endpoint Y relative to shoulderY
+    var leadKneeX: CGFloat      // lead knee X relative to hipX
+    var leadKneeY: CGFloat      // lead knee Y relative to hipY (positive = down)
+    var leadFootX: CGFloat      // lead foot X relative to hipX
+    var trailKneeX: CGFloat
+    var trailKneeY: CGFloat
+    var trailFootX: CGFloat
+    var torsoLeanX: CGFloat     // horizontal lean of shoulder vs hip
+    var hipTuckY: CGFloat       // upward tuck of entire body (positive = figure rises higher)
+    var tongueOut: Bool
+
+    static func lerp(_ a: DunkBodyPose, _ b: DunkBodyPose, _ t: Double) -> DunkBodyPose {
+        let u = CGFloat(max(0, min(1, t)))
+        return DunkBodyPose(
+            dunkerArmX:  a.dunkerArmX  + (b.dunkerArmX  - a.dunkerArmX)  * u,
+            dunkerArmY:  a.dunkerArmY  + (b.dunkerArmY  - a.dunkerArmY)  * u,
+            offArmX:     a.offArmX     + (b.offArmX     - a.offArmX)     * u,
+            offArmY:     a.offArmY     + (b.offArmY     - a.offArmY)     * u,
+            leadKneeX:   a.leadKneeX   + (b.leadKneeX   - a.leadKneeX)   * u,
+            leadKneeY:   a.leadKneeY   + (b.leadKneeY   - a.leadKneeY)   * u,
+            leadFootX:   a.leadFootX   + (b.leadFootX   - a.leadFootX)   * u,
+            trailKneeX:  a.trailKneeX  + (b.trailKneeX  - a.trailKneeX)  * u,
+            trailKneeY:  a.trailKneeY  + (b.trailKneeY  - a.trailKneeY)  * u,
+            trailFootX:  a.trailFootX  + (b.trailFootX  - a.trailFootX)  * u,
+            torsoLeanX:  a.torsoLeanX  + (b.torsoLeanX  - a.torsoLeanX)  * u,
+            hipTuckY:    a.hipTuckY    + (b.hipTuckY    - a.hipTuckY)    * u,
+            tongueOut: t > 0.5 ? b.tongueOut : a.tongueOut
+        )
+    }
+}
+
+/// Mocap-inspired pose keyframe library — 6 phases per trick.
+/// Phase bands map to execProgress: [0–15%] gather, [15–35%] launch, [35–55%] rise,
+/// [55–70%] apex, [70–85%] descend, [85–100%] impact.
+private enum DunkPoseLibrary {
+
+    static func pose(trickId: String, execProgress: Double) -> DunkBodyPose {
+        let kf = keyframes(for: trickId)
+        let segs: [(lo: Double, hi: Double, idx: Int)] = [
+            (0.00, 0.15, 0), (0.15, 0.35, 1), (0.35, 0.55, 2),
+            (0.55, 0.70, 3), (0.70, 0.85, 4), (0.85, 1.00, 5),
+        ]
+        for seg in segs where execProgress <= seg.hi {
+            let blend = (execProgress - seg.lo) / (seg.hi - seg.lo)
+            let next = min(seg.idx + 1, kf.count - 1)
+            return DunkBodyPose.lerp(kf[seg.idx], kf[next], blend)
+        }
+        return kf.last ?? kf[0]
+    }
+
+    // ── Shared base poses ────────────────────────────────────────────────────
+
+    // Gather: explosive crouch loading the jump
+    private static let pGather = DunkBodyPose(
+        dunkerArmX: 33, dunkerArmY: -10, offArmX: -26, offArmY: 18,
+        leadKneeX: 20, leadKneeY: 13, leadFootX: 12,
+        trailKneeX: -20, trailKneeY: 13, trailFootX: -12,
+        torsoLeanX: 3, hipTuckY: 0, tongueOut: false)
+
+    // Launch: ground-leave explosion
+    private static let pLaunch = DunkBodyPose(
+        dunkerArmX: 28, dunkerArmY: -26, offArmX: -24, offArmY: 10,
+        leadKneeX: 16, leadKneeY: -4, leadFootX: 9,
+        trailKneeX: -16, trailKneeY: -4, trailFootX: -9,
+        torsoLeanX: 5, hipTuckY: 6, tongueOut: false)
+
+    // Common slam impact
+    private static let pImpact = DunkBodyPose(
+        dunkerArmX: -34, dunkerArmY: -16, offArmX: -18, offArmY: 14,
+        leadKneeX: 10, leadKneeY: 2, leadFootX: 6,
+        trailKneeX: -10, trailKneeY: 2, trailFootX: -6,
+        torsoLeanX: 3, hipTuckY: 0, tongueOut: true)
+
+    // ── Per-trick keyframe banks (6 poses each) ──────────────────────────────
+
+    private static func keyframes(for trickId: String) -> [DunkBodyPose] {
+        switch trickId {
+
+        // ── Windmill: arm sweeps full circle over the top ────────────────────
+        case "windmill":
+            return [
+                pGather,
+                pLaunch,
+                // rise — arm sweeping wide to the right in windmill arc
+                DunkBodyPose(dunkerArmX: 42, dunkerArmY: -18, offArmX: -18, offArmY: -4,
+                             leadKneeX: 16, leadKneeY: -7, leadFootX: 9,
+                             trailKneeX: -16, trailKneeY: -7, trailFootX: -9,
+                             torsoLeanX: 7, hipTuckY: 10, tongueOut: false),
+                // apex — arm crests overhead (left side of circle), full extension
+                DunkBodyPose(dunkerArmX: -5, dunkerArmY: -44, offArmX: 36, offArmY: -16,
+                             leadKneeX: 14, leadKneeY: -10, leadFootX: 8,
+                             trailKneeX: -14, trailKneeY: -10, trailFootX: -8,
+                             torsoLeanX: 9, hipTuckY: 14, tongueOut: true),
+                // descend — arm completing circle, driving toward rim
+                DunkBodyPose(dunkerArmX: -28, dunkerArmY: -24, offArmX: -16, offArmY: 2,
+                             leadKneeX: 12, leadKneeY: -5, leadFootX: 8,
+                             trailKneeX: -12, trailKneeY: -5, trailFootX: -8,
+                             torsoLeanX: 5, hipTuckY: 8, tongueOut: true),
+                pImpact,
+            ]
+
+        // ── 360: full body rotation, arms spread wide ────────────────────────
+        case "three_sixty":
+            return [
+                pGather,
+                pLaunch,
+                // rise — both arms spread for spin momentum
+                DunkBodyPose(dunkerArmX: 40, dunkerArmY: -12, offArmX: -40, offArmY: -10,
+                             leadKneeX: 18, leadKneeY: -8, leadFootX: 12,
+                             trailKneeX: -18, trailKneeY: -8, trailFootX: -12,
+                             torsoLeanX: 0, hipTuckY: 10, tongueOut: false),
+                // apex — mid-360, both arms wide, legs tucked and spread
+                DunkBodyPose(dunkerArmX: -3, dunkerArmY: -44, offArmX: 5, offArmY: -42,
+                             leadKneeX: 22, leadKneeY: -11, leadFootX: 15,
+                             trailKneeX: -22, trailKneeY: -11, trailFootX: -15,
+                             torsoLeanX: -2, hipTuckY: 15, tongueOut: false),
+                // descend — coming out of spin, collecting toward rim
+                DunkBodyPose(dunkerArmX: -18, dunkerArmY: -36, offArmX: -30, offArmY: -8,
+                             leadKneeX: 14, leadKneeY: -6, leadFootX: 9,
+                             trailKneeX: -14, trailKneeY: -6, trailFootX: -9,
+                             torsoLeanX: 3, hipTuckY: 9, tongueOut: false),
+                pImpact,
+            ]
+
+        // ── Between-Legs: deep forward lean, ball threads under ──────────────
+        case "between_legs":
+            return [
+                pGather,
+                // launch — aggressive forward lean
+                DunkBodyPose(dunkerArmX: 22, dunkerArmY: -14, offArmX: -22, offArmY: 14,
+                             leadKneeX: 18, leadKneeY: 0, leadFootX: 12,
+                             trailKneeX: -18, trailKneeY: 0, trailFootX: -12,
+                             torsoLeanX: 7, hipTuckY: 4, tongueOut: false),
+                // rise — arms dropping, legs spreading for window
+                DunkBodyPose(dunkerArmX: 14, dunkerArmY: 6, offArmX: -12, offArmY: 4,
+                             leadKneeX: 26, leadKneeY: -12, leadFootX: 19,
+                             trailKneeX: -26, trailKneeY: -12, trailFootX: -19,
+                             torsoLeanX: 12, hipTuckY: 9, tongueOut: false),
+                // apex — ball threaded under, deep body lean, legs max spread
+                DunkBodyPose(dunkerArmX: 10, dunkerArmY: 10, offArmX: -9, offArmY: 8,
+                             leadKneeX: 28, leadKneeY: -15, leadFootX: 21,
+                             trailKneeX: -28, trailKneeY: -15, trailFootX: -21,
+                             torsoLeanX: 16, hipTuckY: 13, tongueOut: true),
+                // descend — arm swings overhead with ball to jam
+                DunkBodyPose(dunkerArmX: -12, dunkerArmY: -30, offArmX: -22, offArmY: -4,
+                             leadKneeX: 14, leadKneeY: -8, leadFootX: 9,
+                             trailKneeX: -14, trailKneeY: -8, trailFootX: -9,
+                             torsoLeanX: 9, hipTuckY: 10, tongueOut: true),
+                pImpact,
+            ]
+
+        // ── Reverse Jam: full backward arch ──────────────────────────────────
+        case "reverse":
+            return [
+                // gather — body starting to rotate backward
+                DunkBodyPose(dunkerArmX: 28, dunkerArmY: -12, offArmX: 22, offArmY: -8,
+                             leadKneeX: 20, leadKneeY: 12, leadFootX: 12,
+                             trailKneeX: -20, trailKneeY: 12, trailFootX: -12,
+                             torsoLeanX: -5, hipTuckY: 0, tongueOut: false),
+                // launch — turning, backward lean building
+                DunkBodyPose(dunkerArmX: 20, dunkerArmY: -22, offArmX: 18, offArmY: -6,
+                             leadKneeX: 15, leadKneeY: -2, leadFootX: 9,
+                             trailKneeX: -15, trailKneeY: -2, trailFootX: -9,
+                             torsoLeanX: -10, hipTuckY: 5, tongueOut: false),
+                // rise — arching back, arm extending behind body
+                DunkBodyPose(dunkerArmX: 16, dunkerArmY: -34, offArmX: 30, offArmY: -14,
+                             leadKneeX: 13, leadKneeY: -8, leadFootX: 8,
+                             trailKneeX: -13, trailKneeY: -8, trailFootX: -8,
+                             torsoLeanX: -14, hipTuckY: 10, tongueOut: false),
+                // apex — full backward arch, arm overhead going backward
+                DunkBodyPose(dunkerArmX: 7, dunkerArmY: -42, offArmX: 33, offArmY: -20,
+                             leadKneeX: 12, leadKneeY: -9, leadFootX: 7,
+                             trailKneeX: -12, trailKneeY: -9, trailFootX: -7,
+                             torsoLeanX: -18, hipTuckY: 13, tongueOut: false),
+                // descend — arm swinging backward through
+                DunkBodyPose(dunkerArmX: -8, dunkerArmY: -36, offArmX: 20, offArmY: -6,
+                             leadKneeX: 12, leadKneeY: -4, leadFootX: 8,
+                             trailKneeX: -12, trailKneeY: -4, trailFootX: -8,
+                             torsoLeanX: -12, hipTuckY: 7, tongueOut: false),
+                DunkBodyPose(dunkerArmX: -30, dunkerArmY: -20, offArmX: 14, offArmY: 8,
+                             leadKneeX: 10, leadKneeY: 0, leadFootX: 6,
+                             trailKneeX: -10, trailKneeY: 0, trailFootX: -6,
+                             torsoLeanX: -7, hipTuckY: 1, tongueOut: false),
+            ]
+
+        // ── Alley-Oop: both hands go up to catch then jam ────────────────────
+        case "alley_oop":
+            return [
+                pGather,
+                pLaunch,
+                // rise — both arms reaching high to catch the lob
+                DunkBodyPose(dunkerArmX: 24, dunkerArmY: -34, offArmX: -17, offArmY: -30,
+                             leadKneeX: 16, leadKneeY: -7, leadFootX: 9,
+                             trailKneeX: -16, trailKneeY: -7, trailFootX: -9,
+                             torsoLeanX: 2, hipTuckY: 10, tongueOut: false),
+                // apex — both hands overhead catching, about to jam
+                DunkBodyPose(dunkerArmX: 10, dunkerArmY: -45, offArmX: -5, offArmY: -43,
+                             leadKneeX: 14, leadKneeY: -9, leadFootX: 8,
+                             trailKneeX: -14, trailKneeY: -9, trailFootX: -8,
+                             torsoLeanX: 0, hipTuckY: 15, tongueOut: true),
+                // descend — both arms driving down to rim together
+                DunkBodyPose(dunkerArmX: -14, dunkerArmY: -37, offArmX: -8, offArmY: -31,
+                             leadKneeX: 12, leadKneeY: -5, leadFootX: 8,
+                             trailKneeX: -12, trailKneeY: -5, trailFootX: -8,
+                             torsoLeanX: 2, hipTuckY: 9, tongueOut: true),
+                DunkBodyPose(dunkerArmX: -32, dunkerArmY: -20, offArmX: -14, offArmY: -10,
+                             leadKneeX: 10, leadKneeY: 0, leadFootX: 6,
+                             trailKneeX: -10, trailKneeY: 0, trailFootX: -6,
+                             torsoLeanX: 2, hipTuckY: 2, tongueOut: true),
+            ]
+
+        // ── Power Slam / Tomahawk: pure single-arm aggression ────────────────
+        case "power_slam", "tomahawk":
+            return [
+                // gather — ball cocked back behind shoulder for max power
+                DunkBodyPose(dunkerArmX: 37, dunkerArmY: -8, offArmX: -24, offArmY: 16,
+                             leadKneeX: 20, leadKneeY: 13, leadFootX: 12,
+                             trailKneeX: -20, trailKneeY: 13, trailFootX: -12,
+                             torsoLeanX: 5, hipTuckY: 0, tongueOut: false),
+                // launch — driving up, arm starting to come overhead
+                DunkBodyPose(dunkerArmX: 26, dunkerArmY: -26, offArmX: -22, offArmY: 8,
+                             leadKneeX: 16, leadKneeY: -4, leadFootX: 9,
+                             trailKneeX: -16, trailKneeY: -4, trailFootX: -9,
+                             torsoLeanX: 7, hipTuckY: 6, tongueOut: false),
+                // rise — arm powerfully driving overhead
+                DunkBodyPose(dunkerArmX: 9, dunkerArmY: -40, offArmX: -20, offArmY: -2,
+                             leadKneeX: 15, leadKneeY: -8, leadFootX: 8,
+                             trailKneeX: -15, trailKneeY: -8, trailFootX: -8,
+                             torsoLeanX: 9, hipTuckY: 12, tongueOut: true),
+                // apex — arm FULLY overhead, maximum extension (MJ pose)
+                DunkBodyPose(dunkerArmX: 2, dunkerArmY: -45, offArmX: -17, offArmY: 4,
+                             leadKneeX: 14, leadKneeY: -10, leadFootX: 8,
+                             trailKneeX: -14, trailKneeY: -10, trailFootX: -8,
+                             torsoLeanX: 11, hipTuckY: 15, tongueOut: true),
+                // descend — arm explosively driving down into the rim
+                DunkBodyPose(dunkerArmX: -16, dunkerArmY: -35, offArmX: -17, offArmY: 6,
+                             leadKneeX: 12, leadKneeY: -5, leadFootX: 8,
+                             trailKneeX: -12, trailKneeY: -5, trailFootX: -8,
+                             torsoLeanX: 9, hipTuckY: 8, tongueOut: true),
+                pImpact,
+            ]
+
+        default:
+            return keyframes(for: "power_slam")
+        }
+    }
+}
+
 // MARK: - Court Canvas
 
 private struct DunkCourtCanvas: View {
@@ -56,6 +312,8 @@ private struct DunkCourtCanvas: View {
     let isPerfect: Bool
     let postDunk: Bool
     let selectedStyleName: String
+    let trickId: String
+    let bulletTime: Bool
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -64,7 +322,8 @@ private struct DunkCourtCanvas: View {
                 var d = CourtDraw(size: size, t: t, phase: phase,
                                   power: powerLevel, exec: execProgress,
                                   crowd: crowdLevel, perfect: isPerfect,
-                                  postDunk: postDunk, styleName: selectedStyleName)
+                                  postDunk: postDunk, styleName: selectedStyleName,
+                                  trickId: trickId, bulletTime: bulletTime)
                 d.render(into: &ctx)
             }
         }
@@ -79,6 +338,8 @@ private struct CourtDraw {
     let power: Double; let exec: Double
     let crowd: Double; let perfect: Bool; let postDunk: Bool
     let styleName: String
+    let trickId: String
+    let bulletTime: Bool
 
     var W: CGFloat { size.width }
     var H: CGFloat { size.height }
