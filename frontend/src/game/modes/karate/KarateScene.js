@@ -21,8 +21,7 @@ async function loadBabylonCore() {
   babylonModulePromise = (async () => {
     if (typeof window !== 'undefined' && window.BABYLON) return window.BABYLON;
     try {
-      const importer = new Function('specifier', 'return import(specifier);');
-      return await importer('@babylonjs/core');
+      return await import('@babylonjs/core');
     } catch { return null; }
   })();
   return babylonModulePromise;

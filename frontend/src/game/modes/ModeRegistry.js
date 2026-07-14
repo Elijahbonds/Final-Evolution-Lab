@@ -8,15 +8,11 @@ import { FootballMode } from './football/index.js';
 import { VolleyballMode } from './volleyball/index.js';
 import { BaseballMode } from './baseball/index.js';
 
+// v1 hero modes only — other implemented modes stay registered but gated
+// until the dunk core loop is proven fun. Re-add ids here as modes graduate.
 const LIVE_MODE_IDS = new Set([
   'basketball_dunk',
-  'golf',
   'karate',
-  'soccer',
-  'tennis',
-  'football',
-  'volleyball',
-  'baseball',
 ]);
 
 function cloneStub(modeEntry, canvas) {
@@ -115,9 +111,14 @@ export function getMode(modeId, canvas) {
     throw new Error('Unknown mode: ' + modeId);
   }
 
-  return isLive(modeId)
-    ? instantiateMode(modeEntry, modeId, canvas)
-    : cloneStub(modeEntry, canvas ?? null);
+  if (isLive(modeId)) {
+    return instantiateMode(modeEntry, modeId, canvas);
+  }
+
+  // Gated modes: class entries get a fresh stub so callers see a uniform
+  // not-yet-live contract instead of a half-spread constructor.
+  const stubEntry = typeof modeEntry === 'function' ? createStub(modeId) : modeEntry;
+  return cloneStub(stubEntry, canvas ?? null);
 }
 
 /**

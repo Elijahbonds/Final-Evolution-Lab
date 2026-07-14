@@ -1,4 +1,3 @@
-// TODO: npm install @babylonjs/core before running
 // Premium DunkingScene — Venice Beach Court with full 3D production quality.
 // Mirrors iOS GameSceneHostView + CourtSceneView scenic passes.
 //
@@ -22,8 +21,7 @@ async function loadBabylonCore() {
   babylonModulePromise = (async () => {
     if (typeof window !== 'undefined' && window.BABYLON) return window.BABYLON;
     try {
-      const importer = new Function('specifier', 'return import(specifier);');
-      return await importer('@babylonjs/core');
+      return await import('@babylonjs/core');
     } catch { return null; }
   })();
   return babylonModulePromise;
