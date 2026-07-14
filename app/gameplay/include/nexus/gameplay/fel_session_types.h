@@ -1,8 +1,16 @@
 // NEXUS port of archived FEL session types
 #pragma once
 
+
+#include <cstdint>
+
 #include <nlohmann/json.hpp>
 #include <string>
+
+// GCC 13.3 workaround: forward-declare enum classes before large STL includes.
+namespace nexus { namespace gameplay {
+  enum class MatchOutcome : std::uint8_t;
+} } // namespace nexus::gameplay
 
 namespace nexus::gameplay {
 

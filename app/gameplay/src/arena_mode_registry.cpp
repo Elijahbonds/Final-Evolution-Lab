@@ -120,7 +120,7 @@ constexpr std::array<ArenaModeConfig, 19> kModes{{
      .scoringEnabled = true,
      .releaseState = ArenaReleaseState::kProduction},
     {.id = "volleyball",
-     .displayName = "Rally Ace",
+     .displayName = "Beach Volleyball",
      .venueToken = "Sand_Court",
      .vaultDisplayMode = "volleyball",
      .nexusMeshPath = "assets/nexus/imported/volleyball_sand_court_environment_model_fbx_mobile.nexusmesh.json",

@@ -6,6 +6,11 @@
 #include <nlohmann/json.hpp>
 #include <cstdint>
 
+// GCC 13.3 workaround: forward-declare enum classes before large STL includes.
+namespace nexus { namespace gameplay {
+  enum class SnowPhase : std::uint8_t;
+} } // namespace nexus::gameplay
+
 namespace nexus::gameplay {
 
 enum class SnowPhase : std::uint8_t {
@@ -24,6 +29,9 @@ public:
   auto carve(float timing, float lineDifficulty) -> Result<nlohmann::json>;
   auto jump(float airDifficulty, int32_t comboMultiplier) -> Result<nlohmann::json>;
   auto butter(float style) -> Result<nlohmann::json>;
+  /// Grab during a jump — adds style multiplier and flow bonus.
+  /// grabName: "indy", "melon", "stalefish", "mute", "tail", "nose" (others treated as generic).
+  auto grab(std::string_view grabName, float timing) -> Result<nlohmann::json>;
   auto wipeout() -> Result<nlohmann::json>;
 
   [[nodiscard]] auto lineScore() const -> int32_t { return static_cast<int32_t>(m_lineScore); }
@@ -40,6 +48,7 @@ private:
   int32_t m_carvesLanded{0};
   int32_t m_jumpsLanded{0};
   int32_t m_butterMoves{0};
+  int32_t m_grabs{0};
   int32_t m_wipeouts{0};
   int32_t m_peakCombo{1};
 };

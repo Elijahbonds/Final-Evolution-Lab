@@ -19,6 +19,7 @@ void SnowboardingMode::reset() {
   m_carvesLanded = 0;
   m_jumpsLanded = 0;
   m_butterMoves = 0;
+  m_grabs = 0;
   m_wipeouts = 0;
   m_peakCombo = 1;
 }
@@ -133,6 +134,56 @@ auto SnowboardingMode::butter(float style) -> Result<nlohmann::json> {
   return Result<nlohmann::json>::ok(std::move(payload));
 }
 
+auto SnowboardingMode::grab(std::string_view grabName, float timing) -> Result<nlohmann::json> {
+  if (m_phase == SnowPhase::kRunComplete) {
+    return Result<nlohmann::json>::err("snow run already complete");
+  }
+
+  const float t = std::clamp(timing, 0.0F, 1.0F);
+
+  // Style multiplier by grab type: technical grabs score higher.
+  float styleMultiplier = 1.0F;
+  if (grabName == "stalefish" || grabName == "mute") {
+    styleMultiplier = 1.15F;
+  } else if (grabName == "tail" || grabName == "nose") {
+    styleMultiplier = 1.25F;
+  }
+
+  const float timingFactor = t >= kTimingPerfectThreshold ? 1.2F
+                             : t >= kTimingGoodThreshold  ? 1.0F
+                                                          : 0.75F;
+  const float flowBoost = 1.0F + m_flowMeter * 0.3F;
+  const float points = 6.0F * styleMultiplier * timingFactor * flowBoost;
+  m_lineScore += points;
+  ++m_grabs;
+  m_flowMeter = std::clamp(m_flowMeter + 0.10F, 0.0F, 1.0F);
+
+  if (static_cast<int32_t>(m_lineScore) >= kWinScore) {
+    m_phase = SnowPhase::kRunComplete;
+  }
+
+  const std::string grade = t >= kTimingPerfectThreshold ? "perfect"
+                            : t >= kTimingGoodThreshold  ? "good"
+                                                         : "miss";
+  nlohmann::json payload = nlohmann::json::object();
+  payload.merge_patch(stateJson());
+  payload["grab"] = {
+      {"name", std::string(grabName)},
+      {"timing", t},
+      {"grade", grade},
+      {"style_multiplier", styleMultiplier},
+      {"points", points},
+      {"flow_meter", m_flowMeter},
+  };
+  payload["agent_envelope"] = {
+      {"command", "fel.snow.grab"},
+      {"grab_name", std::string(grabName)},
+      {"grabs", m_grabs},
+      {"line_score", static_cast<int32_t>(m_lineScore)},
+  };
+  return Result<nlohmann::json>::ok(std::move(payload));
+}
+
 auto SnowboardingMode::wipeout() -> Result<nlohmann::json> {
   if (m_phase == SnowPhase::kRunComplete) {
     return Result<nlohmann::json>::err("snow run already complete");
@@ -168,6 +219,7 @@ auto SnowboardingMode::stateJson() const -> nlohmann::json {
   out["carves_landed"] = m_carvesLanded;
   out["jumps_landed"] = m_jumpsLanded;
   out["butter_moves"] = m_butterMoves;
+  out["grabs"] = m_grabs;
   out["wipeouts"] = m_wipeouts;
   out["max_wipeouts"] = kMaxWipeouts;
   out["run_complete"] = isRunComplete();

@@ -1,7 +1,13 @@
 // Spec §2.2 / Appendix C — apex tap QTE grading
 #pragma once
 
+#include <cstdint>
 #include <string_view>
+
+// GCC 13.3 workaround: forward-declare enum class before result.h template specialisations.
+namespace nexus { namespace gameplay {
+  enum class QTEGrade : std::uint8_t;
+} } // namespace nexus::gameplay
 
 namespace nexus::gameplay {
 

@@ -13,6 +13,8 @@ constexpr float kLaunchSpeedMin = 8.0F;
 constexpr float kLaunchSpeedMax = 14.0F;
 constexpr float kHangGravityScale = 0.65F;
 constexpr float kChargeRate = 1.8F;
+// Ghost opponent dunks roughly every 7 seconds of idle time, scoring 2–4 pts each dunk.
+constexpr float kGhostDunkInterval = 7.0F;
 
 } // namespace
 
@@ -22,7 +24,9 @@ void DunkContestMode::reset() {
   m_airTimeSeconds = 0.0F;
   m_phaseTimer = 0.0F;
   m_playerScore = 0;
-  m_opponentScore = 15;
+  m_opponentScore = 0;
+  m_ghostTimer = 0.0F;
+  m_ghostDunks = 0;
   m_pendingStyle = DunkStyle::kStandard;
   m_dunkHistory.clear();
 }
@@ -72,6 +76,15 @@ void DunkContestMode::update(double deltaSeconds, const ArcadePhysicsParams& phy
   if (m_phase == DunkPhase::kScored && m_phaseTimer >= 0.35F) {
     m_phase = DunkPhase::kIdle;
     m_phaseTimer = 0.0F;
+  }
+
+  // Ghost opponent dunks during idle time to create real score pressure.
+  if (m_phase == DunkPhase::kIdle && m_phase != DunkPhase::kMatchWon) {
+    m_ghostTimer += static_cast<float>(deltaSeconds);
+    if (m_ghostTimer >= kGhostDunkInterval) {
+      m_ghostTimer = 0.0F;
+      advanceGhostOpponent();
+    }
   }
 }
 
@@ -159,6 +172,20 @@ auto DunkContestMode::onRegisterSignature(const std::string& animationId, const 
   return Result<void>::ok();
 }
 
+void DunkContestMode::advanceGhostOpponent() {
+  if (m_phase == DunkPhase::kMatchWon) {
+    return;
+  }
+  // Ghost opponent skill scales with each successive dunk: early dunks score 2 pts,
+  // later dunks may score 3–4 pts to mount pressure as the match progresses.
+  const int base = 2 + std::min(m_ghostDunks / 3, 2);
+  m_opponentScore += base;
+  ++m_ghostDunks;
+  if (m_opponentScore >= kWinScore) {
+    m_phase = DunkPhase::kMatchWon;
+  }
+}
+
 auto DunkContestMode::stateJson() const -> nlohmann::json {
   nlohmann::json dunks = nlohmann::json::array();
   for (const DunkResult& dunk : m_dunkHistory) {
@@ -180,6 +207,7 @@ auto DunkContestMode::stateJson() const -> nlohmann::json {
       {"dunk_details", std::move(dunks)},
       {"signature_animation_id", m_signatureAnimationId},
       {"signature_keyframes", m_signatureKeyframes},
+      {"ghost_dunks", m_ghostDunks},
   };
 }
 

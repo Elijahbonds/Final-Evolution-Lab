@@ -1,6 +1,14 @@
 // Spec §2.2 P0 — Dunk Contest charge → jump → dunk → score loop
 #pragma once
 
+#include <cstdint>
+
+// GCC 13.3 workaround: forward-declare enum classes before large STL includes.
+namespace nexus { namespace gameplay {
+  enum class DunkStyle : std::uint8_t;
+  enum class DunkPhase : std::uint8_t;
+} } // namespace nexus::gameplay
+
 #include "nexus/core/result.h"
 #include "nexus/gameplay/arcade_physics.h"
 #include "nexus/gameplay/qte_system.h"
@@ -60,13 +68,16 @@ private:
   [[nodiscard]] auto calculateDunkPoints(const DunkResult& dunk,
                                            const ArcadePhysicsParams& physics) const -> int;
   void completeDunk(const ArcadePhysicsParams& physics);
+  void advanceGhostOpponent();
 
   DunkPhase m_phase{DunkPhase::kIdle};
   float m_chargePower{0.0F};
   float m_airTimeSeconds{0.0F};
   float m_phaseTimer{0.0F};
   int m_playerScore{0};
-  int m_opponentScore{15};
+  int m_opponentScore{0};
+  float m_ghostTimer{0.0F};
+  int m_ghostDunks{0};
   DunkStyle m_pendingStyle{DunkStyle::kStandard};
   QTESystem m_qte;
   QTEGrade m_lastApexGrade{QTEGrade::kMiss};

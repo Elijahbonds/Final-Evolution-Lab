@@ -18,6 +18,7 @@ void SurfingMode::reset() {
   m_comboMultiplier = 1;
   m_carvesLanded = 0;
   m_aerialsLanded = 0;
+  m_tubeRides = 0;
   m_wipeouts = 0;
   m_peakCombo = 1;
 }
@@ -106,6 +107,64 @@ auto SurfingMode::aerial(float airDifficulty, int32_t comboMultiplier)
   return Result<nlohmann::json>::ok(std::move(payload));
 }
 
+auto SurfingMode::tubeRide(float tubeDepth, float duration) -> Result<nlohmann::json> {
+  if (m_phase == SurfPhase::kRunComplete) {
+    return Result<nlohmann::json>::err("surf run already complete");
+  }
+
+  const float depth = std::clamp(tubeDepth, 0.0F, 1.0F);
+  const float dur = std::clamp(duration, 0.0F, 1.0F);
+
+  // Tube rides require good positioning — penalise if flow meter is too low.
+  if (m_flowMeter < 0.35F) {
+    ++m_wipeouts;
+    m_flowMeter = 0.0F;
+    if (m_wipeouts >= kMaxWipeouts && static_cast<int32_t>(m_waveScore) < kWinScore) {
+      m_phase = SurfPhase::kRunComplete;
+    }
+    nlohmann::json payload = nlohmann::json::object();
+    payload.merge_patch(stateJson());
+    payload["tube_ride"] = {{"depth", depth}, {"duration", dur}, {"result", "wipeout"},
+                            {"reason", "insufficient_flow"}};
+    payload["agent_envelope"] = {{"command", "fel.surf.tube_ride"}, {"result", "wipeout"},
+                                  {"wave_score", static_cast<int32_t>(m_waveScore)}};
+    return Result<nlohmann::json>::ok(std::move(payload));
+  }
+
+  // Deep barrel + long hold = big points. Base: 20 pts, scaled by depth × duration × flow.
+  const float flowBoost = 1.0F + m_flowMeter * 0.5F;
+  const float points = (20.0F + depth * 25.0F) * (0.5F + dur * 0.5F) * flowBoost;
+  m_waveScore += points;
+  ++m_tubeRides;
+  m_flowMeter = std::clamp(m_flowMeter + 0.20F, 0.0F, 1.0F);
+
+  if (static_cast<int32_t>(m_waveScore) >= kWinScore) {
+    m_phase = SurfPhase::kRunComplete;
+  }
+
+  const std::string grade = depth >= 0.75F && dur >= 0.7F ? "barrel"
+                            : depth >= 0.5F               ? "tube"
+                                                          : "curl";
+
+  nlohmann::json payload = nlohmann::json::object();
+  payload.merge_patch(stateJson());
+  payload["tube_ride"] = {
+      {"depth", depth},
+      {"duration", dur},
+      {"result", "made"},
+      {"grade", grade},
+      {"points", points},
+      {"flow_meter", m_flowMeter},
+  };
+  payload["agent_envelope"] = {
+      {"command", "fel.surf.tube_ride"},
+      {"grade", grade},
+      {"tube_rides", m_tubeRides},
+      {"wave_score", static_cast<int32_t>(m_waveScore)},
+  };
+  return Result<nlohmann::json>::ok(std::move(payload));
+}
+
 auto SurfingMode::wipeout() -> Result<nlohmann::json> {
   if (m_phase == SurfPhase::kRunComplete) {
     return Result<nlohmann::json>::err("surf run already complete");
@@ -140,6 +199,7 @@ auto SurfingMode::stateJson() const -> nlohmann::json {
   out["peak_combo"] = m_peakCombo;
   out["carves_landed"] = m_carvesLanded;
   out["aerials_landed"] = m_aerialsLanded;
+  out["tube_rides"] = m_tubeRides;
   out["wipeouts"] = m_wipeouts;
   out["max_wipeouts"] = kMaxWipeouts;
   out["run_complete"] = isRunComplete();

@@ -18,6 +18,7 @@ void GymnasticsMode::reset() {
   m_executionTotal = 0.0F;
   m_artistryTotal = 0.0F;
   m_elementsCompleted = 0;
+  m_consecutiveClean = 0;
   m_deductions = 0;
   m_deductionPoints = 0.0F;
 }
@@ -39,10 +40,20 @@ auto GymnasticsMode::rhythmTap(float timingNormalized, float difficulty)
   m_phase = GymnasticsPhase::kRoutine;
 
   const float elementScore = scoreTap(timing, diff);
-  m_judgeScore = std::min(m_judgeScore + elementScore, 100.0F);
+  // Flow momentum: consecutive clean elements (timing ≥ good threshold) grant compounding bonus.
+  const bool isClean = timing >= kTimingGoodThreshold;
+  if (isClean) {
+    ++m_consecutiveClean;
+  } else {
+    m_consecutiveClean = 0;
+  }
+  const float flowBonus = m_consecutiveClean >= 3 ? 1.15F : m_consecutiveClean >= 2 ? 1.07F : 1.0F;
+  const float scoredElement = elementScore * flowBonus;
+
+  m_judgeScore = std::min(m_judgeScore + scoredElement, 100.0F);
   m_difficultyTotal += diff * 10.0F;
-  m_executionTotal += elementScore * 0.6F;
-  m_artistryTotal += elementScore * 0.4F;
+  m_executionTotal += scoredElement * 0.6F;
+  m_artistryTotal += scoredElement * 0.4F;
   ++m_elementsCompleted;
   checkCompletion();
 
@@ -51,7 +62,9 @@ auto GymnasticsMode::rhythmTap(float timingNormalized, float difficulty)
       {"tap",
        {{"timing", timing},
         {"difficulty", diff},
-        {"element_score", elementScore},
+        {"element_score", scoredElement},
+        {"flow_bonus", flowBonus},
+        {"consecutive_clean", m_consecutiveClean},
         {"grade", timing >= kTimingPerfectThreshold   ? "perfect"
                   : timing >= kTimingGoodThreshold    ? "good"
                                                       : "miss"}}},
@@ -68,6 +81,7 @@ auto GymnasticsMode::applyDeduction(float value) -> Result<nlohmann::json> {
   ++m_deductions;
   m_deductionPoints += deduction;
   m_judgeScore = std::max(m_judgeScore - deduction, 0.0F);
+  m_consecutiveClean = 0;
   checkCompletion();
 
   return Result<nlohmann::json>::ok({
@@ -100,6 +114,7 @@ auto GymnasticsMode::stateJson() const -> nlohmann::json {
       {"artistry_total", m_artistryTotal},
       {"elements_completed", m_elementsCompleted},
       {"target_elements", kTargetElements},
+      {"consecutive_clean", m_consecutiveClean},
       {"deductions", m_deductions},
       {"deduction_points", m_deductionPoints},
       {"routine_complete", isRoutineComplete()},

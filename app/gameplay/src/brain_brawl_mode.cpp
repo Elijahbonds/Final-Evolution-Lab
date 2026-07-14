@@ -57,7 +57,8 @@ auto BrainBrawlMode::submitAnswer(bool correct, float responseTimeSeconds,
   }
 
   if (m_questionsAttempted >= kQuestionsToWin ||
-      m_playerCorrect >= m_opponentCorrect + 3) {
+      m_playerCorrect >= kQuestionsToWin ||
+      m_opponentCorrect >= kQuestionsToWin) {
     m_phase = BrainBrawlPhase::kMatchWon;
   }
 
@@ -75,7 +76,17 @@ void BrainBrawlMode::advanceGhostOpponent() {
   if (m_questionsAttempted == 0) {
     return;
   }
-  if (m_questionsAttempted % 3 == 0 && m_opponentCorrect <= m_playerCorrect) {
+  // Difficulty curve: opponent answers correctly with increasing frequency as
+  // the match progresses, creating meaningful score pressure.
+  //   Q1–3:  opponent correct ~1-in-4 questions
+  //   Q4–6:  1-in-3
+  //   Q7–9:  1-in-2
+  //   Q10+:  nearly every question (1-in-2 or better)
+  const int interval = m_questionsAttempted <= 3  ? 4
+                       : m_questionsAttempted <= 6 ? 3
+                       : m_questionsAttempted <= 9 ? 2
+                                                   : 2;
+  if (m_questionsAttempted % interval == 0) {
     ++m_opponentCorrect;
   }
 }

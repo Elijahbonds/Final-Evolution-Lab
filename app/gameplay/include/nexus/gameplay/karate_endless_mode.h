@@ -13,6 +13,11 @@
 #include <string>
 #include <vector>
 
+// GCC 13.3 workaround: forward-declare enum classes before large STL includes.
+namespace nexus { namespace gameplay {
+  enum class KarateWavePhase : std::uint8_t;
+} } // namespace nexus::gameplay
+
 namespace nexus::gameplay {
 
 enum class KarateWavePhase : std::uint8_t {

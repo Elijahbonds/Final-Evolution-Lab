@@ -351,6 +351,20 @@ auto ModeRuntime::handleCommand(std::string_view command, const nlohmann::json& 
       };
       return Result<nlohmann::json>::ok(std::move(payload));
     }
+    if (command == "fel.skate.named_trick") {
+      const std::string trickName = params.value("trick_name", "kickflip");
+      const float timing = params.value("timing", 0.75F);
+      auto result = m_skateboarding.onNamedTrick(trickName, timing);
+      if (result.isErr()) {
+        return result;
+      }
+      nlohmann::json payload = result.value();
+      payload["physics_feedback"] = {
+          {"explosive_first_step", physicsParams().explosiveFirstStep},
+          {"hang_time_multiplier", physicsParams().hangTimeMultiplier},
+      };
+      return Result<nlohmann::json>::ok(std::move(payload));
+    }
     if (command == "fel.skate.bail") {
       return m_skateboarding.bail();
     }
@@ -374,6 +388,11 @@ auto ModeRuntime::handleCommand(std::string_view command, const nlohmann::json& 
       const float style = params.value("style", 0.75F);
       return m_snowboarding.butter(style);
     }
+    if (command == "fel.snow.grab") {
+      const std::string grabName = params.value("grab_name", "indy");
+      const float timing = params.value("timing", 0.80F);
+      return m_snowboarding.grab(grabName, timing);
+    }
     if (command == "fel.snow.wipeout") {
       return m_snowboarding.wipeout();
     }
@@ -392,6 +411,11 @@ auto ModeRuntime::handleCommand(std::string_view command, const nlohmann::json& 
       const float airDifficulty = params.value("air_difficulty", 0.65F);
       const int32_t combo = params.value("combo_multiplier", 1);
       return m_surfing.aerial(airDifficulty, combo);
+    }
+    if (command == "fel.surf.tube_ride") {
+      const float depth = params.value("tube_depth", 0.7F);
+      const float duration = params.value("duration", 0.6F);
+      return m_surfing.tubeRide(depth, duration);
     }
     if (command == "fel.surf.wipeout") {
       return m_surfing.wipeout();

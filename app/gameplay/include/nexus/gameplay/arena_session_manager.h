@@ -1,6 +1,9 @@
 // Port of AFELGameModeBase session lifecycle + arena mode selection
 #pragma once
 
+
+#include <cstdint>
+
 #include "nexus/core/result.h"
 #include "nexus/gameplay/fel_session_types.h"
 #include "nexus/gameplay/fitness_data.h"
@@ -9,6 +12,11 @@
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
+
+// GCC 13.3 workaround: forward-declare enum classes before large STL includes.
+namespace nexus { namespace gameplay {
+  enum class ArenaSessionPhase : std::uint8_t;
+} } // namespace nexus::gameplay
 
 namespace nexus::gameplay {
 

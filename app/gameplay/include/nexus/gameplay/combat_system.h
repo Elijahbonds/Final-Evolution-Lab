@@ -1,9 +1,13 @@
 // Spec §2.2 P1 — strike / block / dodge / counter
 #pragma once
 
-#include "nexus/core/result.h"
-
+#include <cstdint>
 #include <string_view>
+
+// GCC 13.3 workaround: forward-declare enum class before result.h template specialisations.
+namespace nexus { namespace gameplay {
+  enum class CombatAction : std::uint8_t;
+} } // namespace nexus::gameplay
 
 namespace nexus::gameplay {
 

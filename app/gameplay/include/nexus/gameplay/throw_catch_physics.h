@@ -8,6 +8,12 @@
 #include <cstdint>
 #include <nlohmann/json.hpp>
 
+// GCC 13.3 workaround: forward-declare enum classes before large STL includes.
+namespace nexus { namespace gameplay {
+  enum class ThrowCatchPhase : std::uint8_t;
+  enum class CatchFeedback : std::uint8_t;
+} } // namespace nexus::gameplay
+
 namespace nexus::physics {
 class PhysicsWorld;
 }
