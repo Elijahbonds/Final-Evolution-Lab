@@ -1,0 +1,2 @@
+/usr/bin/ar qc libnexus_net.a CMakeFiles/nexus_net.dir/engine/net/src/net_message.cpp.o CMakeFiles/nexus_net.dir/engine/net/src/net_message_bus.cpp.o CMakeFiles/nexus_net.dir/engine/net/src/net_session.cpp.o CMakeFiles/nexus_net.dir/engine/net/src/local_multiplayer_router.cpp.o
+/usr/bin/ranlib libnexus_net.a
