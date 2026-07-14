@@ -1,5 +1,9 @@
 # NEXUS — Handoff for Abacus (platform track)
 
+> **Read `NEXUS_COST_DOCTRINE.md` first** — it governs how all CELL/NEXUS work
+> spends LLM tokens (free runtime, nightly batch learning, frontier-quality
+> creation only, budget caps on every loop). Work that violates it gets reverted.
+
 ---
 
 ## 🏀 WEB GAME TRACK — Dunk slice (updated 2026-07-14, commit 698d2eb)
