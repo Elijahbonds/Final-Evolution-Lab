@@ -1278,7 +1278,16 @@ struct Basketball3v3GameView: View {
     // ── Defensive Intensity ───────────────────────────────────────────────
     @State private var defenseMode: DefenseMode = .manToMan
 
-    // ── Fatigue & Substitution ────────────────────────────────────────────
+    // ── Body Collision / Steal System ────────────────────────────────────────
+    @State private var bumpCooldown: Bool = false
+    @State private var bumpFlash: Bool = false
+    @State private var lastCollisionPoint: CGPoint = .zero
+    @State private var lastCollisionFlashAge: Double = 1.0  // 0 = fresh, 1 = done
+    @State private var lastCollisionType: CollisionType = .glancing
+    @State private var ballIsLoose: Bool = false
+    @State private var ballLooseClock: Double = 0
+    @State private var looseBallTask: Task<Void, Never>? = nil
+
     @State private var teamFatigue: Double = 1.0
     @State private var isSubbing: Bool = false
     @State private var subAnimProgress: Double = 0.0
@@ -1773,22 +1782,61 @@ struct Basketball3v3GameView: View {
 
     private var inputPanel: some View {
         let active = possession == .player && phase == .playing && shotProgress < 0 && passProgress < 0
+        let onDefense = possession == .opponent && phase == .playing
+        let canBump = onDefense && !bumpCooldown && !ballIsLoose
         return VStack(spacing: 12) {
-            Button {
-                guard active else { return }
-                playerShoot()
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "basketball.fill").font(.system(size: 18, weight: .bold))
-                    Text("SHOOT").font(.system(size: 18, weight: .black, design: .monospaced))
+            if onDefense {
+                // ── DEFENSE: BUMP / STEAL button ─────────────────────────────
+                Button {
+                    guard canBump else { return }
+                    attemptBump()
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: bumpFlash ? "hand.raised.fill" : "hand.raised")
+                            .font(.system(size: 18, weight: .bold))
+                            .symbolEffect(.bounce, value: bumpFlash)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(ballIsLoose ? "GRAB BALL!" : "BUMP / STEAL")
+                                .font(.system(size: 16, weight: .black, design: .monospaced))
+                            Text(bumpCooldown ? "COOLDOWN..." : prqDefenseRating.tierLabel + " DEFENSE")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .foregroundStyle(canBump ? .black : .secondary)
+                    .frame(maxWidth: .infinity).padding(.vertical, 16)
+                    .background(
+                        canBump
+                        ? LinearGradient(colors: [Color(red: 1, green: 0.25, blue: 0.25),
+                                                   Color(red: 0.85, green: 0.1, blue: 0.1)],
+                                          startPoint: .top, endPoint: .bottom)
+                        : LinearGradient(colors: [Color.white.opacity(0.12), Color.white.opacity(0.06)],
+                                          startPoint: .top, endPoint: .bottom)
+                    )
+                    .clipShape(.rect(cornerRadius: 16))
+                    .shadow(color: canBump ? Color.red.opacity(0.40) : .clear, radius: 10)
+                    .scaleEffect(bumpFlash ? 1.04 : 1.0)
+                    .animation(.spring(response: 0.18), value: bumpFlash)
                 }
-                .foregroundStyle(.black).frame(maxWidth: .infinity).padding(.vertical, 18)
-                .background(active
-                    ? LinearGradient(colors: [accentColor, accentColor.opacity(0.75)], startPoint: .top, endPoint: .bottom)
-                    : LinearGradient(colors: [Color.white.opacity(0.15), Color.white.opacity(0.08)], startPoint: .top, endPoint: .bottom))
-                .clipShape(.rect(cornerRadius: 16))
-                .shadow(color: active ? accentColor.opacity(0.35) : .clear, radius: 12)
-            }.disabled(!active)
+                .disabled(!canBump)
+            } else {
+                // ── OFFENSE: SHOOT ────────────────────────────────────────────
+                Button {
+                    guard active else { return }
+                    playerShoot()
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "basketball.fill").font(.system(size: 18, weight: .bold))
+                        Text("SHOOT").font(.system(size: 18, weight: .black, design: .monospaced))
+                    }
+                    .foregroundStyle(.black).frame(maxWidth: .infinity).padding(.vertical, 18)
+                    .background(active
+                        ? LinearGradient(colors: [accentColor, accentColor.opacity(0.75)], startPoint: .top, endPoint: .bottom)
+                        : LinearGradient(colors: [Color.white.opacity(0.15), Color.white.opacity(0.08)], startPoint: .top, endPoint: .bottom))
+                    .clipShape(.rect(cornerRadius: 16))
+                    .shadow(color: active ? accentColor.opacity(0.35) : .clear, radius: 12)
+                }.disabled(!active)
+            }
 
             HStack(spacing: 12) {
                 Button { guard active else { return }; playerPass(to: 1) } label: {
@@ -1816,6 +1864,12 @@ struct Basketball3v3GameView: View {
                 }.disabled(!active)
             }
         }
+    }
+
+    // MARK: - PRQ Defense Rating
+
+    private var prqDefenseRating: PRQDefenseRating {
+        PRQDefenseRating(prq: viewModel.effectiveMetrics.prqScore)
     }
 
     // MARK: - Result Screen
