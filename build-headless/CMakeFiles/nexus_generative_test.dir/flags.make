@@ -6,5 +6,5 @@ CXX_DEFINES =
 
 CXX_INCLUDES = -I/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/generative/include -I/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/assets/include -I/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/core/include -I/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/creative/include -I/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/luma/include -I/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/ai_interface/include -isystem /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/_deps/nlohmann_json-src/include
 
-CXX_FLAGS = -std=c++20
+CXX_FLAGS = -O3 -DNDEBUG -std=c++20
 

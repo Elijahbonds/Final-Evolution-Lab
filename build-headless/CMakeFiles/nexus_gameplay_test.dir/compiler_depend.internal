@@ -4,6 +4,7 @@
 CMakeFiles/nexus_gameplay_test.dir/tests/unit/gameplay/gameplay_test.cpp.o
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/tests/unit/gameplay/gameplay_test.cpp
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/arcade_physics.h
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/arena_3d_space.h
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/arena_mode_registry.h
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/arena_session_manager.h
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/brain_brawl_mode.h
@@ -15,6 +16,7 @@ CMakeFiles/nexus_gameplay_test.dir/tests/unit/gameplay/gameplay_test.cpp.o
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/fel_bridge_service.h
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/fel_session_types.h
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/fitness_data.h
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/flight_system.h
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/gameplay_application.h
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/gameplay_manager.h
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/gymnastics_mode.h
@@ -25,9 +27,12 @@ CMakeFiles/nexus_gameplay_test.dir/tests/unit/gameplay/gameplay_test.cpp.o
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/outcome_sport_mode.h
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/prq_engine.h
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/qte_system.h
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/rail_grind_system.h
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/session_receipt_client.h
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/skateboarding_mode.h
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/snowboarding_mode.h
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/stage_stream_manager.h
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/story_mode.h
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/surfing_mode.h
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/throw_catch_physics.h
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/venice_pickup_mode.h
@@ -187,6 +192,8 @@ CMakeFiles/nexus_gameplay_test.dir/tests/unit/gameplay/gameplay_test.cpp.o
  /usr/include/c++/13/bits/predefined_ops.h
  /usr/include/c++/13/bits/ptr_traits.h
  /usr/include/c++/13/bits/quoted_string.h
+ /usr/include/c++/13/bits/random.h
+ /usr/include/c++/13/bits/random.tcc
  /usr/include/c++/13/bits/range_access.h
  /usr/include/c++/13/bits/ranges_algo.h
  /usr/include/c++/13/bits/ranges_algobase.h
@@ -304,6 +311,7 @@ CMakeFiles/nexus_gameplay_test.dir/tests/unit/gameplay/gameplay_test.cpp.o
  /usr/include/c++/13/pstl/glue_numeric_defs.h
  /usr/include/c++/13/pstl/pstl_config.h
  /usr/include/c++/13/queue
+ /usr/include/c++/13/random
  /usr/include/c++/13/ranges
  /usr/include/c++/13/ratio
  /usr/include/c++/13/semaphore
@@ -398,14 +406,23 @@ CMakeFiles/nexus_gameplay_test.dir/tests/unit/gameplay/gameplay_test.cpp.o
  /usr/include/x86_64-linux-gnu/bits/pthreadtypes-arch.h
  /usr/include/x86_64-linux-gnu/bits/pthreadtypes.h
  /usr/include/x86_64-linux-gnu/bits/sched.h
+ /usr/include/x86_64-linux-gnu/bits/select-decl.h
  /usr/include/x86_64-linux-gnu/bits/select.h
+ /usr/include/x86_64-linux-gnu/bits/select2.h
  /usr/include/x86_64-linux-gnu/bits/semaphore.h
  /usr/include/x86_64-linux-gnu/bits/setjmp.h
  /usr/include/x86_64-linux-gnu/bits/stdint-intn.h
  /usr/include/x86_64-linux-gnu/bits/stdint-least.h
  /usr/include/x86_64-linux-gnu/bits/stdint-uintn.h
+ /usr/include/x86_64-linux-gnu/bits/stdio.h
+ /usr/include/x86_64-linux-gnu/bits/stdio2-decl.h
+ /usr/include/x86_64-linux-gnu/bits/stdio2.h
  /usr/include/x86_64-linux-gnu/bits/stdio_lim.h
+ /usr/include/x86_64-linux-gnu/bits/stdlib-bsearch.h
  /usr/include/x86_64-linux-gnu/bits/stdlib-float.h
+ /usr/include/x86_64-linux-gnu/bits/stdlib.h
+ /usr/include/x86_64-linux-gnu/bits/string_fortified.h
+ /usr/include/x86_64-linux-gnu/bits/strings_fortified.h
  /usr/include/x86_64-linux-gnu/bits/struct_mutex.h
  /usr/include/x86_64-linux-gnu/bits/struct_rwlock.h
  /usr/include/x86_64-linux-gnu/bits/syscall.h
@@ -442,10 +459,14 @@ CMakeFiles/nexus_gameplay_test.dir/tests/unit/gameplay/gameplay_test.cpp.o
  /usr/include/x86_64-linux-gnu/bits/typesizes.h
  /usr/include/x86_64-linux-gnu/bits/uintn-identity.h
  /usr/include/x86_64-linux-gnu/bits/uio_lim.h
+ /usr/include/x86_64-linux-gnu/bits/unistd-decl.h
+ /usr/include/x86_64-linux-gnu/bits/unistd.h
  /usr/include/x86_64-linux-gnu/bits/unistd_ext.h
  /usr/include/x86_64-linux-gnu/bits/waitflags.h
  /usr/include/x86_64-linux-gnu/bits/waitstatus.h
  /usr/include/x86_64-linux-gnu/bits/wchar.h
+ /usr/include/x86_64-linux-gnu/bits/wchar2-decl.h
+ /usr/include/x86_64-linux-gnu/bits/wchar2.h
  /usr/include/x86_64-linux-gnu/bits/wctype-wchar.h
  /usr/include/x86_64-linux-gnu/bits/wordsize.h
  /usr/include/x86_64-linux-gnu/bits/xopen_lim.h
@@ -462,6 +483,7 @@ CMakeFiles/nexus_gameplay_test.dir/tests/unit/gameplay/gameplay_test.cpp.o
  /usr/include/x86_64-linux-gnu/c++/13/bits/gthr-default.h
  /usr/include/x86_64-linux-gnu/c++/13/bits/gthr.h
  /usr/include/x86_64-linux-gnu/c++/13/bits/messages_members.h
+ /usr/include/x86_64-linux-gnu/c++/13/bits/opt_random.h
  /usr/include/x86_64-linux-gnu/c++/13/bits/os_defines.h
  /usr/include/x86_64-linux-gnu/c++/13/bits/time_members.h
  /usr/include/x86_64-linux-gnu/gnu/stubs-64.h

@@ -555,7 +555,9 @@ auto KarateEndlessMode::handleWaveCommand(const nlohmann::json& params) -> Resul
 
   if (params.contains("player_count")) {
     configureCoop(params.value("player_count", 1));
-    nlohmann::json p = stateJson(); p["configured"] = true;
+    nlohmann::json p   = stateJson();
+    p["configured"]    = true;
+    p["multiplayer"]   = m_playerCount > 1 ? "local_coop" : "solo";
     return Result<nlohmann::json>::ok(std::move(p));
   }
   if (params.contains("active_player")) {

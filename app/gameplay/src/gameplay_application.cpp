@@ -216,6 +216,7 @@ auto GameplayApplication::handleGameplayCommand(std::string_view command,
       command.rfind("fel.brain.", 0) == 0 || command.rfind("fel.skate.", 0) == 0 ||
       command.rfind("fel.snow.", 0) == 0 || command.rfind("fel.surf.", 0) == 0 ||
       command.rfind("fel.scene.", 0) == 0 ||
+      command.rfind("fel.story.", 0) == 0 ||
       command.rfind("fel.sport.", 0) == 0 ||
       command.rfind("fel.mode.", 0) == 0) {
     const auto modeResult = m_modeRuntime.handleCommand(command, safeParams);

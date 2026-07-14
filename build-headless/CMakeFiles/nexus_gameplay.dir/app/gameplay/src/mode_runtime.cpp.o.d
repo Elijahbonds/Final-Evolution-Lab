@@ -53,6 +53,8 @@ CMakeFiles/nexus_gameplay.dir/app/gameplay/src/mode_runtime.cpp.o: \
  /usr/include/x86_64-linux-gnu/bits/types/FILE.h \
  /usr/include/x86_64-linux-gnu/bits/types/locale_t.h \
  /usr/include/x86_64-linux-gnu/bits/types/__locale_t.h \
+ /usr/include/x86_64-linux-gnu/bits/wchar2-decl.h \
+ /usr/include/x86_64-linux-gnu/bits/wchar2.h \
  /usr/include/c++/13/bits/char_traits.h \
  /usr/include/c++/13/bits/localefwd.h \
  /usr/include/x86_64-linux-gnu/c++/13/bits/c++locale.h \
@@ -126,16 +128,22 @@ CMakeFiles/nexus_gameplay.dir/app/gameplay/src/mode_runtime.cpp.o: \
  /usr/include/x86_64-linux-gnu/sys/select.h \
  /usr/include/x86_64-linux-gnu/bits/select.h \
  /usr/include/x86_64-linux-gnu/bits/types/sigset_t.h \
- /usr/include/alloca.h /usr/include/x86_64-linux-gnu/bits/stdlib-float.h \
+ /usr/include/x86_64-linux-gnu/bits/select2.h \
+ /usr/include/x86_64-linux-gnu/bits/select-decl.h /usr/include/alloca.h \
+ /usr/include/x86_64-linux-gnu/bits/stdlib-bsearch.h \
+ /usr/include/x86_64-linux-gnu/bits/stdlib-float.h \
+ /usr/include/x86_64-linux-gnu/bits/stdlib.h \
  /usr/include/c++/13/bits/std_abs.h /usr/include/c++/13/cstdio \
  /usr/include/stdio.h /usr/include/x86_64-linux-gnu/bits/types/__fpos_t.h \
  /usr/include/x86_64-linux-gnu/bits/types/__fpos64_t.h \
  /usr/include/x86_64-linux-gnu/bits/types/struct_FILE.h \
  /usr/include/x86_64-linux-gnu/bits/types/cookie_io_functions_t.h \
  /usr/include/x86_64-linux-gnu/bits/stdio_lim.h \
- /usr/include/c++/13/cerrno /usr/include/errno.h \
- /usr/include/x86_64-linux-gnu/bits/errno.h /usr/include/linux/errno.h \
- /usr/include/x86_64-linux-gnu/asm/errno.h \
+ /usr/include/x86_64-linux-gnu/bits/stdio2-decl.h \
+ /usr/include/x86_64-linux-gnu/bits/stdio.h \
+ /usr/include/x86_64-linux-gnu/bits/stdio2.h /usr/include/c++/13/cerrno \
+ /usr/include/errno.h /usr/include/x86_64-linux-gnu/bits/errno.h \
+ /usr/include/linux/errno.h /usr/include/x86_64-linux-gnu/asm/errno.h \
  /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
  /usr/include/x86_64-linux-gnu/bits/types/error_t.h \
  /usr/include/c++/13/bits/charconv.h \
@@ -215,6 +223,8 @@ CMakeFiles/nexus_gameplay.dir/app/gameplay/src/mode_runtime.cpp.o: \
  /usr/include/x86_64-linux-gnu/bits/confname.h \
  /usr/include/x86_64-linux-gnu/bits/getopt_posix.h \
  /usr/include/x86_64-linux-gnu/bits/getopt_core.h \
+ /usr/include/x86_64-linux-gnu/bits/unistd.h \
+ /usr/include/x86_64-linux-gnu/bits/unistd-decl.h \
  /usr/include/x86_64-linux-gnu/bits/unistd_ext.h \
  /usr/include/linux/close_range.h /usr/include/syscall.h \
  /usr/include/x86_64-linux-gnu/sys/syscall.h \
@@ -282,6 +292,8 @@ CMakeFiles/nexus_gameplay.dir/app/gameplay/src/mode_runtime.cpp.o: \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/_deps/nlohmann_json-src/include/nlohmann/json_fwd.hpp \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/_deps/nlohmann_json-src/include/nlohmann/detail/string_concat.hpp \
  /usr/include/c++/13/cstring /usr/include/string.h /usr/include/strings.h \
+ /usr/include/x86_64-linux-gnu/bits/strings_fortified.h \
+ /usr/include/x86_64-linux-gnu/bits/string_fortified.h \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/_deps/nlohmann_json-src/include/nlohmann/detail/meta/identity_tag.hpp \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/_deps/nlohmann_json-src/include/nlohmann/detail/meta/std_fs.hpp \
  /usr/include/c++/13/filesystem /usr/include/c++/13/bits/fs_fwd.h \
@@ -325,11 +337,11 @@ CMakeFiles/nexus_gameplay.dir/app/gameplay/src/mode_runtime.cpp.o: \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/_deps/nlohmann_json-src/include/nlohmann/detail/macro_unscope.hpp \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-headless/_deps/nlohmann_json-src/include/nlohmann/thirdparty/hedley/hedley_undef.hpp \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/court_carnival_mode.h \
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/arena_3d_space.h \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/throw_catch_physics.h \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/fitness_data.h \
  /usr/include/c++/13/mutex /usr/include/c++/13/bits/unique_lock.h \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/dunk_contest_mode.h \
- /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/arena_3d_space.h \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/qte_system.h \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/gymnastics_mode.h \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/karate_endless_mode.h \
@@ -342,10 +354,17 @@ CMakeFiles/nexus_gameplay.dir/app/gameplay/src/mode_runtime.cpp.o: \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/core/include/nexus/core/http_client.h \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/skateboarding_mode.h \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/snowboarding_mode.h \
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/story_mode.h \
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/flight_system.h \
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/prq_engine.h \
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/rail_grind_system.h \
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/stage_stream_manager.h \
+ /usr/include/c++/13/random /usr/include/c++/13/bits/random.h \
+ /usr/include/x86_64-linux-gnu/c++/13/bits/opt_random.h \
+ /usr/include/c++/13/bits/random.tcc \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/surfing_mode.h \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/venice_pickup_mode.h \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/outcome_sport_mode.h \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/who_scene_it_mode.h \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/arena_mode_registry.h \
- /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/prq_engine.h \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/core/include/nexus/core/log.h

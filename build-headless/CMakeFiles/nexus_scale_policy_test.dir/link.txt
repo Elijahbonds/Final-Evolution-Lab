@@ -1,1 +1,1 @@
-/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/nexus_scale_policy_test.dir/link.d CMakeFiles/nexus_scale_policy_test.dir/tests/unit/core/engine_scale_policy_test.cpp.o -o nexus_scale_policy_test  libnexus_core.a
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/nexus_scale_policy_test.dir/link.d CMakeFiles/nexus_scale_policy_test.dir/tests/unit/core/engine_scale_policy_test.cpp.o -o nexus_scale_policy_test  libnexus_core.a

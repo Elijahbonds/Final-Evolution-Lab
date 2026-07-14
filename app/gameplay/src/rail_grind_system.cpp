@@ -93,13 +93,13 @@ auto RailGrindSystem::trySnapToRail(Vec3 playerPos, float grindAcceleration)
 
   m_railIndex = bestIdx;
   m_t = 0.0F;
-  m_speed = kBaseSpeed * 0.3F * grindAcceleration;
-  m_state = GrindState::kSnapping;
+  m_speed = kBaseSpeed * grindAcceleration;
+  m_state = GrindState::kGrinding;  // enter grind immediately; lerp happens in update()
 
   return Result<nlohmann::json>::ok({
       {"rail_id", kStoryRails[static_cast<std::size_t>(m_railIndex)].id},
       {"snap_distance", bestDist},
-      {"grind_state", "snapping"},
+      {"grind_state", "grinding"},
   });
 }
 

@@ -6,13 +6,15 @@
 namespace nexus::gameplay {
 
 void VenicePickupMode::reset() {
-  m_playerScore = 0;
-  m_opponentScore = 0;
-  m_passesCompleted = 0;
-  m_perfectCatches = 0;
-  m_matchComplete = false;
-  m_lastProcessedThrow = 0;
+  m_playerScore         = 0;
+  m_opponentScore       = 0;
+  m_passesCompleted     = 0;
+  m_perfectCatches      = 0;
+  m_matchComplete       = false;
+  m_lastProcessedThrow  = 0;
   m_passHistory.clear();
+  m_hotStreak = 0;
+  m_onFire    = false;
 }
 
 void VenicePickupMode::update(double /*deltaSeconds*/) {
@@ -23,6 +25,18 @@ void VenicePickupMode::update(double /*deltaSeconds*/) {
   if (m_passesCompleted > 0 && m_passesCompleted % 4 == 0 && m_playerScore > m_opponentScore) {
     m_opponentScore = std::min(m_opponentScore + 1, kWinScore - 1);
   }
+}
+
+void VenicePickupMode::recordMake() {
+  ++m_hotStreak;
+  if (m_hotStreak >= kHotStreakThreshold) {
+    m_onFire = true;
+  }
+}
+
+void VenicePickupMode::recordMiss() {
+  m_hotStreak = 0;
+  m_onFire    = false;
 }
 
 auto VenicePickupMode::onAction(std::string_view action, float timingNormalized, bool success)
@@ -40,7 +54,7 @@ auto VenicePickupMode::onAction(std::string_view action, float timingNormalized,
   CatchFeedback feedback = CatchFeedback::kMiss;
   if (success) {
     const float perfectThreshold = lowered == "drive" ? 0.88F : 0.92F;
-    const float goodThreshold = lowered == "crossover" ? 0.70F : 0.65F;
+    const float goodThreshold    = lowered == "crossover" ? 0.70F : 0.65F;
     if (timing >= perfectThreshold) {
       feedback = CatchFeedback::kPerfect;
     } else if (timing >= goodThreshold) {
@@ -51,19 +65,37 @@ auto VenicePickupMode::onAction(std::string_view action, float timingNormalized,
   }
 
   ThrowPulseEnvelope pulse{
-      .impulseY = 8.0F + timing * 10.0F,
-      .breathBoost = 1.0F,
-      .catchFeedback = feedback,
+      .impulseY            = 8.0F + timing * 10.0F,
+      .breathBoost         = 1.0F,
+      .catchFeedback       = feedback,
       .catchRadiusNormalized = timing,
   };
   onThrowPulse(pulse);
 
+  // Action-specific bonuses on top of the throw-pulse score.
   int bonusPoints = 0;
+  std::string eventLabel;
+
   if (lowered == "shoot" && feedback == CatchFeedback::kPerfect) {
     bonusPoints = 1;
+    eventLabel  = "jumper";
+  } else if (lowered == "alley_oop" && feedback == CatchFeedback::kPerfect) {
+    bonusPoints = kAlleyOopBonus;
+    eventLabel  = "alley_oop";
+  } else if (lowered == "bank_shot" && feedback != CatchFeedback::kMiss) {
+    bonusPoints = kBankShotBonus;
+    eventLabel  = "bank_shot";
   } else if (lowered == "crossover" && success && feedback != CatchFeedback::kMiss) {
     bonusPoints = 1;
+    eventLabel  = "crossover";
   }
+
+  // Apply on-fire multiplier to bonus points.
+  if (m_onFire && bonusPoints > 0) {
+    bonusPoints = static_cast<int>(
+        static_cast<float>(bonusPoints) * kOnFireMultiplier + 0.5F);
+  }
+
   if (bonusPoints > 0 && !m_matchComplete) {
     m_playerScore += bonusPoints;
     if (m_playerScore >= kWinScore) {
@@ -73,11 +105,14 @@ auto VenicePickupMode::onAction(std::string_view action, float timingNormalized,
 
   nlohmann::json payload = stateJson();
   payload["action"] = {
-      {"label", lowered},
-      {"timing", timing},
-      {"success", success},
-      {"catch_feedback", static_cast<int>(feedback)},
-      {"bonus_points", bonusPoints},
+      {"label",           lowered},
+      {"event",           eventLabel.empty() ? lowered : eventLabel},
+      {"timing",          timing},
+      {"success",         success},
+      {"catch_feedback",  static_cast<int>(feedback)},
+      {"bonus_points",    bonusPoints},
+      {"on_fire",         m_onFire},
+      {"hot_streak",      m_hotStreak},
   };
   payload["pickup"] = stateJson();
   return Result<nlohmann::json>::ok(std::move(payload));
@@ -89,15 +124,28 @@ void VenicePickupMode::onThrowPulse(const ThrowPulseEnvelope& pulse) {
   }
 
   ++m_passesCompleted;
-  const int points = pointsForFeedback(pulse.catchFeedback);
+  int points = pointsForFeedback(pulse.catchFeedback);
+
+  // Apply on-fire multiplier to throw-pulse points.
+  if (m_onFire && points > 0) {
+    points = static_cast<int>(
+        static_cast<float>(points) * kOnFireMultiplier + 0.5F);
+  }
+
+  if (points > 0) {
+    recordMake();
+  } else {
+    recordMiss();
+  }
+
   m_playerScore += points;
   if (pulse.catchFeedback == CatchFeedback::kPerfect) {
     ++m_perfectCatches;
   }
 
   m_passHistory.push_back({
-      .feedback = pulse.catchFeedback,
-      .impulseY = pulse.impulseY,
+      .feedback     = pulse.catchFeedback,
+      .impulseY     = pulse.impulseY,
       .pointsAwarded = points,
   });
 
@@ -108,15 +156,11 @@ void VenicePickupMode::onThrowPulse(const ThrowPulseEnvelope& pulse) {
 
 auto VenicePickupMode::pointsForFeedback(CatchFeedback feedback) -> int {
   switch (feedback) {
-  case CatchFeedback::kPerfect:
-    return 3;
-  case CatchFeedback::kSolid:
-    return 2;
-  case CatchFeedback::kGraze:
-    return 1;
+  case CatchFeedback::kPerfect: return 3;
+  case CatchFeedback::kSolid:   return 2;
+  case CatchFeedback::kGraze:   return 1;
   case CatchFeedback::kMiss:
-  default:
-    return 0;
+  default:                      return 0;
   }
 }
 
@@ -125,19 +169,24 @@ auto VenicePickupMode::stateJson() const -> nlohmann::json {
   for (const PickupPassEvent& event : m_passHistory) {
     passes.push_back({
         {"catch_feedback", static_cast<int>(event.feedback)},
-        {"impulse_y", event.impulseY},
-        {"points", event.pointsAwarded},
+        {"impulse_y",      event.impulseY},
+        {"points",         event.pointsAwarded},
     });
   }
 
   return {
-      {"player_score", m_playerScore},
-      {"opponent_score", m_opponentScore},
-      {"passes_completed", m_passesCompleted},
-      {"perfect_catches", m_perfectCatches},
-      {"win_target", kWinScore},
-      {"match_complete", m_matchComplete},
-      {"pass_history", std::move(passes)},
+      {"player_score",      m_playerScore},
+      {"opponent_score",    m_opponentScore},
+      {"passes_completed",  m_passesCompleted},
+      {"perfect_catches",   m_perfectCatches},
+      {"win_target",        kWinScore},
+      {"match_complete",    m_matchComplete},
+      // HotStreak / on-fire state.
+      {"hot_streak",        m_hotStreak},
+      {"on_fire",           m_onFire},
+      {"on_fire_threshold", kHotStreakThreshold},
+      {"on_fire_multiplier", kOnFireMultiplier},
+      {"pass_history",      std::move(passes)},
   };
 }
 

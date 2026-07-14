@@ -495,6 +495,30 @@ app/gameplay/src/brain_brawl_mode.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/brain_brawl_mode.cpp.s
 .PHONY : app/gameplay/src/brain_brawl_mode.cpp.s
 
+app/gameplay/src/character_anim_state.o: app/gameplay/src/character_anim_state.cpp.o
+.PHONY : app/gameplay/src/character_anim_state.o
+
+# target to build an object file
+app/gameplay/src/character_anim_state.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/character_anim_state.cpp.o
+.PHONY : app/gameplay/src/character_anim_state.cpp.o
+
+app/gameplay/src/character_anim_state.i: app/gameplay/src/character_anim_state.cpp.i
+.PHONY : app/gameplay/src/character_anim_state.i
+
+# target to preprocess a source file
+app/gameplay/src/character_anim_state.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/character_anim_state.cpp.i
+.PHONY : app/gameplay/src/character_anim_state.cpp.i
+
+app/gameplay/src/character_anim_state.s: app/gameplay/src/character_anim_state.cpp.s
+.PHONY : app/gameplay/src/character_anim_state.s
+
+# target to generate assembly for a file
+app/gameplay/src/character_anim_state.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/character_anim_state.cpp.s
+.PHONY : app/gameplay/src/character_anim_state.cpp.s
+
 app/gameplay/src/combat_system.o: app/gameplay/src/combat_system.cpp.o
 .PHONY : app/gameplay/src/combat_system.o
 
@@ -686,6 +710,30 @@ app/gameplay/src/fitness_data.s: app/gameplay/src/fitness_data.cpp.s
 app/gameplay/src/fitness_data.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/fitness_data.cpp.s
 .PHONY : app/gameplay/src/fitness_data.cpp.s
+
+app/gameplay/src/flight_system.o: app/gameplay/src/flight_system.cpp.o
+.PHONY : app/gameplay/src/flight_system.o
+
+# target to build an object file
+app/gameplay/src/flight_system.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/flight_system.cpp.o
+.PHONY : app/gameplay/src/flight_system.cpp.o
+
+app/gameplay/src/flight_system.i: app/gameplay/src/flight_system.cpp.i
+.PHONY : app/gameplay/src/flight_system.i
+
+# target to preprocess a source file
+app/gameplay/src/flight_system.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/flight_system.cpp.i
+.PHONY : app/gameplay/src/flight_system.cpp.i
+
+app/gameplay/src/flight_system.s: app/gameplay/src/flight_system.cpp.s
+.PHONY : app/gameplay/src/flight_system.s
+
+# target to generate assembly for a file
+app/gameplay/src/flight_system.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/flight_system.cpp.s
+.PHONY : app/gameplay/src/flight_system.cpp.s
 
 app/gameplay/src/game_prompt_adapter.o: app/gameplay/src/game_prompt_adapter.cpp.o
 .PHONY : app/gameplay/src/game_prompt_adapter.o
@@ -951,6 +999,30 @@ app/gameplay/src/qte_system.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/qte_system.cpp.s
 .PHONY : app/gameplay/src/qte_system.cpp.s
 
+app/gameplay/src/rail_grind_system.o: app/gameplay/src/rail_grind_system.cpp.o
+.PHONY : app/gameplay/src/rail_grind_system.o
+
+# target to build an object file
+app/gameplay/src/rail_grind_system.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/rail_grind_system.cpp.o
+.PHONY : app/gameplay/src/rail_grind_system.cpp.o
+
+app/gameplay/src/rail_grind_system.i: app/gameplay/src/rail_grind_system.cpp.i
+.PHONY : app/gameplay/src/rail_grind_system.i
+
+# target to preprocess a source file
+app/gameplay/src/rail_grind_system.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/rail_grind_system.cpp.i
+.PHONY : app/gameplay/src/rail_grind_system.cpp.i
+
+app/gameplay/src/rail_grind_system.s: app/gameplay/src/rail_grind_system.cpp.s
+.PHONY : app/gameplay/src/rail_grind_system.s
+
+# target to generate assembly for a file
+app/gameplay/src/rail_grind_system.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/rail_grind_system.cpp.s
+.PHONY : app/gameplay/src/rail_grind_system.cpp.s
+
 app/gameplay/src/scan_envelope_mapper.o: app/gameplay/src/scan_envelope_mapper.cpp.o
 .PHONY : app/gameplay/src/scan_envelope_mapper.o
 
@@ -1046,6 +1118,78 @@ app/gameplay/src/snowboarding_mode.s: app/gameplay/src/snowboarding_mode.cpp.s
 app/gameplay/src/snowboarding_mode.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/snowboarding_mode.cpp.s
 .PHONY : app/gameplay/src/snowboarding_mode.cpp.s
+
+app/gameplay/src/soccer_mode.o: app/gameplay/src/soccer_mode.cpp.o
+.PHONY : app/gameplay/src/soccer_mode.o
+
+# target to build an object file
+app/gameplay/src/soccer_mode.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/soccer_mode.cpp.o
+.PHONY : app/gameplay/src/soccer_mode.cpp.o
+
+app/gameplay/src/soccer_mode.i: app/gameplay/src/soccer_mode.cpp.i
+.PHONY : app/gameplay/src/soccer_mode.i
+
+# target to preprocess a source file
+app/gameplay/src/soccer_mode.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/soccer_mode.cpp.i
+.PHONY : app/gameplay/src/soccer_mode.cpp.i
+
+app/gameplay/src/soccer_mode.s: app/gameplay/src/soccer_mode.cpp.s
+.PHONY : app/gameplay/src/soccer_mode.s
+
+# target to generate assembly for a file
+app/gameplay/src/soccer_mode.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/soccer_mode.cpp.s
+.PHONY : app/gameplay/src/soccer_mode.cpp.s
+
+app/gameplay/src/stage_stream_manager.o: app/gameplay/src/stage_stream_manager.cpp.o
+.PHONY : app/gameplay/src/stage_stream_manager.o
+
+# target to build an object file
+app/gameplay/src/stage_stream_manager.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/stage_stream_manager.cpp.o
+.PHONY : app/gameplay/src/stage_stream_manager.cpp.o
+
+app/gameplay/src/stage_stream_manager.i: app/gameplay/src/stage_stream_manager.cpp.i
+.PHONY : app/gameplay/src/stage_stream_manager.i
+
+# target to preprocess a source file
+app/gameplay/src/stage_stream_manager.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/stage_stream_manager.cpp.i
+.PHONY : app/gameplay/src/stage_stream_manager.cpp.i
+
+app/gameplay/src/stage_stream_manager.s: app/gameplay/src/stage_stream_manager.cpp.s
+.PHONY : app/gameplay/src/stage_stream_manager.s
+
+# target to generate assembly for a file
+app/gameplay/src/stage_stream_manager.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/stage_stream_manager.cpp.s
+.PHONY : app/gameplay/src/stage_stream_manager.cpp.s
+
+app/gameplay/src/story_mode.o: app/gameplay/src/story_mode.cpp.o
+.PHONY : app/gameplay/src/story_mode.o
+
+# target to build an object file
+app/gameplay/src/story_mode.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/story_mode.cpp.o
+.PHONY : app/gameplay/src/story_mode.cpp.o
+
+app/gameplay/src/story_mode.i: app/gameplay/src/story_mode.cpp.i
+.PHONY : app/gameplay/src/story_mode.i
+
+# target to preprocess a source file
+app/gameplay/src/story_mode.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/story_mode.cpp.i
+.PHONY : app/gameplay/src/story_mode.cpp.i
+
+app/gameplay/src/story_mode.s: app/gameplay/src/story_mode.cpp.s
+.PHONY : app/gameplay/src/story_mode.s
+
+# target to generate assembly for a file
+app/gameplay/src/story_mode.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/story_mode.cpp.s
+.PHONY : app/gameplay/src/story_mode.cpp.s
 
 app/gameplay/src/surfing_mode.o: app/gameplay/src/surfing_mode.cpp.o
 .PHONY : app/gameplay/src/surfing_mode.o
@@ -2361,6 +2505,9 @@ help:
 	@echo "... app/gameplay/src/brain_brawl_mode.o"
 	@echo "... app/gameplay/src/brain_brawl_mode.i"
 	@echo "... app/gameplay/src/brain_brawl_mode.s"
+	@echo "... app/gameplay/src/character_anim_state.o"
+	@echo "... app/gameplay/src/character_anim_state.i"
+	@echo "... app/gameplay/src/character_anim_state.s"
 	@echo "... app/gameplay/src/combat_system.o"
 	@echo "... app/gameplay/src/combat_system.i"
 	@echo "... app/gameplay/src/combat_system.s"
@@ -2385,6 +2532,9 @@ help:
 	@echo "... app/gameplay/src/fitness_data.o"
 	@echo "... app/gameplay/src/fitness_data.i"
 	@echo "... app/gameplay/src/fitness_data.s"
+	@echo "... app/gameplay/src/flight_system.o"
+	@echo "... app/gameplay/src/flight_system.i"
+	@echo "... app/gameplay/src/flight_system.s"
 	@echo "... app/gameplay/src/game_prompt_adapter.o"
 	@echo "... app/gameplay/src/game_prompt_adapter.i"
 	@echo "... app/gameplay/src/game_prompt_adapter.s"
@@ -2418,6 +2568,9 @@ help:
 	@echo "... app/gameplay/src/qte_system.o"
 	@echo "... app/gameplay/src/qte_system.i"
 	@echo "... app/gameplay/src/qte_system.s"
+	@echo "... app/gameplay/src/rail_grind_system.o"
+	@echo "... app/gameplay/src/rail_grind_system.i"
+	@echo "... app/gameplay/src/rail_grind_system.s"
 	@echo "... app/gameplay/src/scan_envelope_mapper.o"
 	@echo "... app/gameplay/src/scan_envelope_mapper.i"
 	@echo "... app/gameplay/src/scan_envelope_mapper.s"
@@ -2430,6 +2583,15 @@ help:
 	@echo "... app/gameplay/src/snowboarding_mode.o"
 	@echo "... app/gameplay/src/snowboarding_mode.i"
 	@echo "... app/gameplay/src/snowboarding_mode.s"
+	@echo "... app/gameplay/src/soccer_mode.o"
+	@echo "... app/gameplay/src/soccer_mode.i"
+	@echo "... app/gameplay/src/soccer_mode.s"
+	@echo "... app/gameplay/src/stage_stream_manager.o"
+	@echo "... app/gameplay/src/stage_stream_manager.i"
+	@echo "... app/gameplay/src/stage_stream_manager.s"
+	@echo "... app/gameplay/src/story_mode.o"
+	@echo "... app/gameplay/src/story_mode.i"
+	@echo "... app/gameplay/src/story_mode.s"
 	@echo "... app/gameplay/src/surfing_mode.o"
 	@echo "... app/gameplay/src/surfing_mode.i"
 	@echo "... app/gameplay/src/surfing_mode.s"
