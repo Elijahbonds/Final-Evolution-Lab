@@ -996,7 +996,16 @@ void dunk_contest_charge_release_scores() {
 
   nexus::physics::PhysicsWorld physics;
   require(physics.init({}).isOk(), "physics init");
-  for (int frame = 0; frame < 120; ++frame) {
+
+  // Drive through kLaunch (≥ 0.15 s) and to the QTE apex window centre
+  // before tapping.  With power=0.8 the window centre is ~0.35 s into the
+  // airborne phase; 9 frames reach the launch→airborne transition and 21
+  // more land near the centre (total 30 frames at 1/60 s ≈ 0.50 s).
+  for (int frame = 0; frame < 30; ++frame) {
+    gameplay.update(1.0 / 60.0, physics, {});
+  }
+  (void)gameplay.handleGameplayCommand("fel.dunk.apex_tap", {}, "apex_tap");
+  for (int frame = 0; frame < 90; ++frame) {
     gameplay.update(1.0 / 60.0, physics, {});
   }
 
@@ -1128,12 +1137,14 @@ void end_session_use_live_scores_resolves_mode_runtime() {
   require(gameplay.handleGameplayCommand("fel.dunk.charge_release", {{"power", 0.9F}}, "release")
               .status == "ok",
           "charge release");
-  for (int step = 0; step < 30; ++step) {
+  // Drive through kLaunch (3 ticks × 0.05 s) and reach the QTE apex window
+  // centre (≈ 8 more ticks) before tapping; then settle through kScored.
+  for (int step = 0; step < 12; ++step) {
     gameplay.update(0.05, physics, {});
   }
   require(gameplay.handleGameplayCommand("fel.dunk.apex_tap", {}, "apex").status == "ok",
           "apex tap");
-  for (int step = 0; step < 20; ++step) {
+  for (int step = 0; step < 18; ++step) {
     gameplay.update(0.05, physics, {});
   }
 

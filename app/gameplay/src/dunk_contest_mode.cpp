@@ -15,6 +15,23 @@ constexpr float kLaunchSpeedMin    = 8.0F;
 constexpr float kLaunchSpeedMax    = 14.0F;
 constexpr float kGhostDunkInterval = 7.0F;  // ghost dunks every 7 s
 
+// ── Ghost difficulty scoring increments ──────────────────────────────────────
+// base: points added each ghost dunk at the start of a match.
+// ramp_cap: maximum additional points the ghost gains as m_ghostDunks grows.
+// TODO(elijah): tune these per tier to match desired match tension.
+constexpr int kGhostBaseEasy    = 1;
+constexpr int kGhostBaseNormal  = 2;
+constexpr int kGhostBaseHard    = 3;
+constexpr int kGhostRampCapEasy   = 1;
+constexpr int kGhostRampCapNormal = 2;
+constexpr int kGhostRampCapHard   = 4;
+
+// ── Combo multiplier growth ───────────────────────────────────────────────────
+// Each chained Perfect or Great dunk adds kComboMultiplierStep to the multiplier,
+// capped by ArcadePhysicsParams::maxComboMultiplier.
+// TODO(elijah): tune kComboMultiplierStep for desired feel.
+constexpr float kComboMultiplierStep = 0.25F;
+
 } // namespace
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -29,6 +46,8 @@ void DunkContestMode::reset() {
   m_ghostDunks      = 0;
   m_pendingStyle    = DunkStyle::kStandard;
   m_dunkHistory.clear();
+  m_comboCount      = 0;
+  m_comboMultiplier = 1.0F;
   m_player3D   = CharacterState3D{{0.0F, 0.0F, -8.0F}};
   m_player3D.setClip(std::string(clips::kDunkApproach));
   m_opponent3D = CharacterState3D{{3.5F, 0.0F, -8.0F}};
@@ -282,10 +301,21 @@ void DunkContestMode::completeDunk(const ArcadePhysicsParams& physics) {
   dunk.timingGrade        = m_lastApexGrade;
   dunk.launchDistanceMeters = m_player3D.position.distanceTo(kHoopPos);
   m_lastApexGrade         = QTEGrade::kMiss;
-  dunk.points             = calculateDunkPoints(dunk, physics);
-  if (!m_signatureAnimationId.empty()) {
-    dunk.points += 2; // user-loaded signature bonus
+
+  if (dunk.timingGrade == QTEGrade::kMiss) {
+    // Miss: no points scored, combo chain breaks.
+    dunk.points = 0;
+  } else {
+    dunk.points = calculateDunkPoints(dunk, physics);
+    if (!m_signatureAnimationId.empty()) {
+      dunk.points += 2; // user-loaded signature bonus
+    }
+    // Apply current combo multiplier before updating it.
+    dunk.points = static_cast<int>(std::round(dunk.points * m_comboMultiplier));
   }
+
+  updateCombo(dunk.timingGrade, physics);
+
   m_dunkHistory.push_back(dunk);
   m_playerScore += dunk.points;
 
@@ -307,7 +337,21 @@ void DunkContestMode::advanceGhostOpponent() {
     }
     return;
   }
-  const int base = 2 + std::min(m_ghostDunks / 3, 2);
+  const int ghostBase = [this]() -> int {
+    switch (m_ghostDifficulty) {
+    case GhostDifficulty::kEasy: return kGhostBaseEasy;
+    case GhostDifficulty::kHard: return kGhostBaseHard;
+    default:                     return kGhostBaseNormal;
+    }
+  }();
+  const int ghostCap = [this]() -> int {
+    switch (m_ghostDifficulty) {
+    case GhostDifficulty::kEasy: return kGhostRampCapEasy;
+    case GhostDifficulty::kHard: return kGhostRampCapHard;
+    default:                     return kGhostRampCapNormal;
+    }
+  }();
+  const int base = ghostBase + std::min(m_ghostDunks / 3, ghostCap);
   m_opponentScore += base;
   ++m_ghostDunks;
   if (m_opponentScore >= kWinScore) {
@@ -327,6 +371,23 @@ void DunkContestMode::setRemoteOpponent(const RemotePlayerState* state) {
   if (m_remoteOpponent != nullptr) {
     m_opponentScore = m_remoteOpponent->dunkScore;
   }
+}
+
+void DunkContestMode::setGhostDifficulty(GhostDifficulty difficulty) {
+  m_ghostDifficulty = difficulty;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+void DunkContestMode::updateCombo(QTEGrade grade, const ArcadePhysicsParams& physics) {
+  if (grade == QTEGrade::kMiss) {
+    m_comboCount      = 0;
+    m_comboMultiplier = 1.0F;
+  } else if (grade == QTEGrade::kPerfect || grade == QTEGrade::kGreat) {
+    ++m_comboCount;
+    const float step = static_cast<float>(m_comboCount) * kComboMultiplierStep;
+    m_comboMultiplier = std::min(1.0F + step, physics.maxComboMultiplier);
+  }
+  // kGood and kOk: hold current combo, no change
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -364,6 +425,8 @@ auto DunkContestMode::stateJson() const -> nlohmann::json {
       {"match_complete", isMatchComplete()},
       {"dunk_details",   std::move(dunks)},
       {"ghost_dunks",    m_ghostDunks},
+      {"combo_count",      m_comboCount},
+      {"combo_multiplier", m_comboMultiplier},
       {"signature_animation_id", m_signatureAnimationId},
       {"signature_keyframes",    m_signatureKeyframes},
       // 3D court state for the renderer

@@ -7,6 +7,7 @@
 namespace nexus { namespace gameplay {
   enum class DunkStyle : std::uint8_t;
   enum class DunkPhase : std::uint8_t;
+  enum class GhostDifficulty : std::uint8_t;
 } } // namespace nexus::gameplay
 
 #include "nexus/core/result.h"
@@ -40,6 +41,14 @@ enum class DunkPhase : std::uint8_t {
   kAirborne     = 3,  // in the air — apex QTE window
   kScored       = 4,  // brief celebration
   kMatchWon     = 5,
+};
+
+/// Controls how aggressively the ghost AI accumulates score while the player
+/// dribbles between dunks.  TODO(elijah): tune per-tier constants in dunk_contest_mode.cpp.
+enum class GhostDifficulty : std::uint8_t {
+  kEasy   = 0,
+  kNormal = 1,
+  kHard   = 2,
 };
 
 struct DunkResult {
@@ -82,6 +91,10 @@ public:
   auto onRegisterSignature(const std::string& animationId,
                            const nlohmann::json& keyframes) -> Result<void>;
 
+  /// Adjust ghost AI scoring pace.  Call before or between dunks.
+  /// Default is kNormal.
+  void setGhostDifficulty(GhostDifficulty difficulty);
+
   [[nodiscard]] auto playerScore()  const -> int       { return m_playerScore; }
   [[nodiscard]] auto opponentScore()const -> int       { return m_opponentScore; }
   [[nodiscard]] auto phase()        const -> DunkPhase { return m_phase; }
@@ -91,6 +104,12 @@ public:
   [[nodiscard]] auto dunkHistory()  const -> const std::vector<DunkResult>& { return m_dunkHistory; }
   [[nodiscard]] auto signatureAnimationId() const -> const std::string& { return m_signatureAnimationId; }
   [[nodiscard]] auto playerState3D() const -> const CharacterState3D& { return m_player3D; }
+  /// Current chain length: increments on consecutive Perfect/Great dunks,
+  /// resets to 0 on a miss.
+  [[nodiscard]] auto comboCount()      const -> int   { return m_comboCount; }
+  /// Current score multiplier derived from comboCount, capped at
+  /// ArcadePhysicsParams::maxComboMultiplier.
+  [[nodiscard]] auto comboMultiplier() const -> float { return m_comboMultiplier; }
 
   /// Apply an opponent score update received from a remote / local-2P peer.
   void applyRemoteScore(int opponentScore);
@@ -108,6 +127,9 @@ private:
   void advanceGhostOpponent();
   void update3DPositions(double deltaSeconds);
   void clampPlayerToCourtBounds();
+  /// Update m_comboCount and m_comboMultiplier after a completed dunk.
+  /// Perfect/Great → increment; Good/Ok → hold; Miss → reset.
+  void updateCombo(QTEGrade grade, const ArcadePhysicsParams& physics);
 
   DunkPhase m_phase{DunkPhase::kFreeDribble};
   float m_chargePower{0.0F};
@@ -130,6 +152,10 @@ private:
 
   // Non-owning pointer; null → ghost AI, non-null → real remote peer.
   const RemotePlayerState* m_remoteOpponent{nullptr};
+
+  GhostDifficulty m_ghostDifficulty{GhostDifficulty::kNormal};
+  int   m_comboCount{0};
+  float m_comboMultiplier{1.0F};
 };
 
 } // namespace nexus::gameplay

@@ -85,6 +85,7 @@ set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/nexus_agent_cli_test.dir/DependInfo.cmake"
   "CMakeFiles/nexus_gameplay_test.dir/DependInfo.cmake"
   "CMakeFiles/nexus_scan_envelope_test.dir/DependInfo.cmake"
+  "CMakeFiles/nexus_dunk_contest_test.dir/DependInfo.cmake"
   "CMakeFiles/nexus_generative_test.dir/DependInfo.cmake"
   "CMakeFiles/nexus_physics_test.dir/DependInfo.cmake"
   "CMakeFiles/nexus_physics_advanced_test.dir/DependInfo.cmake"

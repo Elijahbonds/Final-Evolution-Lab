@@ -286,6 +286,14 @@ if(NEXUS_BUILD_TESTS)
   endif()
   add_test(NAME nexus_scan_envelope_test COMMAND nexus_scan_envelope_test)
 
+  add_executable(nexus_dunk_contest_test tests/unit/gameplay/dunk_contest_test.cpp)
+  target_link_libraries(nexus_dunk_contest_test PRIVATE nexus_gameplay)
+  if(APPLE)
+    target_link_options(nexus_dunk_contest_test PRIVATE
+      "LINKER:-force_load,$<TARGET_FILE:nexus_gameplay>")
+  endif()
+  add_test(NAME nexus_dunk_contest_test COMMAND nexus_dunk_contest_test)
+
   add_executable(nexus_generative_test tests/unit/generative/generative_test.cpp)
   target_link_libraries(nexus_generative_test PRIVATE nexus_generative nexus_ai_interface)
   add_test(NAME nexus_generative_test COMMAND nexus_generative_test)

@@ -322,6 +322,19 @@ nexus_scan_envelope_test/fast:
 .PHONY : nexus_scan_envelope_test/fast
 
 #=============================================================================
+# Target rules for targets named nexus_dunk_contest_test
+
+# Build rule for target.
+nexus_dunk_contest_test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 nexus_dunk_contest_test
+.PHONY : nexus_dunk_contest_test
+
+# fast build rule for target.
+nexus_dunk_contest_test/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_dunk_contest_test.dir/build.make CMakeFiles/nexus_dunk_contest_test.dir/build
+.PHONY : nexus_dunk_contest_test/fast
+
+#=============================================================================
 # Target rules for targets named nexus_generative_test
 
 # Build rule for target.
@@ -2441,6 +2454,30 @@ tests/unit/core/websocket_test.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_realtime_test.dir/build.make CMakeFiles/nexus_realtime_test.dir/tests/unit/core/websocket_test.cpp.s
 .PHONY : tests/unit/core/websocket_test.cpp.s
 
+tests/unit/gameplay/dunk_contest_test.o: tests/unit/gameplay/dunk_contest_test.cpp.o
+.PHONY : tests/unit/gameplay/dunk_contest_test.o
+
+# target to build an object file
+tests/unit/gameplay/dunk_contest_test.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_dunk_contest_test.dir/build.make CMakeFiles/nexus_dunk_contest_test.dir/tests/unit/gameplay/dunk_contest_test.cpp.o
+.PHONY : tests/unit/gameplay/dunk_contest_test.cpp.o
+
+tests/unit/gameplay/dunk_contest_test.i: tests/unit/gameplay/dunk_contest_test.cpp.i
+.PHONY : tests/unit/gameplay/dunk_contest_test.i
+
+# target to preprocess a source file
+tests/unit/gameplay/dunk_contest_test.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_dunk_contest_test.dir/build.make CMakeFiles/nexus_dunk_contest_test.dir/tests/unit/gameplay/dunk_contest_test.cpp.i
+.PHONY : tests/unit/gameplay/dunk_contest_test.cpp.i
+
+tests/unit/gameplay/dunk_contest_test.s: tests/unit/gameplay/dunk_contest_test.cpp.s
+.PHONY : tests/unit/gameplay/dunk_contest_test.s
+
+# target to generate assembly for a file
+tests/unit/gameplay/dunk_contest_test.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_dunk_contest_test.dir/build.make CMakeFiles/nexus_dunk_contest_test.dir/tests/unit/gameplay/dunk_contest_test.cpp.s
+.PHONY : tests/unit/gameplay/dunk_contest_test.cpp.s
+
 tests/unit/gameplay/gameplay_test.o: tests/unit/gameplay/gameplay_test.cpp.o
 .PHONY : tests/unit/gameplay/gameplay_test.o
 
@@ -2674,6 +2711,7 @@ help:
 	@echo "... nexus_cartridge_test"
 	@echo "... nexus_core"
 	@echo "... nexus_creative"
+	@echo "... nexus_dunk_contest_test"
 	@echo "... nexus_gameplay"
 	@echo "... nexus_gameplay_test"
 	@echo "... nexus_generative"
@@ -2941,6 +2979,9 @@ help:
 	@echo "... tests/unit/core/websocket_test.o"
 	@echo "... tests/unit/core/websocket_test.i"
 	@echo "... tests/unit/core/websocket_test.s"
+	@echo "... tests/unit/gameplay/dunk_contest_test.o"
+	@echo "... tests/unit/gameplay/dunk_contest_test.i"
+	@echo "... tests/unit/gameplay/dunk_contest_test.s"
 	@echo "... tests/unit/gameplay/gameplay_test.o"
 	@echo "... tests/unit/gameplay/gameplay_test.i"
 	@echo "... tests/unit/gameplay/gameplay_test.s"
