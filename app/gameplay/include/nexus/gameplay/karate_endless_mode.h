@@ -2,6 +2,7 @@
 #pragma once
 
 #include "nexus/core/result.h"
+#include "nexus/gameplay/arena_3d_space.h"
 #include "nexus/gameplay/combat_system.h"
 #include "nexus/gameplay/enemy_ai.h"
 #include "nexus/gameplay/health_system.h"
@@ -85,6 +86,11 @@ private:
   float m_comboMultiplier{1.0F};
   int m_score{0};
   int m_opponentsDefeated{0};
+  // 3D arena state — player starts at dojo centre, opponents flank from sides
+  CharacterState3D m_player3D{{0.0F, 0.0F, -4.0F}};
+  std::string m_lastAnimAction{"idle"};
+  // Enemy 3D positions (up to kMaxPlayers enemies placed around the dojo)
+  std::array<CharacterState3D, kMaxPlayers> m_enemy3D{};
 };
 
 } // namespace nexus::gameplay

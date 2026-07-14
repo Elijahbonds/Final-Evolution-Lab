@@ -1,6 +1,8 @@
 #include "nexus/gameplay/karate_endless_mode.h"
+#include "nexus/gameplay/character_anim_state.h"
 
 #include <algorithm>
+#include <cmath>
 #include <string>
 
 namespace nexus::gameplay {
@@ -31,6 +33,14 @@ void KarateEndlessMode::reset() {
   m_comboMultiplier = 1.0F;
   m_score = 0;
   m_opponentsDefeated = 0;
+  // 3D dojo reset: player at centre front, enemies will be placed on spawnActiveEnemies
+  m_player3D = CharacterState3D{{0.0F, 0.0F, -4.0F}};
+  m_player3D.setClip(std::string(clips::kKarateIdle));
+  m_lastAnimAction = "idle";
+  for (auto& e : m_enemy3D) {
+    e = CharacterState3D{};
+    e.setClip(std::string(clips::kKarateIdle));
+  }
 }
 
 void KarateEndlessMode::configureCoop(int playerCount) {
@@ -205,6 +215,11 @@ auto KarateEndlessMode::performAction(CombatAction action, int playerIndex) -> R
   CombatOutcome outcome = CombatSystem::resolve(action, opponentAttacking, attackTimer);
   outcome.damageDealt *= damageMultiplier();
 
+  // ── Update 3D animation state ──────────────────────────────────────────────
+  m_lastAnimAction = std::string(CombatSystem::actionLabel(action));
+  const AnimClip clip = CharacterAnimStateMachine::combatActionClip(static_cast<int>(action));
+  m_player3D.setClip(clip.name, clip.loop, clip.speedScale);
+
   if (action == CombatAction::kBlock && outcome.blocked) {
     return Result<CombatOutcome>::ok(outcome);
   }
@@ -318,6 +333,16 @@ void KarateEndlessMode::spawnActiveEnemies() {
   for (EnemyAI& enemy : m_enemies) {
     enemy.configure(config.enemyHp, config.speedScale, config.aggression);
   }
+  // Place enemies around the 3D dojo — fan them out in front of the player
+  // (player is at z=-4, enemies spawn at z=+3 to +5, staggered on x)
+  const float xSpacing = 2.5F;
+  const float halfSpan = xSpacing * static_cast<float>(enemyCount - 1) * 0.5F;
+  for (int i = 0; i < enemyCount && i < kMaxPlayers; ++i) {
+    const float xPos = static_cast<float>(i) * xSpacing - halfSpan;
+    m_enemy3D[static_cast<std::size_t>(i)] = CharacterState3D{{xPos, 0.0F, 4.0F}};
+    m_enemy3D[static_cast<std::size_t>(i)].yawDegrees = 180.0F; // face player
+    m_enemy3D[static_cast<std::size_t>(i)].setClip(std::string(clips::kKarateIdle));
+  }
 }
 
 void KarateEndlessMode::onEnemyDefeated() {
@@ -383,6 +408,21 @@ auto KarateEndlessMode::stateJson() const -> nlohmann::json {
       {"perk_available", m_phase == KarateWavePhase::kIntermission && !m_perkClaimedThisIntermission},
       {"exfil_available",
        m_phase == KarateWavePhase::kIntermission && m_waves.currentWave() >= kTargetWave},
+      // 3D dojo state — renderer uses these to position characters in 3D space
+      {"player_3d", {
+          {"x", m_player3D.position.x},
+          {"y", m_player3D.position.y},
+          {"z", m_player3D.position.z},
+          {"yaw", m_player3D.yawDegrees},
+          {"anim_clip", m_player3D.animClip.name},
+          {"anim_loop", m_player3D.animClip.loop},
+          {"anim_speed", m_player3D.animClip.speedScale},
+      }},
+      {"arena_3d", {
+          {"width", arenas::kDojo.width},
+          {"depth", arenas::kDojo.depth},
+          {"ceiling", arenas::kDojo.ceilingHeight},
+      }},
   };
 }
 
