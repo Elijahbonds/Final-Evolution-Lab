@@ -152,7 +152,9 @@ add_library(nexus_gameplay
   app/gameplay/src/scan_envelope_mapper.cpp
   app/gameplay/src/session_receipt_client.cpp
   app/gameplay/src/skateboarding_mode.cpp
+  app/gameplay/src/character_anim_state.cpp
   app/gameplay/src/snowboarding_mode.cpp
+  app/gameplay/src/soccer_mode.cpp
   app/gameplay/src/surfing_mode.cpp
   app/gameplay/src/throw_catch_physics.cpp
   app/gameplay/src/venue_volume_registry.cpp
