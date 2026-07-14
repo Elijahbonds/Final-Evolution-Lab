@@ -180,6 +180,21 @@ auto ModeRuntime::handleCommand(std::string_view command, const nlohmann::json& 
       }
       return Result<nlohmann::json>::ok(m_dunk.stateJson());
     }
+    if (command == "fel.dunk.move") {
+      const float dx = params.value("dx", 0.0F);
+      const float dz = params.value("dz", 0.0F);
+      const double dt = params.value("dt", 0.016);
+      return m_dunk.movePlayer(dx, dz, dt);
+    }
+    if (command == "fel.dunk.select_signature") {
+      const int styleInt = params.value("style", 4);
+      if (styleInt < 4 || styleInt > 7) {
+        return Result<nlohmann::json>::err("style must be 4=360Scoop 5=360Eastbay 6=360FakeEastbay 7=OffBackboardWindmill");
+      }
+      const auto result = m_dunk.selectSignatureDunk(static_cast<DunkStyle>(styleInt));
+      if (result.isErr()) return Result<nlohmann::json>::err(result.error());
+      return Result<nlohmann::json>::ok(m_dunk.stateJson());
+    }
     if (command == "fel.dunk.charge_release") {
       const float power = params.value("power", m_dunk.chargePower());
       const auto result = m_dunk.onChargeRelease(power);
@@ -221,6 +236,23 @@ auto ModeRuntime::handleCommand(std::string_view command, const nlohmann::json& 
       nlohmann::json payload = result.value();
       payload["karate"] = m_karate.stateJson();
       return Result<nlohmann::json>::ok(std::move(payload));
+    }
+    if (command == "fel.karate.move") {
+      const float dx = params.value("dx", 0.0F);
+      const float dz = params.value("dz", 0.0F);
+      const double dt = params.value("dt", 0.016);
+      return m_karate.movePlayer(dx, dz, dt);
+    }
+    if (command == "fel.karate.dash") {
+      const std::string dir = params.value("direction", "forward");
+      return m_karate.dash(dir);
+    }
+    if (command == "fel.karate.lock_on") {
+      const int idx = params.value("enemy_index", -1);
+      return m_karate.lockOn(idx);
+    }
+    if (command == "fel.karate.jutsu") {
+      return m_karate.jutsu();
     }
     if (command == "fel.karate.action") {
       const std::string actionName = params.value("action", "light_strike");
