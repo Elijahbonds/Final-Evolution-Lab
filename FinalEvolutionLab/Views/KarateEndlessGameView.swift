@@ -10,7 +10,7 @@ private enum EndlessPhase {
 
 private enum EnemySide { case left, right }
 private enum EnemyType { case grappler, striker, rusher }
-private enum PowerUpType { case speedBoost, powerStrike, shield, timeSlow }
+private enum PowerUpType: CaseIterable { case speedBoost, powerStrike, shield, timeSlow }
 
 // MARK: - Wave Opponent (legacy — kept for HP bar UI)
 
@@ -1242,6 +1242,8 @@ struct KarateEndlessGameView: View {
     @State private var killStreak: Int = 0
     @State private var activePowerUp: PowerUpType? = nil
     @State private var powerUpTimer: Double = 0
+    @State private var powerUpTimeLeft: Double = 0
+    @State private var powerUpTask: Task<Void, Never>?
     @State private var killParticles: [KillParticle] = []
 
     // Combo & chakra
@@ -1260,6 +1262,8 @@ struct KarateEndlessGameView: View {
     @State private var hitFlash: Bool = false
     @State private var hitFlashTask: Task<Void, Never>?
     @State private var blockActive: Bool = false
+    @State private var counterWindowActive: Bool = false
+    @State private var counterWindowTask: Task<Void, Never>?
     @State private var actionLabel: String = ""
     @State private var actionColor: Color = Theme.brandBlue
     @State private var showActionLabel: Bool = false
@@ -1474,6 +1478,17 @@ struct KarateEndlessGameView: View {
                 .onChange(of: chakra) { _, newVal in
                     showDragonStrikeButton = newVal >= 100
                 }
+            if let activePowerUp {
+                HStack(spacing: 6) {
+                    Image(systemName: powerUpIconName(for: activePowerUp))
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(powerUpColor(for: activePowerUp))
+                    Text("\(powerUpLabel(for: activePowerUp)) · \(String(format: "%.1f", powerUpTimeLeft))s")
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.8))
+                    Spacer()
+                }
+            }
         }
     }
 
@@ -1498,6 +1513,20 @@ struct KarateEndlessGameView: View {
             .clipShape(RoundedRectangle(cornerRadius: 16))
 
             EndlessActionLabel(text: actionLabel, color: actionColor, visible: showActionLabel)
+
+            if showWaveBanner {
+                Text("BOSS WAVE!")
+                    .font(.system(size: 32, weight: .black, design: .monospaced))
+                    .italic()
+                    .foregroundStyle(.red)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 14)
+                    .background(Color.black.opacity(0.6))
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.red.opacity(0.6), lineWidth: 1))
+                    .shadow(color: .red.opacity(0.45), radius: 18)
+                    .transition(.scale.combined(with: .opacity))
+            }
 
             if showDragonStrikeButton {
                 VStack {
@@ -1791,9 +1820,10 @@ struct KarateEndlessGameView: View {
     }
 
     private func spawnWave() {
+        let isBossWave = waveNumber >= 5 && waveNumber % 5 == 0
         let count = min(3, waveNumber)
         let hpScale = 1.0 + Double(waveNumber - 1) * 0.25
-        let baseHP = 60.0 * hpScale * (waveNumber % 5 == 0 ? 1.8 : 1.0)
+        let baseHP = 60.0 * hpScale * (isBossWave ? 1.8 : 1.0)
         var newOpponents: [WaveOpponent] = []
         var newEnemies: [EnemyState] = []
 
@@ -1817,6 +1847,20 @@ struct KarateEndlessGameView: View {
         }
         withAnimation { opponents = newOpponents }
         enemies = newEnemies
+
+        if isBossWave {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { showWaveBanner = true }
+            waveBannerTask?.cancel()
+            waveBannerTask = Task {
+                try? await Task.sleep(for: .milliseconds(1400))
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    withAnimation(.easeOut(duration: 0.25)) { showWaveBanner = false }
+                }
+            }
+        } else {
+            showWaveBanner = false
+        }
 
         // Slide-in animation
         for i in 0..<newOpponents.count {
@@ -1879,8 +1923,9 @@ struct KarateEndlessGameView: View {
         aiAttackTask?.cancel()
         aiAttackTask = Task {
             while true {
+                let isBossWave = waveNumber >= 5 && waveNumber % 5 == 0
                 let baseDelay = max(1.0, 3.5 - Double(waveNumber) * 0.3)
-                let delay = Double.random(in: baseDelay...(baseDelay + 1.5))
+                let delay = isBossWave ? Double.random(in:0.8...1.8) : Double.random(in:baseDelay...(baseDelay + 1.5))
                 try? await Task.sleep(for: .seconds(delay))
                 guard !Task.isCancelled else { return }
                 await MainActor.run { aiAttack() }
@@ -1929,8 +1974,10 @@ struct KarateEndlessGameView: View {
 
     private func aiAttack() {
         guard phase == .fighting else { return }
-        let baseDamage = 6.0 + Double(waveNumber - 1) * 1.5 * (waveNumber % 5 == 0 ? 1.5 : 1.0)
-        let damage = Double.random(in: baseDamage...(baseDamage + 8))
+        let bossMultiplier = (waveNumber >= 5 && waveNumber % 5 == 0) ? 1.6 : 1.0
+        let baseDamage = 6.0 + Double(waveNumber - 1) * 1.5
+        var damage = Double.random(in: baseDamage...(baseDamage + 8)) * bossMultiplier
+        if activePowerUp == .shield { damage *= 0.4 }
 
         if blockActive {
             // Blocked — reduced damage
@@ -1965,17 +2012,22 @@ struct KarateEndlessGameView: View {
         let isCritical = now.timeIntervalSince(lastPlayerActionTime) < 0.3
         lastPlayerActionTime = now
 
-        let damage: Double = (isCritical ? 10 : 7) + Double(combo) * 1.2
-        applyDamageToEnemies(damage: damage / 100.0)
+        let isCounter = counterWindowActive
+        var damage: Double = (isCritical ? 10 : 7) + Double(combo) * 1.2
+        if activePowerUp == .powerStrike { damage *= 2.0 }
+        if isCounter { damage *= 1.8 }
+        let defeatedEnemy = applyDamageToEnemies(damage: damage / 100.0)
 
         score += isCritical ? 2 : 1
         combo += 1
         maxCombo = max(maxCombo, combo)
-        chakra = min(100, chakra + (isCritical ? 14 : 8))
+        chakra = min(100, chakra + (isCritical ? 14 : 8) + (activePowerUp == .speedBoost ? 4 : 0))
 
         setPlayerPose("punch", duration: 0.3)
         if !enemies.isEmpty { enemies[0].pose = "staggered" }
-        showAction(text: isCritical ? "CRITICAL PUNCH!" : "PUNCH", color: Theme.brandBlue)
+        let actionText = defeatedEnemy && killStreak >= 3 ? "×\(killStreak) STREAK!" : (isCounter ? "COUNTER STRIKE!" : (isCritical ? "CRITICAL PUNCH!" : "PUNCH"))
+        let actionTint: Color = defeatedEnemy && killStreak >= 3 ? .orange : (isCounter ? .yellow : Theme.brandBlue)
+        showAction(text: actionText, color: actionTint)
         if isCritical { triggerCriticalFlash() }
         flashScreenShake()
         impactHvy.impactOccurred()
@@ -1987,17 +2039,22 @@ struct KarateEndlessGameView: View {
         let isCritical = now.timeIntervalSince(lastPlayerActionTime) < 0.3
         lastPlayerActionTime = now
 
-        let damage: Double = (isCritical ? 16 : 11) + Double(combo) * 1.8
-        applyDamageToEnemies(damage: damage / 100.0)
+        let isCounter = counterWindowActive
+        var damage: Double = (isCritical ? 16 : 11) + Double(combo) * 1.8
+        if activePowerUp == .powerStrike { damage *= 2.0 }
+        if isCounter { damage *= 1.8 }
+        let defeatedEnemy = applyDamageToEnemies(damage: damage / 100.0)
 
         score += isCritical ? 3 : 2
         combo += 1
         maxCombo = max(maxCombo, combo)
-        chakra = min(100, chakra + (isCritical ? 18 : 11))
+        chakra = min(100, chakra + (isCritical ? 18 : 11) + (activePowerUp == .speedBoost ? 4 : 0))
 
         setPlayerPose("kick", duration: 0.35)
         if !enemies.isEmpty { enemies[0].pose = "staggered" }
-        showAction(text: isCritical ? "CRITICAL KICK!" : "KICK", color: accentColor)
+        let actionText = defeatedEnemy && killStreak >= 3 ? "×\(killStreak) STREAK!" : (isCounter ? "COUNTER STRIKE!" : (isCritical ? "CRITICAL KICK!" : "KICK"))
+        let actionTint: Color = defeatedEnemy && killStreak >= 3 ? .orange : (isCounter ? .yellow : accentColor)
+        showAction(text: actionText, color: actionTint)
         if isCritical { triggerCriticalFlash() }
         flashScreenShake()
         impactHvy.impactOccurred()
@@ -2006,6 +2063,7 @@ struct KarateEndlessGameView: View {
     private func handleBlock() {
         guard phase == .fighting else { return }
         combo = 0
+        counterWindowActive = false
         blockActive = true
         playerHP = min(maxPlayerHP, playerHP + 4)
         setPlayerPose("block", duration: 0.5)
@@ -2023,10 +2081,20 @@ struct KarateEndlessGameView: View {
         showAction(text: "DODGE", color: Theme.elitePurple)
         impactLgt.impactOccurred()
         // Brief invincibility handled via blockActive
+        counterWindowTask?.cancel()
+        counterWindowActive = false
         blockActive = true
-        Task {
+        counterWindowTask = Task {
             try? await Task.sleep(for: .milliseconds(400))
-            await MainActor.run { blockActive = false }
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                blockActive = false
+                counterWindowActive = true
+                showAction(text: "COUNTER!", color: .yellow)
+            }
+            try? await Task.sleep(for: .milliseconds(600))
+            guard !Task.isCancelled else { return }
+            await MainActor.run { counterWindowActive = false }
         }
     }
 
@@ -2078,8 +2146,9 @@ struct KarateEndlessGameView: View {
         if enemies.isEmpty { advanceWave() }
     }
 
-    private func applyDamageToEnemies(damage: Double) {
-        guard !enemies.isEmpty else { return }
+    @discardableResult
+    private func applyDamageToEnemies(damage: Double) -> Bool {
+        guard !enemies.isEmpty else { return false }
 
         // Damage normalized (0-1 scale for EnemyState.hp)
         let newHP = max(0.0, enemies[0].hp - damage)
@@ -2100,11 +2169,18 @@ struct KarateEndlessGameView: View {
             enemies.removeFirst()
             if !opponents.isEmpty { withAnimation { opponents.removeFirst() } }
             killStreak += 1
+            if killStreak >= 3 {
+                score += killStreak * 2
+            }
+            if killStreak % 3 == 0 {
+                spawnRandomPowerUp()
+            }
         } else {
             enemies[0].hp = newHP
         }
 
         if enemies.isEmpty { advanceWave() }
+        return died
     }
 
     private func advanceWave() {
@@ -2131,10 +2207,12 @@ struct KarateEndlessGameView: View {
 
     private func setPlayerPose(_ pose: String, duration: Double) {
         playerPose = pose
-        Task {
+        let task = Task {
             try? await Task.sleep(for: .milliseconds(Int(duration * 1000)))
             await MainActor.run { playerPose = "idle" }
         }
+        poseResetTasks.append(task)
+        poseResetTasks.removeAll { $0.isCancelled }
     }
 
     // MARK: - FX
@@ -2182,6 +2260,55 @@ struct KarateEndlessGameView: View {
         }
     }
 
+    private func spawnRandomPowerUp() {
+        activePowerUp = PowerUpType.allCases.randomElement()
+        powerUpTimeLeft = 8.0
+        powerUpTimer = powerUpTimeLeft
+        powerUpTask?.cancel()
+        powerUpTask = Task {
+            var remaining = 8.0
+            while remaining > 0 {
+                try? await Task.sleep(for: .milliseconds(100))
+                guard !Task.isCancelled else { return }
+                remaining = max(0, remaining - 0.1)
+                await MainActor.run {
+                    powerUpTimeLeft = remaining
+                    powerUpTimer = remaining
+                    if remaining == 0 {
+                        activePowerUp = nil
+                    }
+                }
+            }
+        }
+    }
+
+    private func powerUpIconName(for powerUp: PowerUpType) -> String {
+        switch powerUp {
+        case .speedBoost: return "bolt.fill"
+        case .powerStrike: return "burst.fill"
+        case .shield: return "shield.fill"
+        case .timeSlow: return "clock.fill"
+        }
+    }
+
+    private func powerUpLabel(for powerUp: PowerUpType) -> String {
+        switch powerUp {
+        case .speedBoost: return "SPEED"
+        case .powerStrike: return "POWER"
+        case .shield: return "SHIELD"
+        case .timeSlow: return "SLOW"
+        }
+    }
+
+    private func powerUpColor(for powerUp: PowerUpType) -> Color {
+        switch powerUp {
+        case .speedBoost: return .yellow
+        case .powerStrike: return .orange
+        case .shield: return .cyan
+        case .timeSlow: return Theme.elitePurple
+        }
+    }
+
     // MARK: - End Game
 
     private func endGame() {
@@ -2217,6 +2344,8 @@ struct KarateEndlessGameView: View {
         hitFlashTask?.cancel()
         waveBannerTask?.cancel()
         particleTask?.cancel()
+        powerUpTask?.cancel()
+        counterWindowTask?.cancel()
         poseResetTasks.forEach { $0.cancel() }
     }
 }

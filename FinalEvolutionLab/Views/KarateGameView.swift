@@ -1026,7 +1026,7 @@ private struct DojoDrawer {
 
 // MARK: - Phases & Outcome
 
-private enum KaratePhase { case ready, fight, result }
+private enum KaratePhase { case ready, fight, roundEnd, result }
 private enum KarateOutcome { case win, draw, loss }
 
 // MARK: - Health Bar
@@ -1092,17 +1092,23 @@ struct KarateGameView: View {
 
     private let accentColor  = Color(red:1.0,green:0.2,blue:0.2)
     private let opponentName = "Ryu Nexus"
+    private let impactLgt    = UIImpactFeedbackGenerator(style:.light)
     private let impactMed    = UIImpactFeedbackGenerator(style:.medium)
     private let impactHvy    = UIImpactFeedbackGenerator(style:.heavy)
     private let notif        = UINotificationFeedbackGenerator()
 
     @State private var phase: KaratePhase = .ready
-    @State private var timeLeft: Int = 90
+    @State private var timeLeft: Int = 60
     @State private var gameTimerTask: Task<Void, Never>?
 
     @State private var playerHP: Double = 100
     @State private var opponentHP: Double = 100
     private let maxHP: Double = 100
+    @State private var currentRound: Int = 1
+    @State private var roundsWonPlayer: Int = 0
+    @State private var roundsWonOpponent: Int = 0
+    @State private var showRoundBanner: Bool = false
+    @State private var roundBannerText: String = ""
 
     @State private var playerScore: Int = 0
     @State private var opponentScore: Int = 0
@@ -1122,13 +1128,18 @@ struct KarateGameView: View {
     @State private var showActionLabel: Bool = false
     @State private var actionLabelTask: Task<Void, Never>?
     @State private var screenShake: CGFloat = 0
-    @State private var poseResetTask: Task<Void, Never>?
+    @State private var playerPoseTask: Task<Void, Never>?
+    @State private var opponentPoseTask: Task<Void, Never>?
+    @State private var isDodging: Bool = false
+    @State private var dodgeTask: Task<Void, Never>?
+    @State private var counterWindowOpen: Bool = false
+    @State private var counterWindowTask: Task<Void, Never>?
+    @State private var roundTransitionTask: Task<Void, Never>?
     // Hit spark timing (absolute time reference)
     @State private var lastHitTime: Double = 0
     @State private var lastHitType: String = ""
     // Enhanced canvas state
     @State private var comboCount: Int = 0
-    @State private var roundNumber: Int = 1
 
     // AI
     @State private var aiAttackTask: Task<Void, Never>?
@@ -1143,9 +1154,9 @@ struct KarateGameView: View {
 
             switch phase {
             case .ready:
-                GetReadyScreen(title:"Karate · 1v1", subtitle:"90-Second Match · Beat the Opponent",
+                GetReadyScreen(title:"Karate · 1v1", subtitle:"Best of 3 · 60 Seconds per Round",
                                countdown:3, accentColor:accentColor, onComplete:{ startFight() })
-            case .fight:
+            case .fight, .roundEnd:
                 fightBody.offset(x:screenShake)
             case .result:
                 ResultScreen(winner:outcome == .win ? .p1 : (outcome == .draw ? .draw : .p2),
@@ -1196,6 +1207,11 @@ struct KarateGameView: View {
                 KarateHealthBar(current:opponentHP,max:maxHP,color:accentColor,label:opponentName.uppercased(),isReversed:true).frame(maxWidth:.infinity)
             }
             HStack {
+                Text("ROUND \(currentRound)/3").font(.system(size:10,weight:.black,design:.monospaced)).foregroundStyle(.white.opacity(0.75)).tracking(1)
+                Spacer()
+                Text("ROUNDS \(roundsWonPlayer)-\(roundsWonOpponent)").font(.system(size:10,weight:.black,design:.monospaced)).foregroundStyle(.yellow).tracking(1)
+            }
+            HStack {
                 Text("\(playerScore)").font(.system(size:22,weight:.black,design:.monospaced)).foregroundStyle(Theme.brandBlue)
                 Spacer()
                 if combo >= 2 {
@@ -1220,12 +1236,26 @@ struct KarateGameView: View {
                        lastHitTime:lastHitTime, lastHitType:lastHitType,
                        comboCount:comboCount,
                        playerHP:playerHP, opponentHP:opponentHP,
-                       roundNumber:roundNumber)
+                       roundNumber:currentRound)
 
             if showFightFlash {
                 Text("FIGHT!").font(.system(size:52,weight:.black,design:.monospaced)).italic()
                     .foregroundStyle(accentColor).shadow(color:accentColor.opacity(0.8),radius:20)
                     .transition(.scale.combined(with:.opacity))
+            }
+
+            if showRoundBanner {
+                Text(roundBannerText)
+                    .font(.system(size:34,weight:.black,design:.monospaced))
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+                    .background(Color.black.opacity(0.55))
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                    .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.yellow.opacity(0.45), lineWidth: 1))
+                    .shadow(color: .yellow.opacity(0.35), radius: 18)
+                    .transition(.scale(scale: 0.75).combined(with: .opacity))
             }
 
             if showActionLabel {
@@ -1251,7 +1281,15 @@ struct KarateGameView: View {
         .frame(maxWidth:.infinity,maxHeight:.infinity)
         .contentShape(Rectangle())
         .gesture(DragGesture(minimumDistance:20)
-            .onEnded { v in if abs(v.translation.height) > abs(v.translation.width) && v.translation.height < -40 { handleBlock() } })
+            .onEnded { v in
+                let dx = v.translation.width
+                let dy = v.translation.height
+                if abs(dx) > abs(dy), abs(dx) > 40 {
+                    handleDodge()
+                } else if abs(dy) > abs(dx), dy < -40 {
+                    handleBlock()
+                }
+            })
         .simultaneousGesture(SpatialTapGesture()
             .onEnded { v in let sw = UIScreen.main.bounds.width
                 if v.location.x < sw/2 { handlePunch() } else { handleKick() } })
@@ -1282,6 +1320,25 @@ struct KarateGameView: View {
     // MARK: - Logic
 
     private func startFight() {
+        currentRound = 1
+        roundsWonPlayer = 0
+        roundsWonOpponent = 0
+        timeLeft = 60
+        playerHP = maxHP
+        opponentHP = maxHP
+        playerScore = 0
+        opponentScore = 0
+        combo = 0
+        comboCount = 0
+        chakra = 0
+        showDragonStrikeButton = false
+        showRoundBanner = false
+        roundBannerText = ""
+        playerPose = "idle"
+        opponentPose = "idle"
+        isDodging = false
+        counterWindowOpen = false
+        shardsAwarded = false
         phase = .fight
         withAnimation(.spring(response:0.3,dampingFraction:0.5)) { showFightFlash = true }
         Task { try? await Task.sleep(for:.milliseconds(1200)); await MainActor.run { withAnimation { showFightFlash = false } } }
@@ -1305,7 +1362,7 @@ struct KarateGameView: View {
         aiAttackTask?.cancel()
         aiAttackTask = Task {
             while true {
-                let delay = Double.random(in:2.0...4.0)
+                let delay = Double.random(in:roundDelay)
                 try? await Task.sleep(for:.seconds(delay))
                 guard !Task.isCancelled else { return }
                 await MainActor.run { aiAttack() }
@@ -1315,11 +1372,19 @@ struct KarateGameView: View {
 
     private func aiAttack() {
         guard phase == .fight else { return }
-        let dmg = Double.random(in:8...18)
-        playerHP = max(0,playerHP-dmg)
+        let damageMultiplier = 1.0 + 0.35 * Double(currentRound - 1)
+        let dmg = Double.random(in:8...18) * damageMultiplier
+        let didDodge = isDodging
+        if !didDodge {
+            playerHP = max(0,playerHP-dmg)
+        }
         opponentScore += 1
-        setPose("hit", for: "player", duration: 0.4)
         setPose("punch", for: "opponent", duration: 0.35)
+        if didDodge {
+            impactMed.impactOccurred()
+            return
+        }
+        setPose("hit", for: "player", duration: 0.4)
         flashScreenShake()
         impactMed.impactOccurred()
         if playerHP <= 0 { endGame(ko:true,playerKO:true) }
@@ -1331,12 +1396,14 @@ struct KarateGameView: View {
         guard phase == .fight else { return }
         let now = Date(); let isCrit = now.timeIntervalSince(lastPlayerActionTime) < 0.3
         lastPlayerActionTime = now
-        let dmg: Double = (isCrit ? 12 : 8) + Double(combo)*1.5
+        let isCounter = counterWindowOpen
+        var dmg: Double = (isCrit ? 12 : 8) + Double(combo)*1.5
+        if isCounter { dmg *= 1.5 }
         opponentHP = max(0,opponentHP-dmg)
         playerScore += isCrit ? 2 : 1; combo += 1; maxCombo = max(maxCombo,combo)
         comboCount = combo
-        chakra = min(100,chakra+(isCrit ? 15 : 8))
-        showAction(text:isCrit ? "CRITICAL PUNCH!" : "PUNCH", color:Theme.brandBlue)
+        chakra = min(100,chakra+(isCrit ? 15 : 8)+(isCounter ? 3 : 0))
+        showAction(text:isCounter ? "COUNTER PUNCH!" : (isCrit ? "CRITICAL PUNCH!" : "PUNCH"), color:isCounter ? .yellow : Theme.brandBlue)
         setPose("punch", for:"player", duration:0.35)
         setPose("hit", for:"opponent", duration:0.35)
         lastHitTime = Date().timeIntervalSinceReferenceDate; lastHitType = "punch"
@@ -1350,12 +1417,14 @@ struct KarateGameView: View {
         guard phase == .fight else { return }
         let now = Date(); let isCrit = now.timeIntervalSince(lastPlayerActionTime) < 0.3
         lastPlayerActionTime = now
-        let dmg: Double = (isCrit ? 18 : 12) + Double(combo)*2.0
+        let isCounter = counterWindowOpen
+        var dmg: Double = (isCrit ? 18 : 12) + Double(combo)*2.0
+        if isCounter { dmg *= 1.5 }
         opponentHP = max(0,opponentHP-dmg)
         playerScore += isCrit ? 3 : 2; combo += 1; maxCombo = max(maxCombo,combo)
         comboCount = combo
-        chakra = min(100,chakra+(isCrit ? 20 : 12))
-        showAction(text:isCrit ? "CRITICAL KICK!" : "KICK", color:accentColor)
+        chakra = min(100,chakra+(isCrit ? 20 : 12)+(isCounter ? 3 : 0))
+        showAction(text:isCounter ? "COUNTER KICK!" : (isCrit ? "CRITICAL KICK!" : "KICK"), color:isCounter ? .yellow : accentColor)
         setPose("kick", for:"player", duration:0.40)
         setPose("hit", for:"opponent", duration:0.40)
         lastHitTime = Date().timeIntervalSinceReferenceDate; lastHitType = "kick"
@@ -1371,6 +1440,28 @@ struct KarateGameView: View {
         showAction(text:"BLOCK", color:Theme.foundationGreen)
         setPose("block", for:"player", duration:0.5)
         impactMed.impactOccurred()
+    }
+
+    private func handleDodge() {
+        guard phase == .fight else { return }
+        dodgeTask?.cancel()
+        counterWindowTask?.cancel()
+        isDodging = true
+        counterWindowOpen = false
+        showAction(text:"DODGE!", color:Theme.elitePurple)
+        impactLgt.impactOccurred()
+        dodgeTask = Task {
+            try? await Task.sleep(for:.milliseconds(350))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                isDodging = false
+                counterWindowOpen = true
+                showAction(text:"COUNTER!", color:.yellow)
+            }
+            try? await Task.sleep(for:.milliseconds(500))
+            guard !Task.isCancelled else { return }
+            await MainActor.run { counterWindowOpen = false }
+        }
     }
 
     private func handleStance() {
@@ -1396,15 +1487,21 @@ struct KarateGameView: View {
     // MARK: - Pose Helper
 
     private func setPose(_ pose: String, for target: String, duration: Double) {
-        poseResetTask?.cancel()
-        if target == "player" { playerPose = pose } else { opponentPose = pose }
-        poseResetTask = Task {
+        if target == "player" {
+            playerPoseTask?.cancel()
+            playerPose = pose
+        } else {
+            opponentPoseTask?.cancel()
+            opponentPose = pose
+        }
+        let task = Task {
             try? await Task.sleep(for:.seconds(duration))
             guard !Task.isCancelled else { return }
             await MainActor.run {
                 if target == "player" { playerPose = "idle" } else { opponentPose = "idle" }
             }
         }
+        if target == "player" { playerPoseTask = task } else { opponentPoseTask = task }
     }
 
     // MARK: - FX
@@ -1442,14 +1539,91 @@ struct KarateGameView: View {
 
     private func endGame(ko:Bool = false, playerKO:Bool = false) {
         guard phase == .fight else { return }
+        gameTimerTask?.cancel()
+        aiAttackTask?.cancel()
+        dodgeTask?.cancel()
+        counterWindowTask?.cancel()
+        roundTransitionTask?.cancel()
+        phase = .roundEnd
+
+        let playerWonRound: Bool
+        if playerKO { playerWonRound = false }
+        else if ko { playerWonRound = true }
+        else { playerWonRound = playerHP > opponentHP }
+
+        if playerKO {
+            roundsWonOpponent += 1
+            showAction(text:"KO!",color:.red)
+        } else if ko {
+            roundsWonPlayer += 1
+            showAction(text:"KO!",color:.yellow)
+        } else if playerHP > opponentHP {
+            roundsWonPlayer += 1
+            showAction(text:"TIME!",color:accentColor)
+        } else if playerHP < opponentHP {
+            roundsWonOpponent += 1
+            showAction(text:"TIME!",color:.red)
+        } else {
+            showAction(text:"DRAW!",color:.white)
+        }
+
+        roundBannerText = roundResultText(playerWonRound: playerWonRound, isDraw: !ko && playerHP == opponentHP)
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) { showRoundBanner = true }
+
+        let playerHasMatch = roundsWonPlayer >= 2 || (currentRound == 3 && roundsWonPlayer > roundsWonOpponent)
+        let opponentHasMatch = roundsWonOpponent >= 2 || (currentRound == 3 && roundsWonOpponent > roundsWonPlayer)
+        let roundsComplete = currentRound >= 3
+
+        roundTransitionTask = Task {
+            try? await Task.sleep(for:.seconds(2))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                withAnimation(.easeOut(duration: 0.25)) { showRoundBanner = false }
+                if playerHasMatch || opponentHasMatch || roundsComplete {
+                    finishMatch()
+                } else {
+                    startNextRound()
+                }
+            }
+        }
+    }
+
+    private var roundDelay: ClosedRange<Double> {
+        switch currentRound {
+        case 1: return 2.0...4.0
+        case 2: return 1.5...3.2
+        default: return 1.0...2.5
+        }
+    }
+
+    private func roundResultText(playerWonRound: Bool, isDraw: Bool) -> String {
+        if isDraw { return "ROUND \(currentRound)\nDRAW" }
+        return "ROUND \(currentRound)\n\(playerWonRound ? "PLAYER" : "OPPONENT") WINS"
+    }
+
+    private func startNextRound() {
+        currentRound += 1
+        timeLeft = 60
+        playerHP = maxHP
+        opponentHP = maxHP
+        combo = 0
+        comboCount = 0
+        playerPose = "idle"
+        opponentPose = "idle"
+        isDodging = false
+        counterWindowOpen = false
+        phase = .fight
+        startGameTimer()
+        scheduleAIAttack()
+    }
+
+    private func finishMatch() {
         cancelAllTasks()
-        if playerKO      { outcome = .loss; showAction(text:"KO!",color:.red) }
-        else if ko        { outcome = .win;  showAction(text:"KO!",color:.yellow) }
-        else if playerHP > opponentHP { outcome = .win;  showAction(text:"TIME!",color:accentColor) }
-        else if playerHP < opponentHP { outcome = .loss; showAction(text:"TIME!",color:.red) }
-        else              { outcome = .draw; showAction(text:"DRAW!",color:.white) }
+        if roundsWonPlayer > roundsWonOpponent { outcome = .win }
+        else if roundsWonPlayer < roundsWonOpponent { outcome = .loss }
+        else { outcome = .draw }
         awardShards()
-        Task { try? await Task.sleep(for:.seconds(1.5)); await MainActor.run { withAnimation { phase = .result } } }
+        Task { try? await Task.sleep(for:.seconds(1.0)); await MainActor.run { withAnimation { phase = .result } } }
     }
 
     private func awardShards() {
@@ -1462,6 +1636,9 @@ struct KarateGameView: View {
 
     private func cancelAllTasks() {
         gameTimerTask?.cancel(); aiAttackTask?.cancel()
-        actionLabelTask?.cancel(); critFlashTask?.cancel(); poseResetTask?.cancel()
+        actionLabelTask?.cancel(); critFlashTask?.cancel()
+        playerPoseTask?.cancel(); opponentPoseTask?.cancel()
+        dodgeTask?.cancel(); counterWindowTask?.cancel()
+        roundTransitionTask?.cancel()
     }
 }

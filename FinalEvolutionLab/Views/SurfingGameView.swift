@@ -23,12 +23,16 @@ private enum SurfTrick: String, CaseIterable {
     case aerial   = "AERIAL"
     case tube     = "TUBE RIDE"
     case cutback  = "CUTBACK"
+    case lipTrick = "LIP TRICK"
+    case layback  = "LAYBACK"
 
     var points: Int {
         switch self {
         case .aerial:  return 8
         case .tube:    return 10
         case .cutback: return 6
+        case .lipTrick: return 12
+        case .layback:  return 9
         }
     }
 
@@ -37,6 +41,8 @@ private enum SurfTrick: String, CaseIterable {
         case .aerial:  return "arrow.up.circle.fill"
         case .tube:    return "arrow.down.circle.fill"
         case .cutback: return "arrow.turn.up.right"
+        case .lipTrick: return "arrow.up.and.line.horizontal.above.arrow.up"
+        case .layback:  return "arrow.down.backward"
         }
     }
 
@@ -45,6 +51,8 @@ private enum SurfTrick: String, CaseIterable {
         case .aerial:  return "SWIPE ↑"
         case .tube:    return "SWIPE ↓"
         case .cutback: return "SWIPE ↗ / ↙"
+        case .lipTrick: return "SWIPE ↙"
+        case .layback:  return "SWIPE ↘"
         }
     }
 }
@@ -831,6 +839,11 @@ struct SurfingGameView: View {
     @State private var rewardApplied: Bool = false
 
     @State private var paddleProgress: Double = 0.0
+    @State private var paddleTaps: Int = 0
+    @State private var paddleTarget: Int = 10
+    @State private var paddleFallbackTask: Task<Void, Never>?
+    @State private var flowMeter: Double = 0
+    @State private var waveFlowBonus: Int = 0
 
     // Canvas phase & haptic state
     @State private var currentCanvasPhase: SurfCanvasPhase = .normal
@@ -929,16 +942,44 @@ struct SurfingGameView: View {
                 .overlay(RoundedRectangle(cornerRadius: 20).stroke(accentColor.opacity(0.20), lineWidth: 1))
                 .padding(.horizontal, 20)
 
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.white.opacity(0.06))
-                    .frame(height: 14)
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(LinearGradient(
-                        colors: [Theme.brandCyan, accentColor],
-                        startPoint: .leading, endPoint: .trailing))
-                    .frame(width: max(0, CGFloat(paddleProgress) * (UIScreen.main.bounds.width - 80)), height: 14)
-                    .animation(.easeInOut(duration: 0.1), value: paddleProgress)
+            VStack(spacing: 12) {
+                Text("TAP \(paddleTaps) / \(paddleTarget)")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.8))
+
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.white.opacity(0.06))
+                            .frame(height: 14)
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(LinearGradient(
+                                colors: [Theme.brandCyan, accentColor],
+                                startPoint: .leading, endPoint: .trailing))
+                            .frame(width: max(0, geo.size.width * CGFloat(paddleProgress)), height: 14)
+                            .animation(.easeInOut(duration: 0.1), value: paddleProgress)
+                    }
+                }
+                .frame(height: 14)
+
+                Button {
+                    guard phase == .paddleIn else { return }
+                    paddleTaps += 1
+                    paddleProgress = min(1.0, Double(paddleTaps) / Double(paddleTarget))
+                    hapticImpact(.light)
+                    if paddleTaps >= paddleTarget {
+                        startRiding()
+                    }
+                } label: {
+                    Text("PADDLE")
+                        .font(.system(size: 16, weight: .black, design: .monospaced))
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 18)
+                        .background(accentColor)
+                        .clipShape(.rect(cornerRadius: 16))
+                }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, 40)
 
@@ -1148,21 +1189,28 @@ struct SurfingGameView: View {
                     .tracking(3)
                     .shadow(color: .yellow.opacity(0.5), radius: 10)
 
-                VStack(spacing: 5) {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                     ForEach(SurfTrick.allCases, id: \.self) { trick in
-                        HStack(spacing: 10) {
-                            Image(systemName: trick.systemImage)
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundStyle(accentColor)
-                                .frame(width: 20)
-                            Text("\(trick.swipeHint) — \(trick.rawValue)")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.85))
-                            Spacer()
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 8) {
+                                Image(systemName: trick.systemImage)
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundStyle(accentColor)
+                                Text(trick.rawValue)
+                                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                                    .foregroundStyle(.white)
+                            }
+                            Text(trick.swipeHint)
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.white.opacity(0.75))
                             Text("+\(trick.points) pts")
-                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                                .font(.system(size: 9, weight: .black, design: .monospaced))
                                 .foregroundStyle(.yellow)
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(8)
+                        .background(Color.yellow.opacity(0.06))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                 }
                 .padding(10)
@@ -1220,6 +1268,32 @@ struct SurfingGameView: View {
                 Text("PERFECT BALANCE")
                     .font(.system(size: 9, weight: .black, design: .monospaced))
                     .foregroundStyle(Theme.foundationGreen).tracking(1)
+            }
+
+            VStack(spacing: 6) {
+                HStack(spacing: 8) {
+                    Text("FLOW \(Int(flowMeter * 100))%")
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundStyle(accentColor)
+                    if flowMeter > 0.7 {
+                        Text("🌊 IN THE ZONE")
+                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                            .foregroundStyle(.cyan)
+                    }
+                }
+
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color.white.opacity(0.06))
+                            .frame(height: 12)
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(LinearGradient(colors: [.blue, .cyan], startPoint: .leading, endPoint: .trailing))
+                            .frame(width: geo.size.width * CGFloat(flowMeter), height: 12)
+                            .animation(.linear(duration: 0.1), value: flowMeter)
+                    }
+                }
+                .frame(width: 200, height: 12)
             }
         }
     }
@@ -1352,6 +1426,7 @@ struct SurfingGameView: View {
                 if let ws = waveScores.last {
                     scoreRow(label: "TRICK POINTS", value: String(format: "%.0f", Double(trickAccumulator)))
                     scoreRow(label: "BALANCE MULTIPLIER", value: String(format: "×%.2f", currentBalanceMultiplier))
+                    scoreRow(label: "FLOW BONUS", value: "+\(waveFlowBonus) pts")
                     Divider().background(Theme.cardBorder)
                     scoreRow(label: "WAVE SCORE", value: String(format: "%.1f", ws.finalScore), highlight: true)
                 }
@@ -1460,13 +1535,24 @@ struct SurfingGameView: View {
     private func startPaddleIn() {
         phase = .paddleIn
         paddleProgress = 0
-        Task {
-            for i in 0..<20 {
-                try? await Task.sleep(for: .milliseconds(80))
-                await MainActor.run { paddleProgress = Double(i + 1) / 20.0 }
+        paddleTaps = 0
+        paddleFallbackTask?.cancel()
+        paddleFallbackTask = Task {
+            try? await Task.sleep(for: .seconds(3.0))
+            await MainActor.run {
+                if phase == .paddleIn {
+                    paddleProgress = 1.0
+                    startRiding()
+                }
             }
-            await MainActor.run { beginWave() }
         }
+    }
+
+    private func startRiding() {
+        guard phase == .paddleIn else { return }
+        paddleFallbackTask?.cancel()
+        paddleProgress = max(paddleProgress, 1.0)
+        beginWave()
     }
 
     private func beginWave() {
@@ -1480,6 +1566,8 @@ struct SurfingGameView: View {
         trickAccumulator = 0
         trickWindowOpen = false
         performedTrick = nil
+        flowMeter = 0
+        waveFlowBonus = 0
         comboTricks = []
         tubeMultiplier = 1
         currentCanvasPhase = .normal
@@ -1534,6 +1622,9 @@ struct SurfingGameView: View {
                     balanceMeter = max(0, min(1, balanceMeter + drift))
                     let dist = abs(balanceMeter - 0.5)
                     currentBalanceMultiplier = dist < 0.1 ? 1.5 : (dist < 0.25 ? 1.0 : 0.5)
+                    if dist > 0.3 {
+                        flowMeter = max(0, flowMeter - (0.20 * 0.15))
+                    }
                     // Perfect balance haptic — fires once on entry (not spam)
                     let isNowPerfect = dist < 0.1
                     if isNowPerfect && !wasInPerfectBalance {
@@ -1577,13 +1668,19 @@ struct SurfingGameView: View {
         let dx = translation.width, dy = translation.height
         let ax = abs(dx), ay = abs(dy)
         let trick: SurfTrick
-        if ay > ax * 1.8 {
+        if dx < -30 && dy > 20 {
+            trick = .lipTrick
+        } else if dx > 30 && dy > 20 {
+            trick = .layback
+        } else if ay > ax * 1.8 {
             trick = dy < 0 ? .aerial : .tube
         } else {
             trick = .cutback
         }
         performedTrick = trick
         trickAccumulator += trick.points
+        let flowBonus = trick == .tube ? 0.40 : 0.25
+        flowMeter = min(1.0, flowMeter + flowBonus)
         currentWaveScore = Double(trickAccumulator) * currentBalanceMultiplier
 
         // Haptic per trick — mirroring real surf sensation
@@ -1609,6 +1706,12 @@ struct SurfingGameView: View {
         case .cutback:
             hapticImpact(.medium)          // carving the wave (bottom turn / cutback)
             currentCanvasPhase = .normal
+        case .lipTrick:
+            hapticImpact(.heavy)
+            currentCanvasPhase = .normal
+        case .layback:
+            hapticImpact(.medium)
+            currentCanvasPhase = .normal
         }
 
         // Score popup haptic
@@ -1629,12 +1732,19 @@ struct SurfingGameView: View {
 
     private func adjustBalance(delta: Double) {
         guard phase == .riding || phase == .trickWindow else { return }
+        let previousBalance = balanceMeter
         balanceMeter = max(0, min(1, balanceMeter + delta))
+        let oldDistance = abs(previousBalance - 0.5)
+        let newDistance = abs(balanceMeter - 0.5)
+        if newDistance < oldDistance && newDistance < 0.1 {
+            flowMeter = min(1.0, flowMeter + 0.15)
+        }
     }
 
     private func endWave(wipeout: Bool) {
         cancelAllTimers()
-        let finalScore = wipeout ? 0 : max(0, Double(trickAccumulator) * currentBalanceMultiplier)
+        waveFlowBonus = wipeout ? 0 : Int(flowMeter * 4.0)
+        let finalScore = wipeout ? 0 : max(0, Double(trickAccumulator) * currentBalanceMultiplier + Double(waveFlowBonus))
         currentWaveScore = finalScore
         let ws = WaveScore(waveNumber: waveNumber, rawScore: finalScore, wipeout: wipeout)
         waveScores.append(ws)
@@ -1688,5 +1798,6 @@ struct SurfingGameView: View {
         waveTimer?.cancel()
         wavePowerTimer?.cancel()
         balanceDriftTimer?.cancel()
+        paddleFallbackTask?.cancel()
     }
 }
