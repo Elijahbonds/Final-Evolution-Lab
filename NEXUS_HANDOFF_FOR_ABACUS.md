@@ -52,6 +52,62 @@ loop more playable, more testable, or more fun?"
 
 ---
 
+## 🤖 COPILOT BRANCH AUDIT — `copilot/improve-engine-and-app` (audited 2026-07-14)
+
+13 commits, all authored 2026-07-14 by copilot-swe-agent, **forked from stale main
+(`b5e1c0d`, Jul 6)** — it contains NONE of the platform-core repairs and none of the
+web dunk-slice fixes above. Treat it as a donor branch to cherry-pick from, never a
+merge source.
+
+### Verified (I built it — headless cmake + ctest on the branch tip `70ffc30`)
+- **C++ gate: 14/14 tests green**, including the new 331-line `nexus_net_test`.
+- All 12 new `.cpp` files (engine/net + gameplay) ARE wired into CMakeLists this
+  time — Copilot hit its own linker errors and fixed them (`0e16e25`). The orphan
+  lesson finally stuck; keep enforcing it.
+
+### What's on it (by value, highest first)
+1. **Security fixes** (`d27781e`): timing-attack fix + PBKDF2 iterations in
+   `backend/server.py`, strict-equality fixes in frontend. Small, real, wanted.
+2. **Multiplayer architecture** (`engine/net`: NetSession / NetMessageBus /
+   LocalMultiplayerRouter + gameplay matchmaking_client, remote_player_state,
+   with tests). Honest framing: `useStubTransport{true}` — this is local/loopback
+   architecture, NOT online play. Good foundation if multiplayer is on the roadmap.
+3. **Gameplay C++**: collision engine, dribble engine wired into 3v3, PRQ
+   defense/steal, BUMP button, character anim state machine, soccer/football-return
+   modes, flight + rail-grind systems.
+4. **Frontend**: dashboard overhaul, arena UX, education persistence, social
+   improvements — on the main lineage, so `App.js` diverges ~479 lines from the
+   repaired version here (which added `/play/dunk`). Conflicts are guaranteed;
+   resolve toward THIS branch's App.js and re-apply their component changes.
+5. **Story Mode + 3D board-game engine**, "Legends of the Boardwalk": scope drift —
+   park it, don't port it.
+6. `70ffc30` "fix dunk animation rig": regenerates Seeles FBX stubs as
+   `nexusanim.json` keyframes for the **iOS/C++ asset pipeline** — it does NOT
+   touch the web Babylon dunk slice.
+
+### ⚠ Do not merge as-is
+- **~300k of the 407k inserted lines are committed build artifacts**: complete
+  `build-headless/` AND `build-story/` trees — CMakeCache with machine paths,
+  third-party `_deps` sources, and compiled test BINARIES. Strip these entirely and
+  add `build-*/` to `.gitignore` (only `NexusPrebuilt/` is ignored today).
+- 102k lines of generated animation JSON are committed twice (`seeles_work/` and
+  `seeles_unzipped/` duplicate trees).
+- It removes the conflicting `ajv` override in `frontend/package.json` (same intent
+  as the earlier Vercel fix `b947e83`) — fine, but verify the Vercel build after
+  any port.
+
+### Cherry-pick order for Abacus
+1. `d27781e` security fixes (near-zero conflict risk).
+2. `engine/net` library + `nexus_net_test` + CMake block, IF multiplayer is
+   prioritized — as one clean commit, no build artifacts.
+3. Education persistence + dashboard component changes, resolving App.js against
+   this branch (preserve the `/play/dunk` route and PlayDunkPage import).
+4. Gameplay C++ mechanics only when a mode that uses them is being proven —
+   otherwise they're inventory, not progress.
+Everything else (story mode, board game, committed artifacts): leave on the branch.
+
+---
+
 
 **Branch to work on:** `nexus/platform-core` (repo `Elijahbonds/Final-Evolution-Lab`).
 Built on Copilot PR #166's lineage, **with the build repaired** — treat this branch
