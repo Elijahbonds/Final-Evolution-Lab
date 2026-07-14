@@ -119,6 +119,10 @@ private struct Court3v3Canvas: View {
     let showResultLabel: Bool
     let comboCount: Int
 
+    // ── Dribble move engine (lives inside the canvas so it owns its own clock) ──
+    @State private var dribble = DribbleMoveEngine()
+    @State private var prevDate: Date = Date.distantPast
+
     var body: some View {
         TimelineView(.animation) { tl in
             Canvas { ctx, size in
@@ -140,11 +144,30 @@ private struct Court3v3Canvas: View {
                     shotClock: shotClock,
                     lastResult: lastResult,
                     showResultLabel: showResultLabel,
-                    comboCount: comboCount
+                    comboCount: comboCount,
+                    dribbleEngine: dribble
                 )
                 d.render(into: &ctx)
             }
+            .onChange(of: tl.date) { _, newDate in
+                let dt = newDate.timeIntervalSince(prevDate)
+                if dt > 0 && dt < 0.08 {
+                    dribble.update(dt: dt, fastDribble: possession == .player && playerPoses[activePasser] == "sprint")
+                }
+                prevDate = newDate
+            }
         }
+        // Dribble move gesture — horizontal flick, circle, diagonal-down
+        .gesture(DragGesture(minimumDistance: 12)
+            .onEnded { v in
+                guard possession == .player else { return }
+                dribble.recognizeGesture(DribbleGestureInput(
+                    translation: CGPoint(x: v.translation.width, y: v.translation.height),
+                    velocity: CGPoint(x: v.velocity.width, y: v.velocity.height),
+                    duration: v.time.timeIntervalSince(v.startLocation == .zero ? Date() : Date())
+                ))
+            }
+        )
     }
 }
 
@@ -165,6 +188,7 @@ private struct Draw3v3 {
     let lastResult: v3ShotResult?
     let showResultLabel: Bool
     let comboCount: Int
+    let dribbleEngine: DribbleMoveEngine
 
     var floorY: CGFloat { H * 0.68 }
     var rimY: CGFloat { H * 0.33 + CGFloat(rimShake) * 5 * CGFloat(sin(t * 48)) }
@@ -178,7 +202,8 @@ private struct Draw3v3 {
          shotProgress: Double, passProgress: Double, passFromIdx: Int, passToIdx: Int,
          playerPoses: [String], opponentPoses: [String], rimShake: Double,
          playerScore: Int, opponentScore: Int, matchClock: Int, shotClock: Int,
-         lastResult: v3ShotResult?, showResultLabel: Bool, comboCount: Int) {
+         lastResult: v3ShotResult?, showResultLabel: Bool, comboCount: Int,
+         dribbleEngine: DribbleMoveEngine) {
         W = size.width; H = size.height; self.t = t
         self.possession = possession; self.activePasser = activePasser
         self.shotProgress = shotProgress; self.passProgress = passProgress
@@ -189,6 +214,7 @@ private struct Draw3v3 {
         self.matchClock = matchClock; self.shotClock = shotClock
         self.lastResult = lastResult; self.showResultLabel = showResultLabel
         self.comboCount = comboCount
+        self.dribbleEngine = dribbleEngine
     }
 
     mutating func render(into ctx: inout GraphicsContext) {
@@ -860,26 +886,76 @@ private struct Draw3v3 {
     // MARK: - Dribble
 
     private func drawDribble(ctx: inout GraphicsContext) {
+        let br: CGFloat = 6.5
+
+        // ── Opponent ball (simple bounce, no engine) ─────────────────────────
         guard possession == .player else {
-            let cx = oppXs[1] - 12; let br: CGFloat = 6.5
+            let cx = oppXs[1] - 12
             let bounce = abs(sin(t * .pi / 0.40)) * 16
             let by = floorY - CGFloat(bounce) - 5
-            var bc = ctx; bc.addFilter(.shadow(color: Color.orange.opacity(0.45), radius: 3))
-            bc.fill(Path(ellipseIn: CGRect(x: cx - br, y: by - br, width: br * 2, height: br * 2)),
-                    with: .color(Color.orange))
+            drawBallAt(ctx: &ctx, cx: cx, by: by, br: br)
             return
         }
-        let cx = playerXs[activePasser] + 12; let br: CGFloat = 6.5
-        let bounce = abs(sin(t * .pi / 0.40)) * 16
-        let by = floorY - CGFloat(bounce) - 5
-        var bc = ctx; bc.addFilter(.shadow(color: Color.orange.opacity(0.45), radius: 3))
+
+        // ── Player ball — engine-driven position ─────────────────────────────
+        let playerCX = playerXs[activePasser]
+        // Ball offset relative to player center; playerWidth ≈ H * 0.056
+        let playerWidth = H * 0.056
+        let ballOff = dribbleEngine.ballOffset(playerWidth: playerWidth, floorY: floorY)
+        let bx = playerCX + ballOff.x
+        // ballOff.y is height above floor
+        let by = floorY - ballOff.y - br
+
+        // Floor shadow (shrinks as ball rises)
+        let shadowScale = CGFloat(max(0.15, 1.0 - ballOff.y / (floorY * 0.18)))
+        var shadowGC = ctx; shadowGC.addFilter(.blur(radius: 3))
+        shadowGC.fill(
+            Path(ellipseIn: CGRect(x: bx - 11 * shadowScale, y: floorY - 3,
+                                   width: 22 * shadowScale, height: 5)),
+            with: .color(Color.black.opacity(0.35 * Double(shadowScale)))
+        )
+
+        // Ball
+        drawBallAt(ctx: &ctx, cx: bx, by: by, br: br)
+
+        // ── Move name banner ─────────────────────────────────────────────────
+        let bannerAlpha = dribbleEngine.moveBannerAlpha
+        if bannerAlpha > 0.01 && dribbleEngine.activeMove == .none {
+            let moveText = ctx.resolve(
+                Text(dribbleEngine.activeMove == .none
+                     ? lastCompletedMoveName()
+                     : dribbleEngine.activeMove.rawValue)
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(Color(red: 0.2, green: 1.0, blue: 0.6).opacity(bannerAlpha))
+            )
+            let sz = moveText.measure(in: CGSize(width: W, height: 20))
+            ctx.draw(moveText,
+                     at: CGPoint(x: playerCX - sz.width / 2, y: floorY - H * 0.22 - sz.height / 2),
+                     anchor: .topLeading)
+        }
+    }
+
+    private func lastCompletedMoveName() -> String { "" }  // banner text driven by engine.moveBannerAlpha
+
+    private func drawBallAt(ctx: inout GraphicsContext, cx: CGFloat, by: CGFloat, br: CGFloat) {
+        // Glow shadow
+        var bc = ctx; bc.addFilter(.shadow(color: Color.orange.opacity(0.50), radius: 4))
         bc.fill(Path(ellipseIn: CGRect(x: cx - br, y: by - br, width: br * 2, height: br * 2)),
                 with: .color(Color.orange))
-        // Ball seam
+        // Ball texture lines
         var seam = Path()
-        seam.addArc(center: CGPoint(x: cx, y: by), radius: br * 0.72,
+        seam.addArc(center: CGPoint(x: cx, y: by), radius: br * 0.74,
                     startAngle: .degrees(-50), endAngle: .degrees(190), clockwise: false)
-        ctx.stroke(seam, with: .color(Color.black.opacity(0.28)), lineWidth: 0.9)
+        ctx.stroke(seam, with: .color(Color.black.opacity(0.30)), lineWidth: 0.9)
+        var seam2 = Path()
+        seam2.addArc(center: CGPoint(x: cx, y: by), radius: br * 0.74,
+                     startAngle: .degrees(10), endAngle: .degrees(-170), clockwise: false)
+        ctx.stroke(seam2, with: .color(Color.black.opacity(0.20)), lineWidth: 0.7)
+        // Highlight
+        ctx.fill(
+            Path(ellipseIn: CGRect(x: cx - br * 0.35, y: by - br * 0.7, width: br * 0.45, height: br * 0.35)),
+            with: .color(Color.white.opacity(0.45))
+        )
     }
 
     // MARK: - Pass Arc
