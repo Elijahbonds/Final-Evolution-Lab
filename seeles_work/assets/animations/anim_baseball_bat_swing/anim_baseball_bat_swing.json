@@ -4,11 +4,27 @@
   "category": "animations",
   "type": "non_loop_motion",
   "file": "anim_baseball_bat_swing.fbx",
-  "urls": ["https://static.seeles.ai/data/asset/export/3acce90b-8d0f-474a-8287-182a04cb69e9/492516/import.fbx"],
+  "urls": [
+    "https://static.seeles.ai/data/asset/export/3acce90b-8d0f-474a-8287-182a04cb69e9/492516/import.fbx"
+  ],
   "description": "One-shot baseball batting swing from wind-up through contact and follow-through",
-  "tags": ["baseball", "bat swing", "batting", "non-loop", "montage"],
-  "keywords": ["baseball swing", "batter", "hit ball", "batting animation"],
-  "compat": ["unity", "unreal"],
+  "tags": [
+    "baseball",
+    "bat swing",
+    "batting",
+    "non-loop",
+    "montage"
+  ],
+  "keywords": [
+    "baseball swing",
+    "batter",
+    "hit ball",
+    "batting animation"
+  ],
+  "compat": [
+    "unity",
+    "unreal"
+  ],
   "status": "ready",
   "created_at": "2026-05-23T16:00:00Z",
   "source_date": "2026-05-23",
@@ -18,5 +34,11 @@
   "motion_asset_id": 492516,
   "fel_abp": "ABP_Baseball",
   "fel_montage": "AM_Baseball_BatSwing",
-  "fel_modes": ["baseball"]
+  "fel_modes": [
+    "baseball"
+  ],
+  "local_bundle_file": "anim_baseball_bat_swing.nexusanim.json",
+  "local_bundle_path": "FinalEvolutionLab/Resources/Animations/anim_baseball_bat_swing.nexusanim.json",
+  "runtime_loader": "NexusAnimationLoader",
+  "runtime_format": "nexusanim_json"
 }

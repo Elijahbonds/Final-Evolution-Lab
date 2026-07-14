@@ -4,11 +4,29 @@
   "category": "animations",
   "type": "non_loop_motion",
   "file": "anim_victory_celebration.fbx",
-  "urls": ["https://static.seeles.ai/data/asset/export/c608e259-d645-4f05-a121-86904b5c2958/410995/import.fbx"],
-  "description": "Universal win-state celebration with arms raised overhead — used as shared victory montage across all 14 production modes",
-  "tags": ["victory", "celebration", "win", "non-loop", "shared", "montage"],
-  "keywords": ["victory pose", "win animation", "arms up", "celebrate", "game over"],
-  "compat": ["unity", "unreal"],
+  "urls": [
+    "https://static.seeles.ai/data/asset/export/c608e259-d645-4f05-a121-86904b5c2958/410995/import.fbx"
+  ],
+  "description": "Universal win-state celebration with arms raised overhead \u2014 used as shared victory montage across all 14 production modes",
+  "tags": [
+    "victory",
+    "celebration",
+    "win",
+    "non-loop",
+    "shared",
+    "montage"
+  ],
+  "keywords": [
+    "victory pose",
+    "win animation",
+    "arms up",
+    "celebrate",
+    "game over"
+  ],
+  "compat": [
+    "unity",
+    "unreal"
+  ],
   "status": "ready",
   "created_at": "2026-05-23T16:00:00Z",
   "source_date": "2026-05-23",
@@ -18,5 +36,24 @@
   "motion_asset_id": 410995,
   "fel_abp": "ABP_Shared",
   "fel_montage": "AM_Shared_Victory",
-  "fel_modes": ["basketball_h2h", "basketball_dunk", "basketball_3v3", "karate_h2h", "karate_endless", "baseball", "football", "soccer", "golf", "tennis", "volleyball", "surfing", "gymnastics", "brain_brawl"]
+  "fel_modes": [
+    "basketball_h2h",
+    "basketball_dunk",
+    "basketball_3v3",
+    "karate_h2h",
+    "karate_endless",
+    "baseball",
+    "football",
+    "soccer",
+    "golf",
+    "tennis",
+    "volleyball",
+    "surfing",
+    "gymnastics",
+    "brain_brawl"
+  ],
+  "local_bundle_file": "anim_victory_celebration.nexusanim.json",
+  "local_bundle_path": "FinalEvolutionLab/Resources/Animations/anim_victory_celebration.nexusanim.json",
+  "runtime_loader": "NexusAnimationLoader",
+  "runtime_format": "nexusanim_json"
 }

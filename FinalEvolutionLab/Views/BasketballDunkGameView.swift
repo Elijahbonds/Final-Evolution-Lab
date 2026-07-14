@@ -770,15 +770,25 @@ private struct CourtDraw {
         let cycle = t.truncatingRemainder(dividingBy: 0.48) / 0.48
         let sinC = CGFloat(sin(cycle * .pi * 2))
 
-        let shoulderY = py - bodyH - headR * 1.9
-        let hipY      = shoulderY + bodyH
-
         let bodyColor = Color(red: 0.10, green: 0.85, blue: 1.0)
         let legColor  = Color(red: 0.15, green: 0.20, blue: 0.95)
         let skinColor = Color(red: 0.94, green: 0.81, blue: 0.70)
         let shoeColor = Color(red: 0.92, green: 0.35, blue: 0.08)
 
-        // #71 Jersey body glow halo during execution
+        // ── Resolve pose from DunkPoseLibrary for execution; identity for other phases ──
+        let pose: DunkBodyPose? = (phase == .execution)
+            ? DunkPoseLibrary.pose(trickId: trickId, execProgress: exec)
+            : nil
+
+        // Apply hipTuckY to ALL body anchors so head, spine, hips, and legs rise together
+        let tuckRise: CGFloat = CGFloat(pose?.hipTuckY ?? 0)
+        let leanX:    CGFloat = CGFloat(pose?.torsoLeanX ?? 0)
+
+        let shoulderY = py - bodyH - headR * 1.9 - tuckRise
+        let hipY      = shoulderY + bodyH
+        let shoulderX = px + leanX           // shoulder drifts with trick lean
+
+        // ── #71 Jersey body glow halo during execution ──
         if phase == .execution {
             var halo = Path()
             halo.addEllipse(in: CGRect(x: px - 20, y: shoulderY - headR * 2 - 8,
@@ -787,8 +797,9 @@ private struct CourtDraw {
             gc.fill(halo, with: .color(bodyColor.opacity(0.25)))
         }
 
-        // #72 Head circle (skin tone)
-        let headRect = CGRect(x: px - headR, y: shoulderY - headR * 1.85, width: headR * 2, height: headR * 2)
+        // ── #72 Head circle (skin tone) ──
+        let headRect = CGRect(x: px - headR, y: shoulderY - headR * 1.85,
+                              width: headR * 2, height: headR * 2)
         if phase == .execution {
             var gc = ctx; gc.addFilter(.shadow(color: bodyColor.opacity(0.4), radius: 8))
             gc.fill(Path(ellipseIn: headRect), with: .color(skinColor))
@@ -796,11 +807,11 @@ private struct CourtDraw {
             ctx.fill(Path(ellipseIn: headRect), with: .color(skinColor))
         }
 
-        // #73 Head outline stroke
+        // ── #73 Head outline ──
         ctx.stroke(Path(ellipseIn: headRect), with: .color(Color.black.opacity(0.18)), lineWidth: 0.8)
 
-        // #74 Tongue out detail (Jordan-style, only during dunk)
-        if phase == .execution, exec > 0.15 {
+        // ── #74 Tongue — driven by pose.tongueOut ──
+        if pose?.tongueOut == true {
             let tongueX = px + headR * 0.35
             let tongueY = shoulderY - headR * 0.3
             var tongue = Path()
@@ -808,80 +819,81 @@ private struct CourtDraw {
             ctx.fill(tongue, with: .color(Color(red: 0.90, green: 0.22, blue: 0.22).opacity(0.85)))
         }
 
-        // #75 Torso spine line
+        // ── #75 Torso spine — leans from shoulderX to hip center px ──
         var spine = Path()
-        spine.move(to: CGPoint(x: px, y: shoulderY))
+        spine.move(to: CGPoint(x: shoulderX, y: shoulderY))
         spine.addLine(to: CGPoint(x: px, y: hipY))
         ctx.stroke(spine, with: .color(bodyColor), lineWidth: lw)
 
-        // #76 Jersey number dot (decorative)
-        ctx.fill(Path(ellipseIn: CGRect(x: px - 3, y: shoulderY + 8, width: 6, height: 6)),
+        // ── #76 Jersey number dot ──
+        ctx.fill(Path(ellipseIn: CGRect(x: shoulderX - 3, y: shoulderY + 8, width: 6, height: 6)),
                  with: .color(Color.white.opacity(0.45)))
 
-        if phase == .execution {
-            let ep = CGFloat(exec)
-            if ep < 0.15 {
-                // Wind-up crouch
-                let crouchT = ep / 0.15
-                for sign: CGFloat in [1, -1] {
-                    // #77 Arm wind-up (both sides)
-                    var arm = Path()
-                    arm.move(to: CGPoint(x: px, y: shoulderY + 4))
-                    arm.addLine(to: CGPoint(x: px + sign * 22, y: shoulderY + 18 + 10 * crouchT))
-                    ctx.stroke(arm, with: .color(bodyColor), lineWidth: lw)
-                    // #78 Leg crouch (deeply bent)
-                    var leg = Path()
-                    leg.move(to: CGPoint(x: px, y: hipY))
-                    leg.addLine(to: CGPoint(x: px + sign * 20, y: hipY + 12))
-                    leg.addLine(to: CGPoint(x: px + sign * 12, y: hipY + 22))
-                    ctx.stroke(leg, with: .color(legColor), lineWidth: lw)
-                    // #79 Shoe bands (crouch)
-                    ctx.fill(Path(CGRect(x: px + sign * 8, y: hipY + 20, width: sign * 10, height: 5)),
-                             with: .color(shoeColor))
-                    // #80 Shoe sole stripe
-                    var sole = Path()
-                    sole.addRect(CGRect(x: px + sign * 8, y: hipY + 24, width: sign * 10, height: 2))
-                    ctx.fill(sole, with: .color(Color.white.opacity(0.40)))
-                }
-            } else {
-                let liftT = (ep - 0.15) / 0.85
-                // #81 Dunking arm swing (dominant, reaches toward rim)
-                let angle: CGFloat = -.pi * 0.10 - liftT * .pi * 0.75
-                let aex = px + cos(angle) * 40
-                let aey = shoulderY + sin(angle) * 40
-                var arm = Path()
-                arm.move(to: CGPoint(x: px, y: shoulderY + 4))
-                arm.addLine(to: CGPoint(x: aex, y: aey))
-                var gc = ctx; gc.addFilter(.shadow(color: bodyColor.opacity(0.5), radius: 6))
-                gc.stroke(arm, with: .color(bodyColor), lineWidth: lw + 1)
-                ctx.stroke(arm, with: .color(bodyColor), lineWidth: lw)
+        // ── EXECUTION: fully pose-library-driven arms and legs ──
+        if phase == .execution, let p = pose {
+            // Dunking arm — endpoint relative to shoulder
+            let armEndX = shoulderX + p.dunkerArmX
+            let armEndY = shoulderY + p.dunkerArmY
+            var dunkArm = Path()
+            dunkArm.move(to: CGPoint(x: shoulderX, y: shoulderY + 4))
+            dunkArm.addLine(to: CGPoint(x: armEndX, y: armEndY))
+            var gcA = ctx; gcA.addFilter(.shadow(color: bodyColor.opacity(0.5), radius: 6))
+            gcA.stroke(dunkArm, with: .color(bodyColor), lineWidth: lw + 1)
+            ctx.stroke(dunkArm, with: .color(bodyColor), lineWidth: lw)
 
-                // #82 Off-arm trailing behind
-                var arm2 = Path()
-                arm2.move(to: CGPoint(x: px, y: shoulderY + 4))
-                arm2.addLine(to: CGPoint(x: px - 24, y: shoulderY + 24 + liftT * 10))
-                ctx.stroke(arm2, with: .color(bodyColor), lineWidth: lw)
+            // Palm/grip dot on dunking hand — ball visually locks here
+            ctx.fill(Path(ellipseIn: CGRect(x: armEndX - 4, y: armEndY - 4, width: 8, height: 8)),
+                     with: .color(skinColor.opacity(0.9)))
 
-                // #83 Reach extension dot at palm (ball-grip indicator)
-                ctx.fill(Path(ellipseIn: CGRect(x: aex - 4, y: aey - 4, width: 8, height: 8)),
-                         with: .color(skinColor.opacity(0.9)))
+            // Off-arm — endpoint relative to shoulder
+            let offEndX = shoulderX + p.offArmX
+            let offEndY = shoulderY + p.offArmY
+            var offArm = Path()
+            offArm.move(to: CGPoint(x: shoulderX, y: shoulderY + 4))
+            offArm.addLine(to: CGPoint(x: offEndX, y: offEndY))
+            ctx.stroke(offArm, with: .color(bodyColor), lineWidth: lw)
 
-                let tuck = min(1.0, liftT * 1.3)
-                for sign: CGFloat in [1, -1] {
-                    // #84 Legs tucked for hangtime
-                    var leg = Path()
-                    leg.move(to: CGPoint(x: px, y: hipY))
-                    leg.addLine(to: CGPoint(x: px + sign * 16, y: hipY + 10 - tuck * 18))
-                    leg.addLine(to: CGPoint(x: px + sign * 8,  y: hipY + 22 - tuck * 28))
-                    ctx.stroke(leg, with: .color(legColor), lineWidth: lw)
-                    // #85 Sneaker color band (tuck)
-                    ctx.fill(Path(CGRect(x: px + sign * 5, y: hipY + 20 - tuck * 28, width: sign * 10, height: 5)),
-                             with: .color(shoeColor))
-                    // #86 Sneaker sole stripe (tuck)
-                    ctx.fill(Path(CGRect(x: px + sign * 5, y: hipY + 24 - tuck * 28, width: sign * 10, height: 2)),
-                             with: .color(Color.white.opacity(0.38)))
-                }
+            // Lead leg — knee and foot independently posed (no forced symmetry)
+            let leadKneeX = px + p.leadKneeX
+            let leadKneeY = hipY + p.leadKneeY
+            let leadFootX = px + p.leadFootX
+            let leadFootY = leadKneeY + 18      // lower-leg segment always 18px from knee
+            var leadLeg = Path()
+            leadLeg.move(to: CGPoint(x: px, y: hipY))
+            leadLeg.addLine(to: CGPoint(x: leadKneeX, y: leadKneeY))
+            leadLeg.addLine(to: CGPoint(x: leadFootX, y: leadFootY))
+            ctx.stroke(leadLeg, with: .color(legColor), lineWidth: lw)
+            ctx.fill(Path(CGRect(x: leadFootX - 6, y: leadFootY - 5, width: 12, height: 5)),
+                     with: .color(shoeColor))
+            ctx.fill(Path(CGRect(x: leadFootX - 6, y: leadFootY - 1, width: 12, height: 2)),
+                     with: .color(Color.white.opacity(0.38)))
+
+            // Trail leg — independent pose from lead
+            let trailKneeX = px + p.trailKneeX
+            let trailKneeY = hipY + p.trailKneeY
+            let trailFootX = px + p.trailFootX
+            let trailFootY = trailKneeY + 18
+            var trailLeg = Path()
+            trailLeg.move(to: CGPoint(x: px, y: hipY))
+            trailLeg.addLine(to: CGPoint(x: trailKneeX, y: trailKneeY))
+            trailLeg.addLine(to: CGPoint(x: trailFootX, y: trailFootY))
+            ctx.stroke(trailLeg, with: .color(legColor), lineWidth: lw)
+            ctx.fill(Path(CGRect(x: trailFootX - 6, y: trailFootY - 5, width: 12, height: 5)),
+                     with: .color(shoeColor))
+            ctx.fill(Path(CGRect(x: trailFootX - 6, y: trailFootY - 1, width: 12, height: 2)),
+                     with: .color(Color.white.opacity(0.38)))
+
+            // Apex hangtime aura (exec 0.35–0.75)
+            if exec >= 0.35 && exec <= 0.75 {
+                let apexGlow = CGFloat(sin((exec - 0.35) / 0.40 * .pi) * 0.40)
+                var aura = Path()
+                aura.addEllipse(in: CGRect(x: px - 18, y: shoulderY - 16,
+                                           width: 36, height: bodyH + 32))
+                var gcAura = ctx; gcAura.addFilter(.blur(radius: 14))
+                gcAura.fill(aura, with: .color(bodyColor.opacity(apexGlow)))
             }
+
+        // ── APPROACH: running sprint cycle ──
         } else if phase == .approach {
             for sign: CGFloat in [1, -1] {
                 // #87 Running arm swing
@@ -899,6 +911,8 @@ private struct CourtDraw {
                 ctx.fill(Path(CGRect(x: px + sign * 7 * sinC, y: py - 5, width: sign * 12, height: 5)),
                          with: .color(shoeColor))
             }
+
+        // ── IDLE / OTHER: breathing weight-shift ──
         } else {
             let idleRock = CGFloat(sin(t * 1.4) * 2)
             for sign: CGFloat in [1, -1] {
@@ -1123,9 +1137,11 @@ private struct CourtDraw {
     private func drawBallTrail(ctx: inout GraphicsContext) {
         guard phase == .execution, exec > 0.20 else { return }
         let r: CGFloat = 7
-        let ex = (rimL + rimR) / 2; let ey = rimY - 6
+        let rimCX = (rimL + rimR) / 2; let rimCY = rimY - 6
+        let bodyH: CGFloat = 32; let headR: CGFloat = 11
         for trail in 1...4 {
             let pastExec = max(0.20, exec - Double(trail) * 0.055)
+            let pastPose = DunkPoseLibrary.pose(trickId: trickId, execProgress: pastExec)
             let pastLift = (pastExec - 0.15) / 0.85
             let pastArc = pastLift < 0.55
                 ? sin(pastLift / 0.55 * .pi * 0.92)
@@ -1133,10 +1149,20 @@ private struct CourtDraw {
             let pastJumpH = H * CGFloat(pastArc) * 0.44
             let pastPlayerX = W * (0.10 + (0.50 + CGFloat(pastExec) * 0.20) * 0.70)
             let pastFootY = floorY - pastJumpH
-            let sx = pastPlayerX + 14; let sy = pastFootY - pastJumpH - 36
+            let pastShoulderX = pastPlayerX + CGFloat(pastPose.torsoLeanX)
+            let pastShoulderY = pastFootY - bodyH - headR * 1.9 - CGFloat(pastPose.hipTuckY)
+            let pastHandX = pastShoulderX + pastPose.dunkerArmX
+            let pastHandY = pastShoulderY + pastPose.dunkerArmY
             let ep = CGFloat(pastExec)
-            let trailBx = sx + (ex - sx) * ep
-            let trailBy = sy + (ey - sy) * ep - H * 0.22 * 4 * ep * (1 - ep)
+            let trailBx: CGFloat
+            let trailBy: CGFloat
+            if ep < 0.82 {
+                trailBx = pastHandX; trailBy = pastHandY - r * 0.6
+            } else {
+                let rt = (ep - 0.82) / 0.18
+                trailBx = pastHandX + (rimCX - pastHandX) * rt
+                trailBy = (pastHandY - r * 0.6) + (rimCY - (pastHandY - r * 0.6)) * rt
+            }
             let alpha = 0.28 - Double(trail) * 0.055
             ctx.fill(Path(ellipseIn: CGRect(x: trailBx - r, y: trailBy - r, width: r * 2, height: r * 2)),
                      with: .color(Color.orange.opacity(alpha)))
@@ -1154,10 +1180,25 @@ private struct CourtDraw {
             bx = playerX + 14; by = footY - CGFloat(bounce) - 10
         case .execution:
             let ep = CGFloat(exec)
-            let sx = playerX + 14; let sy = footY - jumpH - 36
-            let ex = (rimL + rimR) / 2; let ey = rimY - 6
-            bx = sx + (ex - sx) * ep
-            by = sy + (ey - sy) * ep - H * 0.22 * 4 * ep * (1 - ep)
+            // Derive the dunking hand position from the same pose library drawPlayer() uses
+            let pose = DunkPoseLibrary.pose(trickId: trickId, execProgress: exec)
+            let tuckRise  = CGFloat(pose.hipTuckY)
+            let leanX     = CGFloat(pose.torsoLeanX)
+            let bodyH:    CGFloat = 32
+            let headR:    CGFloat = 11
+            let poseShoulderX = playerX + leanX
+            let poseShoulderY = footY - bodyH - headR * 1.9 - tuckRise
+            let handX = poseShoulderX + pose.dunkerArmX
+            let handY = poseShoulderY + pose.dunkerArmY
+            let rimCX = (rimL + rimR) / 2; let rimCY = rimY - 6
+            // Ball stays in dunking hand until exec 0.82, then releases to rim
+            if ep < 0.82 {
+                bx = handX; by = handY - r * 0.6
+            } else {
+                let releaseT = (ep - 0.82) / 0.18
+                bx = handX  + (rimCX - handX)  * releaseT
+                by = (handY - r * 0.6) + (rimCY - (handY - r * 0.6)) * releaseT
+            }
         default:
             bx = postDunk ? (rimL + rimR) / 2 : playerX + 14
             by = postDunk ? rimY + 30          : footY - 12

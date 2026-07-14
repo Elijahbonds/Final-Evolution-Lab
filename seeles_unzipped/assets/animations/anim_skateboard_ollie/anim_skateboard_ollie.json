@@ -4,11 +4,28 @@
   "category": "animations",
   "type": "non_loop_motion",
   "file": "anim_skateboard_ollie.fbx",
-  "urls": ["https://static.seeles.ai/data/asset/export/5ab28cd1-2b50-4341-b8b9-2e6d9a32d7f3/444565/import.fbx"],
+  "urls": [
+    "https://static.seeles.ai/data/asset/export/5ab28cd1-2b50-4341-b8b9-2e6d9a32d7f3/444565/import.fbx"
+  ],
   "description": "One-shot skateboard ollie trick animation for ABP_Skateboarding montage.",
-  "tags": ["skateboard", "ollie", "trick", "animation", "non-loop", "unreal", "fel"],
-  "keywords": ["skateboard ollie", "street trick", "jump", "ABP_Skateboarding"],
-  "compat": ["unreal"],
+  "tags": [
+    "skateboard",
+    "ollie",
+    "trick",
+    "animation",
+    "non-loop",
+    "unreal",
+    "fel"
+  ],
+  "keywords": [
+    "skateboard ollie",
+    "street trick",
+    "jump",
+    "ABP_Skateboarding"
+  ],
+  "compat": [
+    "unreal"
+  ],
   "status": "ready",
   "created_at": "2026-05-23T18:00:00Z",
   "source_date": "2026-05-23",
@@ -18,5 +35,11 @@
   "motion_asset_id": 444565,
   "abp": "ABP_Skateboarding",
   "abp_slot": "AM_Skateboarding_Ollie",
-  "fel_modes": ["skateboarding"]
+  "fel_modes": [
+    "skateboarding"
+  ],
+  "local_bundle_file": "anim_skateboard_ollie.nexusanim.json",
+  "local_bundle_path": "FinalEvolutionLab/Resources/Animations/anim_skateboard_ollie.nexusanim.json",
+  "runtime_loader": "NexusAnimationLoader",
+  "runtime_format": "nexusanim_json"
 }
