@@ -170,6 +170,14 @@ void BrainBrawlMode::advanceGhostOpponent() {
   if (m_questionsAttempted == 0) {
     return;
   }
+
+  // When a real remote peer is registered, their score is applied via
+  // applyRemoteAnswer(); ghost AI is disabled to avoid double-counting.
+  if (m_remoteOpponent != nullptr) {
+    m_opponentCorrect = m_remoteOpponent->correct;
+    return;
+  }
+
   // Difficulty curve: opponent answers correctly with increasing frequency.
   //   Q1–3 (easy):   1-in-4
   //   Q4–6 (medium): 1-in-3
@@ -190,6 +198,29 @@ void BrainBrawlMode::computePrqDelta() {
     m_prqDelta = kPrqDraw;
   } else {
     m_prqDelta = kPrqLoss;
+  }
+}
+
+void BrainBrawlMode::applyRemoteAnswer(bool correct) {
+  // Called from the gameplay update loop when a kPlayerInput NetMessage with
+  // action="submit_answer" arrives from the remote / local-2P peer.
+  if (correct) {
+    ++m_opponentCorrect;
+  }
+  // Check match-over condition from the remote side.
+  const bool matchOver = (m_opponentCorrect >= kQuestionsToWin);
+  if (matchOver && m_phase != BrainBrawlPhase::kMatchWon) {
+    computePrqDelta();
+    m_phase      = BrainBrawlPhase::kMatchWon;
+    m_phaseTimer = 0.0F;
+  }
+}
+
+void BrainBrawlMode::setRemoteOpponent(const RemotePlayerState* state) {
+  m_remoteOpponent = state;
+  // Immediately sync score from the latest snapshot when registering.
+  if (m_remoteOpponent != nullptr) {
+    m_opponentCorrect = m_remoteOpponent->correct;
   }
 }
 
@@ -220,6 +251,7 @@ auto BrainBrawlMode::stateJson() const -> nlohmann::json {
       {"prq_delta",            m_prqDelta},
       {"reveal_pause_duration", kRevealPauseDuration},
       {"match_complete",       isMatchComplete()},
+      {"multiplayer",          m_remoteOpponent != nullptr},
       // Standard session endpoint alignment (replaces non-standard /api/brain-brawl/submit).
       {"session_mode_id",      "brain_brawl"},
       {"release_state",        "validate_only"},

@@ -7,6 +7,7 @@
 #include "nexus/gameplay/combat_system.h"
 #include "nexus/gameplay/enemy_ai.h"
 #include "nexus/gameplay/health_system.h"
+#include "nexus/gameplay/remote_player_state.h"
 #include "nexus/gameplay/wave_spawner.h"
 
 #include <nlohmann/json.hpp>
@@ -107,6 +108,14 @@ public:
   [[nodiscard]] auto wavePhase()       const -> KarateWavePhase { return m_phase; }
   [[nodiscard]] auto stateJson()       const -> nlohmann::json;
 
+  /// Apply an action event received from a remote / local-2P peer.
+  /// action: "light_strike" | "heavy_strike" | "block" | "dodge" | "jutsu"
+  void applyRemoteAction(std::string_view action);
+
+  /// Register a remote player whose HP drives the player-vs-player overlay.
+  /// Pass nullptr to revert to AI-only mode.
+  void setRemoteOpponent(const RemotePlayerState* state);
+
 private:
   void spawnActiveEnemies();
   void onEnemyDefeated();
@@ -161,6 +170,9 @@ private:
   std::string      m_lastAnimAction{"idle"};
   std::array<CharacterState3D, kMaxPlayers> m_enemy3D{};
   Camera3D m_camera{};
+
+  // Non-owning pointer; null → AI-only, non-null → real remote peer overlay.
+  const RemotePlayerState* m_remoteOpponent{nullptr};
 };
 
 } // namespace nexus::gameplay

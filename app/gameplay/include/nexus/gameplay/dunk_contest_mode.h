@@ -13,6 +13,7 @@ namespace nexus { namespace gameplay {
 #include "nexus/gameplay/arcade_physics.h"
 #include "nexus/gameplay/arena_3d_space.h"
 #include "nexus/gameplay/qte_system.h"
+#include "nexus/gameplay/remote_player_state.h"
 
 #include <nlohmann/json.hpp>
 #include <string>
@@ -91,6 +92,13 @@ public:
   [[nodiscard]] auto signatureAnimationId() const -> const std::string& { return m_signatureAnimationId; }
   [[nodiscard]] auto playerState3D() const -> const CharacterState3D& { return m_player3D; }
 
+  /// Apply an opponent score update received from a remote / local-2P peer.
+  void applyRemoteScore(int opponentScore);
+
+  /// Register a remote player whose score drives the opponent slot instead of
+  /// the ghost AI.  Pass nullptr to revert to ghost AI.
+  void setRemoteOpponent(const RemotePlayerState* state);
+
 private:
   [[nodiscard]] static auto styleMultiplier(DunkStyle style) -> float;
   [[nodiscard]] static auto styleAnimClip(DunkStyle style) -> std::string_view;
@@ -119,6 +127,9 @@ private:
   // 3D court state
   CharacterState3D m_player3D{{0.0F, 0.0F, -8.0F}};   // start mid-paint
   CharacterState3D m_opponent3D{{3.5F, 0.0F, -8.0F}}; // ghost opponent on opposite side
+
+  // Non-owning pointer; null → ghost AI, non-null → real remote peer.
+  const RemotePlayerState* m_remoteOpponent{nullptr};
 };
 
 } // namespace nexus::gameplay

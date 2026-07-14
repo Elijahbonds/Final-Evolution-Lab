@@ -107,7 +107,8 @@ auto gamePromptOptionsFromParams(const nlohmann::json& params) -> ai::GamePrompt
 
 GameplayApplication::GameplayApplication(creative::WorldManipulator& manipulator,
                                          const creative::VoxelWorld& voxelWorld)
-    : m_voxelParser(manipulator, voxelWorld) {}
+    : m_voxelParser(manipulator, voxelWorld),
+      m_localRouter(m_netSession) {}
 
 void GameplayApplication::setGenerativePipeline(
     generative::GenerativePipeline* generativePipeline) {
@@ -123,6 +124,10 @@ void GameplayApplication::update(double deltaSeconds,
       m_latestResponses.begin(),
       m_latestResponses.end(),
       [](const ai::AgentResponse& agentResponse) { return agentResponse.status == "error"; }));
+
+  // ── Multiplayer: poll net bus and dispatch inbound messages ──────────────
+  m_netSession.poll();
+  drainNetMessages();
 
   const auto fitness = m_fitnessData.snapshot();
   if (m_arenaSession.state().phase == ArenaSessionPhase::kActive && !m_arenaSession.state().paused) {
@@ -185,6 +190,10 @@ auto GameplayApplication::handleGameplayCommand(std::string_view command,
 
   if (command.rfind("fel.arena.", 0) == 0) {
     return applyArenaCommand(command, safeParams, id);
+  }
+
+  if (command.rfind("fel.multiplayer.", 0) == 0) {
+    return applyArenaMultiplayerCommand(command, safeParams, id);
   }
 
   if (command.rfind("fel.bridge.", 0) == 0) {
@@ -1395,7 +1404,203 @@ auto GameplayApplication::sessionStatePayload() const -> nlohmann::json {
        }},
       {"generative", std::move(generativeSummary)},
       {"updates_completed", m_stats.updatesCompleted},
+      {"net_session", {
+          {"mode",  static_cast<int>(m_netSession.mode())},
+          {"state", static_cast<int>(m_netSession.state())},
+          {"room_code", std::string(m_netSession.roomCode())},
+      }},
   };
+}
+
+// ── Multiplayer accessors ────────────────────────────────────────────────────
+
+auto GameplayApplication::net_session() const -> const net::NetSession& {
+  return m_netSession;
+}
+
+auto GameplayApplication::matchmaking() const -> const MatchmakingClient& {
+  return m_matchmaking;
+}
+
+// ── Multiplayer net-message dispatch ────────────────────────────────────────
+
+void GameplayApplication::drainNetMessages() {
+  m_netMessageScratch.clear();
+  m_netSession.bus().drain(m_netMessageScratch);
+  for (const auto& msg : m_netMessageScratch) {
+    dispatchNetMessage(msg);
+  }
+}
+
+void GameplayApplication::dispatchNetMessage(const net::NetMessage& message) {
+  switch (message.kind) {
+  case net::NetMessageKind::kPlayerInput: {
+    const std::string action = message.payload.value("action", "");
+    if (action.empty()) {
+      break;
+    }
+    // Route opponent inputs into the active mode.  The mode's handleCommand
+    // already validates the action and updates state; the sender ID lets us
+    // distinguish player 1 vs player 2 if needed.
+    const std::string modeId = m_modeRuntime.activeModeId().empty()
+                                   ? m_arenaSession.state().modeId
+                                   : std::string(m_modeRuntime.activeModeId());
+    (void)m_modeRuntime.handleCommand("fel.arena.mode_input_remote",
+                                      message.payload);
+    break;
+  }
+  case net::NetMessageKind::kGameStateSync: {
+    // Update the cached remote player state snapshot.
+    m_remotePlayerState = RemotePlayerState::fromJson(message.payload);
+    break;
+  }
+  case net::NetMessageKind::kMatchResult: {
+    // All players finished — end the local session.
+    if (m_arenaSession.state().phase == ArenaSessionPhase::kActive) {
+      MatchScoreInput autoScore = m_modeRuntime.sessionScoreInput();
+      const auto ended = m_arenaSession.endSession(
+          autoScore, m_gameplayManager, m_fitnessData.snapshot(),
+          m_modeRuntime.modeSpecificPayload());
+      if (ended.isOk()) {
+        m_hudRelay.broadcastMessage("economy_update", sessionResultToJson(ended.value()));
+      }
+    }
+    break;
+  }
+  case net::NetMessageKind::kLobbyEvent:
+    m_hudRelay.broadcastMessage("lobby_event", message.payload);
+    break;
+  }
+}
+
+// ── Multiplayer commands ─────────────────────────────────────────────────────
+
+auto GameplayApplication::applyArenaMultiplayerCommand(std::string_view command,
+                                                        const nlohmann::json& params,
+                                                        std::string_view id)
+    -> ai::AgentResponse {
+  std::string paramError;
+
+  // ── fel.multiplayer.create ──────────────────────────────────────────────
+  if (command == "fel.multiplayer.create") {
+    const auto modeId = stringParam(params, "mode_id", {}, paramError);
+    const auto userId = stringParam(params, "user_id", "anonymous", paramError);
+    if (!modeId.has_value() || modeId->empty() || !userId.has_value()) {
+      return response(id, "error", {}, paramError.empty() ? "mode_id required" : paramError);
+    }
+    const auto lobbyResult = m_matchmaking.createLobby(*modeId, *userId);
+    if (lobbyResult.isErr()) {
+      return response(id, "error", {}, lobbyResult.error());
+    }
+    const auto& lobby = lobbyResult.value();
+
+    net::NetSessionConfig cfg;
+    (void)m_matchmaking.buildRelayConfig(lobby.roomCode, *userId, cfg);
+    m_netSession.setMode(net::NetSessionMode::kOnline);
+    m_netSession.setRoomCode(lobby.roomCode);
+    (void)m_netSession.connect();
+
+    (void)m_arenaSession.startMultiplayerSession(
+        *modeId, *userId, {*userId}, MultiplayerMode::kOnline, lobby.roomCode);
+    (void)m_modeRuntime.setMode(*modeId);
+
+    return response(id, "ok", {
+        {"room_code",    lobby.roomCode},
+        {"lobby_id",     lobby.id},
+        {"mode_id",      lobby.modeId},
+        {"status",       lobby.status},
+        {"arena",        m_arenaSession.stateJson()},
+    });
+  }
+
+  // ── fel.multiplayer.join ────────────────────────────────────────────────
+  if (command == "fel.multiplayer.join") {
+    const auto roomCode = stringParam(params, "room_code", {}, paramError);
+    const auto userId   = stringParam(params, "user_id", "anonymous", paramError);
+    if (!roomCode.has_value() || roomCode->empty() || !userId.has_value()) {
+      return response(id, "error", {}, paramError.empty() ? "room_code required" : paramError);
+    }
+    const auto lobbyResult = m_matchmaking.joinLobby(*roomCode, *userId);
+    if (lobbyResult.isErr()) {
+      return response(id, "error", {}, lobbyResult.error());
+    }
+    const auto& lobby = lobbyResult.value();
+
+    m_netSession.setMode(net::NetSessionMode::kOnline);
+    m_netSession.setRoomCode(lobby.roomCode);
+    (void)m_netSession.connect();
+
+    const std::string modeId = lobby.modeId.empty()
+        ? params.value("mode_id", m_arenaSession.state().modeId)
+        : lobby.modeId;
+    if (!modeId.empty()) {
+      (void)m_arenaSession.startMultiplayerSession(
+          modeId, *userId, {*userId}, MultiplayerMode::kOnline, lobby.roomCode);
+      (void)m_modeRuntime.setMode(modeId);
+    }
+
+    return response(id, "ok", {
+        {"room_code",  lobby.roomCode},
+        {"lobby_id",   lobby.id},
+        {"mode_id",    modeId},
+        {"status",     lobby.status},
+        {"arena",      m_arenaSession.stateJson()},
+    });
+  }
+
+  // ── fel.multiplayer.local_start ─────────────────────────────────────────
+  if (command == "fel.multiplayer.local_start") {
+    const auto modeId   = stringParam(params, "mode_id", {}, paramError);
+    const auto player1  = stringParam(params, "player1_id", "local_p1", paramError);
+    const auto player2  = stringParam(params, "player2_id", "local_p2", paramError);
+    if (!modeId.has_value() || modeId->empty()) {
+      return response(id, "error", {}, "mode_id required");
+    }
+    m_localRouter.setPlayer2Id(player2.value_or("local_p2"));
+    m_netSession.setMode(net::NetSessionMode::kLocalMulti);
+    (void)m_netSession.connect();
+
+    const std::vector<std::string> players = {player1.value_or("local_p1"),
+                                               player2.value_or("local_p2")};
+    (void)m_arenaSession.startMultiplayerSession(
+        *modeId, players[0], players, MultiplayerMode::kLocalMulti, {});
+    (void)m_modeRuntime.setMode(*modeId);
+
+    return response(id, "ok", {
+        {"mode",    "local_multi"},
+        {"mode_id", *modeId},
+        {"players", players},
+        {"arena",   m_arenaSession.stateJson()},
+    });
+  }
+
+  // ── fel.multiplayer.ready ───────────────────────────────────────────────
+  if (command == "fel.multiplayer.ready") {
+    const auto roomCode = stringParam(params, "room_code",
+                                      std::string(m_netSession.roomCode()), paramError);
+    const auto userId   = stringParam(params, "user_id",
+                                      m_arenaSession.state().userId, paramError);
+    if (!roomCode.has_value() || roomCode->empty()) {
+      return response(id, "error", {}, "room_code required");
+    }
+    const auto readyResult = m_matchmaking.setReady(*roomCode, userId.value_or("anonymous"));
+    if (readyResult.isErr()) {
+      return response(id, "error", {}, readyResult.error());
+    }
+    return response(id, "ok", {{"room_code", *roomCode}, {"status", "ready"}});
+  }
+
+  // ── fel.multiplayer.p2_input ─────────────────────────────────────────────
+  if (command == "fel.multiplayer.p2_input") {
+    const std::string action = params.value("action", "");
+    if (action.empty()) {
+      return response(id, "error", {}, "action required");
+    }
+    m_localRouter.dispatchPlayer2Input(action, params);
+    return response(id, "ok", {{"action", action}});
+  }
+
+  return response(id, "error", {}, "Unsupported multiplayer command");
 }
 
 } // namespace nexus::gameplay

@@ -11,6 +11,7 @@ namespace nexus { namespace gameplay {
 
 #include "nexus/core/result.h"
 #include "nexus/gameplay/arena_3d_space.h"
+#include "nexus/gameplay/remote_player_state.h"
 
 #include <nlohmann/json.hpp>
 #include <array>
@@ -67,6 +68,16 @@ public:
   [[nodiscard]] auto playerGoals() const -> int { return m_playerGoals; }
   [[nodiscard]] auto opponentGoals() const -> int { return m_opGoals; }
 
+  /// Apply a goal event received from a remote / local-2P opponent.
+  void applyRemoteGoal();
+
+  /// Apply an authoritative state sync from the host peer.
+  void applyRemoteStateSync(const nlohmann::json& state);
+
+  /// Register a remote player whose goals drive the opponent slot instead of
+  /// ghost pressure AI.  Pass nullptr to revert to ghost AI.
+  void setRemoteOpponent(const RemotePlayerState* state);
+
 private:
   void resetKickoff();
   void spawnDefenders();
@@ -88,6 +99,9 @@ private:
   int m_opGoals{0};
   int m_matchTick{0};
   float m_lastAction{0.0F};  // seconds since last player action (opponent pressure timer)
+
+  // Non-owning pointer; null → ghost AI, non-null → real remote peer.
+  const RemotePlayerState* m_remoteOpponent{nullptr};
 };
 
 } // namespace nexus::gameplay

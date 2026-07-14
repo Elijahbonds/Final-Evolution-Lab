@@ -5,6 +5,7 @@
 #pragma once
 
 #include "nexus/core/result.h"
+#include "nexus/gameplay/remote_player_state.h"
 
 #include <nlohmann/json.hpp>
 #include <array>
@@ -72,6 +73,15 @@ public:
   auto submitAnswer(bool correct, float responseTimeSeconds, std::string_view category)
       -> Result<nlohmann::json>;
 
+  /// Apply an answer event received from a remote / local-2P opponent.
+  /// Called by the gameplay update loop when a kPlayerInput NetMessage with
+  /// action="submit_answer" arrives from the peer.
+  void applyRemoteAnswer(bool correct);
+
+  /// Register a remote player whose state drives the opponent slot instead of
+  /// the ghost AI.  Pass nullptr to revert to ghost AI.
+  void setRemoteOpponent(const RemotePlayerState* state);
+
   [[nodiscard]] auto playerCorrect()   const -> int32_t { return m_playerCorrect; }
   [[nodiscard]] auto opponentCorrect() const -> int32_t { return m_opponentCorrect; }
   [[nodiscard]] auto cognitiveScore()  const -> float   { return m_cognitiveScore; }
@@ -83,6 +93,7 @@ public:
   [[nodiscard]] auto isRevealPause()   const -> bool {
     return m_phase == BrainBrawlPhase::kRevealPause;
   }
+  [[nodiscard]] auto hasRemoteOpponent() const -> bool { return m_remoteOpponent != nullptr; }
   [[nodiscard]] auto stateJson() const -> nlohmann::json;
 
 private:
@@ -108,6 +119,8 @@ private:
   float   m_lastScoreDelta{0.0F};
   std::string m_currentCategory;
   float m_phaseTimer{0.0F};
+  // Non-owning pointer; null → ghost AI, non-null → real remote peer.
+  const RemotePlayerState* m_remoteOpponent{nullptr};
 };
 
 } // namespace nexus::gameplay

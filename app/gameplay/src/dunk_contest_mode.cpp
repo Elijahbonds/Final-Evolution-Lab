@@ -299,11 +299,33 @@ void DunkContestMode::completeDunk(const ArcadePhysicsParams& physics) {
 
 void DunkContestMode::advanceGhostOpponent() {
   if (m_phase == DunkPhase::kMatchWon) return;
+  // Ghost AI disabled when a real remote peer is registered.
+  if (m_remoteOpponent != nullptr) {
+    m_opponentScore = m_remoteOpponent->dunkScore;
+    if (m_opponentScore >= kWinScore) {
+      m_phase = DunkPhase::kMatchWon;
+    }
+    return;
+  }
   const int base = 2 + std::min(m_ghostDunks / 3, 2);
   m_opponentScore += base;
   ++m_ghostDunks;
   if (m_opponentScore >= kWinScore) {
     m_phase = DunkPhase::kMatchWon;
+  }
+}
+
+void DunkContestMode::applyRemoteScore(int opponentScore) {
+  m_opponentScore = opponentScore;
+  if (m_opponentScore >= kWinScore && m_phase != DunkPhase::kMatchWon) {
+    m_phase = DunkPhase::kMatchWon;
+  }
+}
+
+void DunkContestMode::setRemoteOpponent(const RemotePlayerState* state) {
+  m_remoteOpponent = state;
+  if (m_remoteOpponent != nullptr) {
+    m_opponentScore = m_remoteOpponent->dunkScore;
   }
 }
 

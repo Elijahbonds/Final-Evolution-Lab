@@ -63,6 +63,15 @@ find_package(Threads REQUIRED)
 target_include_directories(nexus_core PUBLIC engine/core/include)
 target_link_libraries(nexus_core PUBLIC nlohmann_json::nlohmann_json Threads::Threads)
 
+add_library(nexus_net
+  engine/net/src/net_message.cpp
+  engine/net/src/net_message_bus.cpp
+  engine/net/src/net_session.cpp
+  engine/net/src/local_multiplayer_router.cpp
+)
+target_include_directories(nexus_net PUBLIC engine/net/include)
+target_link_libraries(nexus_net PUBLIC nexus_core nlohmann_json::nlohmann_json)
+
 add_library(nexus_physics
   engine/physics/src/physics_world.cpp
 )
@@ -146,11 +155,13 @@ add_library(nexus_gameplay
   app/gameplay/src/health_system.cpp
   app/gameplay/src/hud_relay_service.cpp
   app/gameplay/src/karate_endless_mode.cpp
+  app/gameplay/src/matchmaking_client.cpp
   app/gameplay/src/mode_runtime.cpp
   app/gameplay/src/outcome_sport_mode.cpp
   app/gameplay/src/prq_engine.cpp
   app/gameplay/src/qte_system.cpp
   app/gameplay/src/rail_grind_system.cpp
+  app/gameplay/src/remote_player_state.cpp
   app/gameplay/src/scan_envelope_mapper.cpp
   app/gameplay/src/session_receipt_client.cpp
   app/gameplay/src/skateboarding_mode.cpp
@@ -170,6 +181,7 @@ add_library(nexus_gameplay
 target_include_directories(nexus_gameplay PUBLIC app/gameplay/include)
 target_link_libraries(nexus_gameplay PUBLIC
   nexus_core
+  nexus_net
   nexus_ai_interface
   nexus_creative
   nexus_generative
@@ -302,6 +314,10 @@ if(NEXUS_BUILD_TESTS)
   add_executable(nexus_realtime_test tests/unit/core/websocket_test.cpp)
   target_link_libraries(nexus_realtime_test PRIVATE nexus_core)
   add_test(NAME nexus_realtime_test COMMAND nexus_realtime_test)
+
+  add_executable(nexus_net_test tests/unit/net/net_test.cpp)
+  target_link_libraries(nexus_net_test PRIVATE nexus_net nexus_gameplay)
+  add_test(NAME nexus_net_test COMMAND nexus_net_test)
 
   if(NEXUS_ENABLE_RENDERER OR NEXUS_ENABLE_METAL_RENDERER)
     add_executable(nexus_renderer_test tests/unit/renderer/renderer_test.cpp)

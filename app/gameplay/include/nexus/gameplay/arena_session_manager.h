@@ -12,10 +12,13 @@
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 // GCC 13.3 workaround: forward-declare enum classes before large STL includes.
 namespace nexus { namespace gameplay {
   enum class ArenaSessionPhase : std::uint8_t;
+  enum class MultiplayerMode   : std::uint8_t;
 } } // namespace nexus::gameplay
 
 namespace nexus::gameplay {
@@ -24,6 +27,12 @@ enum class ArenaSessionPhase : std::uint8_t {
   kIdle = 0,
   kActive = 1,
   kEnded = 2,
+};
+
+enum class MultiplayerMode : std::uint8_t {
+  kSolo       = 0,
+  kLocalMulti = 1,
+  kOnline     = 2,
 };
 
 struct ArenaSessionState {
@@ -40,11 +49,25 @@ struct ArenaSessionState {
   int32_t criticalCount{0};
   nlohmann::json modeState{nlohmann::json::object()};
   std::optional<SessionResult> lastResult;
+
+  // ── Multiplayer extensions ────────────────────────────────────────────────
+  MultiplayerMode multiplayerMode{MultiplayerMode::kSolo};
+  std::vector<std::string>                     playerIds;
+  std::unordered_map<std::string, float>       playerScores;
+  std::string                                  roomCode;
 };
 
 class ArenaSessionManager {
 public:
   [[nodiscard]] auto startSession(std::string_view modeId, std::string_view userId) -> Result<void>;
+
+  /// Start a multiplayer session with multiple player IDs.
+  [[nodiscard]] auto startMultiplayerSession(std::string_view modeId,
+                                              std::string_view hostUserId,
+                                              const std::vector<std::string>& playerIds,
+                                              MultiplayerMode mpMode,
+                                              std::string_view roomCode = {}) -> Result<void>;
+
   void update(double deltaSeconds, const FitnessSnapshot& fitness);
   [[nodiscard]] auto endSession(const MatchScoreInput& scoreInput,
                                 GameplayManager& gameplayManager,
@@ -58,6 +81,7 @@ public:
                      int32_t comboCount,
                      int32_t criticalCount,
                      nlohmann::json modeState);
+  void updatePlayerScore(std::string_view playerId, float score);
   void pauseSession();
   void resumeSession();
   [[nodiscard]] auto state() const -> const ArenaSessionState&;

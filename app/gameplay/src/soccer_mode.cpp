@@ -75,8 +75,10 @@ void SoccerMode::update(double deltaSeconds) {
   updateDefenders(deltaSeconds);
   updateBallPhysics(deltaSeconds);
 
-  // Opponent pressure: if player hasn't acted in 5s, opponent scores a chance
-  if (m_lastAction > 5.0F) {
+  // Opponent pressure: if player hasn't acted in 5s, opponent scores a chance.
+  // Ghost AI is suppressed when a real remote peer is registered; goals arrive
+  // via applyRemoteGoal() instead.
+  if (m_remoteOpponent == nullptr && m_lastAction > 5.0F) {
     m_lastAction = 0.0F;
     ++m_matchTick;
     if (m_matchTick % 4 == 0) {
@@ -249,7 +251,39 @@ auto SoccerMode::stateJson() const -> nlohmann::json {
           {"goal_width",  kGoalWidth},
           {"goal_center_z", kGoalCenter.z},
       }},
+      {"multiplayer", m_remoteOpponent != nullptr},
   };
+}
+
+void SoccerMode::applyRemoteGoal() {
+  ++m_opGoals;
+  m_phase      = SoccerPhase::kOpGoal;
+  m_phaseTimer = 0.0F;
+  if (m_opGoals >= kGoalsToWin) {
+    m_phase = SoccerPhase::kMatchOver;
+  }
+}
+
+void SoccerMode::applyRemoteStateSync(const nlohmann::json& state) {
+  // Apply authoritative ball position from the host peer.
+  if (state.contains("ball_3d") && state["ball_3d"].is_object()) {
+    const auto& b = state["ball_3d"];
+    m_ballPos.x      = b.value("x", m_ballPos.x);
+    m_ballPos.y      = b.value("y", m_ballPos.y);
+    m_ballPos.z      = b.value("z", m_ballPos.z);
+    m_ballVelocity.x = b.value("vx", m_ballVelocity.x);
+    m_ballVelocity.z = b.value("vz", m_ballVelocity.z);
+  }
+  if (state.contains("op_goals") && state["op_goals"].is_number_integer()) {
+    m_opGoals = state["op_goals"].get<int>();
+  }
+}
+
+void SoccerMode::setRemoteOpponent(const RemotePlayerState* state) {
+  m_remoteOpponent = state;
+  if (m_remoteOpponent != nullptr) {
+    m_opGoals = m_remoteOpponent->goals;
+  }
 }
 
 } // namespace nexus::gameplay

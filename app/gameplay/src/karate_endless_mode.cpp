@@ -598,6 +598,30 @@ auto KarateEndlessMode::handleWaveCommand(const nlohmann::json& params) -> Resul
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+void KarateEndlessMode::applyRemoteAction(std::string_view action) {
+  // Remote peer sent an action event. For PvP karate, the remote player IS the
+  // opposing fighter, so their actions deal damage to the local player's HP.
+  // This is a simplified model: each remote strike applies a fixed damage.
+  auto& slot = activeSlot();
+  if (action == "light_strike" || action == "strike") {
+    const float dmg = 5.0F * damageTakenMultiplier();
+    slot.health.applyDamage(dmg);
+  } else if (action == "heavy_strike") {
+    const float dmg = 15.0F * damageTakenMultiplier();
+    slot.health.applyDamage(dmg);
+  } else if (action == "jutsu") {
+    const float dmg = kJutsuHpDamage * damageTakenMultiplier();
+    slot.health.applyDamage(dmg);
+  }
+  if (slot.health.isDefeated() && m_phase != KarateWavePhase::kDefeat) {
+    m_phase = KarateWavePhase::kDefeat;
+  }
+}
+
+void KarateEndlessMode::setRemoteOpponent(const RemotePlayerState* state) {
+  m_remoteOpponent = state;
+}
+
 auto KarateEndlessMode::stateJson() const -> nlohmann::json {
   int aliveCount = 0;
   for (const EnemyAI& e : m_enemies) { if (e.state().alive) ++aliveCount; }
@@ -679,6 +703,7 @@ auto KarateEndlessMode::stateJson() const -> nlohmann::json {
           {"fov",       m_camera.fovDegrees},
           {"cinematic", m_camera.cinematic},
       }},
+      {"multiplayer", m_remoteOpponent != nullptr},
   };
 }
 
