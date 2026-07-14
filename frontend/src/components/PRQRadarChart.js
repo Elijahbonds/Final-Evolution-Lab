@@ -137,7 +137,7 @@ export default function PRQRadarChart({ prq = {}, size = 240 }) {
         })}
 
         {/* Centre score */}
-        {prq.overall_score != null && (
+        {prq.overall_score !== null && prq.overall_score !== undefined && (
           <>
             <text
               x={CX}

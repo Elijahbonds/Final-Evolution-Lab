@@ -718,6 +718,12 @@ const SystemScanView = () => {
 };
 
 // ===================== PLAYABLE GAME ENGINE (UE5 SIMULATOR) =====================
+const BREATH_PHASES = [
+  { phase: "inhale", duration: 2000 },
+  { phase: "hold",   duration: 1000 },
+  { phase: "exhale", duration: 2000 },
+];
+
 const PlayableGame = ({ mode, onComplete, onBack }) => {
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(30);
@@ -766,23 +772,18 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
   // Breath phase cycle (inhale 2s → hold 1s → exhale 2s → repeat)
   useEffect(() => {
     if (!gameActive) return;
-    const PHASES = [
-      { phase: "inhale", duration: 2000 },
-      { phase: "hold",   duration: 1000 },
-      { phase: "exhale", duration: 2000 },
-    ];
     let phaseIdx = 0;
     let startTime = Date.now();
     let raf;
     const tick = () => {
       const now = Date.now();
       const elapsed = now - startTime;
-      const current = PHASES[phaseIdx];
+      const current = BREATH_PHASES[phaseIdx];
       const progress = Math.min(1, elapsed / current.duration);
       setBreathPhase(current.phase);
       setBreathProgress(progress);
       if (elapsed >= current.duration) {
-        phaseIdx = (phaseIdx + 1) % PHASES.length;
+        phaseIdx = (phaseIdx + 1) % BREATH_PHASES.length;
         startTime = now;
       }
       raf = requestAnimationFrame(tick);

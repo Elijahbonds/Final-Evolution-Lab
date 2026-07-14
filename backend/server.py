@@ -197,8 +197,9 @@ class AnalyticsSessionIn(BaseModel):
 
 
 def _hash_password(password: str, salt: str) -> str:
-    """PBKDF2-HMAC-SHA256 password hash (stdlib only, no extra deps)."""
-    dk = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 260_000)
+    """PBKDF2-HMAC-SHA256 password hash (stdlib only, no extra deps).
+    Uses 600,000 iterations per OWASP 2024 recommendation for PBKDF2-SHA256."""
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 600_000)
     return base64.b64encode(dk).decode()
 
 
@@ -277,7 +278,7 @@ async def login_email(request: Request, response: Response):
 
     salt = user_doc.get("pw_salt", "")
     expected = user_doc.get("pw_hash", "")
-    if not salt or not expected or _hash_password(password, salt) != expected:
+    if not salt or not expected or not hmac.compare_digest(_hash_password(password, salt), expected):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     user_id = user_doc["user_id"]

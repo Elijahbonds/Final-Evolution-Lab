@@ -159,7 +159,7 @@ export const NexusConsole = ({ onClose }) => {
     setCmdPending(true);
     appendLog(`[CMD] > ${trimmed}`);
     try {
-      // POST to /api/games/session as agent command channel (cel.* prefix routed server-side)
+      // POST to /api/games/session as agent command channel (fel.* prefix routed server-side)
       const r = await axios.post(`${API}/games/session`, { fel_command: trimmed });
       const reply = r.data?.response || r.data?.result || JSON.stringify(r.data).slice(0, 200);
       appendLog(`[INFO] ${reply}`);
