@@ -9,7 +9,8 @@ import {
   Award, BarChart3, Calendar, MessageCircle, Send,
   Play, Pause, Shield, TrendingUp, Radio, Wifi, WifiOff,
   Crosshair, Timer, Flame, Crown, Medal, ChevronDown,
-  Swords, Video, Palette, UserPlus, Gift, Download, Smartphone
+  Swords, Video, Palette, UserPlus, Gift, Download, Smartphone,
+  Wind, CheckCircle, AlertTriangle
 } from "lucide-react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { StreaksView, SocialView, TournamentsView, AvatarBuilderView, VideoCritiqueView } from "@/components/NewViews";
@@ -21,6 +22,8 @@ import DownloadPage from "@/components/DownloadPage";
 import { TriviaArenaView } from "@/components/TriviaArenaView";
 import Phase3HUD from "@/components/hud/Phase3HUD";
 import { FEL_ARENA_MODES } from "@/lib/arenaModes";
+import PRQRadarChart from "@/components/PRQRadarChart";
+import RewardToast from "@/components/RewardToast";
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 
@@ -207,6 +210,15 @@ const LoginPage = () => {
   const [authError, setAuthError] = useState("");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
+  // Email/password + registration state
+  const [authTab, setAuthTab] = useState("google"); // "google" | "email"
+  const [emailMode, setEmailMode] = useState("login"); // "login" | "register"
+  const [emailInput, setEmailInput] = useState("");
+  const [passwordInput, setPasswordInput] = useState("");
+  const [nameInput, setNameInput] = useState("");
+  const [sportInput, setSportInput] = useState("basketball");
+  const [levelInput, setLevelInput] = useState("Beginner");
+
   useEffect(() => { if (user) navigate('/dashboard'); }, [user, navigate]);
 
   const handleLogin = async () => {
@@ -220,7 +232,6 @@ const LoginPage = () => {
     try {
       const result = await signInWithPopup(firebaseAuth, provider);
       const idToken = await result.user.getIdToken();
-      // Exchange token for backend session
       const r = await axios.post(`${API}/auth/session`, { session_id: idToken });
       if (r.data?.session_token) {
         try { localStorage.setItem(FEL_TOKEN_KEY, r.data.session_token); } catch (_e) {}
@@ -235,6 +246,32 @@ const LoginPage = () => {
     }
   };
 
+  const handleEmailAuth = async () => {
+    if (!emailInput.trim() || !passwordInput) {
+      setAuthError("Email and password are required.");
+      return;
+    }
+    setIsAuthenticating(true);
+    setAuthError("");
+    try {
+      const endpoint = emailMode === "register" ? `${API}/auth/register` : `${API}/auth/login/email`;
+      const payload = emailMode === "register"
+        ? { email: emailInput.trim(), password: passwordInput, name: nameInput.trim() || undefined, sport: sportInput, level: levelInput }
+        : { email: emailInput.trim(), password: passwordInput };
+      const r = await axios.post(endpoint, payload);
+      if (r.data?.session_token) {
+        try { localStorage.setItem(FEL_TOKEN_KEY, r.data.session_token); } catch (_e) {}
+      }
+      setUser(r.data);
+      navigate('/dashboard', { replace: true, state: { user: r.data } });
+    } catch (error) {
+      const detail = error?.response?.data?.detail || error.message || "Authentication failed.";
+      setAuthError(detail);
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#050505]" style={{background:'var(--bg-default)'}}>
       <div className="surface-card p-8 w-full max-w-md text-center border border-white/10 rounded-sm">
@@ -242,29 +279,95 @@ const LoginPage = () => {
           <Zap className="w-10 h-10 text-black fill-current" />
         </div>
         <h1 className="text-3xl font-extrabold mb-2 text-white" style={{fontFamily:'Barlow Condensed'}}>FINAL EVOLUTION LAB</h1>
-        <p className="text-zinc-400 mb-8 text-sm">Sign in using your Google credentials to enter the Athlete OS</p>
-        
+        <p className="text-zinc-400 mb-6 text-sm">Enter the Athlete OS</p>
+
+        {/* Auth method tabs */}
+        <div className="flex mb-6 border border-white/10">
+          <button onClick={() => { setAuthTab("google"); setAuthError(""); }} className={`flex-1 py-2 text-xs font-bold uppercase tracking-wide transition-all ${authTab === "google" ? "bg-cyan-400/15 text-cyan-400" : "text-zinc-500 hover:text-zinc-300"}`}>
+            Google
+          </button>
+          <button onClick={() => { setAuthTab("email"); setAuthError(""); }} className={`flex-1 py-2 text-xs font-bold uppercase tracking-wide transition-all ${authTab === "email" ? "bg-cyan-400/15 text-cyan-400" : "text-zinc-500 hover:text-zinc-300"}`}>
+            Email
+          </button>
+        </div>
+
         {authError && (
-          <div className="mb-6 p-3 border border-red-500/30 bg-red-500/5 text-xs text-red-400 font-mono text-left">
+          <div className="mb-4 p-3 border border-red-500/30 bg-red-500/5 text-xs text-red-400 font-mono text-left">
             {authError}
           </div>
         )}
 
-        <button 
-          data-testid="login-google-btn" 
-          onClick={handleLogin} 
-          disabled={isAuthenticating}
-          className="btn-primary w-full flex items-center justify-center gap-3 bg-[#5ce1e6] hover:bg-[#4dd0d5] text-black font-extrabold py-3.5 tracking-wider transition-all disabled:bg-zinc-800 disabled:text-zinc-500 rounded-none shadow-[0_0_20px_rgba(92,225,230,0.15)]"
-        >
-          {isAuthenticating ? (
-            <>
-              <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-              <span>Securing Session...</span>
-            </>
-          ) : (
-            <span>Continue with Google</span>
-          )}
-        </button>
+        {authTab === "google" && (
+          <button
+            data-testid="login-google-btn"
+            onClick={handleLogin}
+            disabled={isAuthenticating}
+            className="btn-primary w-full flex items-center justify-center gap-3 bg-[#5ce1e6] hover:bg-[#4dd0d5] text-black font-extrabold py-3.5 tracking-wider transition-all disabled:bg-zinc-800 disabled:text-zinc-500 rounded-none shadow-[0_0_20px_rgba(92,225,230,0.15)]"
+          >
+            {isAuthenticating ? (
+              <><div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div><span>Securing Session...</span></>
+            ) : (
+              <span>Continue with Google</span>
+            )}
+          </button>
+        )}
+
+        {authTab === "email" && (
+          <div className="space-y-3 text-left">
+            {/* Login / Register toggle */}
+            <div className="flex gap-2 mb-2">
+              <button onClick={() => setEmailMode("login")} className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wide border transition-all ${emailMode === "login" ? "border-cyan-400/50 text-cyan-400 bg-cyan-400/10" : "border-zinc-700 text-zinc-500"}`}>
+                Sign In
+              </button>
+              <button onClick={() => setEmailMode("register")} className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wide border transition-all ${emailMode === "register" ? "border-cyan-400/50 text-cyan-400 bg-cyan-400/10" : "border-zinc-700 text-zinc-500"}`}>
+                Create Account
+              </button>
+            </div>
+
+            {emailMode === "register" && (
+              <>
+                <div>
+                  <label className="text-xs text-zinc-400 uppercase tracking-wider block mb-1">Display Name</label>
+                  <input data-testid="register-name" value={nameInput} onChange={e => setNameInput(e.target.value)} placeholder="Your athlete name" className="input-clinical w-full" />
+                </div>
+                <div>
+                  <label className="text-xs text-zinc-400 uppercase tracking-wider block mb-1">Primary Sport</label>
+                  <select data-testid="register-sport" value={sportInput} onChange={e => setSportInput(e.target.value)} className="input-clinical w-full">
+                    {['basketball','karate','soccer','football','tennis','golf','surfing','skateboarding','snowboarding','training'].map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-zinc-400 uppercase tracking-wider block mb-1">Experience Level</label>
+                  <select data-testid="register-level" value={levelInput} onChange={e => setLevelInput(e.target.value)} className="input-clinical w-full">
+                    {['Beginner','Intermediate','Advanced','Elite','Pro'].map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                </div>
+              </>
+            )}
+
+            <div>
+              <label className="text-xs text-zinc-400 uppercase tracking-wider block mb-1">Email</label>
+              <input data-testid="email-input" type="email" value={emailInput} onChange={e => setEmailInput(e.target.value)} placeholder="athlete@example.com" className="input-clinical w-full" />
+            </div>
+            <div>
+              <label className="text-xs text-zinc-400 uppercase tracking-wider block mb-1">Password</label>
+              <input data-testid="password-input" type="password" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} onKeyDown={e => e.key === "Enter" && handleEmailAuth()} placeholder="6+ characters" className="input-clinical w-full" />
+            </div>
+
+            <button
+              data-testid="email-auth-btn"
+              onClick={handleEmailAuth}
+              disabled={isAuthenticating}
+              className="btn-primary w-full flex items-center justify-center gap-3 bg-[#5ce1e6] hover:bg-[#4dd0d5] text-black font-extrabold py-3 tracking-wider transition-all disabled:bg-zinc-800 disabled:text-zinc-500 rounded-none mt-2"
+            >
+              {isAuthenticating ? (
+                <><div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div><span>Working...</span></>
+              ) : (
+                <span>{emailMode === "register" ? "Create Account" : "Sign In"}</span>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -275,6 +378,12 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [streakCount, setStreakCount] = useState(0);
+
+  useEffect(() => {
+    axios.get(`${API}/streaks`).then(r => setStreakCount(r.data?.current_streak ?? 0)).catch(() => {});
+  }, []);
+
   const navItems = [
     {id:'fel-os',icon:Crosshair,label:'FEL OS'},
     {id:'dashboard',icon:Home,label:'Dashboard'},{id:'scan',icon:Activity,label:'System Scan'},
@@ -313,7 +422,17 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
         <div className="p-4 border-t border-white/5">
           <div className="flex items-center gap-3 mb-3">
             {user?.picture ? <img src={user.picture} alt="" className="w-9 h-9 rounded-full" /> : <div className="w-9 h-9 bg-zinc-800 rounded-full flex items-center justify-center"><User className="w-5 h-5 text-zinc-400" /></div>}
-            <div className="flex-1 min-w-0"><div className="font-medium text-sm truncate">{user?.name || 'Athlete'}</div><div className="text-xs text-zinc-500">Lvl {user?.level || 1}</div></div>
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-sm truncate">{user?.name || 'Athlete'}</div>
+              <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+                <span>Lvl {user?.level || 1}</span>
+                {streakCount > 0 && (
+                  <span className="flex items-center gap-0.5 text-orange-400">
+                    <Flame className="w-3 h-3" />{streakCount}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
           <button data-testid="logout-btn" onClick={async () => {await logout();navigate('/');}} className="nav-item w-full text-red-400 hover:text-red-300"><LogOut className="w-5 h-5" />Sign Out</button>
         </div>
@@ -327,26 +446,123 @@ const DashboardView = ({ setActiveTab }) => {
   const { user } = useAuth();
   const [prq, setPrq] = useState(null);
   const [stats, setStats] = useState(null);
+  const [streak, setStreak] = useState(null);
+  const [isOffline, setIsOffline] = useState(false);
+  const [checkedIn, setCheckedIn] = useState(false);
+  const [checkInReward, setCheckInReward] = useState(null);
+  const [toastReward, setToastReward] = useState(null);
+
+  // Daily lesson reminder — pull from localStorage
+  const todaysLesson = (() => {
+    try {
+      const tracks = JSON.parse(localStorage.getItem("fel_edu_progress") || "{}");
+      // Find first incomplete lesson across tracks
+      const trackOrder = ["kinesiology", "biofuel", "arena", "neuro"];
+      for (const trackId of trackOrder) {
+        const done = new Set(tracks[trackId] || []);
+        if (trackId === "kinesiology" && !done.has("movement_planes")) return { track: "Kinesiology", lesson: "Planes of Motion", trackId: "kinesiology" };
+        if (trackId === "biofuel" && !done.has("macro_targets")) return { track: "Bio-Fuel", lesson: "Athlete Macro Targets", trackId: "biofuel" };
+        if (trackId === "arena" && !done.has("session_receipts")) return { track: "Arena IQ", lesson: "Session Receipts", trackId: "arena" };
+        if (trackId === "neuro" && !done.has("reaction_focus")) return { track: "Neuro Drive", lesson: "Reaction & Focus", trackId: "neuro" };
+      }
+      return null;
+    } catch { return null; }
+  })();
+
+  // Last played mode from localStorage
+  const lastPlayedMode = (() => {
+    try { return JSON.parse(localStorage.getItem("fel_last_mode") || "null"); } catch { return null; }
+  })();
+
   useEffect(() => {
-    Promise.all([axios.get(`${API}/prq/metrics`), axios.get(`${API}/stats/overview`)])
-      .then(([p, s]) => { setPrq(p.data); setStats(s.data); }).catch(() => {
+    Promise.all([
+      axios.get(`${API}/prq/metrics`),
+      axios.get(`${API}/stats/overview`),
+      axios.get(`${API}/streaks`),
+    ])
+      .then(([p, s, st]) => {
+        setPrq(p.data);
+        setStats(s.data);
+        setStreak(st.data);
+        setIsOffline(false);
+      })
+      .catch(() => {
         setPrq({ ...FALLBACK_PRQ, overall_score: 75 });
         setStats({ total_workouts: 0, game_sessions: 0, brain_brawl_sessions: 0, xp: 0 });
+        setStreak({ current_streak: 0 });
+        setIsOffline(true);
       });
+
+    // Check if already checked in today
+    const lastCI = localStorage.getItem("fel_last_checkin");
+    if (lastCI === new Date().toDateString()) setCheckedIn(true);
   }, []);
+
+  const handleCheckIn = async () => {
+    try {
+      const r = await axios.post(`${API}/streaks/checkin`);
+      setCheckInReward(r.data);
+      setToastReward({ xp: r.data?.xp_reward || 25, shards: r.data?.shard_reward || 10, prq_delta: 0 });
+      setCheckedIn(true);
+      setStreak(s => ({ ...s, current_streak: (s?.current_streak || 0) + 1 }));
+      localStorage.setItem("fel_last_checkin", new Date().toDateString());
+    } catch {
+      setCheckedIn(true);
+      setToastReward({ xp: 25, shards: 10, prq_delta: 0 });
+      localStorage.setItem("fel_last_checkin", new Date().toDateString());
+    }
+  };
+
   return (
-    <div className="space-y-8 fade-in" data-testid="dashboard-view">
+    <div className="space-y-6 fade-in" data-testid="dashboard-view">
+      {/* Offline / Demo Mode Banner */}
+      {isOffline && (
+        <div className="flex items-center gap-3 p-3 bg-amber-400/5 border border-amber-400/30 text-amber-400 text-xs font-mono">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          <span>DEMO MODE — Backend unreachable. Showing fallback data. Connect to see live stats.</span>
+        </div>
+      )}
+
+      {/* Daily Check-In Banner */}
+      {!checkedIn && (
+        <div className="flex items-center justify-between p-4 bg-orange-400/5 border border-orange-400/25 gap-4">
+          <div className="flex items-center gap-3">
+            <Flame className="w-8 h-8 text-orange-400 flex-shrink-0" />
+            <div>
+              <div className="font-bold text-sm">Daily Check-In</div>
+              <div className="text-xs text-zinc-400">Claim your daily rewards · {streak?.current_streak || 0} day streak</div>
+            </div>
+          </div>
+          <button onClick={handleCheckIn} className="btn-primary text-sm px-6 py-2 flex-shrink-0">
+            Claim +25 XP
+          </button>
+        </div>
+      )}
+      {checkedIn && checkInReward && (
+        <div className="flex items-center gap-3 p-3 bg-green-400/5 border border-green-400/20 text-green-400 text-xs">
+          <CheckCircle className="w-4 h-4" />
+          <span>Checked in! +{checkInReward?.xp_reward || 25} XP · +{checkInReward?.shard_reward || 10} Shards</span>
+        </div>
+      )}
+
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div><p className="overline mb-1">WELCOME BACK</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>{user?.name?.split(' ')[0] || 'ATHLETE'}</h1></div>
         <div className="text-right"><div className="metric-label">TODAY</div><div className="text-lg font-medium">{new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}</div></div>
       </div>
+
+      {/* PRQ Radar + Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="surface-active p-6" data-testid="prq-score-card">
           <p className="overline mb-4">PERFORMANCE READINESS</p>
-          <div className="flex items-center justify-center">
-            <div className="relative">
-              <svg className="w-48 h-48" viewBox="0 0 192 192"><circle cx="96" cy="96" r="80" fill="none" stroke="var(--secondary)" strokeWidth="12" /><circle cx="96" cy="96" r="80" fill="none" stroke="var(--primary)" strokeWidth="12" strokeLinecap="round" transform="rotate(-90 96 96)" strokeDasharray={`${(prq?.overall_score||75)*5.02} 502`} /></svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center"><span className="metric-value">{prq?.overall_score?.toFixed(0)||'75'}</span><span className="metric-label">PRQ</span></div>
+          <div className="flex flex-col items-center gap-4">
+            <PRQRadarChart prq={prq || FALLBACK_PRQ} size={200} />
+            <div className="w-full grid grid-cols-4 gap-2">
+              {[{k:'strength',l:'STR',c:'#FF6B6B'},{k:'speed',l:'SPD',c:'#4ECDC4'},{k:'endurance',l:'END',c:'#45B7D1'},{k:'agility',l:'AGI',c:'#96CEB4'}].map(m => (
+                <div key={m.k} className="text-center">
+                  <div className="text-xs font-mono" style={{color:m.c}}>{(prq?.[m.k] || FALLBACK_PRQ[m.k]).toFixed(0)}</div>
+                  <div className="text-[9px] text-zinc-600">{m.l}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -356,9 +572,38 @@ const DashboardView = ({ setActiveTab }) => {
           ))}
         </div>
       </div>
+
+      {/* Today's Lesson */}
+      {todaysLesson && (
+        <div className="surface-card p-4 flex items-center justify-between gap-4 border-l-2 border-cyan-400">
+          <div className="flex items-center gap-3">
+            <GraduationCap className="w-6 h-6 text-cyan-400 flex-shrink-0" />
+            <div>
+              <div className="text-xs text-zinc-400 uppercase tracking-wide">TODAY'S LESSON</div>
+              <div className="font-bold text-sm">{todaysLesson.lesson}</div>
+              <div className="text-xs text-zinc-500">{todaysLesson.track}</div>
+            </div>
+          </div>
+          <button onClick={() => setActiveTab('education')} className="btn-secondary text-xs px-4 py-2 flex-shrink-0">
+            Start <ChevronRight className="w-3 h-3 inline" />
+          </button>
+        </div>
+      )}
+
       <div>
         <h2 className="text-2xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>QUICK START</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {lastPlayedMode && (
+            <button data-testid="quick-last-mode" onClick={() => setActiveTab('games')} className="surface-active p-5 text-left card-hover flex items-center gap-4 border border-cyan-400/30">
+              <div className="w-12 h-12 bg-cyan-400/15 flex items-center justify-center flex-shrink-0"><Play className="w-6 h-6 text-cyan-400" /></div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs text-cyan-400 uppercase tracking-wide mb-0.5">Continue</div>
+                <div className="font-bold truncate">{lastPlayedMode.name || "Last Game"}</div>
+                <div className="text-xs text-zinc-500">{lastPlayedMode.category || "Arena"}</div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-zinc-600 flex-shrink-0" />
+            </button>
+          )}
           {[{t:'Play Game',d:'19 modes',icon:Gamepad2,a:'games'},{t:'AI Coach',d:'Get training plan',icon:MessageCircle,a:'ai-coach'},{t:'Brain Brawl',d:'Test your IQ',icon:Brain,a:'brain-brawl'},{t:'Streak',d:'Check in today',icon:Flame,a:'streaks'}].map((i,idx)=>(
             <button key={idx} data-testid={`quick-${i.a}`} onClick={()=>setActiveTab(i.a)} className="surface-card p-5 text-left card-hover flex items-center gap-4">
               <div className="w-12 h-12 bg-cyan-400/10 flex items-center justify-center flex-shrink-0"><i.icon className="w-6 h-6 text-cyan-400" /></div>
@@ -368,6 +613,8 @@ const DashboardView = ({ setActiveTab }) => {
           ))}
         </div>
       </div>
+
+      <RewardToast reward={toastReward} onDone={() => setToastReward(null)} />
     </div>
   );
 };
@@ -432,13 +679,16 @@ const SystemScanView = () => {
       <div><p className="overline mb-1">PERFORMANCE ANALYSIS</p><h1 className="text-4xl font-black" style={{fontFamily:'Barlow Condensed'}}>SYSTEM SCAN</h1></div>
       <div className="surface-card p-6" data-testid="prq-breakdown">
         <h2 className="text-xl font-bold mb-6" style={{fontFamily:'Barlow Condensed'}}>PRQ BREAKDOWN</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {metrics.map(m => (
-            <div key={m.k} className="surface-card p-4">
-              <div className="flex items-center justify-between mb-2"><span className="metric-label">{m.l}</span><span className="font-mono text-lg">{prq?.[m.k]?.toFixed(0)||'--'}</span></div>
-              <div className="progress-bar"><div className="progress-fill" style={{width:`${prq?.[m.k]||0}%`,background:m.c}}></div></div>
-            </div>
-          ))}
+        <div className="flex flex-col md:flex-row items-center gap-6">
+          <PRQRadarChart prq={prq || FALLBACK_PRQ} size={220} />
+          <div className="flex-1 grid grid-cols-2 gap-3 w-full">
+            {metrics.map(m => (
+              <div key={m.k} className="surface-card p-4">
+                <div className="flex items-center justify-between mb-2"><span className="metric-label">{m.l}</span><span className="font-mono text-lg">{prq?.[m.k]?.toFixed(0)||'--'}</span></div>
+                <div className="progress-bar"><div className="progress-fill" style={{width:`${prq?.[m.k]||0}%`,background:m.c}}></div></div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
       <div className="surface-card p-6" data-testid="health-signals">
@@ -471,7 +721,8 @@ const SystemScanView = () => {
 const PlayableGame = ({ mode, onComplete, onBack }) => {
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(30);
-  const [gameActive, setGameActive] = useState(true);
+  const [gameActive, setGameActive] = useState(false);
+  const [countdown, setCountdown] = useState(3); // 3-2-1-GO
   const [targets, setTargets] = useState([]);
   const [combo, setCombo] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
@@ -479,6 +730,9 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
   const [bgLoaded, setBgLoaded] = useState(false);
   const [consoleLogs, setConsoleLogs] = useState([]);
   const [reward, setReward] = useState(null);
+  // Breath phase cycles: inhale (2s) → hold (1s) → exhale (2s)
+  const [breathPhase, setBreathPhase] = useState("inhale"); // "inhale" | "hold" | "exhale"
+  const [breathProgress, setBreathProgress] = useState(0);
   const timerRef = useRef(null);
   const audioCtxRef = useRef(null);
   const logContainerRef = useRef(null);
@@ -491,20 +745,51 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
     img.src = mode.image_url;
     img.onload = () => setBgLoaded(true);
     
-    // Seed initial console logs simulating Unreal Engine client loading
     setConsoleLogs([
-      { id: 1, ts: new Date().toLocaleTimeString(), msg: `[Engine] Initializing Unreal Engine 5.7.0-shipping...` },
-      { id: 2, ts: new Date().toLocaleTimeString(), msg: `[LocalHub] Re-authenticating local hardware token...` },
-      { id: 3, ts: new Date().toLocaleTimeString(), msg: `[LocalHub] Connecting to vault hub wss://localhost:8888...` },
-      { id: 4, ts: new Date().toLocaleTimeString(), msg: `[LocalHub] Protocol: AES-256-GCM secure tunnels enabled.` },
-      { id: 5, ts: new Date().toLocaleTimeString(), msg: `[Engine] Loading Map: /Game/FEL/Venues/${mode.venue}/${mode.venue}` },
+      { id: 1, ts: new Date().toLocaleTimeString(), msg: `[NEXUS] Initializing arena session for ${mode.id}...` },
+      { id: 2, ts: new Date().toLocaleTimeString(), msg: `[Engine] Venue loaded: ${mode.venue}` },
+      { id: 3, ts: new Date().toLocaleTimeString(), msg: `[Engine] Breath phase tracking: ACTIVE` },
+      { id: 4, ts: new Date().toLocaleTimeString(), msg: `[Engine] Combo multiplier: READY` },
     ]);
 
-    return () => {
-      img.onload = null;
-      img.src = '';
-    };
+    return () => { img.onload = null; img.src = ''; };
   }, [mode]);
+
+  // Countdown 3-2-1-GO before game starts
+  useEffect(() => {
+    if (gameActive) return;
+    if (countdown <= 0) { setGameActive(true); return; }
+    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown, gameActive]);
+
+  // Breath phase cycle (inhale 2s → hold 1s → exhale 2s → repeat)
+  useEffect(() => {
+    if (!gameActive) return;
+    const PHASES = [
+      { phase: "inhale", duration: 2000 },
+      { phase: "hold",   duration: 1000 },
+      { phase: "exhale", duration: 2000 },
+    ];
+    let phaseIdx = 0;
+    let startTime = Date.now();
+    let raf;
+    const tick = () => {
+      const now = Date.now();
+      const elapsed = now - startTime;
+      const current = PHASES[phaseIdx];
+      const progress = Math.min(1, elapsed / current.duration);
+      setBreathPhase(current.phase);
+      setBreathProgress(progress);
+      if (elapsed >= current.duration) {
+        phaseIdx = (phaseIdx + 1) % PHASES.length;
+        startTime = now;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [gameActive]);
 
   // Audio Context cleanup
   useEffect(() => {
@@ -668,6 +953,7 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
     } catch (_e) {
       addLog(`[Error] Reward commit failed; showing local estimate.`);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode.id, score, maxCombo, onComplete]);
 
   useEffect(() => {
@@ -731,7 +1017,7 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
       <div className="max-w-2xl mx-auto text-center space-y-6 fade-in p-8 surface-card border border-white/10 rounded-2xl shadow-2xl relative overflow-hidden" data-testid="game-results">
         <div className="absolute inset-0 bg-radial-gradient from-cyan-900/10 to-transparent pointer-events-none"></div>
         <Award className="w-20 h-20 text-cyan-400 mx-auto animate-pulse" />
-        <h2 className="text-4xl font-black tracking-wider text-white" style={{fontFamily:'Barlow Condensed'}}>UNREAL MODULE COMPLETE</h2>
+        <h2 className="text-4xl font-black tracking-wider text-white" style={{fontFamily:'Barlow Condensed'}}>ARENA SESSION COMPLETE</h2>
         <div className="metric-value text-6xl text-cyan-400 drop-shadow-[0_0_15px_rgba(0,229,255,0.4)]">{score}</div>
         <div className="metric-label text-zinc-400 tracking-wider">REPLICATED LEDGER SCORE</div>
 
@@ -760,7 +1046,7 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
           <div className="bg-black/40 p-4 border border-white/5 rounded-xl"><div className="text-md font-bold text-white truncate">{mode.name}</div><div className="metric-label text-xs">MODE</div></div>
         </div>
         <div className="flex gap-4 max-w-lg mx-auto pt-4">
-          <button data-testid="play-again-btn" onClick={() => {submittedRef.current=false;setReward(null);setScore(0);setTimeLeft(30);setCombo(0);setMaxCombo(0);setGameActive(true);}} className="btn-primary flex-1 shadow-lg shadow-cyan-500/20">Re-Initialize</button>
+          <button data-testid="play-again-btn" onClick={() => {submittedRef.current=false;setReward(null);setScore(0);setTimeLeft(30);setCombo(0);setMaxCombo(0);setCountdown(3);setGameActive(false);}} className="btn-primary flex-1 shadow-lg shadow-cyan-500/20">Play Again</button>
           <button data-testid="back-to-modes" onClick={onBack} className="btn-secondary flex-1">Back to Lobbies</button>
         </div>
       </div>
@@ -790,15 +1076,33 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
       <div className="flex items-center justify-between">
         <button onClick={onBack} className="btn-secondary text-sm px-4 py-2 border border-white/10 hover:border-white/30 rounded-lg">Exit</button>
         <div className="text-center">
-          <span className="badge-clinical text-[10px] uppercase font-mono tracking-widest px-2 py-0.5" style={{background:'rgba(6, 182, 212, 0.1)', borderColor:'rgba(6, 182, 212, 0.3)', color:'#22d3ee'}}>UE5 SIMULATOR OVERLAY</span>
+          <span className="badge-clinical text-[10px] uppercase font-mono tracking-widest px-2 py-0.5" style={{background:'rgba(6, 182, 212, 0.1)', borderColor:'rgba(6, 182, 212, 0.3)', color:'#22d3ee'}}>NEXUS SIMULATOR</span>
           <h2 className="text-2xl font-black text-white tracking-wide uppercase" style={{fontFamily:'Barlow Condensed'}}>{mode.display_name} · {getGameTitle()}</h2>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          {/* Breath Phase Indicator */}
+          {gameActive && (
+            <div className="text-center px-3 py-1 bg-black/40 border border-white/5 rounded-lg hidden md:block">
+              <div className={`text-xs font-mono font-bold uppercase tracking-wider ${breathPhase==='inhale'?'text-blue-400':breathPhase==='hold'?'text-purple-400':'text-green-400'}`}>
+                {breathPhase==='inhale'?'↑ Inhale':breathPhase==='hold'?'● Hold':'↓ Exhale'}
+              </div>
+              <div className="w-16 h-1 mt-1 bg-zinc-700 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full transition-all duration-75 ${breathPhase==='inhale'?'bg-blue-400':breathPhase==='hold'?'bg-purple-400':'bg-green-400'}`} style={{width:`${breathProgress*100}%`}}></div>
+              </div>
+            </div>
+          )}
+          {/* Combo Display */}
+          {combo > 1 && (
+            <div className="text-center px-3 py-1 bg-yellow-400/10 border border-yellow-400/30 rounded-lg">
+              <div className="text-lg font-black text-yellow-400" style={{fontFamily:'Barlow Condensed'}}>×{combo}</div>
+              <div className="text-[9px] text-yellow-600 uppercase tracking-wide">COMBO</div>
+            </div>
+          )}
           <div className="text-center px-4 py-1 bg-black/40 border border-white/5 rounded-lg">
             <div className={`metric-value text-2xl font-mono ${timeLeft <= 10 ? 'text-red-400 animate-pulse' : 'text-cyan-400 text-glow-cyan'}`}>
               {timeLeft}s
             </div>
-            <div className="metric-label text-[10px] text-zinc-500">UE RUNTIME</div>
+            <div className="metric-label text-[10px] text-zinc-500">TIME</div>
           </div>
         </div>
       </div>
@@ -916,6 +1220,16 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
               {f.text}
             </div>
           ))}
+
+          {/* Countdown overlay before game starts */}
+          {countdown > 0 && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/75 z-30">
+              <div className="text-[100px] font-black text-cyan-400 leading-none animate-pulse" style={{fontFamily:'Barlow Condensed',textShadow:'0 0 40px rgba(0,229,255,0.6)'}}>
+                {countdown}
+              </div>
+              <div className="text-sm text-zinc-400 font-mono uppercase tracking-widest mt-2">Get ready…</div>
+            </div>
+          )}
 
           {/* Visual HUD overlays */}
           <div className="absolute top-4 left-4 bg-black/60 border border-white/10 px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs font-mono pointer-events-none select-none">
@@ -1041,6 +1355,20 @@ const GameModesView = () => {
       duration_seconds: 30, completed: true,
       combo_count: combo, critical_count: critical, pacing_score: pacing,
     };
+
+    // Save per-mode history and last-played mode to localStorage
+    try {
+      const histKey = `fel_mode_history_${playingMode.id}`;
+      const prev = JSON.parse(localStorage.getItem(histKey) || "{}");
+      const newHist = {
+        bestScore: Math.max(prev.bestScore || 0, safeScore),
+        lastPlayed: new Date().toISOString(),
+        playCount: (prev.playCount || 0) + 1,
+      };
+      localStorage.setItem(histKey, JSON.stringify(newHist));
+      localStorage.setItem("fel_last_mode", JSON.stringify({ id: playingMode.id, name: playingMode.display_name, category: playingMode.category }));
+    } catch (_) {}
+
     try {
       const r = await axios.post(`${API}/games/session`, payload);
       if (sessionState?.session_id) {
@@ -1107,21 +1435,40 @@ const GameModesView = () => {
         ))}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="game-modes-grid">
-        {filtered.map(mode => (
-          <div key={mode.id} className="game-mode-card surface-card card-hover cursor-pointer" data-testid={`game-${mode.id}`} onClick={() => mode.playable && setPlayingMode(mode)}>
-            <img src={mode.image_url} alt={mode.name} loading="lazy" />
-            <div className="game-mode-overlay">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="badge-clinical">{mode.category}</span>
-                {mode.playable && <span className="badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}>PLAYABLE</span>}
+        {filtered.map(mode => {
+          // Read per-mode history from localStorage
+          let modeHist = null;
+          try { modeHist = JSON.parse(localStorage.getItem(`fel_mode_history_${mode.id}`) || "null"); } catch (_) {}
+          const timeAgo = (iso) => {
+            const diff = Date.now() - new Date(iso).getTime();
+            const m = Math.floor(diff/60000), h = Math.floor(diff/3600000), d = Math.floor(diff/86400000);
+            if (d > 0) return `${d}d ago`; if (h > 0) return `${h}h ago`; if (m > 0) return `${m}m ago`; return "just now";
+          };
+          return (
+            <div key={mode.id} className="game-mode-card surface-card card-hover cursor-pointer" data-testid={`game-${mode.id}`} onClick={() => mode.playable && setPlayingMode(mode)}>
+              <img src={mode.image_url} alt={mode.name} loading="lazy" />
+              <div className="game-mode-overlay">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="badge-clinical">{mode.category}</span>
+                  {mode.playable && <span className="badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}>PLAYABLE</span>}
+                </div>
+                <h3 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>{mode.display_name}</h3>
+                <p className="text-sm text-zinc-400 mb-2">{mode.description}</p>
+                <div className="flex items-center gap-4 text-xs text-zinc-500"><span>{mode.player_count}</span><span>{mode.duration}</span><span>{mode.difficulty}</span></div>
+                {modeHist && (
+                  <div className="mt-2 flex items-center gap-3 text-[10px] text-zinc-500 font-mono">
+                    <span className="text-yellow-400">Best: {modeHist.bestScore}</span>
+                    <span>·</span>
+                    <span>Last: {timeAgo(modeHist.lastPlayed)}</span>
+                    <span>·</span>
+                    <span>{modeHist.playCount}× played</span>
+                  </div>
+                )}
+                {mode.playable && <button data-testid={`play-${mode.id}`} className="btn-primary mt-3 text-sm py-2 w-full" onClick={(e) => {e.stopPropagation();launchNativeMode(mode);}}>{launchingMode === mode.id ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>Launching...</span> : <span><Play className="w-4 h-4 inline mr-1" />Launch Game</span>}</button>}
               </div>
-              <h3 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>{mode.display_name}</h3>
-              <p className="text-sm text-zinc-400 mb-2">{mode.description}</p>
-              <div className="flex items-center gap-4 text-xs text-zinc-500"><span>{mode.player_count}</span><span>{mode.duration}</span><span>{mode.difficulty}</span></div>
-              {mode.playable && <button data-testid={`play-${mode.id}`} className="btn-primary mt-3 text-sm py-2 w-full" onClick={(e) => {e.stopPropagation();launchNativeMode(mode);}}>{launchingMode === mode.id ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>Launching UE5...</span> : <span><Play className="w-4 h-4 inline mr-1" />Launch Game</span>}</button>}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -1396,6 +1743,7 @@ const BrainBrawlView = ({ onBack }) => {
       answerQuestion(-1); // Time's up
     }
     return () => clearTimeout(timerRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState, timeLeft]);
 
   const startGame = async () => {

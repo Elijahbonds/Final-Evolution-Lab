@@ -125,6 +125,14 @@ export const SocialView = () => {
   const [feed, setFeed] = useState([]);
   const [tab, setTab] = useState('discover');
   const [search, setSearch] = useState('');
+  const [respondingId, setRespondingId] = useState(null);
+
+  const timeAgo = (iso) => {
+    if (!iso) return '';
+    const diff = Date.now() - new Date(iso).getTime();
+    const s = Math.floor(diff/1000), m = Math.floor(diff/60000), h = Math.floor(diff/3600000), d = Math.floor(diff/86400000);
+    if (d > 0) return `${d}d ago`; if (h > 0) return `${h}h ago`; if (m > 0) return `${m}m ago`; if (s > 5) return `${s}s ago`; return "just now";
+  };
 
   useEffect(() => {
     Promise.all([
@@ -147,6 +155,16 @@ export const SocialView = () => {
       const r = await axios.post(`${API}/social/challenge`, { target_id: userId, game_mode: mode || 'basketball_h2h' });
       setChallenges(prev => [r.data, ...prev]);
     } catch {}
+  };
+
+  const handleChallengeRespond = async (challengeId, accept) => {
+    setRespondingId(challengeId);
+    try {
+      await axios.post(`${API}/social/challenge/${challengeId}/respond`, { accept });
+      setChallenges(prev => prev.map(c => c.id === challengeId ? { ...c, status: accept ? 'accepted' : 'declined' } : c));
+    } catch {
+      setChallenges(prev => prev.map(c => c.id === challengeId ? { ...c, status: accept ? 'accepted' : 'declined' } : c));
+    } finally { setRespondingId(null); }
   };
 
   return (
@@ -192,9 +210,29 @@ export const SocialView = () => {
           {challenges.length === 0 ? (
             <div className="surface-card p-8 text-center"><Swords className="w-12 h-12 text-zinc-600 mx-auto mb-4" /><p className="text-zinc-400">No active challenges</p></div>
           ) : challenges.map((c, i) => (
-            <div key={i} className="surface-card p-4 flex items-center justify-between">
-              <div><h4 className="font-medium">vs {c.challenged_id || 'Opponent'}</h4><p className="text-sm text-zinc-400">{c.game_mode?.replace('_', ' ')}</p></div>
-              <span className="badge-clinical">{c.status}</span>
+            <div key={i} className="surface-card p-4 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex-1 min-w-0">
+                <h4 className="font-medium">vs {c.challenged_id || 'Opponent'}</h4>
+                <p className="text-sm text-zinc-400">{c.game_mode?.replace('_', ' ')} · {timeAgo(c.created_at)}</p>
+              </div>
+              {c.status === 'pending' ? (
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    data-testid={`accept-challenge-${c.id}`}
+                    disabled={respondingId === c.id}
+                    onClick={() => handleChallengeRespond(c.id, true)}
+                    className="px-3 py-1.5 bg-emerald-400/15 border border-emerald-400/30 text-emerald-400 text-xs font-bold hover:bg-emerald-400/25 transition-colors"
+                  >Accept</button>
+                  <button
+                    data-testid={`decline-challenge-${c.id}`}
+                    disabled={respondingId === c.id}
+                    onClick={() => handleChallengeRespond(c.id, false)}
+                    className="px-3 py-1.5 bg-red-400/10 border border-red-400/25 text-red-400 text-xs font-bold hover:bg-red-400/20 transition-colors"
+                  >Decline</button>
+                </div>
+              ) : (
+                <span className={`badge-clinical shrink-0 ${c.status === 'accepted' ? 'text-emerald-400' : c.status === 'declined' ? 'text-red-400' : ''}`}>{c.status}</span>
+              )}
             </div>
           ))}
         </div>
@@ -206,11 +244,11 @@ export const SocialView = () => {
             <div className="surface-card p-8 text-center"><p className="text-zinc-400">No recent activity. Follow athletes to see their updates!</p></div>
           ) : feed.map((f, i) => (
             <div key={i} className="surface-card p-4 flex items-center gap-4">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${f.type === 'workout' ? 'bg-green-400/10' : f.type === 'game' ? 'bg-blue-400/10' : 'bg-cyan-400/10'}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${f.type === 'workout' ? 'bg-green-400/10' : f.type === 'game' ? 'bg-blue-400/10' : 'bg-cyan-400/10'}`}>
                 {f.type === 'workout' ? <Zap className="w-5 h-5 text-green-400" /> : f.type === 'game' ? <Gamepad2 className="w-5 h-5 text-blue-400" /> : <Users className="w-5 h-5 text-cyan-400" />}
               </div>
-              <div className="flex-1"><span className="font-medium">{f.user_id}</span> <span className="text-zinc-400">{f.type === 'workout' ? `completed ${f.detail}` : f.type === 'game' ? `played ${f.detail} (${f.score} pts)` : `followed someone`}</span></div>
-              <span className="text-xs text-zinc-600">{new Date(f.created_at).toLocaleDateString()}</span>
+              <div className="flex-1 min-w-0"><span className="font-medium">{f.user_id}</span> <span className="text-zinc-400">{f.type === 'workout' ? `completed ${f.detail}` : f.type === 'game' ? `played ${f.detail} (${f.score} pts)` : `followed someone`}</span></div>
+              <span className="text-xs text-zinc-500 shrink-0 whitespace-nowrap">{timeAgo(f.created_at)}</span>
             </div>
           ))}
         </div>
