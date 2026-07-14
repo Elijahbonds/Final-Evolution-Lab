@@ -1,5 +1,58 @@
 # NEXUS — Handoff for Abacus (platform track)
 
+---
+
+## 🏀 WEB GAME TRACK — Dunk slice (updated 2026-07-14, commit 698d2eb)
+
+**The playable dunk slice is now real.** Route `/play/dunk` mounts the Babylon.js
+DunkingScene + premium HUD + virtual gamepad. Production build green, browser
+smoke-tested. This is the v1 hero loop — protect it.
+
+### What was just fixed (don't regress these)
+1. **Duplicate-class corruption**: `DunkingMode.js`, `DunkingHUD.js`, `KarateMode.js`
+   each contained TWO complete implementations (a "premium" pass was appended instead
+   of replacing the baseline → duplicate `export default` = unparseable). Deduped to
+   the premium versions with baseline compat hooks grafted back
+   (`payload.position`, `payload.nearHoop`/`distanceToHoop`, `strikeType`/`damage`).
+   **Rule: a rework REPLACES code, never appends beside it. Gate: no duplicate
+   top-level exports (eslint-plugin-import catches this; `esbuild --bundle
+   src/game/index.js` catches it too).**
+2. **Orphaned game tree** (web twin of the recurring C++ orphan-source bug below):
+   `frontend/src/game/` was imported by nothing, so Vercel builds passed while the
+   game was unreachable and unparseable. Now mounted via `/play/dunk`
+   (`components/PlayDunkPage.js`). **Rule: every new module must be reachable from
+   an entry point; "builds green" proves nothing for unreachable code.**
+3. **Babylon never loaded**: scenes imported `@babylonjs/core` via
+   `new Function('return import(...)')` — invisible to webpack, silently fell back
+   to a null engine. Now a real `import('@babylonjs/core')` in all 8 scenes.
+4. **Dunks could never miss**: `_executeDunk` near-hoop check had
+   `|| timeRemaining > 0` (always true mid-match). Real proximity gating restored
+   (hoop at z=-13.23, threshold 2.5).
+5. **Registry honesty**: `LIVE_MODE_IDS` = `basketball_dunk`, `karate` only. The 6
+   other sport modes exist but are gated stubs until the dunk loop is proven fun.
+   Re-add ids only as modes graduate.
+
+### Current gaps (next work, in order)
+- Player spawns at center court; scoring a dunk requires stick-walking to the hoop.
+  Movement feel / spawn position / approach mechanics are the core "is it fun" work.
+  **Timing-feel constants and fun-tuning are reserved for Elijah** — build the
+  scaffolding, don't tune the numbers.
+- No tests on `frontend/src/game/`. Minimum bar: headless smoke (instantiate
+  DunkingMode with a stub scene, drive jump→move→dunk, assert score>0 near hoop and
+  miss far away) + the esbuild bundle-check in CI.
+- Karate mode is deduped and gated live but has no mounted route yet (`/play/karate`
+  is the natural next slice once dunk is proven).
+- HUD occupies a large corner on mobile; responsive pass pending.
+
+### Scope guard (this branch drifted badly before repair)
+Work that does NOT advance the playable dunk slice — new sport modes, C++
+simulators, CELL/agent subsystems, marketplace lanes — goes to its own branch, not
+here. The scope test for any commit on the game track: "does this make the dunk
+loop more playable, more testable, or more fun?"
+
+---
+
+
 **Branch to work on:** `nexus/platform-core` (repo `Elijahbonds/Final-Evolution-Lab`).
 Built on Copilot PR #166's lineage, **with the build repaired** — treat this branch
 (not Copilot's) as canonical. Same arrangement as the web app: bulk development lands
