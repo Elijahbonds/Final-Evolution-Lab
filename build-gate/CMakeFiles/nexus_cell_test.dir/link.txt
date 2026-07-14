@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/nexus_cell_test.dir/link.d CMakeFiles/nexus_cell_test.dir/tests/unit/cell/cell_test.cpp.o -o nexus_cell_test  libnexus_runtime_lib.a libnexus_cell.a libnexus_core.a

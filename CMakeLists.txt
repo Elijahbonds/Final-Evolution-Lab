@@ -189,6 +189,25 @@ target_link_libraries(nexus_gameplay PUBLIC
   nlohmann_json::nlohmann_json
 )
 
+add_library(nexus_cell
+  engine/cell/src/wisdom_store.cpp
+  engine/cell/src/experience_ledger.cpp
+  engine/cell/src/budget_meter.cpp
+  engine/cell/src/mastery_tracker.cpp
+  engine/cell/src/batch_learner.cpp
+  engine/cell/src/research_loop.cpp
+  engine/cell/src/self_improvement_scheduler.cpp
+)
+target_include_directories(nexus_cell PUBLIC engine/cell/include)
+target_link_libraries(nexus_cell PUBLIC nexus_core nlohmann_json::nlohmann_json)
+
+add_library(nexus_runtime_lib
+  runtime/nexus/src/lesson_queue.cpp
+  runtime/nexus/src/provider_router.cpp
+)
+target_include_directories(nexus_runtime_lib PUBLIC runtime/nexus/include)
+target_link_libraries(nexus_runtime_lib PUBLIC nexus_cell nlohmann_json::nlohmann_json)
+
 if(NEXUS_BUILD_ANY_RENDERER)
   set(NEXUS_RENDERER_SOURCES
     engine/assets/src/mesh_importer.cpp
@@ -256,6 +275,16 @@ if(NEXUS_BUILD_AGENT_CLI)
 
   add_executable(nexus_agent_cli tools/nexus_agent_cli/main.cpp)
   target_link_libraries(nexus_agent_cli PRIVATE nexus_agent_cli_lib)
+
+  # CELL offline tools (cell-distill, nexus-author, nexus-evals).
+  add_executable(cell_distill tools/cell-distill/main.cpp)
+  target_link_libraries(cell_distill PRIVATE nexus_cell nlohmann_json::nlohmann_json)
+
+  add_executable(nexus_author tools/nexus-author/main.cpp)
+  target_link_libraries(nexus_author PRIVATE nexus_cell nlohmann_json::nlohmann_json)
+
+  add_executable(nexus_evals tools/nexus-evals/main.cpp)
+  target_link_libraries(nexus_evals PRIVATE nexus_runtime_lib nlohmann_json::nlohmann_json)
 endif()
 
 if(NEXUS_BUILD_TESTS)
@@ -269,6 +298,11 @@ if(NEXUS_BUILD_TESTS)
     target_link_libraries(nexus_agent_cli_test PRIVATE nexus_agent_cli_lib)
     add_test(NAME nexus_agent_cli_test COMMAND nexus_agent_cli_test)
   endif()
+
+  add_executable(nexus_cell_test tests/unit/cell/cell_test.cpp)
+  target_link_libraries(nexus_cell_test PRIVATE nexus_runtime_lib)
+  add_test(NAME nexus_cell_test COMMAND nexus_cell_test)
+  set_tests_properties(nexus_cell_test PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
   add_executable(nexus_gameplay_test tests/unit/gameplay/gameplay_test.cpp)
   target_link_libraries(nexus_gameplay_test PRIVATE nexus_gameplay)

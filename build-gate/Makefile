@@ -244,6 +244,32 @@ nexus_gameplay/fast:
 .PHONY : nexus_gameplay/fast
 
 #=============================================================================
+# Target rules for targets named nexus_cell
+
+# Build rule for target.
+nexus_cell: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 nexus_cell
+.PHONY : nexus_cell
+
+# fast build rule for target.
+nexus_cell/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/build
+.PHONY : nexus_cell/fast
+
+#=============================================================================
+# Target rules for targets named nexus_runtime_lib
+
+# Build rule for target.
+nexus_runtime_lib: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 nexus_runtime_lib
+.PHONY : nexus_runtime_lib
+
+# fast build rule for target.
+nexus_runtime_lib/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_runtime_lib.dir/build.make CMakeFiles/nexus_runtime_lib.dir/build
+.PHONY : nexus_runtime_lib/fast
+
+#=============================================================================
 # Target rules for targets named nexus_agent_cli_lib
 
 # Build rule for target.
@@ -270,6 +296,45 @@ nexus_agent_cli/fast:
 .PHONY : nexus_agent_cli/fast
 
 #=============================================================================
+# Target rules for targets named cell_distill
+
+# Build rule for target.
+cell_distill: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 cell_distill
+.PHONY : cell_distill
+
+# fast build rule for target.
+cell_distill/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cell_distill.dir/build.make CMakeFiles/cell_distill.dir/build
+.PHONY : cell_distill/fast
+
+#=============================================================================
+# Target rules for targets named nexus_author
+
+# Build rule for target.
+nexus_author: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 nexus_author
+.PHONY : nexus_author
+
+# fast build rule for target.
+nexus_author/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_author.dir/build.make CMakeFiles/nexus_author.dir/build
+.PHONY : nexus_author/fast
+
+#=============================================================================
+# Target rules for targets named nexus_evals
+
+# Build rule for target.
+nexus_evals: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 nexus_evals
+.PHONY : nexus_evals
+
+# fast build rule for target.
+nexus_evals/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_evals.dir/build.make CMakeFiles/nexus_evals.dir/build
+.PHONY : nexus_evals/fast
+
+#=============================================================================
 # Target rules for targets named nexus_protocol_test
 
 # Build rule for target.
@@ -294,6 +359,19 @@ nexus_agent_cli_test: cmake_check_build_system
 nexus_agent_cli_test/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_agent_cli_test.dir/build.make CMakeFiles/nexus_agent_cli_test.dir/build
 .PHONY : nexus_agent_cli_test/fast
+
+#=============================================================================
+# Target rules for targets named nexus_cell_test
+
+# Build rule for target.
+nexus_cell_test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 nexus_cell_test
+.PHONY : nexus_cell_test
+
+# fast build rule for target.
+nexus_cell_test/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell_test.dir/build.make CMakeFiles/nexus_cell_test.dir/build
+.PHONY : nexus_cell_test/fast
 
 #=============================================================================
 # Target rules for targets named nexus_gameplay_test
@@ -1638,6 +1716,174 @@ engine/assets/src/asset_manifest.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_assets.dir/build.make CMakeFiles/nexus_assets.dir/engine/assets/src/asset_manifest.cpp.s
 .PHONY : engine/assets/src/asset_manifest.cpp.s
 
+engine/cell/src/batch_learner.o: engine/cell/src/batch_learner.cpp.o
+.PHONY : engine/cell/src/batch_learner.o
+
+# target to build an object file
+engine/cell/src/batch_learner.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/batch_learner.cpp.o
+.PHONY : engine/cell/src/batch_learner.cpp.o
+
+engine/cell/src/batch_learner.i: engine/cell/src/batch_learner.cpp.i
+.PHONY : engine/cell/src/batch_learner.i
+
+# target to preprocess a source file
+engine/cell/src/batch_learner.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/batch_learner.cpp.i
+.PHONY : engine/cell/src/batch_learner.cpp.i
+
+engine/cell/src/batch_learner.s: engine/cell/src/batch_learner.cpp.s
+.PHONY : engine/cell/src/batch_learner.s
+
+# target to generate assembly for a file
+engine/cell/src/batch_learner.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/batch_learner.cpp.s
+.PHONY : engine/cell/src/batch_learner.cpp.s
+
+engine/cell/src/budget_meter.o: engine/cell/src/budget_meter.cpp.o
+.PHONY : engine/cell/src/budget_meter.o
+
+# target to build an object file
+engine/cell/src/budget_meter.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/budget_meter.cpp.o
+.PHONY : engine/cell/src/budget_meter.cpp.o
+
+engine/cell/src/budget_meter.i: engine/cell/src/budget_meter.cpp.i
+.PHONY : engine/cell/src/budget_meter.i
+
+# target to preprocess a source file
+engine/cell/src/budget_meter.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/budget_meter.cpp.i
+.PHONY : engine/cell/src/budget_meter.cpp.i
+
+engine/cell/src/budget_meter.s: engine/cell/src/budget_meter.cpp.s
+.PHONY : engine/cell/src/budget_meter.s
+
+# target to generate assembly for a file
+engine/cell/src/budget_meter.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/budget_meter.cpp.s
+.PHONY : engine/cell/src/budget_meter.cpp.s
+
+engine/cell/src/experience_ledger.o: engine/cell/src/experience_ledger.cpp.o
+.PHONY : engine/cell/src/experience_ledger.o
+
+# target to build an object file
+engine/cell/src/experience_ledger.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/experience_ledger.cpp.o
+.PHONY : engine/cell/src/experience_ledger.cpp.o
+
+engine/cell/src/experience_ledger.i: engine/cell/src/experience_ledger.cpp.i
+.PHONY : engine/cell/src/experience_ledger.i
+
+# target to preprocess a source file
+engine/cell/src/experience_ledger.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/experience_ledger.cpp.i
+.PHONY : engine/cell/src/experience_ledger.cpp.i
+
+engine/cell/src/experience_ledger.s: engine/cell/src/experience_ledger.cpp.s
+.PHONY : engine/cell/src/experience_ledger.s
+
+# target to generate assembly for a file
+engine/cell/src/experience_ledger.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/experience_ledger.cpp.s
+.PHONY : engine/cell/src/experience_ledger.cpp.s
+
+engine/cell/src/mastery_tracker.o: engine/cell/src/mastery_tracker.cpp.o
+.PHONY : engine/cell/src/mastery_tracker.o
+
+# target to build an object file
+engine/cell/src/mastery_tracker.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/mastery_tracker.cpp.o
+.PHONY : engine/cell/src/mastery_tracker.cpp.o
+
+engine/cell/src/mastery_tracker.i: engine/cell/src/mastery_tracker.cpp.i
+.PHONY : engine/cell/src/mastery_tracker.i
+
+# target to preprocess a source file
+engine/cell/src/mastery_tracker.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/mastery_tracker.cpp.i
+.PHONY : engine/cell/src/mastery_tracker.cpp.i
+
+engine/cell/src/mastery_tracker.s: engine/cell/src/mastery_tracker.cpp.s
+.PHONY : engine/cell/src/mastery_tracker.s
+
+# target to generate assembly for a file
+engine/cell/src/mastery_tracker.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/mastery_tracker.cpp.s
+.PHONY : engine/cell/src/mastery_tracker.cpp.s
+
+engine/cell/src/research_loop.o: engine/cell/src/research_loop.cpp.o
+.PHONY : engine/cell/src/research_loop.o
+
+# target to build an object file
+engine/cell/src/research_loop.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/research_loop.cpp.o
+.PHONY : engine/cell/src/research_loop.cpp.o
+
+engine/cell/src/research_loop.i: engine/cell/src/research_loop.cpp.i
+.PHONY : engine/cell/src/research_loop.i
+
+# target to preprocess a source file
+engine/cell/src/research_loop.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/research_loop.cpp.i
+.PHONY : engine/cell/src/research_loop.cpp.i
+
+engine/cell/src/research_loop.s: engine/cell/src/research_loop.cpp.s
+.PHONY : engine/cell/src/research_loop.s
+
+# target to generate assembly for a file
+engine/cell/src/research_loop.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/research_loop.cpp.s
+.PHONY : engine/cell/src/research_loop.cpp.s
+
+engine/cell/src/self_improvement_scheduler.o: engine/cell/src/self_improvement_scheduler.cpp.o
+.PHONY : engine/cell/src/self_improvement_scheduler.o
+
+# target to build an object file
+engine/cell/src/self_improvement_scheduler.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/self_improvement_scheduler.cpp.o
+.PHONY : engine/cell/src/self_improvement_scheduler.cpp.o
+
+engine/cell/src/self_improvement_scheduler.i: engine/cell/src/self_improvement_scheduler.cpp.i
+.PHONY : engine/cell/src/self_improvement_scheduler.i
+
+# target to preprocess a source file
+engine/cell/src/self_improvement_scheduler.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/self_improvement_scheduler.cpp.i
+.PHONY : engine/cell/src/self_improvement_scheduler.cpp.i
+
+engine/cell/src/self_improvement_scheduler.s: engine/cell/src/self_improvement_scheduler.cpp.s
+.PHONY : engine/cell/src/self_improvement_scheduler.s
+
+# target to generate assembly for a file
+engine/cell/src/self_improvement_scheduler.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/self_improvement_scheduler.cpp.s
+.PHONY : engine/cell/src/self_improvement_scheduler.cpp.s
+
+engine/cell/src/wisdom_store.o: engine/cell/src/wisdom_store.cpp.o
+.PHONY : engine/cell/src/wisdom_store.o
+
+# target to build an object file
+engine/cell/src/wisdom_store.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/wisdom_store.cpp.o
+.PHONY : engine/cell/src/wisdom_store.cpp.o
+
+engine/cell/src/wisdom_store.i: engine/cell/src/wisdom_store.cpp.i
+.PHONY : engine/cell/src/wisdom_store.i
+
+# target to preprocess a source file
+engine/cell/src/wisdom_store.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/wisdom_store.cpp.i
+.PHONY : engine/cell/src/wisdom_store.cpp.i
+
+engine/cell/src/wisdom_store.s: engine/cell/src/wisdom_store.cpp.s
+.PHONY : engine/cell/src/wisdom_store.s
+
+# target to generate assembly for a file
+engine/cell/src/wisdom_store.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell.dir/build.make CMakeFiles/nexus_cell.dir/engine/cell/src/wisdom_store.cpp.s
+.PHONY : engine/cell/src/wisdom_store.cpp.s
+
 engine/core/src/dev_stats.o: engine/core/src/dev_stats.cpp.o
 .PHONY : engine/core/src/dev_stats.o
 
@@ -2310,6 +2556,54 @@ engine/physics/src/physics_world.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_physics.dir/build.make CMakeFiles/nexus_physics.dir/engine/physics/src/physics_world.cpp.s
 .PHONY : engine/physics/src/physics_world.cpp.s
 
+runtime/nexus/src/lesson_queue.o: runtime/nexus/src/lesson_queue.cpp.o
+.PHONY : runtime/nexus/src/lesson_queue.o
+
+# target to build an object file
+runtime/nexus/src/lesson_queue.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_runtime_lib.dir/build.make CMakeFiles/nexus_runtime_lib.dir/runtime/nexus/src/lesson_queue.cpp.o
+.PHONY : runtime/nexus/src/lesson_queue.cpp.o
+
+runtime/nexus/src/lesson_queue.i: runtime/nexus/src/lesson_queue.cpp.i
+.PHONY : runtime/nexus/src/lesson_queue.i
+
+# target to preprocess a source file
+runtime/nexus/src/lesson_queue.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_runtime_lib.dir/build.make CMakeFiles/nexus_runtime_lib.dir/runtime/nexus/src/lesson_queue.cpp.i
+.PHONY : runtime/nexus/src/lesson_queue.cpp.i
+
+runtime/nexus/src/lesson_queue.s: runtime/nexus/src/lesson_queue.cpp.s
+.PHONY : runtime/nexus/src/lesson_queue.s
+
+# target to generate assembly for a file
+runtime/nexus/src/lesson_queue.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_runtime_lib.dir/build.make CMakeFiles/nexus_runtime_lib.dir/runtime/nexus/src/lesson_queue.cpp.s
+.PHONY : runtime/nexus/src/lesson_queue.cpp.s
+
+runtime/nexus/src/provider_router.o: runtime/nexus/src/provider_router.cpp.o
+.PHONY : runtime/nexus/src/provider_router.o
+
+# target to build an object file
+runtime/nexus/src/provider_router.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_runtime_lib.dir/build.make CMakeFiles/nexus_runtime_lib.dir/runtime/nexus/src/provider_router.cpp.o
+.PHONY : runtime/nexus/src/provider_router.cpp.o
+
+runtime/nexus/src/provider_router.i: runtime/nexus/src/provider_router.cpp.i
+.PHONY : runtime/nexus/src/provider_router.i
+
+# target to preprocess a source file
+runtime/nexus/src/provider_router.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_runtime_lib.dir/build.make CMakeFiles/nexus_runtime_lib.dir/runtime/nexus/src/provider_router.cpp.i
+.PHONY : runtime/nexus/src/provider_router.cpp.i
+
+runtime/nexus/src/provider_router.s: runtime/nexus/src/provider_router.cpp.s
+.PHONY : runtime/nexus/src/provider_router.s
+
+# target to generate assembly for a file
+runtime/nexus/src/provider_router.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_runtime_lib.dir/build.make CMakeFiles/nexus_runtime_lib.dir/runtime/nexus/src/provider_router.cpp.s
+.PHONY : runtime/nexus/src/provider_router.cpp.s
+
 tests/unit/ai_interface/agent_cli_test.o: tests/unit/ai_interface/agent_cli_test.cpp.o
 .PHONY : tests/unit/ai_interface/agent_cli_test.o
 
@@ -2357,6 +2651,30 @@ tests/unit/ai_interface/command_test.s: tests/unit/ai_interface/command_test.cpp
 tests/unit/ai_interface/command_test.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_protocol_test.dir/build.make CMakeFiles/nexus_protocol_test.dir/tests/unit/ai_interface/command_test.cpp.s
 .PHONY : tests/unit/ai_interface/command_test.cpp.s
+
+tests/unit/cell/cell_test.o: tests/unit/cell/cell_test.cpp.o
+.PHONY : tests/unit/cell/cell_test.o
+
+# target to build an object file
+tests/unit/cell/cell_test.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell_test.dir/build.make CMakeFiles/nexus_cell_test.dir/tests/unit/cell/cell_test.cpp.o
+.PHONY : tests/unit/cell/cell_test.cpp.o
+
+tests/unit/cell/cell_test.i: tests/unit/cell/cell_test.cpp.i
+.PHONY : tests/unit/cell/cell_test.i
+
+# target to preprocess a source file
+tests/unit/cell/cell_test.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell_test.dir/build.make CMakeFiles/nexus_cell_test.dir/tests/unit/cell/cell_test.cpp.i
+.PHONY : tests/unit/cell/cell_test.cpp.i
+
+tests/unit/cell/cell_test.s: tests/unit/cell/cell_test.cpp.s
+.PHONY : tests/unit/cell/cell_test.s
+
+# target to generate assembly for a file
+tests/unit/cell/cell_test.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell_test.dir/build.make CMakeFiles/nexus_cell_test.dir/tests/unit/cell/cell_test.cpp.s
+.PHONY : tests/unit/cell/cell_test.cpp.s
 
 tests/unit/core/cartridge_runtime_test.o: tests/unit/core/cartridge_runtime_test.cpp.o
 .PHONY : tests/unit/core/cartridge_runtime_test.o
@@ -2622,6 +2940,78 @@ tests/unit/physics/physics_test.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_physics_test.dir/build.make CMakeFiles/nexus_physics_test.dir/tests/unit/physics/physics_test.cpp.s
 .PHONY : tests/unit/physics/physics_test.cpp.s
 
+tools/cell-distill/main.o: tools/cell-distill/main.cpp.o
+.PHONY : tools/cell-distill/main.o
+
+# target to build an object file
+tools/cell-distill/main.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cell_distill.dir/build.make CMakeFiles/cell_distill.dir/tools/cell-distill/main.cpp.o
+.PHONY : tools/cell-distill/main.cpp.o
+
+tools/cell-distill/main.i: tools/cell-distill/main.cpp.i
+.PHONY : tools/cell-distill/main.i
+
+# target to preprocess a source file
+tools/cell-distill/main.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cell_distill.dir/build.make CMakeFiles/cell_distill.dir/tools/cell-distill/main.cpp.i
+.PHONY : tools/cell-distill/main.cpp.i
+
+tools/cell-distill/main.s: tools/cell-distill/main.cpp.s
+.PHONY : tools/cell-distill/main.s
+
+# target to generate assembly for a file
+tools/cell-distill/main.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cell_distill.dir/build.make CMakeFiles/cell_distill.dir/tools/cell-distill/main.cpp.s
+.PHONY : tools/cell-distill/main.cpp.s
+
+tools/nexus-author/main.o: tools/nexus-author/main.cpp.o
+.PHONY : tools/nexus-author/main.o
+
+# target to build an object file
+tools/nexus-author/main.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_author.dir/build.make CMakeFiles/nexus_author.dir/tools/nexus-author/main.cpp.o
+.PHONY : tools/nexus-author/main.cpp.o
+
+tools/nexus-author/main.i: tools/nexus-author/main.cpp.i
+.PHONY : tools/nexus-author/main.i
+
+# target to preprocess a source file
+tools/nexus-author/main.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_author.dir/build.make CMakeFiles/nexus_author.dir/tools/nexus-author/main.cpp.i
+.PHONY : tools/nexus-author/main.cpp.i
+
+tools/nexus-author/main.s: tools/nexus-author/main.cpp.s
+.PHONY : tools/nexus-author/main.s
+
+# target to generate assembly for a file
+tools/nexus-author/main.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_author.dir/build.make CMakeFiles/nexus_author.dir/tools/nexus-author/main.cpp.s
+.PHONY : tools/nexus-author/main.cpp.s
+
+tools/nexus-evals/main.o: tools/nexus-evals/main.cpp.o
+.PHONY : tools/nexus-evals/main.o
+
+# target to build an object file
+tools/nexus-evals/main.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_evals.dir/build.make CMakeFiles/nexus_evals.dir/tools/nexus-evals/main.cpp.o
+.PHONY : tools/nexus-evals/main.cpp.o
+
+tools/nexus-evals/main.i: tools/nexus-evals/main.cpp.i
+.PHONY : tools/nexus-evals/main.i
+
+# target to preprocess a source file
+tools/nexus-evals/main.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_evals.dir/build.make CMakeFiles/nexus_evals.dir/tools/nexus-evals/main.cpp.i
+.PHONY : tools/nexus-evals/main.cpp.i
+
+tools/nexus-evals/main.s: tools/nexus-evals/main.cpp.s
+.PHONY : tools/nexus-evals/main.s
+
+# target to generate assembly for a file
+tools/nexus-evals/main.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_evals.dir/build.make CMakeFiles/nexus_evals.dir/tools/nexus-evals/main.cpp.s
+.PHONY : tools/nexus-evals/main.cpp.s
+
 tools/nexus_agent_cli/agent_cli_session.o: tools/nexus_agent_cli/agent_cli_session.cpp.o
 .PHONY : tools/nexus_agent_cli/agent_cli_session.o
 
@@ -2703,15 +3093,20 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... test"
+	@echo "... cell_distill"
 	@echo "... nexus_agent_cli"
 	@echo "... nexus_agent_cli_lib"
 	@echo "... nexus_agent_cli_test"
 	@echo "... nexus_ai_interface"
 	@echo "... nexus_assets"
+	@echo "... nexus_author"
 	@echo "... nexus_cartridge_test"
+	@echo "... nexus_cell"
+	@echo "... nexus_cell_test"
 	@echo "... nexus_core"
 	@echo "... nexus_creative"
 	@echo "... nexus_dunk_contest_test"
+	@echo "... nexus_evals"
 	@echo "... nexus_gameplay"
 	@echo "... nexus_gameplay_test"
 	@echo "... nexus_generative"
@@ -2725,6 +3120,7 @@ help:
 	@echo "... nexus_physics_test"
 	@echo "... nexus_protocol_test"
 	@echo "... nexus_realtime_test"
+	@echo "... nexus_runtime_lib"
 	@echo "... nexus_scale_policy_test"
 	@echo "... nexus_scan_envelope_test"
 	@echo "... app/gameplay/src/arcade_physics.o"
@@ -2877,6 +3273,27 @@ help:
 	@echo "... engine/assets/src/asset_manifest.o"
 	@echo "... engine/assets/src/asset_manifest.i"
 	@echo "... engine/assets/src/asset_manifest.s"
+	@echo "... engine/cell/src/batch_learner.o"
+	@echo "... engine/cell/src/batch_learner.i"
+	@echo "... engine/cell/src/batch_learner.s"
+	@echo "... engine/cell/src/budget_meter.o"
+	@echo "... engine/cell/src/budget_meter.i"
+	@echo "... engine/cell/src/budget_meter.s"
+	@echo "... engine/cell/src/experience_ledger.o"
+	@echo "... engine/cell/src/experience_ledger.i"
+	@echo "... engine/cell/src/experience_ledger.s"
+	@echo "... engine/cell/src/mastery_tracker.o"
+	@echo "... engine/cell/src/mastery_tracker.i"
+	@echo "... engine/cell/src/mastery_tracker.s"
+	@echo "... engine/cell/src/research_loop.o"
+	@echo "... engine/cell/src/research_loop.i"
+	@echo "... engine/cell/src/research_loop.s"
+	@echo "... engine/cell/src/self_improvement_scheduler.o"
+	@echo "... engine/cell/src/self_improvement_scheduler.i"
+	@echo "... engine/cell/src/self_improvement_scheduler.s"
+	@echo "... engine/cell/src/wisdom_store.o"
+	@echo "... engine/cell/src/wisdom_store.i"
+	@echo "... engine/cell/src/wisdom_store.s"
 	@echo "... engine/core/src/dev_stats.o"
 	@echo "... engine/core/src/dev_stats.i"
 	@echo "... engine/core/src/dev_stats.s"
@@ -2961,12 +3378,21 @@ help:
 	@echo "... engine/physics/src/physics_world.o"
 	@echo "... engine/physics/src/physics_world.i"
 	@echo "... engine/physics/src/physics_world.s"
+	@echo "... runtime/nexus/src/lesson_queue.o"
+	@echo "... runtime/nexus/src/lesson_queue.i"
+	@echo "... runtime/nexus/src/lesson_queue.s"
+	@echo "... runtime/nexus/src/provider_router.o"
+	@echo "... runtime/nexus/src/provider_router.i"
+	@echo "... runtime/nexus/src/provider_router.s"
 	@echo "... tests/unit/ai_interface/agent_cli_test.o"
 	@echo "... tests/unit/ai_interface/agent_cli_test.i"
 	@echo "... tests/unit/ai_interface/agent_cli_test.s"
 	@echo "... tests/unit/ai_interface/command_test.o"
 	@echo "... tests/unit/ai_interface/command_test.i"
 	@echo "... tests/unit/ai_interface/command_test.s"
+	@echo "... tests/unit/cell/cell_test.o"
+	@echo "... tests/unit/cell/cell_test.i"
+	@echo "... tests/unit/cell/cell_test.s"
 	@echo "... tests/unit/core/cartridge_runtime_test.o"
 	@echo "... tests/unit/core/cartridge_runtime_test.i"
 	@echo "... tests/unit/core/cartridge_runtime_test.s"
@@ -3000,6 +3426,15 @@ help:
 	@echo "... tests/unit/physics/physics_test.o"
 	@echo "... tests/unit/physics/physics_test.i"
 	@echo "... tests/unit/physics/physics_test.s"
+	@echo "... tools/cell-distill/main.o"
+	@echo "... tools/cell-distill/main.i"
+	@echo "... tools/cell-distill/main.s"
+	@echo "... tools/nexus-author/main.o"
+	@echo "... tools/nexus-author/main.i"
+	@echo "... tools/nexus-author/main.s"
+	@echo "... tools/nexus-evals/main.o"
+	@echo "... tools/nexus-evals/main.i"
+	@echo "... tools/nexus-evals/main.s"
 	@echo "... tools/nexus_agent_cli/agent_cli_session.o"
 	@echo "... tools/nexus_agent_cli/agent_cli_session.i"
 	@echo "... tools/nexus_agent_cli/agent_cli_session.s"
