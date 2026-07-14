@@ -3,6 +3,12 @@
 > **Read `NEXUS_COST_DOCTRINE.md` first** — it governs how all CELL/NEXUS work
 > spends LLM tokens (free runtime, nightly batch learning, frontier-quality
 > creation only, budget caps on every loop). Work that violates it gets reverted.
+>
+> **Then `NEXUS_MONETIZATION_TRACK.md`** — the product/revenue workplan. It
+> UPDATES rule 2 below: real money now ships through Track A (subscriptions,
+> creator marketplace, one-time SKUs — build and go live) while Track B
+> (H2H money matches, IRL dunk-for-money vs ghost) is built COMPLETE behind the
+> `REAL_MONEY_COMPETITION` flag pending legal + processor sign-off.
 
 ---
 
