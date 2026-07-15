@@ -1,5 +1,10 @@
 # NEXUS — Handoff for Abacus (platform track)
 
+> **⚠ SUPREME DOC: `NEXUS_WORKING_CONTEXT.md` (2026-07-15) now governs all
+> work — locked Babylon.js stack on the GitHub repo, dunk-first firewall,
+> soft-currency v1, Nexus/Cell productization deferred post-FEL. Where this
+> file conflicts with it, the working context wins.**
+>
 > **Read `NEXUS_COST_DOCTRINE.md` first** — it governs how all CELL/NEXUS work
 > spends LLM tokens (free runtime, nightly batch learning, frontier-quality
 > creation only, budget caps on every loop). Work that violates it gets reverted.
