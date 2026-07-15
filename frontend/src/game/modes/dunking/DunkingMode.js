@@ -1,9 +1,24 @@
 import { createSharedSystems } from '../../systems/index.js';
 import { feelConfig } from '../../systems/feelConfig.js';
+import { InputBuffer } from '../../systems/InputBuffer.js';
+import { StateMachine } from '../../systems/StateMachine.js';
 import { FixedStepLoop } from '../../core/FixedStepLoop.js';
 import { InputSystem } from '../../input/InputSystem.js';
 import { GameModeInterface, ModePhase } from '../GameModeInterface.js';
 import DunkingScene from './DunkingScene.js';
+
+/** Dunk movement phases (feel spec: buffered inputs fire the next state
+ *  immediately — no waiting on animation end). */
+export const DunkPhase = Object.freeze({
+  IDLE:     'Idle',
+  APPROACH: 'Approach',
+  JUMPPREP: 'JumpPrep',
+  ASCENT:   'Ascent',
+  PEAK:     'Peak',
+  DESCENT:  'Descent',
+  CONTACT:  'Contact',
+  LANDING:  'Landing',
+});
 
 function clampValue(v, min, max) { return v < min ? min : v > max ? max : v; }
 
@@ -83,6 +98,13 @@ export class DunkingMode extends GameModeInterface {
     this._lastRafTs = 0;
     this._prevPos = { x: 0, y: 0, z: 0 };
     this._renderPos = { x: 0, y: 0, z: 0 };
+    this._verticalVelocity = 0;
+
+    // Buffered input (feel DoD: jump fires within 1 physics step, always)
+    this._inputBuffer = new InputBuffer({ windowMs: feelConfig.input.bufferMs });
+
+    // Movement FSM: Idle→Approach→JumpPrep→Ascent→Peak→Descent→Contact→Landing
+    this._fsm = this._createMovementFsm();
 
     // Charge state (mirrors iOS styleTriggerHeld / powerTriggerHeld)
     this._styleCharge  = 0; // 0–1 from L2
@@ -92,6 +114,37 @@ export class DunkingMode extends GameModeInterface {
     this._pendingDunkVariant = null;
 
     this.state = this._createInitialState();
+  }
+
+  /**
+   * Movement FSM. Transition RULES live in _fixedUpdate (mode logic);
+   * states carry enter effects only — shared StateMachine stays generic.
+   * @private
+   */
+  _createMovementFsm() {
+    const noop = {};
+    return new StateMachine({
+      initial: DunkPhase.IDLE,
+      states: {
+        [DunkPhase.IDLE]:     noop,
+        [DunkPhase.APPROACH]: noop,
+        [DunkPhase.JUMPPREP]: noop,
+        [DunkPhase.ASCENT]: {
+          enter: () => {
+            this._isMidAir = true;
+            this.systems?.audio?.playEvent('jump');
+            this.systems?.vfx?.trigger('light_impact');
+            this.state.prq = this.systems?.prqSystem?.recordEvent({ type: 'hit', quality: 'good' }) ?? this.state.prq;
+          },
+        },
+        [DunkPhase.PEAK]:    noop,
+        [DunkPhase.DESCENT]: noop,
+        [DunkPhase.CONTACT]: {
+          enter: () => { this._isMidAir = false; },
+        },
+        [DunkPhase.LANDING]: noop,
+      },
+    });
   }
 
   _createInitialState() {
@@ -138,6 +191,9 @@ export class DunkingMode extends GameModeInterface {
     this.input.onEvent = (ev) => this.update(ev);
 
     this.playerPosition = { x: 0, y: 0, z: 0 };
+    this._verticalVelocity = 0;
+    this._inputBuffer.clear();
+    this._fsm.transition(DunkPhase.IDLE);
     this.state = {
       ...this._createInitialState(),
       phase: ModePhase.ACTIVE,
@@ -204,6 +260,98 @@ export class DunkingMode extends GameModeInterface {
     const b = feelConfig.court;
     this.playerPosition.x = clampValue(this.playerPosition.x + this.playerVelocity.x * dt, b.minX, b.maxX);
     this.playerPosition.z = clampValue(this.playerPosition.z + this.playerVelocity.z * dt, b.minZ, b.maxZ);
+
+    this._updateJumpPhase(dt);
+    this._fsm.update(dt);
+  }
+
+  /**
+   * Vertical physics + movement-phase transitions. Runs once per fixed step.
+   * @private
+   */
+  _updateJumpPhase(dt) {
+    const fsm = this._fsm;
+    const jump = feelConfig.jump;
+    const g = feelConfig.gravity;
+
+    switch (fsm.current) {
+      case DunkPhase.IDLE:
+      case DunkPhase.APPROACH: {
+        // Buffered jump fires within one physics step of being legal.
+        if (this._inputBuffer.consume('jump')) {
+          fsm.transition(DunkPhase.JUMPPREP);
+          break;
+        }
+        const speedSq =
+          this.playerVelocity.x * this.playerVelocity.x +
+          this.playerVelocity.z * this.playerVelocity.z;
+        const approaching = speedSq >= jump.approachSpeed * jump.approachSpeed;
+        fsm.transition(approaching ? DunkPhase.APPROACH : DunkPhase.IDLE);
+        break;
+      }
+
+      case DunkPhase.JUMPPREP: {
+        if (fsm.timeInState * 1000 >= jump.prepMs) {
+          this._verticalVelocity = jump.impulse;
+          fsm.transition(DunkPhase.ASCENT);
+        }
+        break;
+      }
+
+      case DunkPhase.ASCENT:
+      case DunkPhase.PEAK:
+      case DunkPhase.DESCENT: {
+        this._verticalVelocity -= g.base * this._gravityScale() * dt;
+        this.playerPosition.y += this._verticalVelocity * dt;
+
+        if (this.playerPosition.y <= 0 && this._verticalVelocity < 0) {
+          // Landing snap: ground contact resolves on this step exactly.
+          this.playerPosition.y = 0;
+          this._verticalVelocity = 0;
+          fsm.transition(DunkPhase.CONTACT);
+        } else if (this._verticalVelocity > g.peakVelocityWindow) {
+          fsm.transition(DunkPhase.ASCENT);
+        } else if (this._verticalVelocity >= -g.peakVelocityWindow) {
+          fsm.transition(DunkPhase.PEAK);
+        } else {
+          fsm.transition(DunkPhase.DESCENT);
+        }
+        break;
+      }
+
+      case DunkPhase.CONTACT: {
+        // Consume here too — a jump buffered just before touchdown fires on
+        // the very step the ground is reached, not one step later.
+        if (this._inputBuffer.consume('jump')) {
+          fsm.transition(DunkPhase.JUMPPREP);
+        } else {
+          fsm.transition(DunkPhase.LANDING);
+        }
+        break;
+      }
+
+      case DunkPhase.LANDING: {
+        // Buffered jump cancels recovery — no waiting on animation end.
+        if (this._inputBuffer.consume('jump')) {
+          fsm.transition(DunkPhase.JUMPPREP);
+        } else if (fsm.timeInState * 1000 >= jump.landingMs) {
+          fsm.transition(DunkPhase.IDLE);
+        }
+        break;
+      }
+
+      default:
+        break;
+    }
+  }
+
+  /**
+   * Gravity multiplier for the current vertical velocity (commit 3 swaps
+   * this to the velocity-driven curve; constant 1.0 until then).
+   * @private
+   */
+  _gravityScale() {
+    return 1.0;
   }
 
   /**
@@ -273,12 +421,9 @@ export class DunkingMode extends GameModeInterface {
       }
     }
 
-    // ── Jump (✕ button) ─────────────────────────────────────────────────────
+    // ── Jump (✕ button) — buffered; the FSM fires it the moment it's legal
     if (type === 'jump') {
-      this._isMidAir = true;
-      this.systems.audio.playEvent('jump');
-      this.systems.vfx.trigger('light_impact');
-      this.state.prq = this.systems.prqSystem.recordEvent({ type: 'hit', quality: 'good' });
+      this._inputBuffer.press('jump');
     }
 
     // ── Dodge ───────────────────────────────────────────────────────────────
@@ -374,6 +519,9 @@ export class DunkingMode extends GameModeInterface {
       styleCharge:   this._styleCharge,
       powerCharge:   this._powerCharge,
       isMidAir:      this._isMidAir,
+      // Movement FSM phase + jump height (HUD/tests/anim selector)
+      dunkPhase:     this._fsm.current,
+      jumpHeight:    this.playerPosition.y,
     };
   }
 
@@ -421,6 +569,9 @@ export class DunkingMode extends GameModeInterface {
     this._powerCharge  = 0;
     this._chargeStartAt = null;
     this._isMidAir     = false;
+    this._verticalVelocity = 0;
+    this._inputBuffer.clear();
+    this._fsm.transition(DunkPhase.IDLE);
     this.state = this._createInitialState();
   }
 
