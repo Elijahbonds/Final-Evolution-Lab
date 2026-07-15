@@ -327,4 +327,5 @@ CMakeFiles/nexus_gameplay.dir/app/gameplay/src/karate_endless_mode.cpp.o: \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/_deps/nlohmann_json-src/include/nlohmann/detail/macro_unscope.hpp \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/_deps/nlohmann_json-src/include/nlohmann/thirdparty/hedley/hedley_undef.hpp \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/wave_spawner.h \
- /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/character_anim_state.h
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/character_anim_state.h \
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/prq_engine.h

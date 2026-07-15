@@ -85,6 +85,7 @@ all: CMakeFiles/nexus_cell_test.dir/all
 all: CMakeFiles/nexus_gameplay_test.dir/all
 all: CMakeFiles/nexus_scan_envelope_test.dir/all
 all: CMakeFiles/nexus_dunk_contest_test.dir/all
+all: CMakeFiles/nexus_golf3d_karate_test.dir/all
 all: CMakeFiles/nexus_generative_test.dir/all
 all: CMakeFiles/nexus_physics_test.dir/all
 all: CMakeFiles/nexus_physics_advanced_test.dir/all
@@ -119,6 +120,7 @@ codegen: CMakeFiles/nexus_cell_test.dir/codegen
 codegen: CMakeFiles/nexus_gameplay_test.dir/codegen
 codegen: CMakeFiles/nexus_scan_envelope_test.dir/codegen
 codegen: CMakeFiles/nexus_dunk_contest_test.dir/codegen
+codegen: CMakeFiles/nexus_golf3d_karate_test.dir/codegen
 codegen: CMakeFiles/nexus_generative_test.dir/codegen
 codegen: CMakeFiles/nexus_physics_test.dir/codegen
 codegen: CMakeFiles/nexus_physics_advanced_test.dir/codegen
@@ -157,6 +159,7 @@ clean: CMakeFiles/nexus_cell_test.dir/clean
 clean: CMakeFiles/nexus_gameplay_test.dir/clean
 clean: CMakeFiles/nexus_scan_envelope_test.dir/clean
 clean: CMakeFiles/nexus_dunk_contest_test.dir/clean
+clean: CMakeFiles/nexus_golf3d_karate_test.dir/clean
 clean: CMakeFiles/nexus_generative_test.dir/clean
 clean: CMakeFiles/nexus_physics_test.dir/clean
 clean: CMakeFiles/nexus_physics_advanced_test.dir/clean
@@ -194,7 +197,7 @@ _deps/nlohmann_json-build/clean:
 CMakeFiles/nexus_core.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_core.dir/build.make CMakeFiles/nexus_core.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_core.dir/build.make CMakeFiles/nexus_core.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=25,26,27,28,29,30,31 "Built target nexus_core"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=24,25,26,27,28,29,30 "Built target nexus_core"
 .PHONY : CMakeFiles/nexus_core.dir/all
 
 # Build rule for subdir invocation for target.
@@ -211,7 +214,7 @@ nexus_core: CMakeFiles/nexus_core.dir/rule
 # codegen rule for target.
 CMakeFiles/nexus_core.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_core.dir/build.make CMakeFiles/nexus_core.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=25,26,27,28,29,30,31 "Finished codegen for target nexus_core"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=24,25,26,27,28,29,30 "Finished codegen for target nexus_core"
 .PHONY : CMakeFiles/nexus_core.dir/codegen
 
 # clean rule for target.
@@ -290,7 +293,7 @@ CMakeFiles/nexus_physics.dir/clean:
 CMakeFiles/nexus_creative.dir/all: CMakeFiles/nexus_core.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_creative.dir/build.make CMakeFiles/nexus_creative.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_creative.dir/build.make CMakeFiles/nexus_creative.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=32,33 "Built target nexus_creative"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=31,32 "Built target nexus_creative"
 .PHONY : CMakeFiles/nexus_creative.dir/all
 
 # Build rule for subdir invocation for target.
@@ -307,7 +310,7 @@ nexus_creative: CMakeFiles/nexus_creative.dir/rule
 # codegen rule for target.
 CMakeFiles/nexus_creative.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_creative.dir/build.make CMakeFiles/nexus_creative.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=32,33 "Finished codegen for target nexus_creative"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=31,32 "Finished codegen for target nexus_creative"
 .PHONY : CMakeFiles/nexus_creative.dir/codegen
 
 # clean rule for target.
@@ -389,7 +392,7 @@ CMakeFiles/nexus_generative.dir/all: CMakeFiles/nexus_assets.dir/all
 CMakeFiles/nexus_generative.dir/all: CMakeFiles/nexus_luma.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_generative.dir/build.make CMakeFiles/nexus_generative.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_generative.dir/build.make CMakeFiles/nexus_generative.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=70,71,72,73,74,75,76,77,78 "Built target nexus_generative"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=69,70,71,72,73,74,75,76,77 "Built target nexus_generative"
 .PHONY : CMakeFiles/nexus_generative.dir/all
 
 # Build rule for subdir invocation for target.
@@ -406,7 +409,7 @@ nexus_generative: CMakeFiles/nexus_generative.dir/rule
 # codegen rule for target.
 CMakeFiles/nexus_generative.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_generative.dir/build.make CMakeFiles/nexus_generative.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=70,71,72,73,74,75,76,77,78 "Finished codegen for target nexus_generative"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=69,70,71,72,73,74,75,76,77 "Finished codegen for target nexus_generative"
 .PHONY : CMakeFiles/nexus_generative.dir/codegen
 
 # clean rule for target.
@@ -464,12 +467,12 @@ CMakeFiles/nexus_gameplay.dir/all: CMakeFiles/nexus_generative.dir/all
 CMakeFiles/nexus_gameplay.dir/all: CMakeFiles/nexus_ai_interface.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67 "Built target nexus_gameplay"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67 "Built target nexus_gameplay"
 .PHONY : CMakeFiles/nexus_gameplay.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/nexus_gameplay.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 63
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 64
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/nexus_gameplay.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 0
 .PHONY : CMakeFiles/nexus_gameplay.dir/rule
@@ -481,7 +484,7 @@ nexus_gameplay: CMakeFiles/nexus_gameplay.dir/rule
 # codegen rule for target.
 CMakeFiles/nexus_gameplay.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67 "Finished codegen for target nexus_gameplay"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67 "Finished codegen for target nexus_gameplay"
 .PHONY : CMakeFiles/nexus_gameplay.dir/codegen
 
 # clean rule for target.
@@ -529,12 +532,12 @@ CMakeFiles/nexus_runtime_lib.dir/all: CMakeFiles/nexus_core.dir/all
 CMakeFiles/nexus_runtime_lib.dir/all: CMakeFiles/nexus_cell.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_runtime_lib.dir/build.make CMakeFiles/nexus_runtime_lib.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_runtime_lib.dir/build.make CMakeFiles/nexus_runtime_lib.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=95,96,97 "Built target nexus_runtime_lib"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=96,97 "Built target nexus_runtime_lib"
 .PHONY : CMakeFiles/nexus_runtime_lib.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/nexus_runtime_lib.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 16
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 15
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/nexus_runtime_lib.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 0
 .PHONY : CMakeFiles/nexus_runtime_lib.dir/rule
@@ -546,7 +549,7 @@ nexus_runtime_lib: CMakeFiles/nexus_runtime_lib.dir/rule
 # codegen rule for target.
 CMakeFiles/nexus_runtime_lib.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_runtime_lib.dir/build.make CMakeFiles/nexus_runtime_lib.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=95,96,97 "Finished codegen for target nexus_runtime_lib"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=96,97 "Finished codegen for target nexus_runtime_lib"
 .PHONY : CMakeFiles/nexus_runtime_lib.dir/codegen
 
 # clean rule for target.
@@ -574,7 +577,7 @@ CMakeFiles/nexus_agent_cli_lib.dir/all: CMakeFiles/nexus_gameplay.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/nexus_agent_cli_lib.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 66
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 67
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/nexus_agent_cli_lib.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 0
 .PHONY : CMakeFiles/nexus_agent_cli_lib.dir/rule
@@ -615,7 +618,7 @@ CMakeFiles/nexus_agent_cli.dir/all: CMakeFiles/nexus_agent_cli_lib.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/nexus_agent_cli.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 67
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 68
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/nexus_agent_cli.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 0
 .PHONY : CMakeFiles/nexus_agent_cli.dir/rule
@@ -710,12 +713,12 @@ CMakeFiles/nexus_evals.dir/all: CMakeFiles/nexus_cell.dir/all
 CMakeFiles/nexus_evals.dir/all: CMakeFiles/nexus_runtime_lib.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_evals.dir/build.make CMakeFiles/nexus_evals.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_evals.dir/build.make CMakeFiles/nexus_evals.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=36 "Built target nexus_evals"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=35 "Built target nexus_evals"
 .PHONY : CMakeFiles/nexus_evals.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/nexus_evals.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 17
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 16
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/nexus_evals.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 0
 .PHONY : CMakeFiles/nexus_evals.dir/rule
@@ -727,7 +730,7 @@ nexus_evals: CMakeFiles/nexus_evals.dir/rule
 # codegen rule for target.
 CMakeFiles/nexus_evals.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_evals.dir/build.make CMakeFiles/nexus_evals.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=36 "Finished codegen for target nexus_evals"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=35 "Finished codegen for target nexus_evals"
 .PHONY : CMakeFiles/nexus_evals.dir/codegen
 
 # clean rule for target.
@@ -747,12 +750,12 @@ CMakeFiles/nexus_protocol_test.dir/all: CMakeFiles/nexus_generative.dir/all
 CMakeFiles/nexus_protocol_test.dir/all: CMakeFiles/nexus_ai_interface.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_protocol_test.dir/build.make CMakeFiles/nexus_protocol_test.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_protocol_test.dir/build.make CMakeFiles/nexus_protocol_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=92,93 "Built target nexus_protocol_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=93 "Built target nexus_protocol_test"
 .PHONY : CMakeFiles/nexus_protocol_test.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/nexus_protocol_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 28
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 27
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/nexus_protocol_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 0
 .PHONY : CMakeFiles/nexus_protocol_test.dir/rule
@@ -764,7 +767,7 @@ nexus_protocol_test: CMakeFiles/nexus_protocol_test.dir/rule
 # codegen rule for target.
 CMakeFiles/nexus_protocol_test.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_protocol_test.dir/build.make CMakeFiles/nexus_protocol_test.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=92,93 "Finished codegen for target nexus_protocol_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=93 "Finished codegen for target nexus_protocol_test"
 .PHONY : CMakeFiles/nexus_protocol_test.dir/codegen
 
 # clean rule for target.
@@ -793,7 +796,7 @@ CMakeFiles/nexus_agent_cli_test.dir/all: CMakeFiles/nexus_agent_cli_lib.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/nexus_agent_cli_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 67
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 68
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/nexus_agent_cli_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 0
 .PHONY : CMakeFiles/nexus_agent_cli_test.dir/rule
@@ -822,12 +825,12 @@ CMakeFiles/nexus_cell_test.dir/all: CMakeFiles/nexus_cell.dir/all
 CMakeFiles/nexus_cell_test.dir/all: CMakeFiles/nexus_runtime_lib.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell_test.dir/build.make CMakeFiles/nexus_cell_test.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell_test.dir/build.make CMakeFiles/nexus_cell_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=23,24 "Built target nexus_cell_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=23 "Built target nexus_cell_test"
 .PHONY : CMakeFiles/nexus_cell_test.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/nexus_cell_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 18
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 16
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/nexus_cell_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 0
 .PHONY : CMakeFiles/nexus_cell_test.dir/rule
@@ -839,7 +842,7 @@ nexus_cell_test: CMakeFiles/nexus_cell_test.dir/rule
 # codegen rule for target.
 CMakeFiles/nexus_cell_test.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_cell_test.dir/build.make CMakeFiles/nexus_cell_test.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=23,24 "Finished codegen for target nexus_cell_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=23 "Finished codegen for target nexus_cell_test"
 .PHONY : CMakeFiles/nexus_cell_test.dir/codegen
 
 # clean rule for target.
@@ -862,7 +865,7 @@ CMakeFiles/nexus_gameplay_test.dir/all: CMakeFiles/nexus_ai_interface.dir/all
 CMakeFiles/nexus_gameplay_test.dir/all: CMakeFiles/nexus_gameplay.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay_test.dir/build.make CMakeFiles/nexus_gameplay_test.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay_test.dir/build.make CMakeFiles/nexus_gameplay_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=68,69 "Built target nexus_gameplay_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=68 "Built target nexus_gameplay_test"
 .PHONY : CMakeFiles/nexus_gameplay_test.dir/all
 
 # Build rule for subdir invocation for target.
@@ -879,7 +882,7 @@ nexus_gameplay_test: CMakeFiles/nexus_gameplay_test.dir/rule
 # codegen rule for target.
 CMakeFiles/nexus_gameplay_test.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay_test.dir/build.make CMakeFiles/nexus_gameplay_test.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=68,69 "Finished codegen for target nexus_gameplay_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=68 "Finished codegen for target nexus_gameplay_test"
 .PHONY : CMakeFiles/nexus_gameplay_test.dir/codegen
 
 # clean rule for target.
@@ -907,7 +910,7 @@ CMakeFiles/nexus_scan_envelope_test.dir/all: CMakeFiles/nexus_gameplay.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/nexus_scan_envelope_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 65
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 66
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/nexus_scan_envelope_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 0
 .PHONY : CMakeFiles/nexus_scan_envelope_test.dir/rule
@@ -942,12 +945,12 @@ CMakeFiles/nexus_dunk_contest_test.dir/all: CMakeFiles/nexus_ai_interface.dir/al
 CMakeFiles/nexus_dunk_contest_test.dir/all: CMakeFiles/nexus_gameplay.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_dunk_contest_test.dir/build.make CMakeFiles/nexus_dunk_contest_test.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_dunk_contest_test.dir/build.make CMakeFiles/nexus_dunk_contest_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=34,35 "Built target nexus_dunk_contest_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=33,34 "Built target nexus_dunk_contest_test"
 .PHONY : CMakeFiles/nexus_dunk_contest_test.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/nexus_dunk_contest_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 65
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 66
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/nexus_dunk_contest_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 0
 .PHONY : CMakeFiles/nexus_dunk_contest_test.dir/rule
@@ -959,13 +962,53 @@ nexus_dunk_contest_test: CMakeFiles/nexus_dunk_contest_test.dir/rule
 # codegen rule for target.
 CMakeFiles/nexus_dunk_contest_test.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_dunk_contest_test.dir/build.make CMakeFiles/nexus_dunk_contest_test.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=34,35 "Finished codegen for target nexus_dunk_contest_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=33,34 "Finished codegen for target nexus_dunk_contest_test"
 .PHONY : CMakeFiles/nexus_dunk_contest_test.dir/codegen
 
 # clean rule for target.
 CMakeFiles/nexus_dunk_contest_test.dir/clean:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_dunk_contest_test.dir/build.make CMakeFiles/nexus_dunk_contest_test.dir/clean
 .PHONY : CMakeFiles/nexus_dunk_contest_test.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/nexus_golf3d_karate_test.dir
+
+# All Build rule for target.
+CMakeFiles/nexus_golf3d_karate_test.dir/all: CMakeFiles/nexus_core.dir/all
+CMakeFiles/nexus_golf3d_karate_test.dir/all: CMakeFiles/nexus_net.dir/all
+CMakeFiles/nexus_golf3d_karate_test.dir/all: CMakeFiles/nexus_physics.dir/all
+CMakeFiles/nexus_golf3d_karate_test.dir/all: CMakeFiles/nexus_creative.dir/all
+CMakeFiles/nexus_golf3d_karate_test.dir/all: CMakeFiles/nexus_assets.dir/all
+CMakeFiles/nexus_golf3d_karate_test.dir/all: CMakeFiles/nexus_luma.dir/all
+CMakeFiles/nexus_golf3d_karate_test.dir/all: CMakeFiles/nexus_generative.dir/all
+CMakeFiles/nexus_golf3d_karate_test.dir/all: CMakeFiles/nexus_ai_interface.dir/all
+CMakeFiles/nexus_golf3d_karate_test.dir/all: CMakeFiles/nexus_gameplay.dir/all
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_golf3d_karate_test.dir/build.make CMakeFiles/nexus_golf3d_karate_test.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_golf3d_karate_test.dir/build.make CMakeFiles/nexus_golf3d_karate_test.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=79,80 "Built target nexus_golf3d_karate_test"
+.PHONY : CMakeFiles/nexus_golf3d_karate_test.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/nexus_golf3d_karate_test.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 66
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/nexus_golf3d_karate_test.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 0
+.PHONY : CMakeFiles/nexus_golf3d_karate_test.dir/rule
+
+# Convenience name for target.
+nexus_golf3d_karate_test: CMakeFiles/nexus_golf3d_karate_test.dir/rule
+.PHONY : nexus_golf3d_karate_test
+
+# codegen rule for target.
+CMakeFiles/nexus_golf3d_karate_test.dir/codegen:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_golf3d_karate_test.dir/build.make CMakeFiles/nexus_golf3d_karate_test.dir/codegen
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=79,80 "Finished codegen for target nexus_golf3d_karate_test"
+.PHONY : CMakeFiles/nexus_golf3d_karate_test.dir/codegen
+
+# clean rule for target.
+CMakeFiles/nexus_golf3d_karate_test.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_golf3d_karate_test.dir/build.make CMakeFiles/nexus_golf3d_karate_test.dir/clean
+.PHONY : CMakeFiles/nexus_golf3d_karate_test.dir/clean
 
 #=============================================================================
 # Target rules for target CMakeFiles/nexus_generative_test.dir
@@ -979,7 +1022,7 @@ CMakeFiles/nexus_generative_test.dir/all: CMakeFiles/nexus_generative.dir/all
 CMakeFiles/nexus_generative_test.dir/all: CMakeFiles/nexus_ai_interface.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_generative_test.dir/build.make CMakeFiles/nexus_generative_test.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_generative_test.dir/build.make CMakeFiles/nexus_generative_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=79 "Built target nexus_generative_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=78 "Built target nexus_generative_test"
 .PHONY : CMakeFiles/nexus_generative_test.dir/all
 
 # Build rule for subdir invocation for target.
@@ -996,7 +1039,7 @@ nexus_generative_test: CMakeFiles/nexus_generative_test.dir/rule
 # codegen rule for target.
 CMakeFiles/nexus_generative_test.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_generative_test.dir/build.make CMakeFiles/nexus_generative_test.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=79 "Finished codegen for target nexus_generative_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=78 "Finished codegen for target nexus_generative_test"
 .PHONY : CMakeFiles/nexus_generative_test.dir/codegen
 
 # clean rule for target.
@@ -1012,12 +1055,12 @@ CMakeFiles/nexus_physics_test.dir/all: CMakeFiles/nexus_core.dir/all
 CMakeFiles/nexus_physics_test.dir/all: CMakeFiles/nexus_physics.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_physics_test.dir/build.make CMakeFiles/nexus_physics_test.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_physics_test.dir/build.make CMakeFiles/nexus_physics_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=91 "Built target nexus_physics_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=91,92 "Built target nexus_physics_test"
 .PHONY : CMakeFiles/nexus_physics_test.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/nexus_physics_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 10
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 11
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/nexus_physics_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 0
 .PHONY : CMakeFiles/nexus_physics_test.dir/rule
@@ -1029,7 +1072,7 @@ nexus_physics_test: CMakeFiles/nexus_physics_test.dir/rule
 # codegen rule for target.
 CMakeFiles/nexus_physics_test.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_physics_test.dir/build.make CMakeFiles/nexus_physics_test.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=91 "Finished codegen for target nexus_physics_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=91,92 "Finished codegen for target nexus_physics_test"
 .PHONY : CMakeFiles/nexus_physics_test.dir/codegen
 
 # clean rule for target.
@@ -1077,12 +1120,12 @@ CMakeFiles/nexus_physics_advanced_test.dir/clean:
 CMakeFiles/nexus_job_system_test.dir/all: CMakeFiles/nexus_core.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_job_system_test.dir/build.make CMakeFiles/nexus_job_system_test.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_job_system_test.dir/build.make CMakeFiles/nexus_job_system_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=80,81 "Built target nexus_job_system_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=81 "Built target nexus_job_system_test"
 .PHONY : CMakeFiles/nexus_job_system_test.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/nexus_job_system_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 9
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 8
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/nexus_job_system_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 0
 .PHONY : CMakeFiles/nexus_job_system_test.dir/rule
@@ -1094,7 +1137,7 @@ nexus_job_system_test: CMakeFiles/nexus_job_system_test.dir/rule
 # codegen rule for target.
 CMakeFiles/nexus_job_system_test.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_job_system_test.dir/build.make CMakeFiles/nexus_job_system_test.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=80,81 "Finished codegen for target nexus_job_system_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=81 "Finished codegen for target nexus_job_system_test"
 .PHONY : CMakeFiles/nexus_job_system_test.dir/codegen
 
 # clean rule for target.
@@ -1173,12 +1216,12 @@ CMakeFiles/nexus_scale_policy_test.dir/clean:
 CMakeFiles/nexus_realtime_test.dir/all: CMakeFiles/nexus_core.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_realtime_test.dir/build.make CMakeFiles/nexus_realtime_test.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_realtime_test.dir/build.make CMakeFiles/nexus_realtime_test.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=94 "Built target nexus_realtime_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=94,95 "Built target nexus_realtime_test"
 .PHONY : CMakeFiles/nexus_realtime_test.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/nexus_realtime_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 8
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 9
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/nexus_realtime_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 0
 .PHONY : CMakeFiles/nexus_realtime_test.dir/rule
@@ -1190,7 +1233,7 @@ nexus_realtime_test: CMakeFiles/nexus_realtime_test.dir/rule
 # codegen rule for target.
 CMakeFiles/nexus_realtime_test.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_realtime_test.dir/build.make CMakeFiles/nexus_realtime_test.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=94 "Finished codegen for target nexus_realtime_test"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles --progress-num=94,95 "Finished codegen for target nexus_realtime_test"
 .PHONY : CMakeFiles/nexus_realtime_test.dir/codegen
 
 # clean rule for target.
@@ -1218,7 +1261,7 @@ CMakeFiles/nexus_net_test.dir/all: CMakeFiles/nexus_gameplay.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/nexus_net_test.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 64
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 65
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/nexus_net_test.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles 0
 .PHONY : CMakeFiles/nexus_net_test.dir/rule

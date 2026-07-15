@@ -227,6 +227,7 @@ auto GameplayApplication::handleGameplayCommand(std::string_view command,
       command.rfind("fel.scene.", 0) == 0 ||
       command.rfind("fel.story.", 0) == 0 ||
       command.rfind("fel.sport.", 0) == 0 ||
+      command.rfind("fel.golf.", 0) == 0 ||
       command.rfind("fel.mode.", 0) == 0) {
     const auto modeResult = m_modeRuntime.handleCommand(command, safeParams);
     if (modeResult.isErr()) {
@@ -273,6 +274,11 @@ auto GameplayApplication::handleGameplayCommand(std::string_view command,
           m_arenaSession.updateScores(
               modeState["outcome_sport"].value("player_score", 0.0F),
               modeState["outcome_sport"].value("opponent_score", 0.0F));
+        } else if (modeState.contains("total_strokes") && modeState.contains("total_score")) {
+          // Golf3DMode: score is negative-relative-to-par (lower is better → negate for HUD)
+          m_arenaSession.updateScores(
+              static_cast<float>(modeState.value("total_strokes", 0)),
+              static_cast<float>(-modeState.value("total_score", 0)));
         } else if (modeState.contains("player_correct") &&
                    modeState.contains("opponent_correct")) {
           m_arenaSession.updateScores(

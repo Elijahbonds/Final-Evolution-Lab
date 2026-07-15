@@ -151,6 +151,7 @@ add_library(nexus_gameplay
   app/gameplay/src/game_prompt_adapter.cpp
   app/gameplay/src/gameplay_application.cpp
   app/gameplay/src/gameplay_manager.cpp
+  app/gameplay/src/golf_3d_mode.cpp
   app/gameplay/src/gymnastics_mode.cpp
   app/gameplay/src/health_system.cpp
   app/gameplay/src/hud_relay_service.cpp
@@ -327,6 +328,14 @@ if(NEXUS_BUILD_TESTS)
       "LINKER:-force_load,$<TARGET_FILE:nexus_gameplay>")
   endif()
   add_test(NAME nexus_dunk_contest_test COMMAND nexus_dunk_contest_test)
+
+  add_executable(nexus_golf3d_karate_test tests/unit/gameplay/golf_3d_karate_test.cpp)
+  target_link_libraries(nexus_golf3d_karate_test PRIVATE nexus_gameplay)
+  if(APPLE)
+    target_link_options(nexus_golf3d_karate_test PRIVATE
+      "LINKER:-force_load,$<TARGET_FILE:nexus_gameplay>")
+  endif()
+  add_test(NAME nexus_golf3d_karate_test COMMAND nexus_golf3d_karate_test)
 
   add_executable(nexus_generative_test tests/unit/generative/generative_test.cpp)
   target_link_libraries(nexus_generative_test PRIVATE nexus_generative nexus_ai_interface)

@@ -413,6 +413,19 @@ nexus_dunk_contest_test/fast:
 .PHONY : nexus_dunk_contest_test/fast
 
 #=============================================================================
+# Target rules for targets named nexus_golf3d_karate_test
+
+# Build rule for target.
+nexus_golf3d_karate_test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 nexus_golf3d_karate_test
+.PHONY : nexus_golf3d_karate_test
+
+# fast build rule for target.
+nexus_golf3d_karate_test/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_golf3d_karate_test.dir/build.make CMakeFiles/nexus_golf3d_karate_test.dir/build
+.PHONY : nexus_golf3d_karate_test/fast
+
+#=============================================================================
 # Target rules for targets named nexus_generative_test
 
 # Build rule for target.
@@ -923,6 +936,30 @@ app/gameplay/src/gameplay_manager.s: app/gameplay/src/gameplay_manager.cpp.s
 app/gameplay/src/gameplay_manager.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/gameplay_manager.cpp.s
 .PHONY : app/gameplay/src/gameplay_manager.cpp.s
+
+app/gameplay/src/golf_3d_mode.o: app/gameplay/src/golf_3d_mode.cpp.o
+.PHONY : app/gameplay/src/golf_3d_mode.o
+
+# target to build an object file
+app/gameplay/src/golf_3d_mode.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/golf_3d_mode.cpp.o
+.PHONY : app/gameplay/src/golf_3d_mode.cpp.o
+
+app/gameplay/src/golf_3d_mode.i: app/gameplay/src/golf_3d_mode.cpp.i
+.PHONY : app/gameplay/src/golf_3d_mode.i
+
+# target to preprocess a source file
+app/gameplay/src/golf_3d_mode.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/golf_3d_mode.cpp.i
+.PHONY : app/gameplay/src/golf_3d_mode.cpp.i
+
+app/gameplay/src/golf_3d_mode.s: app/gameplay/src/golf_3d_mode.cpp.s
+.PHONY : app/gameplay/src/golf_3d_mode.s
+
+# target to generate assembly for a file
+app/gameplay/src/golf_3d_mode.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay.dir/build.make CMakeFiles/nexus_gameplay.dir/app/gameplay/src/golf_3d_mode.cpp.s
+.PHONY : app/gameplay/src/golf_3d_mode.cpp.s
 
 app/gameplay/src/gymnastics_mode.o: app/gameplay/src/gymnastics_mode.cpp.o
 .PHONY : app/gameplay/src/gymnastics_mode.o
@@ -2820,6 +2857,30 @@ tests/unit/gameplay/gameplay_test.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_gameplay_test.dir/build.make CMakeFiles/nexus_gameplay_test.dir/tests/unit/gameplay/gameplay_test.cpp.s
 .PHONY : tests/unit/gameplay/gameplay_test.cpp.s
 
+tests/unit/gameplay/golf_3d_karate_test.o: tests/unit/gameplay/golf_3d_karate_test.cpp.o
+.PHONY : tests/unit/gameplay/golf_3d_karate_test.o
+
+# target to build an object file
+tests/unit/gameplay/golf_3d_karate_test.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_golf3d_karate_test.dir/build.make CMakeFiles/nexus_golf3d_karate_test.dir/tests/unit/gameplay/golf_3d_karate_test.cpp.o
+.PHONY : tests/unit/gameplay/golf_3d_karate_test.cpp.o
+
+tests/unit/gameplay/golf_3d_karate_test.i: tests/unit/gameplay/golf_3d_karate_test.cpp.i
+.PHONY : tests/unit/gameplay/golf_3d_karate_test.i
+
+# target to preprocess a source file
+tests/unit/gameplay/golf_3d_karate_test.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_golf3d_karate_test.dir/build.make CMakeFiles/nexus_golf3d_karate_test.dir/tests/unit/gameplay/golf_3d_karate_test.cpp.i
+.PHONY : tests/unit/gameplay/golf_3d_karate_test.cpp.i
+
+tests/unit/gameplay/golf_3d_karate_test.s: tests/unit/gameplay/golf_3d_karate_test.cpp.s
+.PHONY : tests/unit/gameplay/golf_3d_karate_test.s
+
+# target to generate assembly for a file
+tests/unit/gameplay/golf_3d_karate_test.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_golf3d_karate_test.dir/build.make CMakeFiles/nexus_golf3d_karate_test.dir/tests/unit/gameplay/golf_3d_karate_test.cpp.s
+.PHONY : tests/unit/gameplay/golf_3d_karate_test.cpp.s
+
 tests/unit/gameplay/scan_envelope_test.o: tests/unit/gameplay/scan_envelope_test.cpp.o
 .PHONY : tests/unit/gameplay/scan_envelope_test.o
 
@@ -3111,6 +3172,7 @@ help:
 	@echo "... nexus_gameplay_test"
 	@echo "... nexus_generative"
 	@echo "... nexus_generative_test"
+	@echo "... nexus_golf3d_karate_test"
 	@echo "... nexus_job_system_test"
 	@echo "... nexus_luma"
 	@echo "... nexus_net"
@@ -3174,6 +3236,9 @@ help:
 	@echo "... app/gameplay/src/gameplay_manager.o"
 	@echo "... app/gameplay/src/gameplay_manager.i"
 	@echo "... app/gameplay/src/gameplay_manager.s"
+	@echo "... app/gameplay/src/golf_3d_mode.o"
+	@echo "... app/gameplay/src/golf_3d_mode.i"
+	@echo "... app/gameplay/src/golf_3d_mode.s"
 	@echo "... app/gameplay/src/gymnastics_mode.o"
 	@echo "... app/gameplay/src/gymnastics_mode.i"
 	@echo "... app/gameplay/src/gymnastics_mode.s"
@@ -3411,6 +3476,9 @@ help:
 	@echo "... tests/unit/gameplay/gameplay_test.o"
 	@echo "... tests/unit/gameplay/gameplay_test.i"
 	@echo "... tests/unit/gameplay/gameplay_test.s"
+	@echo "... tests/unit/gameplay/golf_3d_karate_test.o"
+	@echo "... tests/unit/gameplay/golf_3d_karate_test.i"
+	@echo "... tests/unit/gameplay/golf_3d_karate_test.s"
 	@echo "... tests/unit/gameplay/scan_envelope_test.o"
 	@echo "... tests/unit/gameplay/scan_envelope_test.i"
 	@echo "... tests/unit/gameplay/scan_envelope_test.s"

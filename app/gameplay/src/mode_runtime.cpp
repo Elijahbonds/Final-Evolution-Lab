@@ -12,8 +12,9 @@ namespace nexus::gameplay {
 namespace {
 
 [[nodiscard]] auto isOutcomeSportMode(std::string_view modeId) -> bool {
+  // "golf" is now handled by Golf3DMode, so exclude it from OutcomeSportMode
   return modeId == "basketball_3v3" || modeId == "karate_h2h" || modeId == "baseball" ||
-         modeId == "football" || modeId == "soccer" || modeId == "golf" || modeId == "tennis" ||
+         modeId == "football" || modeId == "soccer" || modeId == "tennis" ||
          modeId == "volleyball";
 }
 
@@ -86,6 +87,9 @@ auto ModeRuntime::setMode(std::string_view modeId) -> Result<void> {
   } else if (modeId == "story_carnival") {
     m_kind = ActiveModeKind::kStoryCarnival;
     m_story.reset();
+  } else if (modeId == "golf") {
+    m_kind = ActiveModeKind::kGolf3D;
+    m_golf3D.reset();
   } else if (isOutcomeSportMode(modeId)) {
     m_kind = ActiveModeKind::kOutcomeSport;
     m_outcomeSport.reset(modeId);
@@ -116,6 +120,7 @@ void ModeRuntime::reset() {
   m_whoSceneIt.reset();
   m_outcomeSport.reset();
   m_story.reset();
+  m_golf3D.reset();
   m_lastThrowPulseCount = 0;
   m_browseItemsViewed = 0;
 }
@@ -146,6 +151,8 @@ void ModeRuntime::update(double deltaSeconds) {
     m_outcomeSport.update(deltaSeconds);
   } else if (m_kind == ActiveModeKind::kStoryCarnival) {
     m_story.update(deltaSeconds);
+  } else if (m_kind == ActiveModeKind::kGolf3D) {
+    m_golf3D.update(deltaSeconds);
   }
 }
 
@@ -543,6 +550,49 @@ auto ModeRuntime::handleCommand(std::string_view command, const nlohmann::json& 
         return Result<nlohmann::json>::err("invalid zone id");
       }
       return m_story.travelToZone(static_cast<StageZoneId>(zoneInt));
+    }
+  }
+
+  // ── Golf 3D mode commands ─────────────────────────────────────────────────
+  if (m_kind == ActiveModeKind::kGolf3D) {
+    if (command == "fel.golf.address") {
+      const bool autoClub = params.value("auto_club", true);
+      return m_golf3D.beginAddress(autoClub);
+    }
+    if (command == "fel.golf.aim") {
+      const float delta = params.value("delta_degrees", 0.0F);
+      return m_golf3D.adjustAim(delta);
+    }
+    if (command == "fel.golf.select_club") {
+      const std::string clubStr = params.value("club", "driver");
+      GolfClub club = GolfClub::kDriver;
+      if (clubStr == "iron")   club = GolfClub::kIron;
+      else if (clubStr == "wedge") club = GolfClub::kWedge;
+      else if (clubStr == "putter") club = GolfClub::kPutter;
+      return m_golf3D.selectClub(club);
+    }
+    if (command == "fel.golf.swing_start") {
+      return m_golf3D.startSwing();
+    }
+    if (command == "fel.golf.swing_tap") {
+      return m_golf3D.swingTap();
+    }
+    if (command == "fel.golf.move") {
+      const float dx = params.value("dx", 0.0F);
+      const float dz = params.value("dz", 0.0F);
+      const double dt = params.value("dt", 0.016);
+      return m_golf3D.movePlayer(dx, dz, dt);
+    }
+    if (command == "fel.golf.state") {
+      return Result<nlohmann::json>::ok(m_golf3D.stateJson());
+    }
+    // Convenience alias: "fel.arena.mode_input" with action="swing_tap"
+    if (command == "fel.arena.mode_input") {
+      const std::string action = params.value("action", "");
+      if (action == "swing_tap") return m_golf3D.swingTap();
+      if (action == "swing_start") return m_golf3D.startSwing();
+      if (action == "address") return m_golf3D.beginAddress(true);
+      return Result<nlohmann::json>::ok(m_golf3D.stateJson());
     }
   }
 

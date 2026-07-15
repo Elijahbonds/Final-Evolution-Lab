@@ -50,7 +50,27 @@ auto CharacterAnimStateMachine::resolve(std::string_view modeId,
       return {std::string(clips::kKarateDown), 1.0F, false, 1.0F};
     }
     if (phase == "intermission") {
+      // Cycle idle variants during intermission
+      if (lastAction == "idle_breathe") {
+        return {std::string(clips::kIdleBreath), 1.0F, true, 0.6F};
+      }
+      if (lastAction == "idle_stretch") {
+        return {std::string(clips::kIdleStretch), 1.0F, true, 0.8F};
+      }
+      if (lastAction == "idle_shift") {
+        return {std::string(clips::kIdleShift), 1.0F, true, 0.7F};
+      }
       return {std::string(clips::kKarateIdle), 1.0F, true, 0.6F};
+    }
+    // Movement clips
+    if (lastAction == "walk") {
+      return {std::string(clips::kWalk), 1.0F, true, 1.0F};
+    }
+    if (lastAction == "run") {
+      return {std::string(clips::kRun), 1.0F, true, 1.0F};
+    }
+    if (lastAction == "sprint") {
+      return {std::string(clips::kSprint), 1.0F, true, 1.0F};
     }
     // Combat phase — read last action
     if (lastAction == "light_strike") {
@@ -75,6 +95,32 @@ auto CharacterAnimStateMachine::resolve(std::string_view modeId,
       return {std::string(clips::kKarateHit), 1.0F, false, 1.0F};
     }
     return {std::string(clips::kKarateIdle), 1.0F, true, 1.0F};
+  }
+
+  // ── Golf 3D ────────────────────────────────────────────────────────────────
+  if (modeId == "golf") {
+    if (phase == "backswing") {
+      return {std::string(clips::kGolfBackswing), 1.0F, false, 1.0F};
+    }
+    if (phase == "downswing" || phase == "follow_through") {
+      return {std::string(clips::kGolfSwing), 1.0F, false, 1.0F};
+    }
+    if (phase == "follow_through") {
+      return {std::string(clips::kGolfFollowThrough), 1.0F, false, 1.0F};
+    }
+    if (lastAction == "putt" || phase == "putt") {
+      return {std::string(clips::kGolfPutt), 1.0F, false, 1.0F};
+    }
+    if (lastAction == "chip") {
+      return {std::string(clips::kGolfChip), 1.0F, false, 1.0F};
+    }
+    if (phase == "hole_complete" || phase == "round_complete") {
+      return {std::string(clips::kGolfCelebrate), 1.0F, false, 0.85F};
+    }
+    if (phase == "walking") {
+      return {std::string(clips::kGolfWalk), 1.0F, true, 1.0F};
+    }
+    return {std::string(clips::kGolfAddress), 1.0F, true, 1.0F};
   }
 
   // ── Basketball pickup / 3v3 ───────────────────────────────────────────────

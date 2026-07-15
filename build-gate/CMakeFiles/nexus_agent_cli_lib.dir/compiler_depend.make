@@ -6,6 +6,7 @@ CMakeFiles/nexus_agent_cli_lib.dir/tools/nexus_agent_cli/agent_cli_session.cpp.o
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/arena_3d_space.h \
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/arena_session_manager.h \
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/brain_brawl_mode.h \
+  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/character_anim_state.h \
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/combat_system.h \
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/court_carnival_mode.h \
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/dunk_contest_mode.h \
@@ -17,6 +18,7 @@ CMakeFiles/nexus_agent_cli_lib.dir/tools/nexus_agent_cli/agent_cli_session.cpp.o
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/flight_system.h \
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/gameplay_application.h \
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/gameplay_manager.h \
+  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/golf_3d_mode.h \
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/gymnastics_mode.h \
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/health_system.h \
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/hud_relay_service.h \
@@ -956,8 +958,6 @@ CMakeFiles/nexus_agent_cli_lib.dir/tools/nexus_agent_cli/agent_http_listener.cpp
 
 /usr/include/x86_64-linux-gnu/c++/13/bits/error_constants.h:
 
-/usr/include/x86_64-linux-gnu/c++/13/bits/ctype_base.h:
-
 /usr/include/x86_64-linux-gnu/c++/13/bits/cpu_defines.h:
 
 /usr/include/x86_64-linux-gnu/c++/13/bits/c++allocator.h:
@@ -1140,6 +1140,10 @@ CMakeFiles/nexus_agent_cli_lib.dir/tools/nexus_agent_cli/agent_http_listener.cpp
 
 /usr/include/c++/13/unordered_map:
 
+/usr/include/c++/13/tr1/special_function_util.h:
+
+/usr/include/c++/13/tr1/riemann_zeta.tcc:
+
 /usr/include/stdio.h:
 
 /usr/include/c++/13/bits/hash_bytes.h:
@@ -1286,10 +1290,6 @@ _deps/nlohmann_json-src/include/nlohmann/detail/meta/void_t.hpp:
 
 _deps/nlohmann_json-src/include/nlohmann/json.hpp:
 
-_deps/nlohmann_json-src/include/nlohmann/detail/input/input_adapters.hpp:
-
-/usr/include/c++/13/tr1/legendre_function.tcc:
-
 _deps/nlohmann_json-src/include/nlohmann/detail/input/json_sax.hpp:
 
 /usr/include/c++/13/bits/locale_facets.tcc:
@@ -1298,25 +1298,15 @@ _deps/nlohmann_json-src/include/nlohmann/detail/value_t.hpp:
 
 /usr/include/alloca.h:
 
+_deps/nlohmann_json-src/include/nlohmann/detail/string_concat.hpp:
+
+_deps/nlohmann_json-src/include/nlohmann/detail/input/position_t.hpp:
+
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/tools/nexus_agent_cli/agent_cli_session.cpp:
 
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/generative/include/nexus/generative/environment_scan_types.h:
 
 /usr/include/c++/13/bits/ranges_uninitialized.h:
-
-/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/net/include/nexus/net/net_session.h:
-
-/usr/include/c++/13/bits/slice_array.h:
-
-/usr/include/x86_64-linux-gnu/c++/13/bits/c++config.h:
-
-_deps/nlohmann_json-src/include/nlohmann/detail/exceptions.hpp:
-
-_deps/nlohmann_json-src/include/nlohmann/detail/json_custom_base_class.hpp:
-
-/usr/include/c++/13/tuple:
-
-/usr/include/c++/13/pstl/glue_algorithm_defs.h:
 
 /usr/include/x86_64-linux-gnu/c++/13/bits/atomic_word.h:
 
@@ -1396,17 +1386,9 @@ _deps/nlohmann_json-src/include/nlohmann/detail/output/output_adapters.hpp:
 
 /usr/include/c++/13/bits/uses_allocator_args.h:
 
-_deps/nlohmann_json-src/include/nlohmann/ordered_map.hpp:
+/usr/include/x86_64-linux-gnu/c++/13/bits/ctype_base.h:
 
-_deps/nlohmann_json-src/include/nlohmann/detail/conversions/to_chars.hpp:
-
-/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/brain_brawl_mode.h:
-
-/usr/include/x86_64-linux-gnu/bits/pthreadtypes-arch.h:
-
-/usr/include/string.h:
-
-/usr/include/c++/13/bits/stl_vector.h:
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/golf_3d_mode.h:
 
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/exercise_demo_pipeline.h:
 
@@ -1417,6 +1399,16 @@ _deps/nlohmann_json-src/include/nlohmann/detail/conversions/to_chars.hpp:
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/hud_relay_service.h:
 
 /usr/include/c++/13/bits/locale_classes.h:
+
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/brain_brawl_mode.h:
+
+_deps/nlohmann_json-src/include/nlohmann/detail/conversions/to_chars.hpp:
+
+/usr/include/x86_64-linux-gnu/bits/pthreadtypes-arch.h:
+
+/usr/include/string.h:
+
+/usr/include/c++/13/bits/stl_vector.h:
 
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/arena_session_manager.h:
 
@@ -1432,19 +1424,19 @@ _deps/nlohmann_json-src/include/nlohmann/detail/conversions/to_chars.hpp:
 
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/surfing_mode.h:
 
-_deps/nlohmann_json-src/include/nlohmann/detail/string_concat.hpp:
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/wave_spawner.h:
 
-_deps/nlohmann_json-src/include/nlohmann/detail/input/position_t.hpp:
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/skateboarding_mode.h:
+
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/ai_interface/include/nexus/ai/agent_server.h:
+
+/usr/include/ctype.h:
+
+/usr/include/c++/13/bits/nested_exception.h:
 
 /usr/include/c++/13/debug/debug.h:
 
 /usr/include/c++/13/random:
-
-/usr/include/x86_64-linux-gnu/asm/posix_types.h:
-
-/usr/lib/gcc/x86_64-linux-gnu/13/include/syslimits.h:
-
-/usr/include/c++/13/tr1/modified_bessel_func.tcc:
 
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/combat_system.h:
 
@@ -1458,47 +1450,19 @@ _deps/nlohmann_json-src/include/nlohmann/detail/input/position_t.hpp:
 
 _deps/nlohmann_json-src/include/nlohmann/detail/iterators/internal_iterator.hpp:
 
-/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/wave_spawner.h:
-
-/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/skateboarding_mode.h:
-
-/usr/include/c++/13/tr1/riemann_zeta.tcc:
-
-/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/ai_interface/include/nexus/ai/agent_server.h:
-
-/usr/include/ctype.h:
-
-/usr/include/c++/13/bits/nested_exception.h:
-
-/usr/include/asm-generic/sockios.h:
-
-/usr/include/c++/13/typeinfo:
-
-/usr/include/c++/13/bits/hashtable_policy.h:
-
-/usr/include/c++/13/bits/gslice.h:
-
 /usr/include/c++/13/bits/exception_defines.h:
 
 /usr/include/c++/13/bits/mask_array.h:
+
+/usr/include/x86_64-linux-gnu/bits/unistd_ext.h:
+
+/usr/include/c++/13/cassert:
 
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/gameplay_manager.h:
 
 /usr/include/c++/13/cerrno:
 
 /usr/include/c++/13/tr1/hypergeometric.tcc:
-
-/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/venice_pickup_mode.h:
-
-/usr/include/c++/13/bits/ios_base.h:
-
-/usr/include/x86_64-linux-gnu/bits/types/struct_itimerspec.h:
-
-/usr/include/c++/13/semaphore:
-
-_deps/nlohmann_json-src/include/nlohmann/detail/meta/cpp_future.hpp:
-
-/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/fitness_data.h:
 
 /usr/include/x86_64-linux-gnu/asm/socket.h:
 
@@ -1519,6 +1483,34 @@ _deps/nlohmann_json-src/include/nlohmann/detail/meta/detected.hpp:
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/gameplay_application.h:
 
 _deps/nlohmann_json-src/include/nlohmann/detail/macro_unscope.hpp:
+
+_deps/nlohmann_json-src/include/nlohmann/detail/meta/cpp_future.hpp:
+
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/fitness_data.h:
+
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/venice_pickup_mode.h:
+
+/usr/include/c++/13/bits/ios_base.h:
+
+/usr/include/x86_64-linux-gnu/bits/types/struct_itimerspec.h:
+
+/usr/include/c++/13/semaphore:
+
+_deps/nlohmann_json-src/include/nlohmann/ordered_map.hpp:
+
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/net/include/nexus/net/net_session.h:
+
+/usr/include/c++/13/bits/slice_array.h:
+
+/usr/include/x86_64-linux-gnu/c++/13/bits/c++config.h:
+
+_deps/nlohmann_json-src/include/nlohmann/detail/exceptions.hpp:
+
+_deps/nlohmann_json-src/include/nlohmann/detail/json_custom_base_class.hpp:
+
+/usr/include/c++/13/tuple:
+
+/usr/include/c++/13/pstl/glue_algorithm_defs.h:
 
 _deps/nlohmann_json-src/include/nlohmann/byte_container_with_subtype.hpp:
 
@@ -1543,6 +1535,18 @@ _deps/nlohmann_json-src/include/nlohmann/detail/input/binary_reader.hpp:
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/arena_3d_space.h:
 
 /usr/include/c++/13/ext/string_conversions.h:
+
+_deps/nlohmann_json-src/include/nlohmann/detail/input/input_adapters.hpp:
+
+/usr/include/asm-generic/sockios.h:
+
+/usr/include/c++/13/typeinfo:
+
+/usr/include/c++/13/bits/gslice.h:
+
+/usr/include/c++/13/bits/hashtable_policy.h:
+
+/usr/include/c++/13/tr1/legendre_function.tcc:
 
 /usr/include/c++/13/bits/gslice_array.h:
 
@@ -1592,6 +1596,12 @@ _deps/nlohmann_json-src/include/nlohmann/detail/iterators/iteration_proxy.hpp:
 
 _deps/nlohmann_json-src/include/nlohmann/detail/json_ref.hpp:
 
+/usr/include/x86_64-linux-gnu/asm/posix_types.h:
+
+/usr/lib/gcc/x86_64-linux-gnu/13/include/syslimits.h:
+
+/usr/include/c++/13/tr1/modified_bessel_func.tcc:
+
 /usr/include/x86_64-linux-gnu/bits/stdint-uintn.h:
 
 /usr/include/c++/13/bits/locale_facets.h:
@@ -1604,16 +1614,6 @@ _deps/nlohmann_json-src/include/nlohmann/detail/meta/is_sax.hpp:
 
 _deps/nlohmann_json-src/include/nlohmann/detail/meta/call_std/end.hpp:
 
-/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/snowboarding_mode.h:
-
-/usr/include/poll.h:
-
-/usr/include/x86_64-linux-gnu/bits/wchar.h:
-
-/usr/include/c++/13/clocale:
-
-/usr/include/c++/13/iterator:
-
 /usr/include/x86_64-linux-gnu/bits/syscall.h:
 
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/ai_interface/include/nexus/ai/command_router.h:
@@ -1623,6 +1623,16 @@ _deps/nlohmann_json-src/include/nlohmann/detail/meta/call_std/end.hpp:
 _deps/nlohmann_json-src/include/nlohmann/detail/string_escape.hpp:
 
 /usr/include/c++/13/bits/streambuf_iterator.h:
+
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/snowboarding_mode.h:
+
+/usr/include/poll.h:
+
+/usr/include/x86_64-linux-gnu/bits/wchar.h:
+
+/usr/include/c++/13/clocale:
+
+/usr/include/c++/13/iterator:
 
 _deps/nlohmann_json-src/include/nlohmann/detail/meta/std_fs.hpp:
 
@@ -1816,10 +1826,6 @@ _deps/nlohmann_json-src/include/nlohmann/detail/meta/call_std/begin.hpp:
 
 /usr/include/c++/13/cstdint:
 
-/usr/include/x86_64-linux-gnu/bits/unistd_ext.h:
-
-/usr/include/c++/13/cassert:
-
 /usr/include/c++/13/cctype:
 
 /usr/include/c++/13/bits/locale_classes.tcc:
@@ -1894,6 +1900,8 @@ _deps/nlohmann_json-src/include/nlohmann/detail/meta/type_traits.hpp:
 
 /usr/include/c++/13/pstl/execution_defs.h:
 
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/character_anim_state.h:
+
 /usr/include/c++/13/pstl/pstl_config.h:
 
 _deps/nlohmann_json-src/include/nlohmann/detail/iterators/iter_impl.hpp:
@@ -1919,5 +1927,3 @@ _deps/nlohmann_json-src/include/nlohmann/detail/iterators/primitive_iterator.hpp
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/generative/include/nexus/generative/generative_pipeline.h:
 
 /usr/include/c++/13/tr1/poly_laguerre.tcc:
-
-/usr/include/c++/13/tr1/special_function_util.h:

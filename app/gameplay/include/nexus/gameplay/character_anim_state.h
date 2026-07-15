@@ -17,7 +17,8 @@ namespace nexus::gameplay {
 namespace clips {
   // ── Locomotion ──────────────────────────────────────────────────────────
   inline constexpr std::string_view kIdle         = "idle_stand";
-  inline constexpr std::string_view kRun          = "run_forward";
+  inline constexpr std::string_view kWalk         = "walk_forward";   // normal-pace movement
+  inline constexpr std::string_view kRun          = "run_forward";    // fast/perk movement
   inline constexpr std::string_view kRunBack      = "run_backward";
   inline constexpr std::string_view kSprint       = "sprint_forward";
   inline constexpr std::string_view kJump         = "jump_up";
@@ -25,6 +26,11 @@ namespace clips {
   inline constexpr std::string_view kFall         = "fall_loop";
   inline constexpr std::string_view kStrafe_L     = "strafe_left";
   inline constexpr std::string_view kStrafe_R     = "strafe_right";
+
+  // ── Idle variants (rotate through every ~5 s to avoid static T-pose feel) ─
+  inline constexpr std::string_view kIdleBreath   = "idle_breathe";        // variant 1
+  inline constexpr std::string_view kIdleStretch  = "idle_stretch";        // variant 2
+  inline constexpr std::string_view kIdleShift    = "idle_shift_weight";   // variant 3
 
   // ── Dunk Contest ────────────────────────────────────────────────────────
   inline constexpr std::string_view kDunkApproach = "dunk_approach_run";
@@ -87,6 +93,17 @@ namespace clips {
   inline constexpr std::string_view kSurfCarve    = "surf_carve_cutback";
   inline constexpr std::string_view kSurfAerial   = "surf_aerial_360";
   inline constexpr std::string_view kSurfTube     = "surf_tube_crouch";
+
+  // ── Golf 3D ────────────────────────────────────────────────────────────────
+  inline constexpr std::string_view kGolfIdle          = "golf_idle_address";
+  inline constexpr std::string_view kGolfWalk          = "golf_walk";
+  inline constexpr std::string_view kGolfAddress       = "golf_address_setup";   // player lining up
+  inline constexpr std::string_view kGolfBackswing     = "golf_backswing";       // power wind-up
+  inline constexpr std::string_view kGolfSwing         = "golf_downswing";       // impact
+  inline constexpr std::string_view kGolfFollowThrough = "golf_follow_through";  // finish
+  inline constexpr std::string_view kGolfPutt          = "golf_putt_stroke";     // putting
+  inline constexpr std::string_view kGolfChip          = "golf_chip_shot";       // chip near green
+  inline constexpr std::string_view kGolfCelebrate     = "golf_celebrate";       // birdie/eagle
 
   // ── Story / traversal (KH1 + SA2 inspired) ───────────────────────────────
   // Rail grind clips (Sonic Adventure Battle 2 style)

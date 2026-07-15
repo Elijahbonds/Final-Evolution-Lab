@@ -1,0 +1,483 @@
+Start testing: Jul 15 09:35 UTC
+----------------------------------------------------------
+1/15 Testing: nexus_protocol_test
+1/15 Test: nexus_protocol_test
+Command: "/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/nexus_protocol_test"
+Directory: /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate
+"nexus_protocol_test" start time: Jul 15 09:35 UTC
+Output:
+----------------------------------------------------------
+[info][ai] Command router initialized
+[info][ai] Agent server initialized
+[info][ai] Agent server shutdown
+[info][ai] Command router shutdown
+PASS: nexus_protocol_test
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"nexus_protocol_test" end time: Jul 15 09:35 UTC
+"nexus_protocol_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/15 Testing: nexus_agent_cli_test
+2/15 Test: nexus_agent_cli_test
+Command: "/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/nexus_agent_cli_test"
+Directory: /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate
+"nexus_agent_cli_test" start time: Jul 15 09:35 UTC
+Output:
+----------------------------------------------------------
+[info][ai] Command router initialized
+[info][ai] Agent server initialized
+[info][ai] Agent CLI session initialized
+[info][creative] LLM creative command applied: fel.creative.raise_terrain
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][creative] LLM creative command applied: fel.creative.raise_terrain
+[info][creative] LLM creative command applied: fel.creative.paint_terrain
+[info][generative] Enqueued generative job gen_1 for asset gen_small_sand_mound_with_traini
+[info][generative] StubGenerativeAdapter: external API not configured — procedural fallback
+[info][generative] Registered generative asset in manifest: gen_small_sand_mound_with_traini
+[info][generative] Generative job complete (procedural): gen_1 -> /tmp/nexus_agent_cli_test/imported/gen_small_sand_mound_with_traini.nexusmesh.json
+[info][generative] Agent command fel.generate.create_model accepted: gen_1
+[info][generative] Text prompt plan executed: intent=mixed steps=3
+[info][ai] Agent server shutdown
+[info][ai] Command router shutdown
+[info][ai] Agent CLI session shutdown
+PASS: nexus_agent_cli_test
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"nexus_agent_cli_test" end time: Jul 15 09:35 UTC
+"nexus_agent_cli_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/15 Testing: nexus_cell_test
+3/15 Test: nexus_cell_test
+Command: "/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/nexus_cell_test"
+Directory: /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab
+"nexus_cell_test" start time: Jul 15 09:35 UTC
+Output:
+----------------------------------------------------------
+[info][cell] [BudgetMeter] Daily counters reset.
+[warn][cell] [BudgetMeter] test_sub over cap — skipping. cap=1000
+[info][cell] [BudgetMeter] Daily counters reset.
+PASS: nexus_cell_test
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"nexus_cell_test" end time: Jul 15 09:35 UTC
+"nexus_cell_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/15 Testing: nexus_gameplay_test
+4/15 Test: nexus_gameplay_test
+Command: "/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/nexus_gameplay_test"
+Directory: /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate
+"nexus_gameplay_test" start time: Jul 15 09:35 UTC
+Output:
+----------------------------------------------------------
+[info][ai] Fitness metrics updated from agent command
+[info][ai] Fitness metrics updated from agent command
+[info][ai] Fitness metrics updated from agent command
+[info][ai] Fitness metrics updated from agent command
+[info][creative] LLM creative command applied: fel.creative.raise_terrain
+[info][creative] LLM creative command applied: fel.creative.raise_terrain
+[info][creative] LLM creative command applied: fel.creative.lower_terrain
+[info][creative] LLM creative command applied: fel.creative.raise_terrain
+[info][creative] LLM creative command applied: fel.creative.flatten_terrain
+[info][creative] LLM creative command applied: fel.creative.raise_terrain
+[info][creative] LLM creative command applied: fel.creative.paint_terrain
+[info][creative] LLM creative command applied: fel.creative.set_voxels
+[info][creative] LLM creative command applied: fel.creative.fill_region
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][ai] Fitness metrics updated from agent command
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][physics] Physics world shutdown
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][core] Arena session started mode=karate_h2h venue=Zen_Dojo
+[info][ai] Venue travel venue=Zen_Dojo mode=karate_h2h
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][physics] Physics world shutdown
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][core] Arena session started mode=basketball_h2h venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=basketball_h2h
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] Session receipt queued for POST /api/games/session mode=basketball_h2h
+[info][core] Arena session ended mode=basketball_h2h outcome=win
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][physics] Physics world shutdown
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][core] Arena session started mode=basketball_dunk venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=basketball_dunk
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][ai] Session receipt queued for POST /api/games/session mode=basketball_dunk
+[info][core] Arena session ended mode=basketball_dunk outcome=win
+[info][physics] Physics world shutdown
+[info][core] Arena session started mode=basketball_dunk venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=basketball_dunk
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][core] Arena session started mode=basketball_dunk venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=basketball_dunk
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] Session receipt queued for POST /api/games/session mode=basketball_dunk
+[info][core] Arena session ended mode=basketball_dunk outcome=win
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][ai] Session receipt persisted for iOS/SessionService pickup path=/home/runner/.fel/pending_receipts/9b83311bfeac01ba.json
+[info][ai] HTTP stub POST url=http://127.0.0.1:8000/api/games/session bytes=667
+[info][ai] Session receipt POST mode=basketball_dunk score=21 status=200
+[info][ai] Session receipt persisted for iOS/SessionService pickup path=/tmp/fel_receipt_dedup_test_5892/abc123session.json
+[info][ai] HTTP stub POST url=http://127.0.0.1:8000/api/games/session bytes=82
+[info][ai] Session receipt POST mode=karate_endless score=42 status=200
+[info][ai] Session receipt persisted for iOS/SessionService pickup path=/tmp/fel_receipt_dedup_test_5892/abc123session.json
+[info][ai] HTTP stub POST url=http://127.0.0.1:8000/api/games/session bytes=82
+[info][ai] Session receipt POST mode=karate_endless score=99 status=200
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][core] Arena session started mode=basketball_dunk venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=basketball_dunk
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][physics] Physics world shutdown
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] Venue travel venue=Venice_Beach_Court mode=basketball_dunk
+[info][ai] HTTP stub POST url=http://127.0.0.1:8000/api/games/session bytes=144
+[info][ai] FEL bridge session POST ok mode=basketball_dunk
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][ai] HTTP stub POST url=http://127.0.0.1:8000/api/games/session bytes=289
+[info][ai] Session receipt POST mode=karate_endless score=15 status=200
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][core] Arena session started mode=karate_endless venue=Zen_Dojo
+[info][ai] Venue travel venue=Zen_Dojo mode=karate_endless
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][physics] Physics world shutdown
+[info][ai] Venue travel venue=Zen_Dojo mode=karate_h2h
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][physics] Physics world shutdown
+[info][ai] Command router initialized
+[info][ai] Agent server initialized
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][ai] Fitness metrics updated from agent command
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][ai] Agent server shutdown
+[info][ai] Command router shutdown
+[info][physics] Physics world shutdown
+[info][ai] Command router initialized
+[info][ai] Agent server initialized
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][ai] Fitness metrics updated from agent command
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][ai] Agent server shutdown
+[info][ai] Command router shutdown
+[info][physics] Physics world shutdown
+[info][core] Arena session started mode=basketball_dunk venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=basketball_dunk
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][ai] Session receipt queued for POST /api/games/session mode=basketball_dunk
+[info][core] Arena session ended mode=basketball_dunk outcome=win
+[info][physics] Physics world shutdown
+[info][core] Arena session started mode=karate_endless venue=Zen_Dojo
+[info][ai] Venue travel venue=Zen_Dojo mode=karate_endless
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][physics] Physics world shutdown
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][core] Arena session started mode=karate_endless venue=Zen_Dojo
+[info][ai] Venue travel venue=Zen_Dojo mode=karate_endless
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][physics] Physics world shutdown
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][core] Arena session started mode=basketball_dunk venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=basketball_dunk
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][ai] Session receipt queued for POST /api/games/session mode=basketball_dunk
+[info][core] Arena session ended mode=basketball_dunk outcome=win
+[info][physics] Physics world shutdown
+[info][core] Arena session started mode=basketball_h2h venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=basketball_h2h
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] Session receipt queued for POST /api/games/session mode=basketball_h2h
+[info][core] Arena session ended mode=basketball_h2h outcome=win
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][ai] Command router initialized
+[info][ai] Agent server initialized
+[info][core] Arena session started mode=snowboarding venue=Mountain_Slope
+[info][ai] Venue travel venue=Mountain_Slope mode=snowboarding
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][ai] Agent server shutdown
+[info][ai] Command router shutdown
+[info][core] Arena session started mode=snowboarding venue=Mountain_Slope
+[info][ai] Venue travel venue=Mountain_Slope mode=snowboarding
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][ai] Fitness metrics updated from agent command
+[info][core] Arena session started mode=basketball_dunk venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=basketball_dunk
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][physics] Physics world shutdown
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][core] Arena session started mode=karate_endless venue=Zen_Dojo
+[info][ai] Venue travel venue=Zen_Dojo mode=karate_endless
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][physics] Physics world shutdown
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][core] Arena session started mode=basketball_h2h venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=basketball_h2h
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] Fitness metrics updated from agent command
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][physics] Physics world shutdown
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][core] Arena session started mode=court_carnival venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=court_carnival
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][ai] Fitness metrics updated from agent command
+[info][physics] Physics world shutdown
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][core] Arena session started mode=story_carnival venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=story_carnival
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][physics] Physics world shutdown
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][core] Arena session started mode=gymnastics venue=Training_Floor
+[info][ai] Venue travel venue=Training_Floor mode=gymnastics
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][physics] Physics world shutdown
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][core] Arena session started mode=brain_brawl venue=Neuro_Arena
+[info][ai] Venue travel venue=Neuro_Arena mode=brain_brawl
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][core] Arena session ended mode=brain_brawl outcome=win
+[info][physics] Physics world shutdown
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][core] Arena session started mode=skateboarding venue=Skate_Park
+[info][ai] Venue travel venue=Skate_Park mode=skateboarding
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][physics] Physics world shutdown
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][core] Arena session started mode=snowboarding venue=Mountain_Slope
+[info][ai] Venue travel venue=Mountain_Slope mode=snowboarding
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][ai] Session receipt queued for POST /api/games/session mode=snowboarding
+[info][core] Arena session ended mode=snowboarding outcome=win
+[info][physics] Physics world shutdown
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][core] Arena session started mode=surfing venue=Venice_Beach_Surf
+[info][ai] Venue travel venue=Venice_Beach_Surf mode=surfing
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][ai] Session receipt queued for POST /api/games/session mode=surfing
+[info][core] Arena session ended mode=surfing outcome=win
+[info][physics] Physics world shutdown
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][core] Arena session started mode=baseball venue=Baseball_Park
+[info][ai] Venue travel venue=Baseball_Park mode=baseball
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][ai] Session receipt queued for POST /api/games/session mode=baseball
+[info][core] Arena session ended mode=baseball outcome=win
+[info][core] Arena session started mode=volleyball venue=Sand_Court
+[info][ai] Venue travel venue=Sand_Court mode=volleyball
+[info][ai] Session receipt queued for POST /api/games/session mode=volleyball
+[info][core] Arena session ended mode=volleyball outcome=win
+[info][physics] Physics world shutdown
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][core] Arena session started mode=soccer venue=Soccer_Stadium
+[info][ai] Venue travel venue=Soccer_Stadium mode=soccer
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][ai] Session receipt queued for POST /api/games/session mode=soccer
+[info][core] Arena session ended mode=soccer outcome=win
+[info][physics] Physics world shutdown
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][core] Arena session started mode=who_scene_it venue=Neuro_Arena
+[info][ai] Venue travel venue=Neuro_Arena mode=who_scene_it
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][core] Arena session ended mode=who_scene_it outcome=win
+[info][physics] Physics world shutdown
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][core] Arena session started mode=basketball_dunk venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=basketball_dunk
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] Session receipt queued for POST /api/games/session mode=basketball_dunk
+[info][core] Arena session ended mode=basketball_dunk outcome=win
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][ai] Session receipt persisted for iOS/SessionService pickup path=/home/runner/.fel/pending_receipts/302a3cf93178a898.json
+[info][ai] HTTP stub POST url=http://127.0.0.1:8000/api/games/session bytes=670
+[info][ai] Session receipt POST mode=basketball_dunk score=21 status=200
+[info][core] Arena session started mode=karate_endless venue=Zen_Dojo
+[info][ai] Venue travel venue=Zen_Dojo mode=karate_endless
+[info][ai] Session receipt queued for POST /api/games/session mode=karate_endless
+[info][core] Arena session ended mode=karate_endless outcome=draw
+[info][ai] Session receipt persisted for iOS/SessionService pickup path=/home/runner/.fel/pending_receipts/d43eac1e8dbb79ca.json
+[info][ai] HTTP stub POST url=http://127.0.0.1:8000/api/games/session bytes=1607
+[info][ai] Session receipt POST mode=karate_endless score=21 status=200
+[info][core] Arena session started mode=basketball_h2h venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=basketball_h2h
+[info][ai] Session receipt queued for POST /api/games/session mode=basketball_h2h
+[info][core] Arena session ended mode=basketball_h2h outcome=win
+[info][ai] Session receipt persisted for iOS/SessionService pickup path=/home/runner/.fel/pending_receipts/c054bf3334f52ff1.json
+[info][ai] HTTP stub POST url=http://127.0.0.1:8000/api/games/session bytes=889
+[info][ai] Session receipt POST mode=basketball_h2h score=21 status=200
+[info][core] Arena session started mode=basketball_3v3 venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=basketball_3v3
+[info][ai] Session receipt queued for POST /api/games/session mode=basketball_3v3
+[info][core] Arena session ended mode=basketball_3v3 outcome=win
+[info][ai] Session receipt persisted for iOS/SessionService pickup path=/home/runner/.fel/pending_receipts/532fb732287ab2f4.json
+[info][ai] HTTP stub POST url=http://127.0.0.1:8000/api/games/session bytes=908
+[info][ai] Session receipt POST mode=basketball_3v3 score=21 status=200
+[info][core] Arena session started mode=court_carnival venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=court_carnival
+[info][ai] Session receipt queued for POST /api/games/session mode=court_carnival
+[info][core] Arena session ended mode=court_carnival outcome=win
+[info][ai] Session receipt persisted for iOS/SessionService pickup path=/home/runner/.fel/pending_receipts/1038d42d846db200.json
+[info][ai] HTTP stub POST url=http://127.0.0.1:8000/api/games/session bytes=1088
+[info][ai] Session receipt POST mode=court_carnival score=21 status=200
+[info][physics] Physics world shutdown
+[info][core] Arena session started mode=basketball_h2h venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=basketball_h2h
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][core] Arena session started mode=basketball_h2h venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=venice_pickup
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][ai] Session receipt queued for POST /api/games/session mode=basketball_h2h
+[info][core] Arena session ended mode=basketball_h2h outcome=win
+[info][core] Arena session started mode=basketball_3v3 venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=basketball_3v3
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][ai] Session receipt queued for POST /api/games/session mode=basketball_3v3
+[info][core] Arena session ended mode=basketball_3v3 outcome=win
+[info][core] Arena session started mode=court_carnival venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=court_carnival
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][ai] Session receipt queued for POST /api/games/session mode=court_carnival
+[info][core] Arena session ended mode=court_carnival outcome=win
+[info][core] Arena session started mode=karate_h2h venue=Zen_Dojo
+[info][ai] Venue travel venue=Zen_Dojo mode=karate_h2h
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][ai] Session receipt queued for POST /api/games/session mode=karate_h2h
+[info][core] Arena session ended mode=karate_h2h outcome=win
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][creative] LLM creative command applied: fel.creative.raise_terrain
+[info][creative] LLM creative command applied: fel.creative.paint_terrain
+[info][generative] Enqueued generative job gen_1 for asset gen_small_sand_mound_at_center_wi
+[info][generative] StubGenerativeAdapter: external API not configured — procedural fallback
+[info][generative] Registered generative asset in manifest: gen_small_sand_mound_at_center_wi
+[info][generative] Generative job complete (procedural): gen_1 -> /tmp/nexus_gameplay_text_gen_5892/imported/gen_small_sand_mound_at_center_wi.nexusmesh.json
+[info][generative] Agent command fel.generate.create_model accepted: gen_1
+[info][generative] Text prompt plan executed: intent=mixed steps=3
+[info][ai] Command router initialized
+[info][ai] Agent server initialized
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][creative] LLM creative command applied: fel.creative.flatten_terrain
+[info][generative] Enqueued generative job gen_1 for asset gen_flatten_court_floor_and_add_o
+[info][generative] StubGenerativeAdapter: external API not configured — procedural fallback
+[info][generative] Registered generative asset in manifest: gen_flatten_court_floor_and_add_o
+[info][generative] Generative job complete (procedural): gen_1 -> /tmp/nexus_agent_text_gen_5892/imported/gen_flatten_court_floor_and_add_o.nexusmesh.json
+[info][generative] Agent command fel.generate.create_model accepted: gen_1
+[info][generative] Text prompt plan executed: intent=mixed steps=2
+[info][ai] Agent server shutdown
+[info][ai] Command router shutdown
+[info][core] Arena session started mode=karate_endless venue=Zen_Dojo
+[info][ai] Venue travel venue=Zen_Dojo mode=karate_endless
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][core] Arena session started mode=basketball_dunk venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=basketball_dunk
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][physics] Physics world initialized (intent-queue stub; CCD + multi-body constraint solver; Jolt-ready registerRigidBody API)
+[info][ai] Command router initialized
+[info][ai] Agent server initialized
+[info][core] Arena session started mode=basketball_dunk venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=basketball_dunk
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/vault (in-process transport)
+[info][ai] WebSocket stub connected url=ws://127.0.0.1:8787/ws/hud (in-process transport)
+[info][core] Arena session started mode=karate_endless venue=Zen_Dojo
+[info][ai] Venue travel venue=Zen_Dojo mode=karate_endless
+[info][core] Arena session started mode=basketball_h2h venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=basketball_h2h
+[info][ai] Fitness metrics updated from agent command
+[info][core] Arena session started mode=court_carnival venue=Venice_Beach_Court
+[info][ai] Venue travel venue=Venice_Beach_Court mode=court_carnival
+[info][core] Arena session started mode=gymnastics venue=Training_Floor
+[info][ai] Venue travel venue=Training_Floor mode=gymnastics
+[info][core] Arena session started mode=brain_brawl venue=Neuro_Arena
+[info][ai] Venue travel venue=Neuro_Arena mode=brain_brawl
+[info][core] Arena session started mode=skateboarding venue=Skate_Park
+[info][ai] Venue travel venue=Skate_Park mode=skateboarding
+[info][core] Arena session started mode=snowboarding venue=Mountain_Slope
+[info][ai] Venue travel venue=Mountain_Slope mode=snowboarding
+[info][core] Arena session started mode=who_scene_it venue=Neuro_Arena
+[info][ai] Venue travel venue=Neuro_Arena mode=who_scene_it
+[info][ai] Agent server shutdown
+[info][ai] Command router shutdown
+[info][physics] Physics world shutdown
+PASS: nexus_gameplay_test
+<end of output>
+Test time =   0.44 sec
+----------------------------------------------------------
+Test Passed.
+"nexus_gameplay_test" end time: Jul 15 09:35 UTC
+"nexus_gameplay_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/15 Testing: nexus_scan_envelope_test
+5/15 Test: nexus_scan_envelope_test
+Command: "/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/nexus_scan_envelope_test"
+Directory: /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate
+"nexus_scan_envelope_test" start time: Jul 15 09:35 UTC
+Output:
+----------------------------------------------------------
+[info][creative] LLM creative command applied: fel.creative.fill_region
+[info][generative] Scan envelope applied: arena_scale=1.065667 mode=court_carnival
+PASS: scan_envelope_test
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"nexus_scan_envelope_test" end time: Jul 15 09:35 UTC
+"nexus_scan_envelope_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/15 Testing: nexus_dunk_contest_test
+6/15 Test: nexus_dunk_contest_test
+Command: "/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/nexus_dunk_contest_test"
+Directory: /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate
+"nexus_dunk_contest_test" start time: Jul 15 09:35 UTC
+Output:
+----------------------------------------------------------
+PASS: all dunk_contest_test cases passed
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"nexus_dunk_contest_test" end time: Jul 15 09:35 UTC
+"nexus_dunk_contest_test" time elapsed: 00:00:00
+----------------------------------------------------------
+

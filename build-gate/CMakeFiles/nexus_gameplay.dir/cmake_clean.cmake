@@ -33,6 +33,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/nexus_gameplay.dir/app/gameplay/src/gameplay_application.cpp.o.d"
   "CMakeFiles/nexus_gameplay.dir/app/gameplay/src/gameplay_manager.cpp.o"
   "CMakeFiles/nexus_gameplay.dir/app/gameplay/src/gameplay_manager.cpp.o.d"
+  "CMakeFiles/nexus_gameplay.dir/app/gameplay/src/golf_3d_mode.cpp.o"
+  "CMakeFiles/nexus_gameplay.dir/app/gameplay/src/golf_3d_mode.cpp.o.d"
   "CMakeFiles/nexus_gameplay.dir/app/gameplay/src/gymnastics_mode.cpp.o"
   "CMakeFiles/nexus_gameplay.dir/app/gameplay/src/gymnastics_mode.cpp.o.d"
   "CMakeFiles/nexus_gameplay.dir/app/gameplay/src/health_system.cpp.o"

@@ -1,15 +1,17 @@
-nexus_protocol_test 6 0.000715837
-nexus_agent_cli_test 6 0.00129146
-nexus_gameplay_test 4 0.107472
-nexus_scan_envelope_test 6 0.000924882
-nexus_generative_test 6 0.00231104
-nexus_physics_test 6 0.000250317
-nexus_physics_advanced_test 6 0.000742047
-nexus_job_system_test 6 0.00314151
-nexus_cartridge_test 6 0.000333908
-nexus_scale_policy_test 6 0.000263725
-nexus_realtime_test 6 0.000305061
-nexus_net_test 6 0.000326928
-nexus_dunk_contest_test 4 0.000461809
-nexus_cell_test 2 0.00153416
+nexus_protocol_test 8 0.000735732
+nexus_agent_cli_test 8 0.00129013
+nexus_gameplay_test 6 0.0764953
+nexus_scan_envelope_test 8 0.000840101
+nexus_generative_test 8 0.00168647
+nexus_physics_test 8 0.000228679
+nexus_physics_advanced_test 8 0.000627107
+nexus_job_system_test 8 0.00250099
+nexus_cartridge_test 8 0.000280607
+nexus_scale_policy_test 8 0.000180581
+nexus_realtime_test 8 0.000217999
+nexus_net_test 8 0.000242682
+nexus_dunk_contest_test 6 0.000332297
+nexus_cell_test 4 0.000881269
+nexus_golf3d_karate_test 0 0
 ---
+nexus_golf3d_karate_test

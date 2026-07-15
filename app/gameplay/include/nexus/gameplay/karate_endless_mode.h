@@ -45,16 +45,20 @@ struct KaratePerkState {
 };
 
 // ── Camera3D ─────────────────────────────────────────────────────────────────
-// Naruto Storm style camera: orbits behind the player, snaps to lock-on target,
-// zooms dramatically during jutsu.
+// COD-style tight over-the-shoulder TPS camera with optional lock-on.
+// Default: orbits close behind the player at shoulder height (~1.8 m).
+// Lock-on: stays behind player but looks toward the locked enemy.
+// Jutsu: zooms in for a brief cinematic.
 struct Camera3D {
-  Vec3  position{0.0F, 5.0F, -12.0F};  // world-space camera pos
+  Vec3  position{0.0F, 1.8F, -4.0F};   // world-space camera pos
   Vec3  target{0.0F, 1.2F, 0.0F};      // look-at point
   float fovDegrees{75.0F};
   bool  cinematic{false};  // true during jutsu — renderer may add lens flare / blur
 
+  // playerYaw: horizontal facing in degrees (0 = +Z). Used to orbit
+  // camera behind the player in their local space.
   void trackPlayer(Vec3 playerPos, Vec3 lockedEnemyPos, bool hasLockOn,
-                   bool jutsuing, double dt) noexcept;
+                   bool jutsuing, float playerYaw, double dt) noexcept;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -170,6 +174,15 @@ private:
   std::string      m_lastAnimAction{"idle"};
   std::array<CharacterState3D, kMaxPlayers> m_enemy3D{};
   Camera3D m_camera{};
+
+  // ── Idle animation cycling ────────────────────────────────────────────────
+  // Rotates through idle variants every kIdleVariantInterval seconds so the
+  // character never stands perfectly still. Index cycles 0–3:
+  //   0 = karate_idle_stance, 1 = idle_breathe, 2 = idle_stretch,
+  //   3 = idle_shift_weight
+  float m_idleTimer{0.0F};
+  int   m_idleVariantIndex{0};
+  static constexpr float kIdleVariantInterval = 5.0F;  // seconds between rotations
 
   // Non-owning pointer; null → AI-only, non-null → real remote peer overlay.
   const RemotePlayerState* m_remoteOpponent{nullptr};

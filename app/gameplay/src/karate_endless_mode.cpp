@@ -1,5 +1,6 @@
 #include "nexus/gameplay/karate_endless_mode.h"
 #include "nexus/gameplay/character_anim_state.h"
+#include "nexus/gameplay/prq_engine.h"
 
 #include <algorithm>
 #include <cmath>
@@ -12,20 +13,47 @@ constexpr float kRegenRateMin              = 0.5F;
 constexpr float kRegenRateMax              = 2.0F;
 constexpr int   kSpecialMoveComboThreshold = 8;
 constexpr float kArenaRadius              = 7.5F;  // dojo half-width
+
+// ── PRQ scaling helpers ───────────────────────────────────────────────────────
+// PRQ score [0,100] maps to a [0.7, 1.4] speed/damage multiplier so players
+// at elite PRQ are noticeably faster and hit harder.
+[[nodiscard]] inline auto prqSpeedScale() -> float {
+  const float score = std::clamp(PRQEngine::getScore(), 0.0F, 100.0F);
+  return 0.7F + score * 0.007F;  // 0.7 → 1.4 across the PRQ range
+}
+[[nodiscard]] inline auto prqDamageScale() -> float {
+  const float score = std::clamp(PRQEngine::getScore(), 0.0F, 100.0F);
+  return 0.75F + score * 0.005F; // 0.75 → 1.25
+}
+[[nodiscard]] inline auto prqReactivityBonus() -> float {
+  // Reactivity: fast PRQ responders get a shorter dodge cooldown multiplier (< 1)
+  const float score = std::clamp(PRQEngine::getScore(), 0.0F, 100.0F);
+  return 1.0F - score * 0.003F; // 1.0 → 0.7 (30% faster cooldowns at elite)
+}
+
+// Resolve the current idle-variant clip name from a 0-based index.
+[[nodiscard]] inline auto idleVariantClip(int index) -> std::string_view {
+  switch (index % 4) {
+  case 1: return clips::kIdleBreath;
+  case 2: return clips::kIdleStretch;
+  case 3: return clips::kIdleShift;
+  default: return clips::kKarateIdle;
+  }
+}
 } // namespace
 
 // ── Camera3D ─────────────────────────────────────────────────────────────────
 void Camera3D::trackPlayer(Vec3 playerPos, Vec3 lockedEnemyPos, bool hasLockOn,
-                           bool jutsuing, double dt) noexcept {
+                           bool jutsuing, float playerYaw, double dt) noexcept {
   const float blend = std::min(1.0F, static_cast<float>(dt) * 6.0F); // smooth follow
 
   if (jutsuing) {
-    // Zoom in dramatically for jutsu cinematic
-    const Vec3 cinPos = playerPos + Vec3{0.0F, 3.5F, -6.0F};
+    // Zoom in dramatically for jutsu cinematic — keep camera facing but pull back
+    const Vec3 cinPos = playerPos + Vec3{0.0F, 3.0F, -5.5F};
     position.x += (cinPos.x - position.x) * blend * 2.0F;
     position.y += (cinPos.y - position.y) * blend * 2.0F;
     position.z += (cinPos.z - position.z) * blend * 2.0F;
-    fovDegrees  = 55.0F; // zoom in
+    fovDegrees  = 55.0F;
     cinematic   = true;
     target      = playerPos + Vec3{0.0F, 1.2F, 0.0F};
     return;
@@ -34,18 +62,34 @@ void Camera3D::trackPlayer(Vec3 playerPos, Vec3 lockedEnemyPos, bool hasLockOn,
   cinematic  = false;
   fovDegrees = 75.0F;
 
+  // Compute player local axes from yaw (0° = +Z forward)
+  const float yawRad = playerYaw * (3.14159265F / 180.0F);
+  const float cosY = std::cos(yawRad);
+  const float sinY = std::sin(yawRad);
+  // forward = (sinY, 0, cosY); back = (-sinY, 0, -cosY); right = (cosY, 0, -sinY)
+  const Vec3 back  = {-sinY, 0.0F, -cosY};
+  const Vec3 right = { cosY, 0.0F, -sinY};
+
   if (hasLockOn) {
-    // Naruto Storm lock-on: camera sits between player and enemy, looking at midpoint
-    const Vec3 mid   = (playerPos + lockedEnemyPos) * 0.5F;
-    const Vec3 camDir = (playerPos - lockedEnemyPos).normalized();
-    const Vec3 desiredPos = mid + camDir * 10.0F + Vec3{0.0F, 4.0F, 0.0F};
+    // COD/Dark Souls lock-on: camera stays behind player, looks toward enemy.
+    // Slightly wider to keep both player and enemy in frame.
+    const Vec3 desiredPos = playerPos
+        + back  * 4.5F
+        + right * 0.6F
+        + Vec3{0.0F, 1.8F, 0.0F};
     position.x += (desiredPos.x - position.x) * blend;
     position.y += (desiredPos.y - position.y) * blend;
     position.z += (desiredPos.z - position.z) * blend;
-    target = mid + Vec3{0.0F, 1.0F, 0.0F};
+    // Look toward midpoint between player chest and locked enemy
+    const Vec3 mid = (playerPos + Vec3{0.0F, 1.2F, 0.0F} +
+                      lockedEnemyPos + Vec3{0.0F, 1.0F, 0.0F}) * 0.5F;
+    target = mid;
   } else {
-    // Default: orbit behind player
-    const Vec3 desiredPos = playerPos + Vec3{0.0F, 5.5F, -11.0F};
+    // Default tight over-the-shoulder TPS: right shoulder, close, eye level.
+    const Vec3 desiredPos = playerPos
+        + back  * 3.5F
+        + right * 0.5F
+        + Vec3{0.0F, 1.8F, 0.0F};
     position.x += (desiredPos.x - position.x) * blend;
     position.y += (desiredPos.y - position.y) * blend;
     position.z += (desiredPos.z - position.z) * blend;
@@ -85,7 +129,9 @@ void KarateEndlessMode::reset() {
     e = CharacterState3D{};
     e.setClip(std::string(clips::kKarateIdle));
   }
-  m_camera = Camera3D{};
+  m_camera       = Camera3D{};
+  m_idleTimer    = 0.0F;
+  m_idleVariantIndex = 0;
 }
 
 void KarateEndlessMode::configureCoop(int playerCount) {
@@ -147,15 +193,19 @@ auto KarateEndlessMode::scaledOpponentCount(int base) const -> int {
 }
 
 auto KarateEndlessMode::damageMultiplier() const -> float {
-  float m = 1.0F;
+  // PRQ drives base damage: stronger players hit harder
+  float m = prqDamageScale();
   if (m_perks.power) m *= 1.35F;
   if (m_comboChain >= kSpecialMoveComboThreshold) m *= 1.5F;
   return m;
 }
 
 auto KarateEndlessMode::damageTakenMultiplier() const -> float {
+  // Guarded players with high PRQ absorb more (lower multiplier = less damage)
   float m = 0.85F + static_cast<float>(m_playerCount) * 0.08F;
   if (m_perks.guard) m *= 0.65F;
+  // High PRQ gives slight damage resistance (up to 15% reduction at score 100)
+  m *= (1.0F - std::clamp(PRQEngine::getScore(), 0.0F, 100.0F) * 0.0015F);
   return m;
 }
 
@@ -173,7 +223,9 @@ auto KarateEndlessMode::movePlayer(float dx, float dz, double deltaSeconds) -> R
   const float len = std::sqrt(dx * dx + dz * dz);
   if (len > 1e-4F) { dx /= len; dz /= len; }
 
-  const float speed = m_perks.speed ? kPlayerMoveSpeed * 1.3F : kPlayerMoveSpeed;
+  // PRQ-scaled speed: base speed × PRQ multiplier × optional perk bonus
+  const float baseSpeed = kPlayerMoveSpeed * prqSpeedScale();
+  const float speed = m_perks.speed ? baseSpeed * 1.3F : baseSpeed;
   const float dt    = static_cast<float>(deltaSeconds);
   m_player3D.position.x += dx * speed * dt;
   m_player3D.position.z += dz * speed * dt;
@@ -200,10 +252,15 @@ auto KarateEndlessMode::movePlayer(float dx, float dz, double deltaSeconds) -> R
 
   const bool moving = len > 0.05F;
   if (moving) {
-    const std::string clip = m_perks.speed ? std::string(clips::kSprint) : std::string(clips::kRun);
-    m_player3D.setClip(clip);
+    // Walk clip for normal movement; run with speed perk; sprint with dash (set elsewhere)
+    if (m_perks.speed) {
+      m_player3D.setClip(std::string(clips::kRun));
+    } else {
+      m_player3D.setClip(std::string(clips::kWalk));
+    }
+    m_idleTimer = 0.0F;  // reset idle cycling while moving
   } else {
-    m_player3D.setClip(std::string(clips::kKarateIdle));
+    m_player3D.setClip(std::string(idleVariantClip(m_idleVariantIndex)));
   }
 
   return Result<nlohmann::json>::ok(stateJson());
@@ -383,12 +440,30 @@ auto KarateEndlessMode::performAction(CombatAction action, int playerIndex) -> R
 void KarateEndlessMode::update(double deltaSeconds) {
   if (isSessionOver()) return;
 
+  // ── Idle animation cycling ────────────────────────────────────────────────
+  // Only advance timer when the player is standing still (idle clip playing).
+  {
+    const std::string_view curClip = m_player3D.animClip.name;
+    const bool isIdle = (curClip == clips::kKarateIdle ||
+                         curClip == clips::kIdleBreath  ||
+                         curClip == clips::kIdleStretch ||
+                         curClip == clips::kIdleShift);
+    if (isIdle) {
+      m_idleTimer += static_cast<float>(deltaSeconds);
+      if (m_idleTimer >= kIdleVariantInterval) {
+        m_idleTimer = 0.0F;
+        m_idleVariantIndex = (m_idleVariantIndex + 1) % 4;
+        m_player3D.setClip(std::string(idleVariantClip(m_idleVariantIndex)));
+      }
+    }
+  }
+
   // ── Jutsu cinematic phase ─────────────────────────────────────────────────
   if (m_phase == KarateWavePhase::kJutsu) {
     m_jutsuTimer -= static_cast<float>(deltaSeconds);
     if (m_jutsuTimer <= 0.0F) {
       m_phase = KarateWavePhase::kCombat;
-      m_player3D.setClip(std::string(clips::kKarateIdle));
+      m_player3D.setClip(std::string(idleVariantClip(m_idleVariantIndex)));
     }
     updateCamera(deltaSeconds);
     return;
@@ -408,11 +483,13 @@ void KarateEndlessMode::update(double deltaSeconds) {
     }
     m_dashTimer = std::max(0.0F, m_dashTimer - dt);
     if (m_dashTimer <= 0.0F) {
-      m_player3D.setClip(std::string(clips::kKarateIdle));
+      m_player3D.setClip(std::string(idleVariantClip(m_idleVariantIndex)));
     }
   }
   if (m_dashCooldownTimer > 0.0F) {
-    m_dashCooldownTimer -= static_cast<float>(deltaSeconds);
+    // Apply PRQ reactivity bonus to dash cooldown reduction
+    m_dashCooldownTimer -= static_cast<float>(deltaSeconds) / prqReactivityBonus();
+    if (m_dashCooldownTimer < 0.0F) m_dashCooldownTimer = 0.0F;
   }
 
   // ── Wave / health ─────────────────────────────────────────────────────────
@@ -476,7 +553,8 @@ void KarateEndlessMode::updateCamera(double dt) {
   const Vec3 lockTarget = lockedPos.value_or(Vec3{0.0F, 1.2F, 0.0F});
   m_camera.trackPlayer(m_player3D.position, lockTarget,
                        lockedPos.has_value(),
-                       m_phase == KarateWavePhase::kJutsu, dt);
+                       m_phase == KarateWavePhase::kJutsu,
+                       m_player3D.yawDegrees, dt);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
