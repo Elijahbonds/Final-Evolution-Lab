@@ -37,6 +37,8 @@ export default function PlayDunkPage() {
   useEffect(() => {
     const mode = new DunkingMode('basketball_dunk', canvasRef.current, containerRef.current);
     modeRef.current = mode;
+    // Dev/test seam: lets the smoke harness drive input and read sim state.
+    if (typeof window !== 'undefined') window.__felMode = mode;
 
     let unsubscribe = null;
     let pollTimer = null;

@@ -56,6 +56,28 @@ export class DunkingScene {
     this._crowdMeshes = [];
     this._cameraAngle = 'gameplay'; // 'approach' | 'gameplay' | 'hero' | 'recovery'
     this._cameraAnim = null;
+    this._frameCallback = null;
+    this._disposedScene = false;
+  }
+
+  /**
+   * Registers a per-frame callback invoked with real elapsed ms before each
+   * render — the mode uses this to drive its FixedStepLoop.
+   * @param {(dtMs: number) => void | null} cb
+   */
+  setFrameCallback(cb) { this._frameCallback = cb; }
+
+  /**
+   * Places the player mesh from the mode's interpolated simulation state.
+   * Zero-alloc: sets position components directly.
+   * @param {{x: number, y: number, z: number}} pos
+   */
+  updatePlayerTransform(pos) {
+    const p = this.assets.player;
+    if (!p) return;
+    p.position.x = pos.x;
+    p.position.y = 0.95 + (pos.y ?? 0);
+    p.position.z = pos.z;
   }
 
   /**
@@ -65,6 +87,13 @@ export class DunkingScene {
    */
   async init() {
     const babylon = await loadBabylonCore();
+
+    // Disposed while the module was loading (React StrictMode remount):
+    // never create an Engine on the canvas — the replacement scene owns it.
+    if (this._disposedScene) {
+      this.isFallback = true;
+      return { engine: null, scene: null, camera: null, assets: this.assets, isFallback: true };
+    }
 
     if (!babylon || !this.canvas) {
       this.isFallback = true;
@@ -342,8 +371,20 @@ export class DunkingScene {
       shadowGen,
     };
 
-    // ── Render loop ───────────────────────────────────────────────────────────
-    this.engine.runRenderLoop(() => { this.scene?.render(); });
+    // ── Placeholder player (feel-gate capsule — no retarget until loop proven)
+    const player = MeshBuilder.CreateCapsule('playerCapsule', { height: 1.9, radius: 0.35 }, this.scene);
+    player.position = new Vector3(0, 0.95, 4);
+    const playerMat = new StandardMaterial('playerMat', this.scene);
+    playerMat.diffuseColor = new Color3(0.92, 0.55, 0.16);
+    player.material = playerMat;
+    shadowGen?.addShadowCaster?.(player);
+    this.assets.player = player;
+
+    // ── Render loop (also drives the mode's fixed-step simulation) ──────────
+    this.engine.runRenderLoop(() => {
+      if (this._frameCallback) this._frameCallback(this.engine.getDeltaTime());
+      this.scene?.render();
+    });
 
     this._handleResize = () => this.engine?.resize();
     if (typeof window !== 'undefined') window.addEventListener('resize', this._handleResize);
@@ -435,6 +476,7 @@ export class DunkingScene {
   // ── Dispose ──────────────────────────────────────────────────────────────────
 
   dispose() {
+    this._disposedScene = true;
     if (typeof window !== 'undefined' && this._handleResize) {
       window.removeEventListener('resize', this._handleResize);
     }

@@ -1,7 +1,19 @@
 import { createSharedSystems } from '../../systems/index.js';
+import { feelConfig } from '../../systems/feelConfig.js';
+import { FixedStepLoop } from '../../core/FixedStepLoop.js';
 import { InputSystem } from '../../input/InputSystem.js';
 import { GameModeInterface, ModePhase } from '../GameModeInterface.js';
 import DunkingScene from './DunkingScene.js';
+
+function clampValue(v, min, max) { return v < min ? min : v > max ? max : v; }
+
+/** Move `current` toward `target` by at most `maxDelta` (no allocation). */
+function approach(current, target, maxDelta) {
+  const diff = target - current;
+  if (diff > maxDelta) return current + maxDelta;
+  if (diff < -maxDelta) return current - maxDelta;
+  return target;
+}
 
 const DEFAULT_MATCH_TIME_SECONDS = 180;
 const HOOP_POSITION = { x: 0, y: 3.05, z: -13.23 };
@@ -61,6 +73,17 @@ export class DunkingMode extends GameModeInterface {
     this.playerPosition = { x: 0, y: 0, z: 0 };
     this.playerVelocity = { x: 0, y: 0, z: 0 };
 
+    // Guards the async start() against dispose() racing it (React StrictMode
+    // double-mount: cleanup can run while scene init is still awaiting).
+    this._disposed = false;
+
+    // Fixed-timestep simulation state (preallocated — never allocate in tick)
+    this._loop = null;
+    this._rafId = null;
+    this._lastRafTs = 0;
+    this._prevPos = { x: 0, y: 0, z: 0 };
+    this._renderPos = { x: 0, y: 0, z: 0 };
+
     // Charge state (mirrors iOS styleTriggerHeld / powerTriggerHeld)
     this._styleCharge  = 0; // 0–1 from L2
     this._powerCharge  = 0; // 0–1 from R2
@@ -88,6 +111,7 @@ export class DunkingMode extends GameModeInterface {
    */
   async start(container) {
     this.dispose();
+    this._disposed = false;
 
     this.container = container ?? this.container;
     this.systems   = createSharedSystems(this.container);
@@ -100,6 +124,14 @@ export class DunkingMode extends GameModeInterface {
 
     this.scene = new DunkingScene(this.canvas, this.systems);
     await this.scene.init();
+
+    // Disposed while init was awaiting (StrictMode remount) — tear down the
+    // zombie scene and bail; the replacement mode owns the canvas now.
+    if (this._disposed) {
+      this.scene.dispose();
+      this.scene = null;
+      return this.getState();
+    }
 
     // Wire input system for virtual gamepad
     this.input = new InputSystem(this.getModeId());
@@ -129,7 +161,81 @@ export class DunkingMode extends GameModeInterface {
       if (this.state.timeRemaining === 0) this.end();
     }, 1000);
 
+    // ── Fixed-timestep simulation, decoupled from render ────────────────────
+    this._loop = new FixedStepLoop({
+      hz: feelConfig.timestepHz,
+      maxAccumulatedMs: feelConfig.maxAccumulatedMs,
+      update: (dt) => this._fixedUpdate(dt),
+      render: (alpha) => this._renderInterpolate(alpha),
+    });
+    this._loop.start();
+    if (this.scene && !this.scene.isFallback && this.scene.setFrameCallback) {
+      // Babylon render loop drives the simulation clock.
+      this.scene.setFrameCallback((dtMs) => this._loop.tick(dtMs));
+    } else {
+      this._startFallbackDriver();
+    }
+
     return this.getState();
+  }
+
+  /**
+   * One fixed simulation step (feelConfig.timestepHz). Reads the HELD left
+   * stick state and integrates velocity → position. Allocates nothing.
+   * @private
+   */
+  _fixedUpdate(dt) {
+    if (this.state.phase !== ModePhase.ACTIVE) return;
+
+    const stick = this.input ? this.input.leftStick : null;
+    const sx = stick ? stick.x : 0;
+    const sy = stick ? stick.y : 0;
+    const held = stick && stick.magnitude > 0.05;
+
+    const cfg = feelConfig.movement;
+    const rate = (held ? cfg.accel : cfg.decel) * dt;
+    this.playerVelocity.x = approach(this.playerVelocity.x, sx * cfg.runSpeed, rate);
+    this.playerVelocity.z = approach(this.playerVelocity.z, -sy * cfg.runSpeed, rate);
+
+    this._prevPos.x = this.playerPosition.x;
+    this._prevPos.y = this.playerPosition.y;
+    this._prevPos.z = this.playerPosition.z;
+
+    const b = feelConfig.court;
+    this.playerPosition.x = clampValue(this.playerPosition.x + this.playerVelocity.x * dt, b.minX, b.maxX);
+    this.playerPosition.z = clampValue(this.playerPosition.z + this.playerVelocity.z * dt, b.minZ, b.maxZ);
+  }
+
+  /**
+   * Render-rate interpolation between the previous and current fixed steps.
+   * @private
+   */
+  _renderInterpolate(alpha) {
+    const p = this._prevPos;
+    const c = this.playerPosition;
+    const r = this._renderPos;
+    r.x = p.x + (c.x - p.x) * alpha;
+    r.y = p.y + (c.y - p.y) * alpha;
+    r.z = p.z + (c.z - p.z) * alpha;
+    if (this.scene && this.scene.updatePlayerTransform) this.scene.updatePlayerTransform(r);
+  }
+
+  /**
+   * Drives the loop with requestAnimationFrame when no Babylon render loop
+   * exists (fallback scene / headless-ish environments).
+   * @private
+   */
+  _startFallbackDriver() {
+    if (typeof window === 'undefined' || !window.requestAnimationFrame) return;
+    this._lastRafTs = 0;
+    const step = (ts) => {
+      if (!this._loop || !this._loop.running) return;
+      const dtMs = this._lastRafTs ? ts - this._lastRafTs : 1000 / feelConfig.timestepHz;
+      this._lastRafTs = ts;
+      this._loop.tick(dtMs);
+      this._rafId = window.requestAnimationFrame(step);
+    };
+    this._rafId = window.requestAnimationFrame(step);
   }
 
   /**
@@ -149,16 +255,10 @@ export class DunkingMode extends GameModeInterface {
       this.playerPosition = { ...this.playerPosition, ...payload.position };
     }
 
-    // ── Movement (left stick) ───────────────────────────────────────────────
-    if (type === 'move' && payload.leftStick) {
-      const { x, y } = payload.leftStick;
-      this.playerVelocity = { x, y: 0, z: -y };
-      this.playerPosition = {
-        x: Math.max(-7, Math.min(7, this.playerPosition.x + x * 0.4)),
-        y: this.playerPosition.y,
-        z: Math.max(-13.5, Math.min(13, this.playerPosition.z - y * 0.4)),
-      };
-    }
+    // Movement no longer steps position per event: the fixed-timestep loop
+    // reads the HELD stick state each step in _fixedUpdate (feel DoD —
+    // frame-rate-independent arcs). payload.position above remains the
+    // headless/test driver seam.
 
     // ── Charge input (L2=style, R2=power) ──────────────────────────────────
     if (type === 'charge') {
@@ -295,7 +395,14 @@ export class DunkingMode extends GameModeInterface {
   }
 
   dispose() {
+    this._disposed = true;
     if (this.matchTimer) { clearInterval(this.matchTimer); this.matchTimer = null; }
+    if (this._loop) { this._loop.stop(); this._loop = null; }
+    if (this._rafId !== null && typeof window !== 'undefined') {
+      window.cancelAnimationFrame(this._rafId);
+      this._rafId = null;
+    }
+    this.scene?.setFrameCallback?.(null);
     this.scene?.dispose();
     this.scene = null;
     this.systems?.scoreSystem?.reset?.();
