@@ -120,6 +120,61 @@ capture id, webhook id), escrow as first-class account type, daily invariant
 job: sum(debits)=sum(credits), wallet ≥ 0, escrow matches open matches.
 Every money bug is a ledger bug — tests here are not optional.
 
+---
+
+## TRACK C — NEXUS & CELL as products (the tech itself earns)
+
+**Positioning (do not drift from this):** NEXUS Studio does NOT compete as a
+general AI app builder — that market is a distribution war (Replit, Lovable,
+v0, Abacus itself). It wins as the **creator tool of a vertical closed loop**:
+Studio builds cartridges → cartridges sell in the FEL marketplace → marketplace
+revenue funds creators → creators need Studio. CELL sells separately as the
+adaptive-education engine behind an API. FEL is the proof case for both.
+
+### C1. NEXUS Studio — Creator subscription (the flywheel)
+- **Free tier:** limited builds/month, output listable in marketplace at
+  standard 70/30 split, "Built with NEXUS" badge.
+- **Creator Pro ($19–29/mo):** unlimited standard builds, priority build queue,
+  premium runtime library + assets, better split (e.g. 75/25), analytics on
+  listing performance. Uses the SAME entitlements + PayPal subscription rails
+  as A1 — one billing system, two products.
+- **Build metering:** every build logs token cost (Studio Phase 2 cost
+  dashboard is the meter). Included quota per tier; overage billed as build
+  credits (pass-through LLM cost + margin). **BYO API keys tier:** bring your
+  own Anthropic/OpenAI key, pay only the subscription — routing/caching is the
+  value, not resold tokens.
+
+### C2. Cartridge economy (Studio output = sellable unit)
+- Every Studio build packages as a **cartridge** (nexus_cartridge_runtime is
+  the packaging unit) with a manifest: author, version, license, price.
+- Sell/license cartridges through the existing marketplace pipeline (same
+  Listing/Order/Purchase/accrual models — no parallel money code).
+- White-label licensing seam: a gym/trainer/school buys a cartridge bundle
+  with their branding — B2B order type on the same ledger.
+
+### C3. CELL-as-a-Service (B2B API, AFTER FEL proves it)
+- Externalize the sequencing engine behind `/nexus/v1/*`: partner API keys,
+  per-key usage metering + rate limits, sandbox tenant, developer docs.
+  Product: "adaptive curriculum in a box" — BKT mastery tracking, lesson
+  queueing, budget-metered provider routing — for other fitness/edtech apps.
+- Pricing: per-MAU tiers or per-sequencing-call; metered on the same ledger
+  (a partner is a wallet with an API key).
+- **Gate to launch:** FEL's own numbers are the sales deck (retention lift,
+  mastery velocity). Do not sell CELL externally before FEL demonstrates it —
+  build the metering/keys scaffolding now, open the tap when the case study
+  exists.
+- Compliance carries over: partner data never routes to denylisted providers;
+  per-partner data isolation; CELL learns per-tenant, never across tenants
+  without contract.
+
+### Track C build order
+1. Entitlements table gains product dimension (fel_pro | studio_creator) —
+   trivial extension of A1.
+2. Build metering + quota enforcement in Studio (Phase 2 dashboard feeds it).
+3. Cartridge manifest + marketplace listing type "cartridge".
+4. Partner API-key + usage-metering scaffolding on the gateway (flag-gated,
+   like Track B — off until the FEL case study).
+
 ## Definition of MONEY-READY (acceptance for Abacus)
 - [ ] A1: a real PayPal sandbox subscription activates Pro and survives webhook
       replay + cancellation.
@@ -133,6 +188,12 @@ Every money bug is a ledger bug — tests here are not optional.
 - [ ] B2: a ghost duel resolves from two verified submissions in review queue.
 - [ ] Ledger invariant job green over the whole test suite.
 - [ ] All flows behind `/nexus/v1/*` gateway; no client-trusted amounts anywhere.
+- [ ] C1: a Studio Creator subscription activates via the same rails as A1 and
+      gates the priority build queue; build overage produces a metered charge.
+- [ ] C2: a Studio-built cartridge lists and sells through the standard
+      marketplace pipeline with creator accrual.
+- [ ] C3: partner API key issues, meters usage to a ledger wallet, and is
+      rejected when its flag is off.
 
 ## Sequence to first dollar
 1. A1 Pro subscription (days, not weeks — PayPal already in the bundle).
