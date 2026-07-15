@@ -37,7 +37,13 @@ anim_basketball_jump_shot · anim_basketball_defensive_idle · anim_sprint_run_l
 | Venue photo set | abacus-app/public/{venues,backdrops}/* | menus/cards (2D, license from Meshy renders NEEDS-VERIFY) |
 
 ### Missing vs vision (no asset exists — flagged, not fabricated)
-- **Audio: ZERO audio files in the repo** — the sensory-bus impact SFX (feel DoD) has nothing to play. Need one commercial-safe impact SFX minimum.
+- **Audio: zero audio FILES in the repo — but ~30 SFX/BGM tracks exist as
+  hosted MP3s** referenced by seeles_work/assets/audio/*/ manifests
+  (static.seeles.ai export URLs — e.g. sfx_basketball_swoosh,
+  sfx_punch_impact, sfx_crowd_cheer, bgm_basketball). USE-NOW for the dunk
+  loop: swoosh + one impact + crowd cheer. Needs: download pass (Elijah
+  approval), license/ownership confirmation (Seele account terms), and a
+  check that the export URLs are still live.
 - Rim/backboard as separate gameplay-grade mesh (courts may bake them in — verify during Venice assembly; integrity gate requires a rim node).
 - Placeholder NPC/defender capsule set (cheap, generate in-engine).
 
