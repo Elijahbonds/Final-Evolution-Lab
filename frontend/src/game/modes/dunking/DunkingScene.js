@@ -58,6 +58,37 @@ export class DunkingScene {
     this._cameraAnim = null;
     this._frameCallback = null;
     this._disposedScene = false;
+    this._shakeRemainingMs = 0;
+    this._shakeDurationMs = 220; // TUNE(elijah)
+    this._shakeIntensity = 0;
+    this._shakeBaseY = null;
+  }
+
+  /**
+   * Deterministic camera shake (damped sine — no RNG per working context).
+   * Intensity ≈ world-units of peak vertical target offset.
+   * @param {number} intensity
+   */
+  applyCameraShake(intensity) {
+    if (!this.camera) return;
+    if (this._shakeBaseY === null) this._shakeBaseY = this.camera.target.y;
+    this._shakeIntensity = Math.max(this._shakeIntensity, intensity);
+    this._shakeRemainingMs = this._shakeDurationMs;
+  }
+
+  /** @private — applied per frame inside the render loop. */
+  _applyShakeFrame(dtMs) {
+    if (this._shakeRemainingMs <= 0 || !this.camera || this._shakeBaseY === null) return;
+    this._shakeRemainingMs -= dtMs;
+    if (this._shakeRemainingMs <= 0) {
+      this.camera.target.y = this._shakeBaseY;
+      this._shakeBaseY = null;
+      this._shakeIntensity = 0;
+      return;
+    }
+    const life = this._shakeRemainingMs / this._shakeDurationMs; // 1 → 0
+    const t = (this._shakeDurationMs - this._shakeRemainingMs) / 1000;
+    this.camera.target.y = this._shakeBaseY + Math.sin(t * 55) * this._shakeIntensity * life;
   }
 
   /**
@@ -382,7 +413,9 @@ export class DunkingScene {
 
     // ── Render loop (also drives the mode's fixed-step simulation) ──────────
     this.engine.runRenderLoop(() => {
-      if (this._frameCallback) this._frameCallback(this.engine.getDeltaTime());
+      const dtMs = this.engine.getDeltaTime();
+      if (this._frameCallback) this._frameCallback(dtMs);
+      this._applyShakeFrame(dtMs);
       this.scene?.render();
     });
 

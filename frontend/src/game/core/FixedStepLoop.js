@@ -24,6 +24,17 @@ export class FixedStepLoop {
     this.running = false;
     this.stepCount = 0;
     this.alpha = 0;
+    this.hitStopRemainingMs = 0;
+  }
+
+  /**
+   * Presentation hit-stop: freezes the SIMULATION for `ms` of real time
+   * while render keeps presenting the frozen state. Choice documented:
+   * sim pauses (positions/FSM hold); wall-clock timers (match countdown)
+   * are outside the loop and keep running.
+   */
+  hitStop(ms) {
+    this.hitStopRemainingMs = Math.max(this.hitStopRemainingMs, ms);
   }
 
   start() { this.running = true; this.accumulatedMs = 0; }
@@ -35,6 +46,11 @@ export class FixedStepLoop {
    */
   tick(dtMs) {
     if (!this.running) return;
+    if (this.hitStopRemainingMs > 0) {
+      this.hitStopRemainingMs -= dtMs;
+      if (this.render) this.render(this.alpha); // hold the frozen frame
+      return;
+    }
     // Clamp to avoid the spiral of death after tab-sleep or long frames.
     this.accumulatedMs += Math.min(dtMs, this.maxAccumulatedMs);
     while (this.accumulatedMs >= this.stepMs) {

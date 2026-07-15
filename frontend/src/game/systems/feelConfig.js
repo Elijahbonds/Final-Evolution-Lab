@@ -36,6 +36,17 @@ export const feelConfig = {
     peakVelocityWindow: 0.9, // TUNE(elijah) — |vy| below this = "peak" (hang ≈ 0.5s at these values)
   },
 
+  // Sensory event bus (commit 5) — the synchronized "thud".
+  sensory: {
+    bigLandingVy: 3.5,       // TUNE(elijah) — |vy| at impact that counts as a BIG landing
+    landShake: 0.12,         // TUNE(elijah) — camera shake intensity, normal landing
+    slamShake: 0.35,         // TUNE(elijah) — camera shake intensity, dunk slam
+    slamHitStopMs: 100,      // TUNE(elijah) — presentation freeze on the slam
+    bigLandHitStopMs: 70,    // TUNE(elijah) — presentation freeze on big landings
+    rumbleMs: 120,           // TUNE(elijah) — gamepad rumble duration
+    crowdVolume: 0.7,        // TUNE(elijah)
+  },
+
   // Dunk arc drive (hybrid anim↔physics blend — commit 4).
   dunkArc: {
     lockOnRadius: 4.5,       // TUNE(elijah) — max distance to hoop for a mid-air dunk lock-on

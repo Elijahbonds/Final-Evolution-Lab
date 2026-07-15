@@ -1,4 +1,5 @@
 import { createSharedSystems } from '../../systems/index.js';
+import { SensoryBus } from '../../systems/SensoryBus.js';
 import { ArcDrive } from '../../systems/ArcDrive.js';
 import { feelConfig } from '../../systems/feelConfig.js';
 import { InputBuffer } from '../../systems/InputBuffer.js';
@@ -109,6 +110,10 @@ export class DunkingMode extends GameModeInterface {
     this._arcTarget = { x: 0, y: 0, z: 0 };
     this._drivenDunk = null; // { variant, modifier } while an arc is driving
 
+    // Sensory event bus (commit 5) — created per start(), owns WebAudio
+    this._sensory = null;
+    this._impactVy = 0;
+
     // Movement FSM: Idle→Approach→JumpPrep→Ascent→Peak→Descent→Contact→Landing
     this._fsm = this._createMovementFsm();
 
@@ -146,7 +151,20 @@ export class DunkingMode extends GameModeInterface {
         [DunkPhase.PEAK]:    noop,
         [DunkPhase.DESCENT]: noop,
         [DunkPhase.CONTACT]: {
-          enter: () => { this._isMidAir = false; },
+          enter: () => {
+            this._isMidAir = false;
+            // The synchronized thud: shake + SFX + rumble + hit-stop fire on
+            // the SAME frame as ground contact (feel DoD).
+            const s = feelConfig.sensory;
+            const big = Math.abs(this._impactVy) >= s.bigLandingVy;
+            this._sensory?.emit({
+              sfx: 'impact',
+              volume: big ? 1 : 0.45,
+              shake: big ? s.slamShake * 0.7 : s.landShake,
+              hitStopMs: big ? s.bigLandHitStopMs : 0,
+              rumbleMs: big ? s.rumbleMs : 0,
+            });
+          },
         },
         [DunkPhase.LANDING]: noop,
       },
@@ -240,6 +258,17 @@ export class DunkingMode extends GameModeInterface {
       this._startFallbackDriver();
     }
 
+    // ── Sensory event bus: shake + file SFX + rumble + hit-stop, frame-synced
+    this._sensory = new SensoryBus({
+      camera: this.scene && !this.scene.isFallback ? this.scene : null,
+      loop: this._loop,
+      sfx: {
+        swoosh: '/audio/sfx_basketball_swoosh.mp3',
+        impact: '/audio/sfx_punch_impact.mp3',
+        crowd:  '/audio/sfx_crowd_cheer.mp3',
+      },
+    });
+
     return this.getState();
   }
 
@@ -328,6 +357,16 @@ export class DunkingMode extends GameModeInterface {
         this._drivenDunk = null;
         this._verticalVelocity = this._arcDrive.endVerticalVelocity();
         if (dunk) this._executeDunk(dunk.variant, dunk.modifier, { nearHoop: true });
+        // Rim-contact sensory slam: swoosh + crowd + big shake + hit-stop,
+        // all on the contact frame.
+        const s = feelConfig.sensory;
+        this._sensory?.emit({
+          sfx: 'swoosh',
+          shake: s.slamShake,
+          hitStopMs: s.slamHitStopMs,
+          rumbleMs: s.rumbleMs,
+        });
+        this._sensory?.emit({ sfx: 'crowd', volume: s.crowdVolume });
         this._fsm.transition(DunkPhase.DESCENT);
       }
       return;
@@ -376,6 +415,7 @@ export class DunkingMode extends GameModeInterface {
 
         if (this.playerPosition.y <= 0 && this._verticalVelocity < 0) {
           // Landing snap: ground contact resolves on this step exactly.
+          this._impactVy = this._verticalVelocity; // impulse for the sensory bus
           this.playerPosition.y = 0;
           this._verticalVelocity = 0;
           fsm.transition(DunkPhase.CONTACT);
@@ -629,6 +669,8 @@ export class DunkingMode extends GameModeInterface {
       window.cancelAnimationFrame(this._rafId);
       this._rafId = null;
     }
+    this._sensory?.dispose();
+    this._sensory = null;
     this.scene?.setFrameCallback?.(null);
     this.scene?.dispose();
     this.scene = null;
