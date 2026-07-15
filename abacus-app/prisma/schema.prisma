@@ -1,0 +1,637 @@
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+    output = "/home/ubuntu/final_evolution_lab/nextjs_space/node_modules/.prisma/client"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String
+  role      String   @default("player")
+  createdAt DateTime @default(now())
+
+  profile  PlayerProfile?
+  sessions GameSession[]
+  ledger   CreditLedger[]
+  cards    CardOwnership[]
+  lessons  LessonProgress[]
+  storyProgress StoryNodeProgress[]
+  cellProjects   CellProject[]
+  cellApiKeys    CellApiKey[]
+  cellSettings   CellSettings?
+
+  // M2 relations
+  stripeCustomer   StripeCustomer?
+  subscriptions    Subscription[]
+  orders           Order[]
+  payoutRequests   PayoutRequest[]
+  creatorListings  MarketplaceListing[] @relation("CreatorListings")
+  buyerPurchases   MarketplacePurchase[] @relation("BuyerPurchases")
+  ladderEntries    LadderEntry[] @relation("LadderEntries")
+
+  // M3 relations (Track C — Studio Creator)
+  partnerKeys      StudioPartnerKey[] @relation("PartnerKeys")
+
+  // M4 relations (Track B — Real-money competition)
+  competitionMatchesP1 CompetitionMatch[] @relation("MatchPlayer1")
+  competitionMatchesP2 CompetitionMatch[] @relation("MatchPlayer2")
+  competitionMatchesWinner CompetitionMatch[] @relation("MatchWinner")
+  matchEvents     MatchEvent[]
+  mirrorTriumphs  MirrorTriumph[]
+
+  // M4 compliance stubs
+  dobYear         Int?        // Year of birth for 18+ attestation
+  kycStatus       String      @default("NONE") // NONE | PENDING | VERIFIED | REJECTED
+  kycProvider     String?     // provider name when verified
+  kycVerifiedAt   DateTime?
+  selfExcludedAt  DateTime?   // non-null = user opted out of real-money
+  declaredState   String?     // US state code declared by user (e.g. "CA")
+}
+
+model PlayerProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  strength     Float
+  speed        Float
+  endurance    Float
+  agility      Float
+  power        Float
+  flexibility  Float
+  recovery     Float
+  mental       Float
+  labCredits   Int      @default(500)
+  xp           Int      @default(0)
+  shards       Int      @default(0)
+  streakDays   Int      @default(0)
+  avatarKey    String?  @default("male-athletic")
+  lastStreakAt DateTime @default(now())
+  lastActiveAt DateTime @default(now())
+  lastDecayAt  DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model GameSession {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode          String
+  score         Int
+  opponentScore Int      @default(0)
+  won           Boolean  @default(false)
+  xp            Int      @default(0)
+  shards        Int      @default(0)
+  prqDelta      Float    @default(0)
+  credits       Int      @default(0)
+  duration      Int      @default(0)
+  // Standardized fun-loop tallies (M6 game parity). All defaulted = backward-compatible.
+  hits          Int      @default(0)
+  misses        Int      @default(0)
+  dodges        Int      @default(0)
+  combos        Int      @default(0)
+  maxCombo      Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model CreditLedger {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount       Int
+  reason       String
+  balanceAfter Int      @default(0)
+  dedupeKey    String?
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, createdAt])
+  @@index([userId, reason, createdAt])
+}
+
+model CardOwnership {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardKey   String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, cardKey])
+}
+
+model StoryNodeProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  nodeId      String
+  sessionId   String?  @unique
+  score       Int
+  completedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, nodeId])
+  @@index([userId])
+}
+
+model LessonProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trackKey    String
+  lessonKey   String
+  completedAt DateTime @default(now())
+
+  @@unique([userId, trackKey, lessonKey])
+}
+
+// ─── CELL × NEXUS Studio ───
+
+model CellProject {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  genre       String   @default("")
+  status      String   @default("draft") // draft | building | ready | failed
+  buildPlan   String   @default("") // JSON BuildPlan from architect
+  artifacts   String   @default("") // JSON manifest of generated files
+  prompt      String   @default("") // original user prompt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  wisdomLogs  CellWisdom[]
+  messages    CellMessage[]
+  files       ProjectFile[]
+  usages      CellUsage[]
+
+  @@index([userId, updatedAt])
+}
+
+// ─── Cost engine (Phase 2) ───
+
+model CellApiKey {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider  String   // openai | anthropic | google
+  keyCipher String   // AES-256-GCM encrypted API key (never returned to client)
+  hint      String   @default("") // last 4 chars for display
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, provider])
+  @@index([userId])
+}
+
+model CellSettings {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  budgetUsd   Float    @default(0)     // per-build cost cap in USD; 0 = no cap
+  preferCheap Boolean  @default(true)  // pick cheapest-capable model per job
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CellUsage {
+  id           String   @id @default(cuid())
+  projectId    String
+  project      CellProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  buildId      String   // groups one runBuild invocation
+  laneId       String   @default("")
+  laneTitle    String   @default("")
+  role         String   @default("")
+  provider     String   @default("")
+  model        String   @default("")
+  inputTokens  Int      @default(0)
+  outputTokens Int      @default(0)
+  costUsd      Float    @default(0)
+  escalated    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([projectId, createdAt])
+  @@index([buildId])
+}
+
+model ProjectFile {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     CellProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  path        String   // e.g. "index.html", "js/game.js", "assets/logo.png"
+  content     String   @default("") // text content (code); binary assets store a URL/reference
+  kind        String   @default("code") // code | asset
+  contentHash String   @default("")
+  summary     String   @default("") // one-line auto summary for cheap context packing
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([projectId, path])
+  @@index([projectId])
+}
+
+model CellMessage {
+  id        String   @id @default(cuid())
+  projectId String
+  project   CellProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  role      String   // user | architect | builder | critic | system
+  content   String
+  model     String   @default("") // which LLM produced this
+  tokens    Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt])
+}
+
+model CellWisdom {
+  id        String   @id @default(cuid())
+  projectId String?
+  project   CellProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  category  String   // e.g. "architecture", "prompt_quality", "asset_pipeline"
+  insight   String   // the learned principle
+  score     Float    @default(1.0) // relevance/confidence, decays over time
+  createdAt DateTime @default(now())
+
+  @@index([category, score])
+}
+
+// ─── Exercise Knowledge Base ───
+
+model ExerciseCategory {
+  id          String     @id @default(cuid())
+  name        String     @unique          // e.g. "Oscillatory Drills", "Neural Flush", "CARs"
+  description String     @default("")
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  exercises   Exercise[]
+}
+
+model Exercise {
+  id              String   @id @default(cuid())
+  name            String                       // e.g. "Single-Leg Pogo Hops"
+  slug            String   @unique             // URL-safe key
+  categoryId      String
+  category        ExerciseCategory @relation(fields: [categoryId], references: [id])
+  phase           Int      @default(1)          // Blueprint phase 1-5
+  chapter         Int      @default(1)          // Blueprint chapter 1-20
+  bounceLevel     String   @default("foundation") // foundation / intermediate / advanced / elite
+  coachingCues    String   @default("")         // Authored text — what Elijah says
+  commonMistakes  String   @default("")         // What to avoid
+  progressions    String   @default("")         // Next-level variations
+  regressions     String   @default("")         // Easier alternatives
+  prerequisites   String   @default("")         // What must be mastered first
+  targetPrqStat   String   @default("")         // strength|speed|endurance|agility|power|flexibility|recovery|mental
+  dosage          String   @default("")         // Sets x reps, timing
+  videoUrl        String   @default("")         // YouTube or cloud URL
+  thumbnailUrl    String   @default("")         // Preview image
+  published       Boolean  @default(false)      // Only published exercises visible to learners
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([phase, chapter])
+}
+
+// ===========================================================================
+// M1 — Double-entry ledger foundation (additive; unifies LC + real money).
+//   Convention: every LedgerTransaction has >= 2 postings whose signed
+//   `amount` values sum to exactly 0 (sum(debits) == sum(credits)).
+//   An account's balance = SUM(amount) over its postings.
+//   Non-EXTERNAL account balances must stay >= 0.
+// ===========================================================================
+
+enum LedgerCurrency {
+  LC            // virtual Lab Credits (soft currency)
+  USD_CENTS     // real money, integer cents
+  STUDIO_CREDIT // virtual prepaid NEXUS Studio build-overage unit (M3); isolated book
+}
+
+enum LedgerAccountType {
+  USER_WALLET      // per-user spendable balance
+  ESCROW           // funds held for an open match / contest
+  PLATFORM_REVENUE // platform fees / cut
+  CREATOR_ACCRUAL  // creator earnings awaiting payout
+  EXTERNAL         // counterparty for value entering/leaving the system (mint/burn, Stripe, payouts)
+}
+
+model LedgerAccount {
+  id        String            @id @default(cuid())
+  type      LedgerAccountType
+  currency  LedgerCurrency
+  userId    String?           // set for USER_WALLET / CREATOR_ACCRUAL; null for system singletons
+  scopeId   String?           // optional scope (e.g. matchId for ESCROW)
+  key       String            @unique // canonical: "<TYPE>:<CURRENCY>[:<scope>]"
+  createdAt DateTime          @default(now())
+
+  postings  LedgerPosting[]
+
+  @@index([type, currency])
+  @@index([userId])
+}
+
+model LedgerTransaction {
+  id             String          @id @default(cuid())
+  kind           String          // reason/category, e.g. LESSON_COMPLETE, CARD_PURCHASE, STRIPE_SUBSCRIPTION
+  idempotencyKey String          @unique
+  currency       LedgerCurrency
+  metadata       Json?
+  createdAt      DateTime        @default(now())
+
+  postings       LedgerPosting[]
+
+  @@index([kind, createdAt])
+}
+
+model LedgerPosting {
+  id            String            @id @default(cuid())
+  transactionId String
+  transaction   LedgerTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  accountId     String
+  account       LedgerAccount     @relation(fields: [accountId], references: [id])
+  amount        Int               // signed; +credit / -debit; per-transaction postings sum to 0
+  createdAt     DateTime          @default(now())
+
+  @@index([accountId])
+  @@index([transactionId])
+}
+
+// =====================================================================
+// M2 — Track A Revenue (Stripe + marketplace + ladder)
+// =====================================================================
+
+enum SubscriptionProduct {
+  FEL_PRO
+  STUDIO_CREATOR
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+enum OrderType {
+  SUBSCRIPTION
+  COSMETIC
+  MARKETPLACE
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model StripeCustomer {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id])
+  stripeCustomerId String   @unique
+  createdAt        DateTime @default(now())
+}
+
+model Subscription {
+  id                   String              @id @default(cuid())
+  userId               String
+  user                 User                @relation(fields: [userId], references: [id])
+  stripeSubscriptionId String              @unique
+  stripePriceId        String
+  product              SubscriptionProduct
+  status               SubscriptionStatus  @default(ACTIVE)
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean             @default(false)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@index([userId, product])
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id])
+  stripeSessionId String      @unique
+  type            OrderType
+  amount          Int         // in cents
+  currency        String      @default("usd")
+  status          OrderStatus @default(PENDING)
+  itemKey         String?     // e.g. cosmetic key or marketplace listing id
+  metadata        Json?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([userId, type])
+}
+
+model PayoutRequest {
+  id               String       @id @default(cuid())
+  userId           String
+  user             User         @relation(fields: [userId], references: [id])
+  amount           Int          // in cents
+  currency         String       @default("usd")
+  status           PayoutStatus @default(PENDING)
+  stripeTransferId String?
+  ledgerTxId       String?
+  idempotencyKey   String       @unique
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([userId, status])
+}
+
+model MarketplaceListing {
+  id          String   @id @default(cuid())
+  creatorId   String
+  creator     User     @relation("CreatorListings", fields: [creatorId], references: [id])
+  title       String
+  description String?
+  itemKey     String   @unique  // unique content identifier
+  priceUsd    Int      // in cents
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // M3 (Track C): listing type + cartridge manifest
+  listingType String   @default("COSMETIC") // COSMETIC | CARTRIDGE
+  version     String   @default("1.0.0")
+  manifest    String   @default("")         // JSON CartridgeManifest (empty for COSMETIC)
+  sourceProjectId String?                    // originating CellProject for a CARTRIDGE
+
+  purchases   MarketplacePurchase[]
+
+  @@index([creatorId])
+  @@index([listingType, active])
+}
+
+// ─── M3 Track C — Studio Creator partner API ───
+
+model StudioPartnerKey {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation("PartnerKeys", fields: [userId], references: [id], onDelete: Cascade)
+  name        String   @default("")
+  keyHash     String   @unique // sha256 of the raw partner key; raw is shown once at creation
+  keyHint     String   @default("") // e.g. "nxk_live_...ab12" for display
+  scopes      String   @default("build:read") // comma-separated scopes
+  active      Boolean  @default(true)
+  monthlyQuota Int     @default(1000) // metered partner calls per billing month; -1 = unlimited
+  createdAt   DateTime @default(now())
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+
+  usages      PartnerUsage[]
+
+  @@index([userId])
+  @@index([active])
+}
+
+model PartnerUsage {
+  id          String   @id @default(cuid())
+  partnerKeyId String
+  partnerKey  StudioPartnerKey @relation(fields: [partnerKeyId], references: [id], onDelete: Cascade)
+  endpoint    String   @default("")
+  units       Int      @default(1)   // billable units for this call
+  costUsd     Float    @default(0)
+  status      Int      @default(200) // HTTP status recorded
+  billingMonth String  @default("")  // YYYY-MM for cheap monthly rollups
+  createdAt   DateTime @default(now())
+
+  @@index([partnerKeyId, createdAt])
+  @@index([partnerKeyId, billingMonth])
+}
+
+model MarketplacePurchase {
+  id         String   @id @default(cuid())
+  buyerId    String
+  buyer      User     @relation("BuyerPurchases", fields: [buyerId], references: [id])
+  listingId  String
+  listing    MarketplaceListing @relation(fields: [listingId], references: [id])
+  orderId    String?
+  ledgerTxId String?
+  createdAt  DateTime @default(now())
+
+  @@unique([buyerId, listingId])
+  @@index([listingId])
+}
+
+model LadderSeason {
+  id         String   @id @default(cuid())
+  weekStart  DateTime @unique  // Monday 00:00 UTC
+  weekEnd    DateTime
+  mode       String   @default("dunk")
+  prizePool  Int      @default(500) // LC amount
+  finalized  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  entries    LadderEntry[]
+}
+
+model LadderEntry {
+  id        String       @id @default(cuid())
+  seasonId  String
+  season    LadderSeason @relation(fields: [seasonId], references: [id])
+  userId    String
+  user      User         @relation("LadderEntries", fields: [userId], references: [id])
+  score     Int          @default(0)
+  attempts  Int          @default(0)
+  bestScore Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([seasonId, userId])
+  @@index([seasonId, bestScore])
+}
+
+// ─── M4 Track B — Real-money competition ───
+
+model CompetitionMatch {
+  id           String   @id @default(cuid())
+  mode         String   // game mode key, e.g. "dunkContest"
+  matchType    String   @default("H2H") // H2H | SCORE_DUEL | GHOST_DUEL
+  status       String   @default("WAITING") // WAITING | ACTIVE | SCORED | SETTLED | DISPUTED | VOIDED | EXPIRED
+  entryFeeCents Int     @default(0)   // per-player entry fee in USD cents
+  rakePercent  Int      @default(10)  // platform rake percentage (e.g. 10 = 10%)
+  seed         String?  // deterministic RNG seed (hex) for skill-game compliance
+
+  player1Id    String
+  player1      User     @relation("MatchPlayer1", fields: [player1Id], references: [id])
+  player1Score Int?
+  player1SubmittedAt DateTime?
+
+  player2Id    String?
+  player2      User?    @relation("MatchPlayer2", fields: [player2Id], references: [id])
+  player2Score Int?
+  player2SubmittedAt DateTime?
+
+  winnerId     String?
+  winner       User?    @relation("MatchWinner", fields: [winnerId], references: [id])
+
+  escrowTxId   String?  // ledger transaction ID for escrow lock
+  settleTxId   String?  // ledger transaction ID for settlement
+  refundTxId   String?  // ledger transaction ID for refund (dispute/void)
+
+  // Async score-duel: deadline for both players to submit
+  expiresAt    DateTime?
+  disputeReason String?
+  disputedAt   DateTime?
+  disputedBy   String?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  events       MatchEvent[]
+
+  @@index([status])
+  @@index([player1Id])
+  @@index([player2Id])
+  @@index([matchType, status])
+}
+
+model MatchEvent {
+  id        String   @id @default(cuid())
+  matchId   String
+  match     CompetitionMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  seq       Int      @default(0)
+  eventType String   // CREATED | JOINED | ESCROW_LOCKED | SCORE_SUBMITTED | SETTLED | DISPUTED | VOIDED | REFUNDED | EXPIRED
+  userId    String?  // who triggered the event (null for system events like EXPIRED)
+  user      User?    @relation(fields: [userId], references: [id])
+  payload   String   @default("{}") // JSON
+  createdAt DateTime @default(now())
+
+  @@index([matchId, seq])
+}
+
+// Mirror Triumph — free tier beat-your-own-ghost streaks
+model MirrorTriumph {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode         String   // game mode key
+  bestScore    Int      @default(0)
+  currentStreak Int     @default(0)
+  longestStreak Int     @default(0)
+  totalBeats   Int      @default(0) // total times the user beat their ghost
+  lastBeatAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, mode])
+  @@index([userId])
+}
