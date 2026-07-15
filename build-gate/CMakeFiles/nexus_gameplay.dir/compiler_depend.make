@@ -12398,6 +12398,7 @@ CMakeFiles/nexus_gameplay.dir/app/gameplay/src/stage_stream_manager.cpp.o: /home
 CMakeFiles/nexus_gameplay.dir/app/gameplay/src/story_mode.cpp.o: /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/src/story_mode.cpp \
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/arcade_physics.h \
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/arena_3d_space.h \
+  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/character_anim_state.h \
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/combat_system.h \
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/enemy_ai.h \
   /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/flight_system.h \
