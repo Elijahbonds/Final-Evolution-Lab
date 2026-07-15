@@ -1,4 +1,5 @@
 import { createSharedSystems } from '../../systems/index.js';
+import { ArcDrive } from '../../systems/ArcDrive.js';
 import { feelConfig } from '../../systems/feelConfig.js';
 import { InputBuffer } from '../../systems/InputBuffer.js';
 import { StateMachine } from '../../systems/StateMachine.js';
@@ -103,6 +104,11 @@ export class DunkingMode extends GameModeInterface {
     // Buffered input (feel DoD: jump fires within 1 physics step, always)
     this._inputBuffer = new InputBuffer({ windowMs: feelConfig.input.bufferMs });
 
+    // Hybrid anim↔physics arc drive for the dunk itself (commit 4)
+    this._arcDrive = new ArcDrive();
+    this._arcTarget = { x: 0, y: 0, z: 0 };
+    this._drivenDunk = null; // { variant, modifier } while an arc is driving
+
     // Movement FSM: Idle→Approach→JumpPrep→Ascent→Peak→Descent→Contact→Landing
     this._fsm = this._createMovementFsm();
 
@@ -193,6 +199,8 @@ export class DunkingMode extends GameModeInterface {
     this.playerPosition = { x: 0, y: 0, z: 0 };
     this._verticalVelocity = 0;
     this._inputBuffer.clear();
+    this._arcDrive.cancel();
+    this._drivenDunk = null;
     this._fsm.transition(DunkPhase.IDLE);
     this.state = {
       ...this._createInitialState(),
@@ -266,10 +274,72 @@ export class DunkingMode extends GameModeInterface {
   }
 
   /**
+   * Mid-air dunk lock-on: begins the hybrid arc drive when the player is
+   * airborne within lock-on radius of the hoop. Returns false → caller
+   * falls through to the immediate (grounded/out-of-range) dunk attempt.
+   * @private
+   */
+  _tryBeginDunkDrive(variant, modifier) {
+    if (this._arcDrive.active || !this._isMidAir) return false;
+    const cfg = feelConfig.dunkArc;
+    if (distanceToHoop(this.playerPosition) > cfg.lockOnRadius) return false;
+
+    // Rim approach point: just in front of the rim center, slam height.
+    const dx = this.playerPosition.x - HOOP_POSITION.x;
+    const dz = this.playerPosition.z - HOOP_POSITION.z;
+    const len = Math.sqrt(dx * dx + dz * dz) || 1;
+    this._arcTarget.x = HOOP_POSITION.x + (dx / len) * cfg.rimStandoff;
+    this._arcTarget.z = HOOP_POSITION.z + (dz / len) * cfg.rimStandoff;
+    this._arcTarget.y = cfg.rimApproachY;
+
+    this._arcDrive.begin({
+      start: this.playerPosition,
+      target: this._arcTarget,
+      apexY: Math.max(this.playerPosition.y, cfg.rimApproachY) + cfg.apexBoostM,
+      durationMs: cfg.durationMs,
+    });
+    this._drivenDunk = { variant, modifier };
+    this.scene?.triggerDunkCameraSequence?.();
+    return true;
+  }
+
+  /**
    * Vertical physics + movement-phase transitions. Runs once per fixed step.
    * @private
    */
   _updateJumpPhase(dt) {
+    // ── Arc drive owns the body while active (hybrid blend) ────────────────
+    if (this._arcDrive.active) {
+      this._prevPos.x = this.playerPosition.x;
+      this._prevPos.y = this.playerPosition.y;
+      this._prevPos.z = this.playerPosition.z;
+      const done = this._arcDrive.advance(dt, this.playerPosition);
+      // Phase readout follows the arc's vertical motion (HUD/anim selector).
+      const vyApprox = (this.playerPosition.y - this._prevPos.y) / dt;
+      const g = feelConfig.gravity;
+      if (vyApprox > g.peakVelocityWindow) this._fsm.transition(DunkPhase.ASCENT);
+      else if (vyApprox >= -g.peakVelocityWindow) this._fsm.transition(DunkPhase.PEAK);
+      else this._fsm.transition(DunkPhase.DESCENT);
+
+      if (done) {
+        // Rim contact: score, then hand control back to physics with
+        // velocity continuity — position AND vy are continuous, no jerk.
+        const dunk = this._drivenDunk;
+        this._drivenDunk = null;
+        this._verticalVelocity = this._arcDrive.endVerticalVelocity();
+        if (dunk) this._executeDunk(dunk.variant, dunk.modifier, { nearHoop: true });
+        this._fsm.transition(DunkPhase.DESCENT);
+      }
+      return;
+    }
+    this._updateFreePhase(dt);
+  }
+
+  /**
+   * Free (non-driven) vertical physics + phase transitions.
+   * @private
+   */
+  _updateFreePhase(dt) {
     const fsm = this._fsm;
     const jump = feelConfig.jump;
     const g = feelConfig.gravity;
@@ -445,7 +515,12 @@ export class DunkingMode extends GameModeInterface {
     if (type === 'dunk') {
       const variant = payload.variant ?? 'standard';
       this._pendingDunkVariant = variant;
-      this._executeDunk(variant, payload.modifier, payload);
+      if (this._tryBeginDunkDrive(variant, payload.modifier)) {
+        // Mid-air lock-on: the arc carries the player to the rim; scoring
+        // fires at rim contact in _fixedUpdate.
+      } else {
+        this._executeDunk(variant, payload.modifier, payload);
+      }
     }
 
     this._syncHudState();
@@ -575,6 +650,8 @@ export class DunkingMode extends GameModeInterface {
     this._isMidAir     = false;
     this._verticalVelocity = 0;
     this._inputBuffer.clear();
+    this._arcDrive.cancel();
+    this._drivenDunk = null;
     this._fsm.transition(DunkPhase.IDLE);
     this.state = this._createInitialState();
   }

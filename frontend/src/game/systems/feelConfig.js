@@ -36,6 +36,15 @@ export const feelConfig = {
     peakVelocityWindow: 0.9, // TUNE(elijah) — |vy| below this = "peak" (hang ≈ 0.5s at these values)
   },
 
+  // Dunk arc drive (hybrid anim↔physics blend — commit 4).
+  dunkArc: {
+    lockOnRadius: 4.5,       // TUNE(elijah) — max distance to hoop for a mid-air dunk lock-on
+    rimApproachY: 1.35,      // TUNE(elijah) — feet height at rim contact (slam point)
+    apexBoostM: 0.4,         // TUNE(elijah) — extra apex height above the higher endpoint
+    durationMs: 620,         // TUNE(elijah) — drive time from trigger to rim
+    rimStandoff: 0.55,       // TUNE(elijah) — stop this far in front of the rim center
+  },
+
   // Court bounds for free movement (Venice court, matches HOOP_POSITION space).
   court: {
     minX: -7, maxX: 7,
