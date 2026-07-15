@@ -505,6 +505,14 @@ auto ModeRuntime::handleCommand(std::string_view command, const nlohmann::json& 
     if (command == "fel.story.roll") {
       return m_story.rollAndMove();
     }
+    if (command == "fel.story.move") {
+      const float dx = params.value("dx", 0.0F);
+      const float dz = params.value("dz", 0.0F);
+      return m_story.move(dx, dz);
+    }
+    if (command == "fel.story.interact") {
+      return m_story.interact();
+    }
     if (command == "fel.story.jump") {
       return m_story.jump();
     }

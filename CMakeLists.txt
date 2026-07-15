@@ -337,6 +337,14 @@ if(NEXUS_BUILD_TESTS)
   endif()
   add_test(NAME nexus_golf3d_karate_test COMMAND nexus_golf3d_karate_test)
 
+  add_executable(nexus_story_mode_test tests/unit/gameplay/story_mode_test.cpp)
+  target_link_libraries(nexus_story_mode_test PRIVATE nexus_gameplay)
+  if(APPLE)
+    target_link_options(nexus_story_mode_test PRIVATE
+      "LINKER:-force_load,$<TARGET_FILE:nexus_gameplay>")
+  endif()
+  add_test(NAME nexus_story_mode_test COMMAND nexus_story_mode_test)
+
   add_executable(nexus_generative_test tests/unit/generative/generative_test.cpp)
   target_link_libraries(nexus_generative_test PRIVATE nexus_generative nexus_ai_interface)
   add_test(NAME nexus_generative_test COMMAND nexus_generative_test)

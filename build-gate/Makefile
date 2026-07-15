@@ -426,6 +426,19 @@ nexus_golf3d_karate_test/fast:
 .PHONY : nexus_golf3d_karate_test/fast
 
 #=============================================================================
+# Target rules for targets named nexus_story_mode_test
+
+# Build rule for target.
+nexus_story_mode_test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 nexus_story_mode_test
+.PHONY : nexus_story_mode_test
+
+# fast build rule for target.
+nexus_story_mode_test/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_story_mode_test.dir/build.make CMakeFiles/nexus_story_mode_test.dir/build
+.PHONY : nexus_story_mode_test/fast
+
+#=============================================================================
 # Target rules for targets named nexus_generative_test
 
 # Build rule for target.
@@ -2905,6 +2918,30 @@ tests/unit/gameplay/scan_envelope_test.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_scan_envelope_test.dir/build.make CMakeFiles/nexus_scan_envelope_test.dir/tests/unit/gameplay/scan_envelope_test.cpp.s
 .PHONY : tests/unit/gameplay/scan_envelope_test.cpp.s
 
+tests/unit/gameplay/story_mode_test.o: tests/unit/gameplay/story_mode_test.cpp.o
+.PHONY : tests/unit/gameplay/story_mode_test.o
+
+# target to build an object file
+tests/unit/gameplay/story_mode_test.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_story_mode_test.dir/build.make CMakeFiles/nexus_story_mode_test.dir/tests/unit/gameplay/story_mode_test.cpp.o
+.PHONY : tests/unit/gameplay/story_mode_test.cpp.o
+
+tests/unit/gameplay/story_mode_test.i: tests/unit/gameplay/story_mode_test.cpp.i
+.PHONY : tests/unit/gameplay/story_mode_test.i
+
+# target to preprocess a source file
+tests/unit/gameplay/story_mode_test.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_story_mode_test.dir/build.make CMakeFiles/nexus_story_mode_test.dir/tests/unit/gameplay/story_mode_test.cpp.i
+.PHONY : tests/unit/gameplay/story_mode_test.cpp.i
+
+tests/unit/gameplay/story_mode_test.s: tests/unit/gameplay/story_mode_test.cpp.s
+.PHONY : tests/unit/gameplay/story_mode_test.s
+
+# target to generate assembly for a file
+tests/unit/gameplay/story_mode_test.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/nexus_story_mode_test.dir/build.make CMakeFiles/nexus_story_mode_test.dir/tests/unit/gameplay/story_mode_test.cpp.s
+.PHONY : tests/unit/gameplay/story_mode_test.cpp.s
+
 tests/unit/generative/generative_test.o: tests/unit/generative/generative_test.cpp.o
 .PHONY : tests/unit/generative/generative_test.o
 
@@ -3185,6 +3222,7 @@ help:
 	@echo "... nexus_runtime_lib"
 	@echo "... nexus_scale_policy_test"
 	@echo "... nexus_scan_envelope_test"
+	@echo "... nexus_story_mode_test"
 	@echo "... app/gameplay/src/arcade_physics.o"
 	@echo "... app/gameplay/src/arcade_physics.i"
 	@echo "... app/gameplay/src/arcade_physics.s"
@@ -3482,6 +3520,9 @@ help:
 	@echo "... tests/unit/gameplay/scan_envelope_test.o"
 	@echo "... tests/unit/gameplay/scan_envelope_test.i"
 	@echo "... tests/unit/gameplay/scan_envelope_test.s"
+	@echo "... tests/unit/gameplay/story_mode_test.o"
+	@echo "... tests/unit/gameplay/story_mode_test.i"
+	@echo "... tests/unit/gameplay/story_mode_test.s"
 	@echo "... tests/unit/generative/generative_test.o"
 	@echo "... tests/unit/generative/generative_test.i"
 	@echo "... tests/unit/generative/generative_test.s"

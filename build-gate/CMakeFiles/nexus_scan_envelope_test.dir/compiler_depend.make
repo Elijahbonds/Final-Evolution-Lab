@@ -397,14 +397,23 @@ CMakeFiles/nexus_scan_envelope_test.dir/tests/unit/gameplay/scan_envelope_test.c
   /usr/include/x86_64-linux-gnu/bits/pthreadtypes-arch.h \
   /usr/include/x86_64-linux-gnu/bits/pthreadtypes.h \
   /usr/include/x86_64-linux-gnu/bits/sched.h \
+  /usr/include/x86_64-linux-gnu/bits/select-decl.h \
   /usr/include/x86_64-linux-gnu/bits/select.h \
+  /usr/include/x86_64-linux-gnu/bits/select2.h \
   /usr/include/x86_64-linux-gnu/bits/semaphore.h \
   /usr/include/x86_64-linux-gnu/bits/setjmp.h \
   /usr/include/x86_64-linux-gnu/bits/stdint-intn.h \
   /usr/include/x86_64-linux-gnu/bits/stdint-least.h \
   /usr/include/x86_64-linux-gnu/bits/stdint-uintn.h \
+  /usr/include/x86_64-linux-gnu/bits/stdio.h \
+  /usr/include/x86_64-linux-gnu/bits/stdio2-decl.h \
+  /usr/include/x86_64-linux-gnu/bits/stdio2.h \
   /usr/include/x86_64-linux-gnu/bits/stdio_lim.h \
+  /usr/include/x86_64-linux-gnu/bits/stdlib-bsearch.h \
   /usr/include/x86_64-linux-gnu/bits/stdlib-float.h \
+  /usr/include/x86_64-linux-gnu/bits/stdlib.h \
+  /usr/include/x86_64-linux-gnu/bits/string_fortified.h \
+  /usr/include/x86_64-linux-gnu/bits/strings_fortified.h \
   /usr/include/x86_64-linux-gnu/bits/struct_mutex.h \
   /usr/include/x86_64-linux-gnu/bits/struct_rwlock.h \
   /usr/include/x86_64-linux-gnu/bits/syscall.h \
@@ -441,10 +450,14 @@ CMakeFiles/nexus_scan_envelope_test.dir/tests/unit/gameplay/scan_envelope_test.c
   /usr/include/x86_64-linux-gnu/bits/typesizes.h \
   /usr/include/x86_64-linux-gnu/bits/uintn-identity.h \
   /usr/include/x86_64-linux-gnu/bits/uio_lim.h \
+  /usr/include/x86_64-linux-gnu/bits/unistd-decl.h \
+  /usr/include/x86_64-linux-gnu/bits/unistd.h \
   /usr/include/x86_64-linux-gnu/bits/unistd_ext.h \
   /usr/include/x86_64-linux-gnu/bits/waitflags.h \
   /usr/include/x86_64-linux-gnu/bits/waitstatus.h \
   /usr/include/x86_64-linux-gnu/bits/wchar.h \
+  /usr/include/x86_64-linux-gnu/bits/wchar2-decl.h \
+  /usr/include/x86_64-linux-gnu/bits/wchar2.h \
   /usr/include/x86_64-linux-gnu/bits/wctype-wchar.h \
   /usr/include/x86_64-linux-gnu/bits/wordsize.h \
   /usr/include/x86_64-linux-gnu/bits/xopen_lim.h \
@@ -507,8 +520,6 @@ nexus_scan_envelope_test: /lib/x86_64-linux-gnu/libc.so.6 \
 
 libnexus_net.a:
 
-libnexus_generative.a:
-
 libnexus_gameplay.a:
 
 libnexus_creative.a:
@@ -553,8 +564,6 @@ CMakeFiles/nexus_scan_envelope_test.dir/tests/unit/gameplay/scan_envelope_test.c
 
 /usr/include/x86_64-linux-gnu/c++/13/bits/opt_random.h:
 
-/usr/include/x86_64-linux-gnu/c++/13/bits/messages_members.h:
-
 /usr/include/x86_64-linux-gnu/c++/13/bits/gthr-default.h:
 
 /usr/include/x86_64-linux-gnu/c++/13/bits/error_constants.h:
@@ -568,6 +577,12 @@ CMakeFiles/nexus_scan_envelope_test.dir/tests/unit/gameplay/scan_envelope_test.c
 /usr/include/x86_64-linux-gnu/bits/wordsize.h:
 
 /usr/include/x86_64-linux-gnu/bits/wctype-wchar.h:
+
+libnexus_generative.a:
+
+/usr/include/x86_64-linux-gnu/bits/wchar2.h:
+
+/usr/include/x86_64-linux-gnu/bits/wchar2-decl.h:
 
 /usr/include/x86_64-linux-gnu/bits/waitstatus.h:
 
@@ -588,6 +603,8 @@ CMakeFiles/nexus_scan_envelope_test.dir/tests/unit/gameplay/scan_envelope_test.c
 /usr/include/x86_64-linux-gnu/bits/types/struct_timespec.h:
 
 /usr/include/x86_64-linux-gnu/c++/13/bits/gthr.h:
+
+/usr/include/x86_64-linux-gnu/bits/unistd.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/struct___jmp_buf_tag.h:
 
@@ -625,9 +642,17 @@ CMakeFiles/nexus_scan_envelope_test.dir/tests/unit/gameplay/scan_envelope_test.c
 
 /usr/include/x86_64-linux-gnu/bits/struct_mutex.h:
 
+/usr/include/x86_64-linux-gnu/bits/string_fortified.h:
+
 /usr/include/x86_64-linux-gnu/bits/stdlib-float.h:
 
 /usr/include/x86_64-linux-gnu/bits/stdio_lim.h:
+
+/usr/include/x86_64-linux-gnu/c++/13/bits/messages_members.h:
+
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:
+
+/usr/include/x86_64-linux-gnu/bits/stdio.h:
 
 /usr/include/x86_64-linux-gnu/bits/stdint-least.h:
 
@@ -756,6 +781,8 @@ _deps/nlohmann_json-src/include/nlohmann/detail/input/json_sax.hpp:
 /usr/include/c++/13/bits/iterator_concepts.h:
 
 /usr/include/c++/13/bits/allocator.h:
+
+/usr/include/x86_64-linux-gnu/bits/stdlib.h:
 
 /usr/include/c++/13/functional:
 
@@ -887,6 +914,8 @@ _deps/nlohmann_json-src/include/nlohmann/detail/abi_macros.hpp:
 
 _deps/nlohmann_json-src/include/nlohmann/thirdparty/hedley/hedley.hpp:
 
+/usr/include/x86_64-linux-gnu/bits/unistd-decl.h:
+
 /usr/include/c++/13/bits/istream.tcc:
 
 /usr/include/c++/13/bits/ptr_traits.h:
@@ -981,6 +1010,8 @@ _deps/nlohmann_json-src/include/nlohmann/detail/conversions/to_chars.hpp:
 
 /usr/include/c++/13/bits/alloc_traits.h:
 
+/usr/include/x86_64-linux-gnu/bits/stdlib-bsearch.h:
+
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/core/include/nexus/core/http_client.h:
 
 /usr/include/c++/13/bits/stl_multimap.h:
@@ -1026,6 +1057,8 @@ _deps/nlohmann_json-src/include/nlohmann/detail/iterators/internal_iterator.hpp:
 /usr/include/c++/13/tr1/riemann_zeta.tcc:
 
 /usr/include/x86_64-linux-gnu/c++/13/bits/ctype_inline.h:
+
+/usr/include/x86_64-linux-gnu/bits/stdio2-decl.h:
 
 /usr/include/c++/13/bits/algorithmfwd.h:
 
@@ -1196,6 +1229,8 @@ _deps/nlohmann_json-src/include/nlohmann/detail/meta/std_fs.hpp:
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/arcade_physics.h:
 
 /usr/lib/x86_64-linux-gnu/libm.so:
+
+/usr/include/x86_64-linux-gnu/bits/select-decl.h:
 
 /usr/include/c++/13/string:
 
@@ -1405,6 +1440,8 @@ _deps/nlohmann_json-src/include/nlohmann/detail/iterators/iterator_traits.hpp:
 
 /usr/include/c++/13/ctime:
 
+/usr/include/x86_64-linux-gnu/bits/strings_fortified.h:
+
 /usr/include/c++/13/cwchar:
 
 /usr/include/unistd.h:
@@ -1454,6 +1491,8 @@ _deps/nlohmann_json-src/include/nlohmann/detail/macro_scope.hpp:
 /usr/include/c++/13/bits/stl_iterator_base_funcs.h:
 
 /usr/include/c++/13/numeric:
+
+/usr/include/x86_64-linux-gnu/bits/select2.h:
 
 /usr/include/c++/13/optional:
 

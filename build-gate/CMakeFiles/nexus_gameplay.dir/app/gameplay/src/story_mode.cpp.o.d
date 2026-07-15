@@ -344,4 +344,5 @@ CMakeFiles/nexus_gameplay.dir/app/gameplay/src/story_mode.cpp.o: \
  /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/stage_stream_manager.h \
  /usr/include/c++/13/random /usr/include/c++/13/bits/random.h \
  /usr/include/x86_64-linux-gnu/c++/13/bits/opt_random.h \
- /usr/include/c++/13/bits/random.tcc
+ /usr/include/c++/13/bits/random.tcc \
+ /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/app/gameplay/include/nexus/gameplay/character_anim_state.h
