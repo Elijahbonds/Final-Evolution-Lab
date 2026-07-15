@@ -95,14 +95,77 @@ namespace clips {
   inline constexpr std::string_view kSoccerCeleb  = "soccer_goal_celebrate";
   inline constexpr std::string_view kSoccerHeader = "soccer_header_jump";
 
-  // ── Football / Kick Return ───────────────────────────────────────────────
+  // ── Football — NFL Street 3D ─────────────────────────────────────────────
+  // Carrier locomotion
+  inline constexpr std::string_view kFbIdle       = "football_idle_stance";
+  inline constexpr std::string_view kFbJog        = "football_jog_noBall";
   inline constexpr std::string_view kFbSprint     = "football_sprint_return";
+  inline constexpr std::string_view kFbSprintBall = "football_sprint_withBall"; // ball-carrier run
+  // Juke package (NFL Street feel)
   inline constexpr std::string_view kFbJukeLeft   = "football_juke_left";
   inline constexpr std::string_view kFbJukeRight  = "football_juke_right";
   inline constexpr std::string_view kFbSpin       = "football_spin_move";
   inline constexpr std::string_view kFbStiffArm   = "football_stiff_arm";
+  inline constexpr std::string_view kFbHurdle     = "football_hurdle_leap";
+  inline constexpr std::string_view kFbDive       = "football_dive_endzone";
+  inline constexpr std::string_view kFbGamebreaker= "football_gamebreaker_burst"; // Gamebreaker special
+  // Passing / receiving
+  inline constexpr std::string_view kFbThrow      = "football_qb_throw";
+  inline constexpr std::string_view kFbCatch      = "football_catch_twohand";
+  inline constexpr std::string_view kFbCatchOhp   = "football_catch_overhead";   // over-the-shoulder
+  inline constexpr std::string_view kFbRoute      = "football_route_run";
+  inline constexpr std::string_view kFbPassRush   = "football_pass_rush_bull";
+  // Blocking
+  inline constexpr std::string_view kFbBlock      = "football_block_drive";
+  // Results
   inline constexpr std::string_view kFbTouchdown  = "football_touchdown_spike";
+  inline constexpr std::string_view kFbTdBackflip = "football_td_backflip";     // style celebration
   inline constexpr std::string_view kFbTackled    = "football_tackled_fall";
+  inline constexpr std::string_view kFbSafety     = "football_safety_sack";
+
+  // ── Baseball 3D ──────────────────────────────────────────────────────────
+  // Pitching
+  inline constexpr std::string_view kBbPitchIdle     = "baseball_pitcher_idle";
+  inline constexpr std::string_view kBbPitchWindup   = "baseball_pitch_windup";
+  inline constexpr std::string_view kBbPitchRelease  = "baseball_pitch_release";
+  inline constexpr std::string_view kBbPitchFollow   = "baseball_pitch_followthrough";
+  inline constexpr std::string_view kBbCheckRunner   = "baseball_check_runner";
+  // Batting
+  inline constexpr std::string_view kBbBatStance     = "baseball_bat_stance";
+  inline constexpr std::string_view kBbBatLoad       = "baseball_bat_load";
+  inline constexpr std::string_view kBbSwingFull     = "baseball_swing_full";
+  inline constexpr std::string_view kBbSwingCheck    = "baseball_swing_check";
+  inline constexpr std::string_view kBbBunt          = "baseball_bunt";
+  inline constexpr std::string_view kBbHomeRun       = "baseball_homerun_watch";
+  inline constexpr std::string_view kBbStrikeout     = "baseball_strikeout_react";
+  // Fielding / running
+  inline constexpr std::string_view kBbFielderRun    = "baseball_fielder_sprint";
+  inline constexpr std::string_view kBbFielderThrow  = "baseball_fielder_throw";
+  inline constexpr std::string_view kBbFielderDive   = "baseball_fielder_dive";
+  inline constexpr std::string_view kBbBaseRun       = "baseball_baserunner_sprint";
+  inline constexpr std::string_view kBbSlide         = "baseball_slide";
+  inline constexpr std::string_view kBbSafe          = "baseball_safe_popup";
+  inline constexpr std::string_view kBbCelebrate     = "baseball_team_celebrate";
+
+  // ── Fitness / Workout (motion-capture driven) ─────────────────────────────
+  inline constexpr std::string_view kFitIdle         = "fitness_ready_stance";
+  inline constexpr std::string_view kFitSquat        = "fitness_squat";
+  inline constexpr std::string_view kFitLunge        = "fitness_lunge";
+  inline constexpr std::string_view kFitPushup       = "fitness_pushup";
+  inline constexpr std::string_view kFitPullup       = "fitness_pullup";
+  inline constexpr std::string_view kFitBurpee       = "fitness_burpee";
+  inline constexpr std::string_view kFitPlank        = "fitness_plank_hold";
+  inline constexpr std::string_view kFitJumpJack     = "fitness_jumping_jack";
+  inline constexpr std::string_view kFitHighKnees    = "fitness_high_knees";
+  inline constexpr std::string_view kFitMountainClimb= "fitness_mountain_climber";
+  inline constexpr std::string_view kFitBicepCurl    = "fitness_bicep_curl";
+  inline constexpr std::string_view kFitShoulderPress= "fitness_shoulder_press";
+  inline constexpr std::string_view kFitDeadlift     = "fitness_deadlift";
+  inline constexpr std::string_view kFitBoxJump      = "fitness_box_jump";
+  inline constexpr std::string_view kFitMedBallSlam  = "fitness_medball_slam";
+  inline constexpr std::string_view kFitSprintDrill  = "fitness_sprint_drill";
+  inline constexpr std::string_view kFitLateralBand  = "fitness_lateral_band_walk";
+  inline constexpr std::string_view kFitRestBetween  = "fitness_rest_stand";    // between sets
 
   // ── Board sports (Meshy/free replacements) ───────────────────────────────
   inline constexpr std::string_view kSkateIdle    = "skate_idle_cruise";

@@ -1,1 +1,1 @@
-/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/nexus_physics_advanced_test.dir/link.d CMakeFiles/nexus_physics_advanced_test.dir/tests/unit/physics/physics_advanced_test.cpp.o -o nexus_physics_advanced_test  libnexus_physics.a libnexus_core.a
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/nexus_physics_advanced_test.dir/link.d CMakeFiles/nexus_physics_advanced_test.dir/tests/unit/physics/physics_advanced_test.cpp.o -o nexus_physics_advanced_test  libnexus_physics.a libnexus_core.a

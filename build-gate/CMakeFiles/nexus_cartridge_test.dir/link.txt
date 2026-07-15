@@ -1,1 +1,1 @@
-/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/nexus_cartridge_test.dir/link.d CMakeFiles/nexus_cartridge_test.dir/tests/unit/core/cartridge_runtime_test.cpp.o -o nexus_cartridge_test  libnexus_core.a
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/nexus_cartridge_test.dir/link.d CMakeFiles/nexus_cartridge_test.dir/tests/unit/core/cartridge_runtime_test.cpp.o -o nexus_cartridge_test  libnexus_core.a

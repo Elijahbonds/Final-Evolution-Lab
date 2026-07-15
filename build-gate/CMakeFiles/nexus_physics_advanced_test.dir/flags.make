@@ -6,5 +6,5 @@ CXX_DEFINES =
 
 CXX_INCLUDES = -I/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/physics/include -I/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/engine/core/include -isystem /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/_deps/nlohmann_json-src/include
 
-CXX_FLAGS = -std=c++20
+CXX_FLAGS = -O3 -DNDEBUG -std=c++20
 

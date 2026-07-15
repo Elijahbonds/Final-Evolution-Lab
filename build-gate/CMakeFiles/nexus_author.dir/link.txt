@@ -1,1 +1,1 @@
-/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/nexus_author.dir/link.d "CMakeFiles/nexus_author.dir/tools/nexus-author/main.cpp.o" -o nexus_author  libnexus_cell.a libnexus_core.a
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/nexus_author.dir/link.d "CMakeFiles/nexus_author.dir/tools/nexus-author/main.cpp.o" -o nexus_author  libnexus_cell.a libnexus_core.a
