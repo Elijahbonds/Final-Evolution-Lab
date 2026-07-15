@@ -4,11 +4,29 @@
   "category": "animations",
   "type": "loop_motion",
   "file": "anim_brain_brawl_thinking_loop.fbx",
-  "urls": ["https://static.seeles.ai/data/asset/export/ef36a598-2fa2-4cc0-8ddb-acc8b88e6f01/481972/unityModel_b102fb03-ae06-4220-8839-732a9907c99c.fbx"],
+  "urls": [
+    "https://static.seeles.ai/data/asset/export/ef36a598-2fa2-4cc0-8ddb-acc8b88e6f01/481972/unityModel_b102fb03-ae06-4220-8839-732a9907c99c.fbx"
+  ],
   "description": "Looping confusion/thinking idle animation with head tilt and hand gestures for ABP_BrainBrawl.",
-  "tags": ["brain brawl", "thinking", "idle", "loop", "animation", "unreal", "fel"],
-  "keywords": ["thinking loop", "head tilt", "confusion", "idle gesture", "ABP_BrainBrawl"],
-  "compat": ["unreal"],
+  "tags": [
+    "brain brawl",
+    "thinking",
+    "idle",
+    "loop",
+    "animation",
+    "unreal",
+    "fel"
+  ],
+  "keywords": [
+    "thinking loop",
+    "head tilt",
+    "confusion",
+    "idle gesture",
+    "ABP_BrainBrawl"
+  ],
+  "compat": [
+    "unreal"
+  ],
   "status": "ready",
   "created_at": "2026-05-23T18:00:00Z",
   "source_date": "2026-05-23",
@@ -18,5 +36,11 @@
   "motion_asset_id": 481972,
   "abp": "ABP_BrainBrawl",
   "abp_slot": "BS_BrainBrawl_ThinkingIdle",
-  "fel_modes": ["brain_brawl"]
+  "fel_modes": [
+    "brain_brawl"
+  ],
+  "local_bundle_file": "anim_brain_brawl_thinking_loop.nexusanim.json",
+  "local_bundle_path": "FinalEvolutionLab/Resources/Animations/anim_brain_brawl_thinking_loop.nexusanim.json",
+  "runtime_loader": "NexusAnimationLoader",
+  "runtime_format": "nexusanim_json"
 }

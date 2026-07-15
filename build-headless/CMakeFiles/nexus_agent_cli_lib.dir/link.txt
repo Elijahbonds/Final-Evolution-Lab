@@ -1,0 +1,2 @@
+/usr/bin/ar qc libnexus_agent_cli_lib.a CMakeFiles/nexus_agent_cli_lib.dir/tools/nexus_agent_cli/agent_cli_session.cpp.o CMakeFiles/nexus_agent_cli_lib.dir/tools/nexus_agent_cli/agent_http_listener.cpp.o
+/usr/bin/ranlib libnexus_agent_cli_lib.a

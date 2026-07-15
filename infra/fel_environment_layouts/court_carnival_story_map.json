@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Court Carnival — Legends of the Boardwalk Story Map",
+  "description": "Expanded Venice Beach world map for FEL story mode. 5 streaming zones derived from court_carnival_environment_layout v1.0, expanded vertically (rooftop row) and horizontally (beach access). 20 board spaces arranged in a loop. Design reference: KH1 world traversal + SA2 rail grinding + PSP portal streaming.",
+  "version": "1.0",
+  "base_layout": "infra/fel_environment_layouts/court_carnival_environment_layout.md",
+  "coordinate_system": "metres (court-origin = (0,0,0), +X north, +Y up, +Z west)",
+
+  "streaming_zones": [
+    {
+      "id": 0,
+      "name": "Boardwalk",
+      "sublevel": "SL_Story_Boardwalk",
+      "load_behavior": "psp_portal",
+      "bounds_min": { "x": -12.0, "y": 0.0, "z": -9.5 },
+      "bounds_max": { "x": 12.0, "y": 5.0, "z": 9.5 },
+      "obstacle_count": 6,
+      "has_boss": false,
+      "requires_flight": false,
+      "description": "Venice boardwalk outer ring. Rail grind on wrought-iron railings. Carnival dressing: string lights, kiosk awnings, crowd strip. Six bollard obstacles activate on zone entry. No boss — introductory traversal zone.",
+      "rail_ids": ["boardwalk_north", "boardwalk_south"],
+      "obstacles": [
+        { "id": "OBS_BW_01", "type": "crowd_barrier", "pos": { "x": -8.0, "y": 0.0, "z": -9.0 }, "damage": 10.0 },
+        { "id": "OBS_BW_02", "type": "kiosk_sign",    "pos": { "x": -4.0, "y": 0.0, "z": -9.5 }, "damage": 8.0  },
+        { "id": "OBS_BW_03", "type": "trash_can",     "pos": { "x":  0.0, "y": 0.0, "z": -9.0 }, "damage": 6.0  },
+        { "id": "OBS_BW_04", "type": "kiosk_sign",    "pos": { "x":  4.0, "y": 0.0, "z":  9.5 }, "damage": 8.0  },
+        { "id": "OBS_BW_05", "type": "crowd_barrier", "pos": { "x":  8.0, "y": 0.0, "z":  9.0 }, "damage": 10.0 },
+        { "id": "OBS_BW_06", "type": "bench",         "pos": { "x": -12.0,"y": 0.0, "z":  3.0 }, "damage": 5.0  }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "Court Floor",
+      "sublevel": "SL_Story_CourtFloor",
+      "load_behavior": "psp_portal",
+      "bounds_min": { "x": -7.8, "y": 0.0, "z": -7.5 },
+      "bounds_max": { "x": 7.8, "y": 3.0, "z": 7.5 },
+      "obstacle_count": 8,
+      "has_boss": true,
+      "requires_flight": false,
+      "boss": {
+        "name": "The Lockdown",
+        "hp": 80.0,
+        "speed_scale": 1.0,
+        "aggression": 0.80,
+        "reward_shard": "shard_lockdown_key",
+        "arena_preset": "kCourt",
+        "description": "Defensive wall opponent. Spawns 4 pillar obstacles mid-fight that block attack lanes — player must use Dodge/Counter to break through. Pillars load on boss_enter event, unload on defeat.",
+        "stage_obstacles_on_fight": [
+          { "id": "PL_CF_01", "type": "pillar", "pos": { "x": -3.0, "y": 0.0, "z": -3.0 }, "hp": 20.0 },
+          { "id": "PL_CF_02", "type": "pillar", "pos": { "x":  3.0, "y": 0.0, "z": -3.0 }, "hp": 20.0 },
+          { "id": "PL_CF_03", "type": "pillar", "pos": { "x": -3.0, "y": 0.0, "z":  3.0 }, "hp": 20.0 },
+          { "id": "PL_CF_04", "type": "pillar", "pos": { "x":  3.0, "y": 0.0, "z":  3.0 }, "hp": 20.0 }
+        ]
+      },
+      "obstacles": [
+        { "id": "OBS_CF_01", "type": "stanchion",   "pos": { "x": -7.0, "y": 0.0, "z":  0.0 }, "damage": 8.0 },
+        { "id": "OBS_CF_02", "type": "shot_clock",  "pos": { "x":  7.0, "y": 0.0, "z":  0.0 }, "damage": 8.0 },
+        { "id": "OBS_CF_03", "type": "hoop_post",   "pos": { "x":  0.0, "y": 0.0, "z": -7.0 }, "damage": 10.0 },
+        { "id": "OBS_CF_04", "type": "hoop_post",   "pos": { "x":  0.0, "y": 0.0, "z":  7.0 }, "damage": 10.0 }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Skate Apron",
+      "sublevel": "SL_Story_SkateApron",
+      "load_behavior": "psp_portal",
+      "bounds_min": { "x": -8.5, "y": 0.0, "z": -9.0 },
+      "bounds_max": { "x": 8.5, "y": 4.0, "z": 9.0 },
+      "obstacle_count": 5,
+      "has_boss": true,
+      "requires_flight": false,
+      "boss": {
+        "name": "Grind King",
+        "hp": 70.0,
+        "speed_scale": 1.1,
+        "aggression": 0.75,
+        "reward_shard": "shard_grind_crown",
+        "description": "Fast rail-native opponent. Spawns two quarter-pipe ramp obstacles that deflect attacks unless the player is also grinding. Player must snap to rail and land nosegrind/noseslide tricks to deal full damage. Ramps load on boss_enter.",
+        "stage_obstacles_on_fight": [
+          { "id": "RP_SA_01", "type": "quarter_pipe", "pos": { "x":  8.5, "y": 0.0, "z": -2.0 }, "deflects": true },
+          { "id": "RP_SA_02", "type": "quarter_pipe", "pos": { "x": -8.5, "y": 0.0, "z":  2.0 }, "deflects": true }
+        ]
+      },
+      "rail_ids": ["apron_east", "apron_west"],
+      "obstacles": [
+        { "id": "OBS_SA_01", "type": "skate_ramp",  "pos": { "x":  7.0, "y": 0.0, "z":  0.0 }, "damage": 0.0 },
+        { "id": "OBS_SA_02", "type": "skate_ramp",  "pos": { "x": -7.0, "y": 0.0, "z":  0.0 }, "damage": 0.0 },
+        { "id": "OBS_SA_03", "type": "barrel",      "pos": { "x":  0.0, "y": 0.0, "z":  8.5 }, "damage": 7.0 }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Beach Access",
+      "sublevel": "SL_Story_BeachAccess",
+      "load_behavior": "psp_portal",
+      "bounds_min": { "x": -9.5, "y": 0.0, "z": 7.5 },
+      "bounds_max": { "x": 9.5, "y": 6.0, "z": 12.0 },
+      "obstacle_count": 4,
+      "has_boss": true,
+      "requires_flight": false,
+      "boss": {
+        "name": "Sunset Sentinel",
+        "hp": 90.0,
+        "speed_scale": 1.0,
+        "aggression": 0.85,
+        "reward_shard": "shard_sunset_seal",
+        "description": "Aerial guardian that hovers — only hittable during flight/glide. Player must jump → activate flight → attack. Spawns two beach obstacle pylons that block ground approach, forcing player to fly. Pylons load on boss_enter.",
+        "stage_obstacles_on_fight": [
+          { "id": "PY_BA_01", "type": "volleyball_net", "pos": { "x": -4.0, "y": 0.0, "z": 9.5 }, "blocks_ground": true },
+          { "id": "PY_BA_02", "type": "volleyball_net", "pos": { "x":  4.0, "y": 0.0, "z": 9.5 }, "blocks_ground": true }
+        ]
+      },
+      "obstacles": [
+        { "id": "OBS_BA_01", "type": "beach_chair",  "pos": { "x": -7.0, "y": 0.0, "z": 10.0 }, "damage": 5.0 },
+        { "id": "OBS_BA_02", "type": "beach_chair",  "pos": { "x":  7.0, "y": 0.0, "z": 10.0 }, "damage": 5.0 }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Rooftop Row",
+      "sublevel": "SL_Story_RooftopRow",
+      "load_behavior": "psp_portal",
+      "bounds_min": { "x": -8.5, "y": 3.5, "z": -8.5 },
+      "bounds_max": { "x": 8.5, "y": 8.0, "z": 8.5 },
+      "obstacle_count": 6,
+      "has_boss": true,
+      "requires_flight": true,
+      "boss": {
+        "name": "The Architect",
+        "hp": 120.0,
+        "speed_scale": 1.2,
+        "aggression": 0.95,
+        "reward_shard": "shard_architect_core",
+        "is_final_boss": true,
+        "description": "Final boss. Resets the board and summons all previous bosses' signature obstacles. Immune on the ground — must be hit from rail (nosegrind) OR flight (airboost). Loads all 6 obstacles on boss_enter. Defeat ends the story.",
+        "stage_obstacles_on_fight": [
+          { "id": "FB_RT_01", "type": "rotating_barrier", "pos": { "x":  0.0, "y": 5.5, "z":  0.0 }, "rotates": true, "rpm": 30 },
+          { "id": "FB_RT_02", "type": "pillar",           "pos": { "x": -4.0, "y": 5.5, "z": -4.0 }, "hp": 30.0 },
+          { "id": "FB_RT_03", "type": "pillar",           "pos": { "x":  4.0, "y": 5.5, "z": -4.0 }, "hp": 30.0 },
+          { "id": "FB_RT_04", "type": "pillar",           "pos": { "x": -4.0, "y": 5.5, "z":  4.0 }, "hp": 30.0 },
+          { "id": "FB_RT_05", "type": "pillar",           "pos": { "x":  4.0, "y": 5.5, "z":  4.0 }, "hp": 30.0 },
+          { "id": "FB_RT_06", "type": "awning_ledge",     "pos": { "x":  0.0, "y": 6.5, "z":  0.0 }, "is_launch_pad": true }
+        ]
+      },
+      "rail_ids": ["rooftop_loop"],
+      "obstacles": [
+        { "id": "OBS_RT_01", "type": "ac_unit",     "pos": { "x": -6.0, "y": 5.5, "z": -6.0 }, "damage": 12.0 },
+        { "id": "OBS_RT_02", "type": "ac_unit",     "pos": { "x":  6.0, "y": 5.5, "z":  6.0 }, "damage": 12.0 }
+      ]
+    }
+  ],
+
+  "board_spaces": [
+    { "index": 0,  "type": "carnival",   "zone": 0, "world_pos": { "x":  0.0,  "y": 0.0, "z": -9.0 }, "bonus": 0  },
+    { "index": 1,  "type": "rail_zone",  "zone": 0, "world_pos": { "x": -6.0,  "y": 1.2, "z": -9.5 }, "bonus": 15 },
+    { "index": 2,  "type": "bonus",      "zone": 0, "world_pos": { "x": -12.0, "y": 0.0, "z": -6.0 }, "bonus": 30 },
+    { "index": 3,  "type": "rail_zone",  "zone": 0, "world_pos": { "x": -12.0, "y": 1.2, "z":  0.0 }, "bonus": 15 },
+    { "index": 4,  "type": "obstacle",   "zone": 0, "world_pos": { "x": -12.0, "y": 0.0, "z":  6.0 }, "damage": 10 },
+    { "index": 5,  "type": "carnival",   "zone": 1, "world_pos": { "x":  0.0,  "y": 0.0, "z":  7.8 }, "bonus": 0  },
+    { "index": 6,  "type": "boss_zone",  "zone": 1, "world_pos": { "x":  0.0,  "y": 0.0, "z":  0.0 }, "bonus": 0  },
+    { "index": 7,  "type": "bonus",      "zone": 1, "world_pos": { "x":  7.8,  "y": 0.0, "z":  0.0 }, "bonus": 25 },
+    { "index": 8,  "type": "obstacle",   "zone": 1, "world_pos": { "x":  7.8,  "y": 0.0, "z": -7.5 }, "damage": 15 },
+    { "index": 9,  "type": "rail_zone",  "zone": 2, "world_pos": { "x":  8.5,  "y": 0.0, "z": -4.0 }, "bonus": 15 },
+    { "index": 10, "type": "flight_zone","zone": 2, "world_pos": { "x":  8.5,  "y": 0.6, "z":  4.5 }, "bonus": 20 },
+    { "index": 11, "type": "boss_zone",  "zone": 2, "world_pos": { "x":  0.0,  "y": 0.0, "z":  8.0 }, "bonus": 0  },
+    { "index": 12, "type": "bonus",      "zone": 2, "world_pos": { "x": -8.5,  "y": 0.0, "z":  4.5 }, "bonus": 25 },
+    { "index": 13, "type": "flight_zone","zone": 3, "world_pos": { "x": -9.5,  "y": 0.0, "z":  8.5 }, "bonus": 20 },
+    { "index": 14, "type": "carnival",   "zone": 3, "world_pos": { "x": -6.0,  "y": 0.0, "z": 11.0 }, "bonus": 0  },
+    { "index": 15, "type": "boss_zone",  "zone": 3, "world_pos": { "x":  0.0,  "y": 0.0, "z": 12.0 }, "bonus": 0  },
+    { "index": 16, "type": "obstacle",   "zone": 3, "world_pos": { "x":  6.0,  "y": 0.0, "z": 11.0 }, "damage": 12 },
+    { "index": 17, "type": "rail_zone",  "zone": 4, "world_pos": { "x":  6.0,  "y": 5.5, "z":  0.0 }, "bonus": 15 },
+    { "index": 18, "type": "flight_zone","zone": 4, "world_pos": { "x":  0.0,  "y": 6.5, "z":  0.0 }, "bonus": 25 },
+    { "index": 19, "type": "boss_zone",  "zone": 4, "world_pos": { "x": -6.0,  "y": 5.5, "z":  0.0 }, "bonus": 0  }
+  ],
+
+  "rails": [
+    {
+      "id": "boardwalk_north",
+      "zone": 0,
+      "waypoints": [
+        { "x": -12.0, "y": 1.2, "z": -9.5 },
+        { "x": -4.0,  "y": 1.4, "z": -9.5 },
+        { "x":  4.0,  "y": 1.4, "z": -9.5 },
+        { "x": 12.0,  "y": 1.2, "z": -9.5 }
+      ],
+      "length_m": 24.1,
+      "loop": false,
+      "tricks": ["nosegrind","50-50","noseslide","tailslide"]
+    },
+    {
+      "id": "boardwalk_south",
+      "zone": 0,
+      "waypoints": [
+        { "x": 12.0, "y": 1.2, "z": 9.5 },
+        { "x":  4.0, "y": 1.4, "z": 9.5 },
+        { "x": -4.0, "y": 1.4, "z": 9.5 },
+        { "x":-12.0, "y": 1.2, "z": 9.5 }
+      ],
+      "length_m": 24.1,
+      "loop": false,
+      "tricks": ["nosegrind","50-50","boardslide","pose"]
+    },
+    {
+      "id": "apron_east",
+      "zone": 2,
+      "waypoints": [
+        { "x": 8.5, "y": 0.6, "z": -4.0 },
+        { "x": 8.5, "y": 1.6, "z": -1.0 },
+        { "x": 8.5, "y": 1.6, "z":  2.0 },
+        { "x": 8.5, "y": 0.6, "z":  4.5 }
+      ],
+      "length_m": 11.2,
+      "loop": false,
+      "tricks": ["nosegrind","tailslide","crouch"]
+    },
+    {
+      "id": "apron_west",
+      "zone": 2,
+      "waypoints": [
+        { "x": -8.5, "y": 0.6, "z": -4.0 },
+        { "x": -8.5, "y": 1.6, "z": -1.0 },
+        { "x": -8.5, "y": 1.6, "z":  2.0 },
+        { "x": -8.5, "y": 0.6, "z":  4.5 }
+      ],
+      "length_m": 11.2,
+      "loop": false,
+      "tricks": ["nosegrind","tailslide","crouch"]
+    },
+    {
+      "id": "rooftop_loop",
+      "zone": 4,
+      "waypoints": [
+        { "x": -6.0, "y": 5.5, "z": -6.0 },
+        { "x":  6.0, "y": 6.5, "z": -6.0 },
+        { "x":  6.0, "y": 6.5, "z":  6.0 },
+        { "x": -6.0, "y": 5.5, "z":  6.0 }
+      ],
+      "length_m": 26.0,
+      "loop": true,
+      "tricks": ["nosegrind","50-50","noseslide","boardslide","pose","crouch"]
+    }
+  ],
+
+  "speed_design_notes": {
+    "prq_to_speed_mapping": "movementSpeedScale = 0.6 + prqNorm * 2.2 (ArcadePhysics::fromPRQ)",
+    "sora_tier": { "prq_range": [0, 55], "speed_scale_range": [0.6, 1.8], "feel": "KH1 Sora base movement" },
+    "primed_tier": { "prq_range": [56, 79], "speed_scale_range": [1.8, 2.3], "feel": "Fast — arcade platformer" },
+    "sonic_tier": { "prq_range": [80, 100], "speed_scale_range": [2.3, 2.8], "feel": "Near-Sonic SA2 speed" },
+    "sprint_stub_prq": 75,
+    "sprint_stub_speed_scale": 2.25,
+    "flight_speed": "flightSpeedScale = 0.8 + prqNorm * 1.2 (glide 0.8→2.0)"
+  },
+
+  "ios_performance_notes": {
+    "zone_triangle_budget": "≤ 200k per active zone (rooftop shared with boardwalk shell)",
+    "suspended_zone_lod": "LOD2 for suspended zones; no obstacle spawns",
+    "streaming_latency_sim": "kStreamingFrames = 3 update ticks before zone goes kActive",
+    "boss_obstacles": "Load only on boss_enter event; unload on defeat — mirrors KH1 room geometry swap"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "id": "seq_001",
+  "tier": "sequencing",
+  "input": { "userId": "test_user", "endpoint": "/nexus/v1/queue" },
+  "expected_output": { "has_lessons": true },
+  "weight": 1.0
+}

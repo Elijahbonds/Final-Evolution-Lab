@@ -4,11 +4,29 @@
   "category": "animations",
   "type": "loop_motion",
   "file": "anim_surf_ride_loop.fbx",
-  "urls": ["https://static.seeles.ai/data/asset/export/0f74ee94-3ab9-425b-b43a-2b01649e4431/499783/unityModel_108b7365-a456-4df1-a9c9-48c9b1358e39.fbx"],
-  "description": "Looping surf ride balance animation — crouching and weight-shifting stance while riding a wave.",
-  "tags": ["surfing", "ride", "balance", "loop", "animation", "unreal", "fel"],
-  "keywords": ["surf ride", "balance loop", "crouch", "weight shift", "ABP_Surfing"],
-  "compat": ["unreal"],
+  "urls": [
+    "https://static.seeles.ai/data/asset/export/0f74ee94-3ab9-425b-b43a-2b01649e4431/499783/unityModel_108b7365-a456-4df1-a9c9-48c9b1358e39.fbx"
+  ],
+  "description": "Looping surf ride balance animation \u2014 crouching and weight-shifting stance while riding a wave.",
+  "tags": [
+    "surfing",
+    "ride",
+    "balance",
+    "loop",
+    "animation",
+    "unreal",
+    "fel"
+  ],
+  "keywords": [
+    "surf ride",
+    "balance loop",
+    "crouch",
+    "weight shift",
+    "ABP_Surfing"
+  ],
+  "compat": [
+    "unreal"
+  ],
   "status": "ready",
   "created_at": "2026-05-23T18:00:00Z",
   "source_date": "2026-05-23",
@@ -18,5 +36,11 @@
   "motion_asset_id": 499783,
   "abp": "ABP_Surfing",
   "abp_slot": "BS_Surfing_Ride",
-  "fel_modes": ["surfing"]
+  "fel_modes": [
+    "surfing"
+  ],
+  "local_bundle_file": "anim_surf_ride_loop.nexusanim.json",
+  "local_bundle_path": "FinalEvolutionLab/Resources/Animations/anim_surf_ride_loop.nexusanim.json",
+  "runtime_loader": "NexusAnimationLoader",
+  "runtime_format": "nexusanim_json"
 }

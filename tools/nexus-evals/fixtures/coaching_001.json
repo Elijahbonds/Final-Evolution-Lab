@@ -1,0 +1,7 @@
+{
+  "id": "coaching_001",
+  "tier": "coaching",
+  "input": { "userId": "test_user", "endpoint": "/nexus/v1/coaching", "skill": "dunk_approach" },
+  "expected_output": { "has_message": true },
+  "weight": 1.5
+}

@@ -158,6 +158,56 @@ nonisolated struct AvatarStateMachine: Sendable {
             return (w * 1.10, h * 1.10, w * 1.10)
         }
     }
+
+    // MARK: - Canonical Animation IDs
+
+    /// Returns the bundled NexusAnimationLoader animation id for this state.
+    /// These map directly to `.nexusanim.json` files in Resources/Animations/.
+    static func canonicalAnimationId(for state: AvatarPoseState, sport: String = "basketball") -> String? {
+        switch state {
+        case .idle:      return "anim_standing_idle"
+        case .sprint:    return "anim_sprint_run_loop"
+        case .gather:    return "anim_sprint_run_loop"
+        case .dunk:      return "anim_basketball_dunk"
+        case .shoot:     return "anim_basketball_jump_shot"
+        case .jump:
+            switch sport {
+            case "volleyball": return "anim_volleyball_spike"
+            default:           return "anim_basketball_jump_shot"
+            }
+        case .land:      return "anim_standing_idle"
+        case .block:     return "anim_basketball_defensive_idle"
+        case .swing:
+            switch sport {
+            case "baseball": return "anim_baseball_bat_swing"
+            case "golf":     return "anim_golf_swing"
+            case "tennis":   return "anim_tennis_serve"
+            default:         return nil
+            }
+        case .kick:
+            return sport == "karate" ? "anim_karate_punch_kick_combo" : "anim_soccer_kick_shot"
+        case .spike:     return "anim_volleyball_spike"
+        case .serve:     return "anim_tennis_serve"
+        case .celebrate: return "anim_victory_celebration"
+        case .hitStun:   return "anim_defeat_knockdown"
+        case .special:
+            switch sport {
+            case "karate":   return "anim_karate_punch_kick_combo"
+            case "football": return "anim_football_throw_pass"
+            default:         return "anim_victory_celebration"
+            }
+        case .counter, .vanish, .catch_ball:
+            return "anim_standing_idle"
+        }
+    }
+
+    /// Returns true if this animation should loop continuously.
+    static func isLooping(for state: AvatarPoseState) -> Bool {
+        switch state {
+        case .idle, .sprint, .gather, .block: return true
+        default: return false
+        }
+    }
 }
 
 nonisolated enum ReadinessTier: String, Sendable, CaseIterable {

@@ -12,8 +12,9 @@ namespace nexus::gameplay {
 namespace {
 
 [[nodiscard]] auto isOutcomeSportMode(std::string_view modeId) -> bool {
+  // "golf" is now handled by Golf3DMode, so exclude it from OutcomeSportMode
   return modeId == "basketball_3v3" || modeId == "karate_h2h" || modeId == "baseball" ||
-         modeId == "football" || modeId == "soccer" || modeId == "golf" || modeId == "tennis" ||
+         modeId == "football" || modeId == "soccer" || modeId == "tennis" ||
          modeId == "volleyball";
 }
 
@@ -83,6 +84,12 @@ auto ModeRuntime::setMode(std::string_view modeId) -> Result<void> {
   } else if (modeId == "market_browse") {
     m_kind = ActiveModeKind::kMarketBrowse;
     m_browseItemsViewed = 0;
+  } else if (modeId == "story_carnival") {
+    m_kind = ActiveModeKind::kStoryCarnival;
+    m_story.reset();
+  } else if (modeId == "golf") {
+    m_kind = ActiveModeKind::kGolf3D;
+    m_golf3D.reset();
   } else if (isOutcomeSportMode(modeId)) {
     m_kind = ActiveModeKind::kOutcomeSport;
     m_outcomeSport.reset(modeId);
@@ -112,6 +119,8 @@ void ModeRuntime::reset() {
   m_surfing.reset();
   m_whoSceneIt.reset();
   m_outcomeSport.reset();
+  m_story.reset();
+  m_golf3D.reset();
   m_lastThrowPulseCount = 0;
   m_browseItemsViewed = 0;
 }
@@ -140,6 +149,10 @@ void ModeRuntime::update(double deltaSeconds) {
     m_whoSceneIt.update(deltaSeconds);
   } else if (m_kind == ActiveModeKind::kOutcomeSport) {
     m_outcomeSport.update(deltaSeconds);
+  } else if (m_kind == ActiveModeKind::kStoryCarnival) {
+    m_story.update(deltaSeconds);
+  } else if (m_kind == ActiveModeKind::kGolf3D) {
+    m_golf3D.update(deltaSeconds);
   }
 }
 
@@ -178,6 +191,21 @@ auto ModeRuntime::handleCommand(std::string_view command, const nlohmann::json& 
       if (result.isErr()) {
         return Result<nlohmann::json>::err(result.error());
       }
+      return Result<nlohmann::json>::ok(m_dunk.stateJson());
+    }
+    if (command == "fel.dunk.move") {
+      const float dx = params.value("dx", 0.0F);
+      const float dz = params.value("dz", 0.0F);
+      const double dt = params.value("dt", 0.016);
+      return m_dunk.movePlayer(dx, dz, dt);
+    }
+    if (command == "fel.dunk.select_signature") {
+      const int styleInt = params.value("style", 4);
+      if (styleInt < 4 || styleInt > 7) {
+        return Result<nlohmann::json>::err("style must be 4=360Scoop 5=360Eastbay 6=360FakeEastbay 7=OffBackboardWindmill");
+      }
+      const auto result = m_dunk.selectSignatureDunk(static_cast<DunkStyle>(styleInt));
+      if (result.isErr()) return Result<nlohmann::json>::err(result.error());
       return Result<nlohmann::json>::ok(m_dunk.stateJson());
     }
     if (command == "fel.dunk.charge_release") {
@@ -221,6 +249,23 @@ auto ModeRuntime::handleCommand(std::string_view command, const nlohmann::json& 
       nlohmann::json payload = result.value();
       payload["karate"] = m_karate.stateJson();
       return Result<nlohmann::json>::ok(std::move(payload));
+    }
+    if (command == "fel.karate.move") {
+      const float dx = params.value("dx", 0.0F);
+      const float dz = params.value("dz", 0.0F);
+      const double dt = params.value("dt", 0.016);
+      return m_karate.movePlayer(dx, dz, dt);
+    }
+    if (command == "fel.karate.dash") {
+      const std::string dir = params.value("direction", "forward");
+      return m_karate.dash(dir);
+    }
+    if (command == "fel.karate.lock_on") {
+      const int idx = params.value("enemy_index", -1);
+      return m_karate.lockOn(idx);
+    }
+    if (command == "fel.karate.jutsu") {
+      return m_karate.jutsu();
     }
     if (command == "fel.karate.action") {
       const std::string actionName = params.value("action", "light_strike");
@@ -351,6 +396,20 @@ auto ModeRuntime::handleCommand(std::string_view command, const nlohmann::json& 
       };
       return Result<nlohmann::json>::ok(std::move(payload));
     }
+    if (command == "fel.skate.named_trick") {
+      const std::string trickName = params.value("trick_name", "kickflip");
+      const float timing = params.value("timing", 0.75F);
+      auto result = m_skateboarding.onNamedTrick(trickName, timing);
+      if (result.isErr()) {
+        return result;
+      }
+      nlohmann::json payload = result.value();
+      payload["physics_feedback"] = {
+          {"explosive_first_step", physicsParams().explosiveFirstStep},
+          {"hang_time_multiplier", physicsParams().hangTimeMultiplier},
+      };
+      return Result<nlohmann::json>::ok(std::move(payload));
+    }
     if (command == "fel.skate.bail") {
       return m_skateboarding.bail();
     }
@@ -374,6 +433,11 @@ auto ModeRuntime::handleCommand(std::string_view command, const nlohmann::json& 
       const float style = params.value("style", 0.75F);
       return m_snowboarding.butter(style);
     }
+    if (command == "fel.snow.grab") {
+      const std::string grabName = params.value("grab_name", "indy");
+      const float timing = params.value("timing", 0.80F);
+      return m_snowboarding.grab(grabName, timing);
+    }
     if (command == "fel.snow.wipeout") {
       return m_snowboarding.wipeout();
     }
@@ -392,6 +456,11 @@ auto ModeRuntime::handleCommand(std::string_view command, const nlohmann::json& 
       const float airDifficulty = params.value("air_difficulty", 0.65F);
       const int32_t combo = params.value("combo_multiplier", 1);
       return m_surfing.aerial(airDifficulty, combo);
+    }
+    if (command == "fel.surf.tube_ride") {
+      const float depth = params.value("tube_depth", 0.7F);
+      const float duration = params.value("duration", 0.6F);
+      return m_surfing.tubeRide(depth, duration);
     }
     if (command == "fel.surf.wipeout") {
       return m_surfing.wipeout();
@@ -429,6 +498,109 @@ auto ModeRuntime::handleCommand(std::string_view command, const nlohmann::json& 
       const float responseTime = params.value("response_time", 5.0F);
       const std::string category = params.value("category", "ClassicFilm");
       return m_whoSceneIt.submitAnswer(correct, responseTime, category);
+    }
+  }
+
+  if (m_kind == ActiveModeKind::kStoryCarnival) {
+    if (command == "fel.story.roll") {
+      return m_story.rollAndMove();
+    }
+    if (command == "fel.story.move") {
+      const float dx = params.value("dx", 0.0F);
+      const float dz = params.value("dz", 0.0F);
+      return m_story.move(dx, dz);
+    }
+    if (command == "fel.story.interact") {
+      return m_story.interact();
+    }
+    if (command == "fel.story.jump") {
+      return m_story.jump();
+    }
+    if (command == "fel.story.fly") {
+      return m_story.activateFlight();
+    }
+    if (command == "fel.story.fly_boost") {
+      return m_story.triggerFlightBoost();
+    }
+    if (command == "fel.story.grind_snap") {
+      const float px = params.value("x", 0.0F);
+      const float py = params.value("y", 0.0F);
+      const float pz = params.value("z", 0.0F);
+      return m_story.tryGrindSnap(px, py, pz);
+    }
+    if (command == "fel.story.grind_trick") {
+      const std::string trick = params.value("trick", "nosegrind");
+      return m_story.grindTrick(trick);
+    }
+    if (command == "fel.story.grind_exit") {
+      return m_story.exitGrind();
+    }
+    if (command == "fel.story.boss_enter") {
+      return m_story.enterBossZone();
+    }
+    if (command == "fel.story.boss_combat") {
+      const std::string actionStr = params.value("action", "light_strike");
+      CombatAction action = CombatAction::kLightStrike;
+      if (actionStr == "heavy_strike") {
+        action = CombatAction::kHeavyStrike;
+      } else if (actionStr == "block") {
+        action = CombatAction::kBlock;
+      } else if (actionStr == "dodge") {
+        action = CombatAction::kDodge;
+      } else if (actionStr == "counter") {
+        action = CombatAction::kCounter;
+      }
+      return m_story.bossCombat(action);
+    }
+    if (command == "fel.story.travel") {
+      const int zoneInt = params.value("zone", 0);
+      if (zoneInt < 0 || zoneInt >= static_cast<int>(StageZoneId::kCount)) {
+        return Result<nlohmann::json>::err("invalid zone id");
+      }
+      return m_story.travelToZone(static_cast<StageZoneId>(zoneInt));
+    }
+  }
+
+  // ── Golf 3D mode commands ─────────────────────────────────────────────────
+  if (m_kind == ActiveModeKind::kGolf3D) {
+    if (command == "fel.golf.address") {
+      const bool autoClub = params.value("auto_club", true);
+      return m_golf3D.beginAddress(autoClub);
+    }
+    if (command == "fel.golf.aim") {
+      const float delta = params.value("delta_degrees", 0.0F);
+      return m_golf3D.adjustAim(delta);
+    }
+    if (command == "fel.golf.select_club") {
+      const std::string clubStr = params.value("club", "driver");
+      GolfClub club = GolfClub::kDriver;
+      if (clubStr == "iron")   club = GolfClub::kIron;
+      else if (clubStr == "wedge") club = GolfClub::kWedge;
+      else if (clubStr == "putter") club = GolfClub::kPutter;
+      return m_golf3D.selectClub(club);
+    }
+    if (command == "fel.golf.swing_start") {
+      return m_golf3D.startSwing();
+    }
+    if (command == "fel.golf.swing_tap") {
+      return m_golf3D.swingTap();
+    }
+    if (command == "fel.golf.move") {
+      const float dx = params.value("dx", 0.0F);
+      const float dz = params.value("dz", 0.0F);
+      const double dt = params.value("dt", 0.016);
+      return m_golf3D.movePlayer(dx, dz, dt);
+    }
+    if (command == "fel.golf.state") {
+      return Result<nlohmann::json>::ok(m_golf3D.stateJson());
+    }
+    // Convenience alias: "fel.arena.mode_input" with action="swing_tap"
+    if (command == "fel.arena.mode_input") {
+      const std::string action = params.value("action", "");
+      if (action == "swing_tap") return m_golf3D.swingTap();
+      if (action == "swing_start") return m_golf3D.startSwing();
+      if (action == "address") return m_golf3D.beginAddress(true);
+      return Result<nlohmann::json>::ok(m_golf3D.stateJson());
     }
   }
 
@@ -519,6 +691,9 @@ auto ModeRuntime::shouldAutoEndSession() const -> bool {
   }
   if (m_kind == ActiveModeKind::kOutcomeSport) {
     return m_outcomeSport.isMatchComplete();
+  }
+  if (m_kind == ActiveModeKind::kStoryCarnival) {
+    return m_story.isComplete();
   }
   if (m_kind == ActiveModeKind::kMarketBrowse) {
     return false;
@@ -682,6 +857,9 @@ auto ModeRuntime::modeSpecificPayload() const -> nlohmann::json {
   }
   if (m_kind == ActiveModeKind::kOutcomeSport) {
     return {{"outcome_sport", m_outcomeSport.stateJson()}};
+  }
+  if (m_kind == ActiveModeKind::kStoryCarnival) {
+    return {{"story", m_story.stateJson()}};
   }
   return nlohmann::json::object();
 }

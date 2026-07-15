@@ -63,6 +63,15 @@ find_package(Threads REQUIRED)
 target_include_directories(nexus_core PUBLIC engine/core/include)
 target_link_libraries(nexus_core PUBLIC nlohmann_json::nlohmann_json Threads::Threads)
 
+add_library(nexus_net
+  engine/net/src/net_message.cpp
+  engine/net/src/net_message_bus.cpp
+  engine/net/src/net_session.cpp
+  engine/net/src/local_multiplayer_router.cpp
+)
+target_include_directories(nexus_net PUBLIC engine/net/include)
+target_link_libraries(nexus_net PUBLIC nexus_core nlohmann_json::nlohmann_json)
+
 add_library(nexus_physics
   engine/physics/src/physics_world.cpp
 )
@@ -138,21 +147,30 @@ add_library(nexus_gameplay
   app/gameplay/src/fel_bridge_service.cpp
   app/gameplay/src/fel_session_types.cpp
   app/gameplay/src/fitness_data.cpp
+  app/gameplay/src/flight_system.cpp
   app/gameplay/src/game_prompt_adapter.cpp
   app/gameplay/src/gameplay_application.cpp
   app/gameplay/src/gameplay_manager.cpp
+  app/gameplay/src/golf_3d_mode.cpp
   app/gameplay/src/gymnastics_mode.cpp
   app/gameplay/src/health_system.cpp
   app/gameplay/src/hud_relay_service.cpp
   app/gameplay/src/karate_endless_mode.cpp
+  app/gameplay/src/matchmaking_client.cpp
   app/gameplay/src/mode_runtime.cpp
   app/gameplay/src/outcome_sport_mode.cpp
   app/gameplay/src/prq_engine.cpp
   app/gameplay/src/qte_system.cpp
+  app/gameplay/src/rail_grind_system.cpp
+  app/gameplay/src/remote_player_state.cpp
   app/gameplay/src/scan_envelope_mapper.cpp
   app/gameplay/src/session_receipt_client.cpp
   app/gameplay/src/skateboarding_mode.cpp
+  app/gameplay/src/character_anim_state.cpp
   app/gameplay/src/snowboarding_mode.cpp
+  app/gameplay/src/soccer_mode.cpp
+  app/gameplay/src/stage_stream_manager.cpp
+  app/gameplay/src/story_mode.cpp
   app/gameplay/src/surfing_mode.cpp
   app/gameplay/src/throw_catch_physics.cpp
   app/gameplay/src/venue_volume_registry.cpp
@@ -164,12 +182,32 @@ add_library(nexus_gameplay
 target_include_directories(nexus_gameplay PUBLIC app/gameplay/include)
 target_link_libraries(nexus_gameplay PUBLIC
   nexus_core
+  nexus_net
   nexus_ai_interface
   nexus_creative
   nexus_generative
   nexus_physics
   nlohmann_json::nlohmann_json
 )
+
+add_library(nexus_cell
+  engine/cell/src/wisdom_store.cpp
+  engine/cell/src/experience_ledger.cpp
+  engine/cell/src/budget_meter.cpp
+  engine/cell/src/mastery_tracker.cpp
+  engine/cell/src/batch_learner.cpp
+  engine/cell/src/research_loop.cpp
+  engine/cell/src/self_improvement_scheduler.cpp
+)
+target_include_directories(nexus_cell PUBLIC engine/cell/include)
+target_link_libraries(nexus_cell PUBLIC nexus_core nlohmann_json::nlohmann_json)
+
+add_library(nexus_runtime_lib
+  runtime/nexus/src/lesson_queue.cpp
+  runtime/nexus/src/provider_router.cpp
+)
+target_include_directories(nexus_runtime_lib PUBLIC runtime/nexus/include)
+target_link_libraries(nexus_runtime_lib PUBLIC nexus_cell nlohmann_json::nlohmann_json)
 
 if(NEXUS_BUILD_ANY_RENDERER)
   set(NEXUS_RENDERER_SOURCES
@@ -238,6 +276,16 @@ if(NEXUS_BUILD_AGENT_CLI)
 
   add_executable(nexus_agent_cli tools/nexus_agent_cli/main.cpp)
   target_link_libraries(nexus_agent_cli PRIVATE nexus_agent_cli_lib)
+
+  # CELL offline tools (cell-distill, nexus-author, nexus-evals).
+  add_executable(cell_distill tools/cell-distill/main.cpp)
+  target_link_libraries(cell_distill PRIVATE nexus_cell nlohmann_json::nlohmann_json)
+
+  add_executable(nexus_author tools/nexus-author/main.cpp)
+  target_link_libraries(nexus_author PRIVATE nexus_cell nlohmann_json::nlohmann_json)
+
+  add_executable(nexus_evals tools/nexus-evals/main.cpp)
+  target_link_libraries(nexus_evals PRIVATE nexus_runtime_lib nlohmann_json::nlohmann_json)
 endif()
 
 if(NEXUS_BUILD_TESTS)
@@ -251,6 +299,11 @@ if(NEXUS_BUILD_TESTS)
     target_link_libraries(nexus_agent_cli_test PRIVATE nexus_agent_cli_lib)
     add_test(NAME nexus_agent_cli_test COMMAND nexus_agent_cli_test)
   endif()
+
+  add_executable(nexus_cell_test tests/unit/cell/cell_test.cpp)
+  target_link_libraries(nexus_cell_test PRIVATE nexus_runtime_lib)
+  add_test(NAME nexus_cell_test COMMAND nexus_cell_test)
+  set_tests_properties(nexus_cell_test PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
   add_executable(nexus_gameplay_test tests/unit/gameplay/gameplay_test.cpp)
   target_link_libraries(nexus_gameplay_test PRIVATE nexus_gameplay)
@@ -267,6 +320,38 @@ if(NEXUS_BUILD_TESTS)
       "LINKER:-force_load,$<TARGET_FILE:nexus_gameplay>")
   endif()
   add_test(NAME nexus_scan_envelope_test COMMAND nexus_scan_envelope_test)
+
+  add_executable(nexus_dunk_contest_test tests/unit/gameplay/dunk_contest_test.cpp)
+  target_link_libraries(nexus_dunk_contest_test PRIVATE nexus_gameplay)
+  if(APPLE)
+    target_link_options(nexus_dunk_contest_test PRIVATE
+      "LINKER:-force_load,$<TARGET_FILE:nexus_gameplay>")
+  endif()
+  add_test(NAME nexus_dunk_contest_test COMMAND nexus_dunk_contest_test)
+
+  add_executable(nexus_golf3d_karate_test tests/unit/gameplay/golf_3d_karate_test.cpp)
+  target_link_libraries(nexus_golf3d_karate_test PRIVATE nexus_gameplay)
+  if(APPLE)
+    target_link_options(nexus_golf3d_karate_test PRIVATE
+      "LINKER:-force_load,$<TARGET_FILE:nexus_gameplay>")
+  endif()
+  add_test(NAME nexus_golf3d_karate_test COMMAND nexus_golf3d_karate_test)
+
+  add_executable(nexus_story_mode_test tests/unit/gameplay/story_mode_test.cpp)
+  target_link_libraries(nexus_story_mode_test PRIVATE nexus_gameplay)
+  if(APPLE)
+    target_link_options(nexus_story_mode_test PRIVATE
+      "LINKER:-force_load,$<TARGET_FILE:nexus_gameplay>")
+  endif()
+  add_test(NAME nexus_story_mode_test COMMAND nexus_story_mode_test)
+
+  add_executable(nexus_secondary_modes_test tests/unit/gameplay/secondary_modes_test.cpp)
+  target_link_libraries(nexus_secondary_modes_test PRIVATE nexus_gameplay)
+  if(APPLE)
+    target_link_options(nexus_secondary_modes_test PRIVATE
+      "LINKER:-force_load,$<TARGET_FILE:nexus_gameplay>")
+  endif()
+  add_test(NAME nexus_secondary_modes_test COMMAND nexus_secondary_modes_test)
 
   add_executable(nexus_generative_test tests/unit/generative/generative_test.cpp)
   target_link_libraries(nexus_generative_test PRIVATE nexus_generative nexus_ai_interface)
@@ -296,6 +381,10 @@ if(NEXUS_BUILD_TESTS)
   add_executable(nexus_realtime_test tests/unit/core/websocket_test.cpp)
   target_link_libraries(nexus_realtime_test PRIVATE nexus_core)
   add_test(NAME nexus_realtime_test COMMAND nexus_realtime_test)
+
+  add_executable(nexus_net_test tests/unit/net/net_test.cpp)
+  target_link_libraries(nexus_net_test PRIVATE nexus_net nexus_gameplay)
+  add_test(NAME nexus_net_test COMMAND nexus_net_test)
 
   if(NEXUS_ENABLE_RENDERER OR NEXUS_ENABLE_METAL_RENDERER)
     add_executable(nexus_renderer_test tests/unit/renderer/renderer_test.cpp)

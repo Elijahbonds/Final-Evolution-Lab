@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/nexus_physics_test.dir/link.d CMakeFiles/nexus_physics_test.dir/tests/unit/physics/physics_test.cpp.o -o nexus_physics_test  libnexus_physics.a libnexus_core.a

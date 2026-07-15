@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/nexus_net_test.dir/link.d CMakeFiles/nexus_net_test.dir/tests/unit/net/net_test.cpp.o -o nexus_net_test  libnexus_net.a libnexus_gameplay.a libnexus_net.a libnexus_ai_interface.a -lpthread libnexus_generative.a libnexus_creative.a libnexus_assets.a libnexus_luma.a libnexus_physics.a libnexus_core.a

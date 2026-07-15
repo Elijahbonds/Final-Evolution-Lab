@@ -21,8 +21,34 @@ auto ArenaSessionManager::startSession(std::string_view modeId, std::string_view
   m_state.userId = std::string(userId);
   m_state.matchActive = config->scoringEnabled;
   m_state.paused = false;
+  m_state.multiplayerMode = MultiplayerMode::kSolo;
   NEXUS_LOG_INFO(nexus::LogChannel::kCore,
                  "Arena session started mode=" + m_state.modeId + " venue=" + m_state.venueToken);
+  return Result<void>::ok();
+}
+
+auto ArenaSessionManager::startMultiplayerSession(
+    std::string_view modeId,
+    std::string_view hostUserId,
+    const std::vector<std::string>& playerIds,
+    MultiplayerMode mpMode,
+    std::string_view roomCode) -> Result<void> {
+  const auto result = startSession(modeId, hostUserId);
+  if (result.isErr()) {
+    return result;
+  }
+  m_state.multiplayerMode = mpMode;
+  m_state.playerIds       = playerIds;
+  m_state.roomCode        = std::string(roomCode);
+  // Initialise per-player score slots.
+  m_state.playerScores.clear();
+  for (const auto& pid : playerIds) {
+    m_state.playerScores[pid] = 0.0F;
+  }
+  NEXUS_LOG_INFO(nexus::LogChannel::kCore,
+                 "Arena multiplayer session started mode=" + m_state.modeId +
+                     " players=" + std::to_string(playerIds.size()) +
+                     " room=" + m_state.roomCode);
   return Result<void>::ok();
 }
 
@@ -71,6 +97,25 @@ auto ArenaSessionManager::endSession(const MatchScoreInput& scoreInput,
   if (const auto config = ArenaModeRegistry::find(m_state.modeId)) {
     if (config->scoringEnabled && config->modeWeight > 0.0F) {
       gameplayManager.dispatchSessionReceipt(result);
+
+      // For multiplayer sessions, dispatch a receipt for every remote player
+      // using their per-player score from the shared score map.
+      if (m_state.multiplayerMode != MultiplayerMode::kSolo) {
+        for (const auto& [pid, pScore] : m_state.playerScores) {
+          if (pid == m_state.userId) {
+            continue;  // host receipt already dispatched above
+          }
+          SessionResult peerResult = result;
+          peerResult.userId  = pid;
+          peerResult.score   = pScore;
+          // Peer outcome: if their score beats the host's opponent score they win.
+          peerResult.outcome = (pScore >= result.opponentScore)
+                                   ? MatchOutcome::kWin
+                                   : MatchOutcome::kLoss;
+          peerResult.resultType = std::string(matchOutcomeToString(peerResult.outcome));
+          gameplayManager.dispatchSessionReceipt(peerResult);
+        }
+      }
     }
   }
 
@@ -95,6 +140,14 @@ auto ArenaSessionManager::setMode(std::string_view modeId) -> Result<void> {
 void ArenaSessionManager::updateScores(float playerScore, float opponentScore) {
   m_state.playerScore = playerScore;
   m_state.opponentScore = opponentScore;
+}
+
+void ArenaSessionManager::updatePlayerScore(std::string_view playerId, float score) {
+  m_state.playerScores[std::string(playerId)] = score;
+  // Mirror host player score to the legacy scalar for single-player compatibility.
+  if (playerId == m_state.userId) {
+    m_state.playerScore = score;
+  }
 }
 
 void ArenaSessionManager::syncLiveState(float playerScore,
@@ -172,7 +225,19 @@ auto ArenaSessionManager::stateJson() const -> nlohmann::json {
       {"combo_count", m_state.comboCount},
       {"critical_count", m_state.criticalCount},
       {"mode_state", m_state.modeState},
+      {"multiplayer_mode", static_cast<int>(m_state.multiplayerMode)},
+      {"room_code", m_state.roomCode},
   };
+
+  if (!m_state.playerIds.empty()) {
+    payload["player_ids"] = m_state.playerIds;
+    nlohmann::json scores = nlohmann::json::object();
+    for (const auto& [pid, pScore] : m_state.playerScores) {
+      scores[pid] = pScore;
+    }
+    payload["player_scores"] = std::move(scores);
+  }
+
   if (m_state.lastResult.has_value()) {
     payload["last_result"] = sessionResultToJson(*m_state.lastResult);
   }

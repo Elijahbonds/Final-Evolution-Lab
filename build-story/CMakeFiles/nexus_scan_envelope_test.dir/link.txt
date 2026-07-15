@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/nexus_scan_envelope_test.dir/link.d CMakeFiles/nexus_scan_envelope_test.dir/tests/unit/gameplay/scan_envelope_test.cpp.o -o nexus_scan_envelope_test  libnexus_gameplay.a libnexus_ai_interface.a -lpthread libnexus_generative.a libnexus_creative.a libnexus_assets.a libnexus_luma.a libnexus_physics.a libnexus_core.a

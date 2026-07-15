@@ -13,10 +13,14 @@
 #include "nexus/gameplay/fitness_data.h"
 #include "nexus/gameplay/gameplay_manager.h"
 #include "nexus/gameplay/hud_relay_service.h"
+#include "nexus/gameplay/matchmaking_client.h"
 #include "nexus/gameplay/mode_runtime.h"
+#include "nexus/gameplay/remote_player_state.h"
 #include "nexus/gameplay/throw_catch_physics.h"
 #include "nexus/gameplay/venue_volume_registry.h"
 #include "nexus/gameplay/voxel_command_parser.h"
+#include "nexus/net/net_session.h"
+#include "nexus/net/local_multiplayer_router.h"
 
 #include <cstddef>
 #include <nlohmann/json.hpp>
@@ -80,6 +84,8 @@ public:
   [[nodiscard]] auto fel_bridge() const -> const FelBridgeService&;
   [[nodiscard]] auto hud_relay() const -> const HudRelayService&;
   [[nodiscard]] auto mode_runtime() const -> const ModeRuntime&;
+  [[nodiscard]] auto net_session() const -> const net::NetSession&;
+  [[nodiscard]] auto matchmaking() const -> const MatchmakingClient&;
 
 private:
   auto applyFitnessCommand(std::string_view command,
@@ -127,6 +133,12 @@ private:
   [[nodiscard]] static auto sessionStateLabel(ArenaSessionPhase phase, bool paused)
       -> std::string_view;
 
+  auto applyArenaMultiplayerCommand(std::string_view command,
+                                    const nlohmann::json& params,
+                                    std::string_view id) -> ai::AgentResponse;
+  void drainNetMessages();
+  void dispatchNetMessage(const net::NetMessage& message);
+
   ThreadSafeFitnessData m_fitnessData;
   ThrowCatchPhysicsController m_throwCatch;
   VoxelCommandParser m_voxelParser;
@@ -140,6 +152,15 @@ private:
   std::optional<ai::GameGenerationSpec> m_lastGameSpec;
   GameplayUpdateStats m_stats;
   std::vector<ai::AgentResponse> m_latestResponses;
+
+  // ── Multiplayer ─────────────────────────────────────────────────────────
+  net::NetSession         m_netSession;
+  net::LocalMultiplayerRouter m_localRouter;
+  MatchmakingClient       m_matchmaking;
+  // Per-tick remote player state snapshot populated from kGameStateSync messages.
+  RemotePlayerState       m_remotePlayerState;
+  // Per-tick drained net messages (reused buffer, cleared each tick).
+  std::vector<net::NetMessage> m_netMessageScratch;
 };
 
 } // namespace nexus::gameplay

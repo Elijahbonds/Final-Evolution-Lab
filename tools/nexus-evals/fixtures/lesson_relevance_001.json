@@ -1,0 +1,7 @@
+{
+  "id": "lesson_relevance_001",
+  "tier": "lesson_relevance",
+  "input": { "userId": "test_user", "endpoint": "/nexus/v1/lesson", "skill": "balance_beam" },
+  "expected_output": { "has_content": true },
+  "weight": 1.0
+}

@@ -85,9 +85,11 @@ auto WhoSceneItMode::submitAnswer(bool correct, float responseTimeSeconds,
     m_cognitiveScore += scoreDelta;
   } else {
     m_currentStreak = 0;
+    // Buzzing in and getting it wrong awards the point to the opponent.
+    ++m_opponentCorrect;
   }
 
-  if (m_correctCount >= kCorrectToWin) {
+  if (m_correctCount >= kCorrectToWin || m_opponentCorrect >= kCorrectToWin) {
     m_phase = WhoSceneItPhase::kMatchWon;
   }
 

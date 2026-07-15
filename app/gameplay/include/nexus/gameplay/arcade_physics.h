@@ -11,6 +11,17 @@ struct ArcadePhysicsParams {
   float criticalHitChance{0.05F};
   bool neuralBurstActive{false};
   float neuralBurstMultiplier{1.0F};
+
+  // Story / traversal speed scaling.
+  // movementSpeedScale: 1.0 = Sora (KH1) baseline, 2.8 = Sonic at PRQ 100.
+  // Scales run/sprint speed and board-game token movement pace.
+  float movementSpeedScale{1.0F};
+
+  // flightSpeedScale: 1.0 = Sora glide, 2.0 = near-Sonic airboost at PRQ 100.
+  float flightSpeedScale{1.0F};
+
+  // grindAcceleration: rail entry snap speed; higher PRQ = faster lock-on grind.
+  float grindAcceleration{1.0F};
 };
 
 class ArcadePhysics {

@@ -32,9 +32,37 @@ public struct NexusMovementCaptureAsset: Codable, Identifiable {
 }
 
 /// Pipeline to record, serialize, save, load, and export captured animations.
+/// Also exposes bundled canonical animations (from NexusAnimationLoader) alongside
+/// live-recorded ones so the rest of the app has a single source of truth.
 public class NexusMovementAssetPipeline: ObservableObject {
     @Published public var recordedAnimations: [NexusMovementCaptureAsset] = []
     @Published public var isRecording = false
+
+    // MARK: - Canonical Bundled Animation Access
+
+    /// Returns a pre-baked NexusAnimationAsset from the app bundle by Seeles/animation id.
+    /// These are the recreated versions of the remote FBX files — fully usable at runtime.
+    public func canonicalAnimation(for animationId: String) -> NexusAnimationAsset? {
+        NexusAnimationLoader.shared.load(animationId)
+    }
+
+    /// Samples a canonical animation at a given playback time (seconds).
+    /// Returns joint rotations keyed by bone name for use with NexusMoCapRetargeter.
+    public func sampleCanonical(
+        _ animationId: String,
+        at time: Double,
+        looping: Bool = false
+    ) -> [String: SCNQuaternion] {
+        guard let asset = canonicalAnimation(for: animationId) else { return [:] }
+        return looping
+            ? NexusAnimationLoader.shared.sampleLooping(asset, at: time)
+            : NexusAnimationLoader.shared.samplePose(asset, at: time)
+    }
+
+    /// Pre-warms the animation loader cache for all known bundled animations.
+    public func preloadCanonicalAnimations() {
+        NexusAnimationLoader.shared.preloadAll()
+    }
     
     private var currentRecordingKeyframes: [NexusMovementCaptureAsset.Keyframe] = []
     private var recordingStartTime: Date?

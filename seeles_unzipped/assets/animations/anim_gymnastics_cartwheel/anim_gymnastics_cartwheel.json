@@ -4,11 +4,30 @@
   "category": "animations",
   "type": "non_loop_motion",
   "file": "anim_gymnastics_cartwheel.fbx",
-  "urls": ["https://static.seeles.ai/data/asset/export/44fb1561-0f88-4811-b9fd-743f7ac42241/363509/import.fbx"],
+  "urls": [
+    "https://static.seeles.ai/data/asset/export/44fb1561-0f88-4811-b9fd-743f7ac42241/363509/import.fbx"
+  ],
   "description": "One-shot acrobatic gymnastics routine with cartwheel and jump sequence for ABP_Gymnastics montage.",
-  "tags": ["gymnastics", "cartwheel", "acrobatic", "animation", "non-loop", "unreal", "fel"],
-  "keywords": ["gymnastics", "cartwheel", "flip", "acrobatic", "routine", "ABP_Gymnastics"],
-  "compat": ["unreal"],
+  "tags": [
+    "gymnastics",
+    "cartwheel",
+    "acrobatic",
+    "animation",
+    "non-loop",
+    "unreal",
+    "fel"
+  ],
+  "keywords": [
+    "gymnastics",
+    "cartwheel",
+    "flip",
+    "acrobatic",
+    "routine",
+    "ABP_Gymnastics"
+  ],
+  "compat": [
+    "unreal"
+  ],
   "status": "ready",
   "created_at": "2026-05-23T18:00:00Z",
   "source_date": "2026-05-23",
@@ -18,5 +37,11 @@
   "motion_asset_id": 363509,
   "abp": "ABP_Gymnastics",
   "abp_slot": "AM_Gymnastics_FloorRoutine",
-  "fel_modes": ["gymnastics"]
+  "fel_modes": [
+    "gymnastics"
+  ],
+  "local_bundle_file": "anim_gymnastics_cartwheel.nexusanim.json",
+  "local_bundle_path": "FinalEvolutionLab/Resources/Animations/anim_gymnastics_cartwheel.nexusanim.json",
+  "runtime_loader": "NexusAnimationLoader",
+  "runtime_format": "nexusanim_json"
 }

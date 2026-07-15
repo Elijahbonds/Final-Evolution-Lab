@@ -196,6 +196,107 @@ class AnalyticsSessionIn(BaseModel):
         return v
 
 
+def _hash_password(password: str, salt: str) -> str:
+    """PBKDF2-HMAC-SHA256 password hash (stdlib only, no extra deps).
+    Uses 600,000 iterations per OWASP 2024 recommendation for PBKDF2-SHA256."""
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 600_000)
+    return base64.b64encode(dk).decode()
+
+
+@api_router.post("/auth/register")
+async def register_email(request: Request, response: Response):
+    """Create a new account with email + password."""
+    data = await request.json()
+    email = (data.get("email") or "").strip().lower()
+    password = data.get("password") or ""
+    name = (data.get("name") or email.split("@")[0] or "Athlete").strip()
+    sport = data.get("sport", "basketball")
+    level = data.get("level", "Beginner")
+
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="Valid email required")
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+
+    existing = await db.users.find_one({"email": email})
+    if existing:
+        raise HTTPException(status_code=409, detail="An account with this email already exists")
+
+    salt = secrets.token_hex(16)
+    pw_hash = _hash_password(password, salt)
+    user_id = f"ep_{uuid.uuid4().hex}"
+
+    await db.users.insert_one({
+        "user_id": user_id, "email": email, "name": name,
+        "picture": None, "created_at": datetime.now(timezone.utc).isoformat(),
+        "role": "athlete", "sport": sport, "level_label": level,
+        "prq_score": 75.0, "level": 1,
+        "xp": 0, "streak_days": 0, "total_workouts": 0, "coins": 100,
+        "followers": [], "following": [], "avatar_config": None,
+        "auth_type": "email_password",
+        "pw_hash": pw_hash, "pw_salt": salt,
+    })
+    await db.prq_metrics.insert_one({
+        "id": str(uuid.uuid4()), "user_id": user_id, "overall_score": 75.0,
+        "strength": 70.0, "speed": 75.0, "endurance": 80.0, "agility": 72.0,
+        "power": 68.0, "flexibility": 78.0, "recovery": 82.0, "mental": 76.0,
+        "recorded_at": datetime.now(timezone.utc).isoformat()
+    })
+
+    session_token = f"sess_{uuid.uuid4().hex}"
+    await db.user_sessions.insert_one({
+        "user_id": user_id, "session_token": session_token,
+        "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    user_doc = await db.users.find_one({"user_id": user_id})
+    # Strip sensitive fields before returning
+    for f in ("pw_hash", "pw_salt"):
+        user_doc.pop(f, None)
+    payload = {**user_doc, "session_token": session_token}
+    resp = JSONResponse(content=payload)
+    resp.set_cookie(key="session_token", value=session_token, httponly=True, secure=True,
+                    samesite="none", path="/", max_age=7 * 24 * 60 * 60)
+    return resp
+
+
+@api_router.post("/auth/login/email")
+async def login_email(request: Request, response: Response):
+    """Sign in with email + password."""
+    data = await request.json()
+    email = (data.get("email") or "").strip().lower()
+    password = data.get("password") or ""
+
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email and password required")
+
+    user_doc = await db.users.find_one({"email": email})
+    if not user_doc:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    if user_doc.get("auth_type") != "email_password":
+        raise HTTPException(status_code=400, detail="This account uses Google sign-in. Use 'Continue with Google' instead.")
+
+    salt = user_doc.get("pw_salt", "")
+    expected = user_doc.get("pw_hash", "")
+    if not salt or not expected or not hmac.compare_digest(_hash_password(password, salt), expected):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    user_id = user_doc["user_id"]
+    session_token = f"sess_{uuid.uuid4().hex}"
+    await db.user_sessions.insert_one({
+        "user_id": user_id, "session_token": session_token,
+        "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    for f in ("pw_hash", "pw_salt"):
+        user_doc.pop(f, None)
+    payload = {**user_doc, "session_token": session_token}
+    resp = JSONResponse(content=payload)
+    resp.set_cookie(key="session_token", value=session_token, httponly=True, secure=True,
+                    samesite="none", path="/", max_age=7 * 24 * 60 * 60)
+    return resp
+
+
 @api_router.post("/auth/session")
 async def create_session(request: Request, response: Response):
     data = await request.json()

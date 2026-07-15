@@ -44,15 +44,18 @@ private let skateTricks: [SkateTrick] = [
     SkateTrick(name: "Kickflip",  points: 100, icon: "arrow.up.right"),
     SkateTrick(name: "Heelflip",  points: 100, icon: "arrow.up.left"),
     SkateTrick(name: "360 Flip",  points: 200, icon: "arrow.up.circle"),
+    SkateTrick(name: "Hardflip",  points: 150, icon: "arrow.up.right.circle"),
+    SkateTrick(name: "Noseslide", points: 120, icon: "line.diagonal"),
+    SkateTrick(name: "900",       points: 400, icon: "arrow.2.circlepath"),
     SkateTrick(name: "Grind",     points: 75,  icon: "minus"),
 ]
 
-private let grindIndex = 4
+private let grindIndex = 7
 
 // MARK: - Swipe Direction
 
 private enum SwipeDir {
-    case up, upRight, upLeft, doubleUp, hold
+    case up, upRight, upLeft, doubleUp, down, downRight, hold
 }
 
 // MARK: - Combo multiplier steps
@@ -747,15 +750,16 @@ struct SkateboardingGameView: View {
     let gameMode: GameMode
 
     private let totalRuns = 3
-    private let runDuration: Double = 10
+    private let runDuration: Double = 45
     private let xpCapPerSession = 500
     private let accentColor = Color(red: 0.95, green: 0.45, blue: 0.12)
+    private let personalBestKey = "skateboarding_personal_best"
 
     @Environment(\.dismiss) private var dismiss
 
     @State private var phase: SkatePhase = .ready
     @State private var currentRun = 1
-    @State private var timeLeft: Double = 10
+    @State private var timeLeft: Double = 45
     @State private var runTimer: Task<Void, Never>? = nil
 
     @State private var currentRunScore = 0
@@ -766,6 +770,7 @@ struct SkateboardingGameView: View {
     @State private var comboCount = 0
     @State private var lastTrickIndex: Int? = nil
     @State private var lastTrickTime: Date? = nil
+    @State private var bailWarnings = 0
     @State private var comboString: String = ""
 
     @State private var trickPopup: String? = nil
@@ -798,7 +803,7 @@ struct SkateboardingGameView: View {
             case .ready:
                 GetReadyScreen(
                     title: "Skateboarding",
-                    subtitle: "3 runs · 10 sec each · Chain combos",
+                    subtitle: "3 runs · 45 sec each · Chain combos",
                     countdown: 3,
                     accentColor: accentColor,
                     onComplete: { startRun() }
@@ -807,21 +812,38 @@ struct SkateboardingGameView: View {
             case .bail:        bailBody
             case .runTransition: runTransitionBody
             case .result:
-                ResultScreen(
-                    winner: didWin ? .p1 : .p2,
-                    p1Score: bestRunScore,
-                    p2Score: max(0, bestRunScore - Int.random(in: 50...200)),
-                    title: "Skateboarding",
-                    accentColor: accentColor,
-                    prqGain: didWin ? 12 : 4,
-                    prqCurrent: viewModel.effectiveMetrics.prqScore,
-                    modeAttributeLabel: "TRICK",
-                    modeAttributeValue: min(1.0, Double(bestRunScore) / 1000.0),
-                    onReturn: {
-                        applyRewards()
-                        dismiss()
+                ZStack(alignment: .top) {
+                    ResultScreen(
+                        winner: didWin ? .p1 : .p2,
+                        p1Score: bestRunScore,
+                        p2Score: max(0, bestRunScore - Int.random(in: 50...200)),
+                        title: "Skateboarding",
+                        accentColor: accentColor,
+                        prqGain: didWin ? 12 : 4,
+                        prqCurrent: viewModel.effectiveMetrics.prqScore,
+                        modeAttributeLabel: "TRICK",
+                        modeAttributeValue: min(1.0, Double(bestRunScore) / 1000.0),
+                        onReturn: {
+                            applyRewards()
+                            dismiss()
+                        }
+                    )
+
+                    HStack(spacing: 6) {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(.yellow)
+                        Text("ALL-TIME PB \(allTimePersonalBest) pts")
+                            .font(.system(size: 11, weight: .black, design: .monospaced))
+                            .foregroundStyle(.white)
                     }
-                )
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Color.black.opacity(0.45))
+                    .clipShape(.capsule)
+                    .overlay(Capsule().stroke(accentColor.opacity(0.35), lineWidth: 1))
+                    .padding(.top, 24)
+                }
             }
 
             if showBailFlash {
@@ -847,6 +869,9 @@ struct SkateboardingGameView: View {
             }
         }
         .toolbarColorScheme(.dark, for: .navigationBar)
+        .onAppear {
+            allTimePersonalBest = UserDefaults.standard.integer(forKey: personalBestKey)
+        }
         .onDisappear {
             runTimer?.cancel()
             grindTask?.cancel()
@@ -933,6 +958,9 @@ struct SkateboardingGameView: View {
                     .foregroundStyle(isPersonalBest ? .yellow : .white)
                     .contentTransition(.numericText())
                     .animation(.spring(response: 0.2), value: isPersonalBest)
+                Text("PB \(allTimePersonalBest)")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -1003,13 +1031,37 @@ struct SkateboardingGameView: View {
 
     private var swipeInputArea: some View {
         VStack(spacing: 16) {
-            HStack(spacing: 0) {
-                ForEach(skateTricks.prefix(4)) { trick in
-                    VStack(spacing: 4) {
-                        Image(systemName: trick.icon).font(.system(size: 14, weight: .bold)).foregroundStyle(accentColor)
-                        Text(trick.name).font(.system(size: 8, weight: .bold, design: .monospaced)).foregroundStyle(.secondary)
-                        Text("\(trick.points)").font(.system(size: 9, weight: .black, design: .monospaced)).foregroundStyle(accentColor)
-                    }.frame(maxWidth: .infinity)
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                ForEach(Array(skateTricks.enumerated()), id: \.element.id) { index, trick in
+                    Button {
+                        if index == grindIndex {
+                            if isGrinding { endGrind() } else { startGrind() }
+                        } else {
+                            performTrick(index: index)
+                        }
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: trick.icon)
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(accentColor)
+                                .frame(width: 18)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(trick.name)
+                                    .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(.white)
+                                Text("\(trick.points) pts")
+                                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                                    .foregroundStyle(accentColor)
+                            }
+                            Spacer()
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(Theme.cardBackground)
+                        .clipShape(.rect(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(accentColor.opacity(0.2), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, 20)
@@ -1127,6 +1179,9 @@ struct SkateboardingGameView: View {
             VStack(spacing: 8) {
                 Text("BEST RUN").font(.system(size: 9, weight: .black, design: .monospaced)).foregroundStyle(.secondary).tracking(2)
                 Text("\(bestRunScore) pts").font(.system(size: 20, weight: .black, design: .monospaced)).foregroundStyle(Theme.foundationGreen)
+                Text("ALL-TIME PB \(allTimePersonalBest) pts")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.yellow)
             }
             Spacer()
         }
@@ -1140,6 +1195,8 @@ struct SkateboardingGameView: View {
         let isDouble = now.timeIntervalSince(lastSwipeEnd) < 0.4
         lastSwipeEnd = now
         if isDouble && dy < -30 { return .doubleUp }
+        if angle < -30 && angle > -80 { return .downRight }
+        if dy > 30 && abs(dy) > abs(dx) { return .down }
         if abs(angle - 90) < 30 { return .up }
         if angle > 30 && angle < 80 { return .upRight }
         if angle > 100 && angle < 160 { return .upLeft }
@@ -1155,6 +1212,8 @@ struct SkateboardingGameView: View {
         case .upRight:  performTrick(index: 1)
         case .upLeft:   performTrick(index: 2)
         case .doubleUp: performTrick(index: 3)
+        case .down:     performTrick(index: 4)
+        case .downRight: performTrick(index: 5)
         case .hold:     startGrind()
         }
     }
@@ -1163,8 +1222,17 @@ struct SkateboardingGameView: View {
         guard phase == .running else { return }
         let trick = skateTricks[index]
         let now = Date()
+        var popupName = trick.name
         if lastTrickIndex == index, let last = lastTrickTime, now.timeIntervalSince(last) < 2.0 {
-            if Double.random(in: 0...1) < 0.40 { triggerBail(); return }
+            if bailWarnings == 0 {
+                bailWarnings = 1
+                popupName = "WARNING · \(trick.name)"
+            } else if Double.random(in: 0...1) < 0.25 {
+                triggerBail()
+                return
+            }
+        } else {
+            bailWarnings = 0
         }
         lastTrickIndex = index
         lastTrickTime = now
@@ -1173,7 +1241,6 @@ struct SkateboardingGameView: View {
         comboCount = min(comboCount + 1, comboMultipliers.count - 1)
         currentRunScore += points
         bestRunScore = max(bestRunScore, currentRunScore)
-        allTimePersonalBest = max(allTimePersonalBest, currentRunScore)
 
         // Haptic feedback — ollie/jump: heavy takeoff; trick landing: heavy
         hapticHeavy()
@@ -1188,7 +1255,7 @@ struct SkateboardingGameView: View {
             comboString += " → \(trick.name)"
         }
 
-        showTrickPopup(name: trick.name, points: points)
+        showTrickPopup(name: popupName, points: points)
     }
 
     private func startGrind() {
@@ -1206,7 +1273,6 @@ struct SkateboardingGameView: View {
                         let pts = Int(37.5 * Double(mult))
                         currentRunScore += pts
                         bestRunScore = max(bestRunScore, currentRunScore)
-                        allTimePersonalBest = max(allTimePersonalBest, currentRunScore)
                         hapticLight() // manual balance tap each grind tick
                     }
                 }
@@ -1234,6 +1300,7 @@ struct SkateboardingGameView: View {
         isGrinding = false
         comboCount = 0
         lastTrickIndex = nil
+        bailWarnings = 0
         hapticError() // slam/bail: error notification + heavy
         comboString = ""
         withAnimation(.spring(response: 0.2)) { showBailFlash = true }
@@ -1254,6 +1321,7 @@ struct SkateboardingGameView: View {
         comboCount = 0
         lastTrickIndex = nil
         lastTrickTime = nil
+        bailWarnings = 0
         timeLeft = runDuration
         phase = .running
         trickPopup = nil
@@ -1280,6 +1348,10 @@ struct SkateboardingGameView: View {
         isGrinding = false
         runScores.append(currentRunScore)
         bestRunScore = max(bestRunScore, currentRunScore)
+        if bestRunScore > allTimePersonalBest {
+            allTimePersonalBest = bestRunScore
+            UserDefaults.standard.set(bestRunScore, forKey: personalBestKey)
+        }
         if currentRun >= totalRuns {
             let opponentScore = Int.random(in: 400...700)
             didWin = bestRunScore > opponentScore

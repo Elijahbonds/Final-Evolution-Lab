@@ -4,11 +4,28 @@
   "category": "animations",
   "type": "non_loop_motion",
   "file": "anim_volleyball_spike.fbx",
-  "urls": ["https://static.seeles.ai/data/asset/export/e480e276-11ac-481a-9231-4e6f2566631e/447277/import.fbx"],
-  "description": "One-shot volleyball spike — jump and overhead attacking smash montage for ABP_Volleyball.",
-  "tags": ["volleyball", "spike", "jump", "animation", "non-loop", "unreal", "fel"],
-  "keywords": ["volleyball spike", "jump attack", "overhead smash", "ABP_Volleyball"],
-  "compat": ["unreal"],
+  "urls": [
+    "https://static.seeles.ai/data/asset/export/e480e276-11ac-481a-9231-4e6f2566631e/447277/import.fbx"
+  ],
+  "description": "One-shot volleyball spike \u2014 jump and overhead attacking smash montage for ABP_Volleyball.",
+  "tags": [
+    "volleyball",
+    "spike",
+    "jump",
+    "animation",
+    "non-loop",
+    "unreal",
+    "fel"
+  ],
+  "keywords": [
+    "volleyball spike",
+    "jump attack",
+    "overhead smash",
+    "ABP_Volleyball"
+  ],
+  "compat": [
+    "unreal"
+  ],
   "status": "ready",
   "created_at": "2026-05-23T18:00:00Z",
   "source_date": "2026-05-23",
@@ -18,5 +35,11 @@
   "motion_asset_id": 447277,
   "abp": "ABP_Volleyball",
   "abp_slot": "AM_Volleyball_Spike",
-  "fel_modes": ["volleyball"]
+  "fel_modes": [
+    "volleyball"
+  ],
+  "local_bundle_file": "anim_volleyball_spike.nexusanim.json",
+  "local_bundle_path": "FinalEvolutionLab/Resources/Animations/anim_volleyball_spike.nexusanim.json",
+  "runtime_loader": "NexusAnimationLoader",
+  "runtime_format": "nexusanim_json"
 }

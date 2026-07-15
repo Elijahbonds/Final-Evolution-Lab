@@ -654,9 +654,27 @@ const LessonRunner = ({ trackId, lessonId, onBack }) => {
       const arr = lesson.quiz.map((_, i) => answers[i] ?? -1);
       const r = await axios.post(`${API}/education/tracks/${trackId}/lesson/${lessonId}/submit`, { answers: arr });
       setResult(r.data);
+      // Persist completion to localStorage if passed
+      if (r.data?.passed) {
+        try {
+          const raw = JSON.parse(localStorage.getItem("fel_edu_progress") || "{}");
+          if (!Array.isArray(raw[trackId])) raw[trackId] = [];
+          if (!raw[trackId].includes(lessonId)) raw[trackId].push(lessonId);
+          localStorage.setItem("fel_edu_progress", JSON.stringify(raw));
+        } catch (_) {}
+      }
     } catch (e) {
       const arr = lesson.quiz.map((_, i) => answers[i] ?? -1);
-      setResult(scoreQuiz(lesson.quiz, arr));
+      const localResult = scoreQuiz(lesson.quiz, arr);
+      setResult(localResult);
+      if (localResult?.passed) {
+        try {
+          const raw = JSON.parse(localStorage.getItem("fel_edu_progress") || "{}");
+          if (!Array.isArray(raw[trackId])) raw[trackId] = [];
+          if (!raw[trackId].includes(lessonId)) raw[trackId].push(lessonId);
+          localStorage.setItem("fel_edu_progress", JSON.stringify(raw));
+        } catch (_) {}
+      }
     }
     finally { setSubmitting(false); }
   };
@@ -715,6 +733,7 @@ const LessonRunner = ({ trackId, lessonId, onBack }) => {
               {q.options.map((opt, j) => {
                 const isPicked = answers[i] === j;
                 const row = result?.results?.[i];
+                const isCorrectAnswer = row && row.correct_index === j;
                 const isCorrectPick = row && row.correct && isPicked;
                 const isWrongPickAfter = row && isPicked && !row.correct;
                 return (
@@ -723,12 +742,14 @@ const LessonRunner = ({ trackId, lessonId, onBack }) => {
                     data-testid={`q${i}-opt${j}`}
                     disabled={!!result}
                     onClick={() => setAnswers({ ...answers, [i]: j })}
-                    className={`text-left p-2 text-sm border transition-colors ${
+                    className={`text-left p-2 text-sm border transition-all duration-300 ${
                       result
                         ? isCorrectPick
-                          ? 'border-emerald-400/50 bg-emerald-400/10 text-emerald-300'
+                          ? 'border-emerald-400/50 bg-emerald-400/10 text-emerald-300 scale-[1.01]'
                           : isWrongPickAfter
                           ? 'border-red-400/50 bg-red-400/10 text-red-300'
+                          : isCorrectAnswer
+                          ? 'border-emerald-400/30 bg-emerald-400/5 text-emerald-400/70'
                           : 'border-zinc-800 text-zinc-500'
                         : isPicked
                         ? 'border-cyan-400 bg-cyan-400/10 text-cyan-100'
@@ -737,6 +758,8 @@ const LessonRunner = ({ trackId, lessonId, onBack }) => {
                   >
                     <span className="font-mono text-xs text-zinc-500 mr-2">{String.fromCharCode(65 + j)}</span>
                     {opt}
+                    {result && isCorrectPick && <span className="ml-2 text-emerald-400">✓</span>}
+                    {result && isWrongPickAfter && <span className="ml-2 text-red-400">✗</span>}
                   </button>
                 );
               })}

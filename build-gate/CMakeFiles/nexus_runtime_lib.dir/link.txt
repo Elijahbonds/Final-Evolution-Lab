@@ -1,0 +1,2 @@
+/usr/bin/ar qc libnexus_runtime_lib.a CMakeFiles/nexus_runtime_lib.dir/runtime/nexus/src/lesson_queue.cpp.o CMakeFiles/nexus_runtime_lib.dir/runtime/nexus/src/provider_router.cpp.o
+/usr/bin/ranlib libnexus_runtime_lib.a

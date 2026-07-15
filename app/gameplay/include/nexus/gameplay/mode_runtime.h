@@ -7,11 +7,13 @@
 #include "nexus/gameplay/brain_brawl_mode.h"
 #include "nexus/gameplay/court_carnival_mode.h"
 #include "nexus/gameplay/dunk_contest_mode.h"
+#include "nexus/gameplay/golf_3d_mode.h"
 #include "nexus/gameplay/gymnastics_mode.h"
 #include "nexus/gameplay/karate_endless_mode.h"
 #include "nexus/gameplay/gameplay_manager.h"
 #include "nexus/gameplay/skateboarding_mode.h"
 #include "nexus/gameplay/snowboarding_mode.h"
+#include "nexus/gameplay/story_mode.h"
 #include "nexus/gameplay/surfing_mode.h"
 #include "nexus/gameplay/throw_catch_physics.h"
 #include "nexus/gameplay/venice_pickup_mode.h"
@@ -22,6 +24,11 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+
+// GCC 13.3 workaround: forward-declare enum classes before large STL includes.
+namespace nexus { namespace gameplay {
+  enum class ActiveModeKind : std::uint8_t;
+} } // namespace nexus::gameplay
 
 namespace nexus::gameplay {
 
@@ -40,6 +47,8 @@ enum class ActiveModeKind : std::uint8_t {
   kOutcomeSport = 11,
   kSurfing = 12,
   kMarketBrowse = 13,
+  kStoryCarnival = 14,
+  kGolf3D = 15,
 };
 
 class ModeRuntime {
@@ -77,6 +86,8 @@ private:
   SurfingMode m_surfing;
   WhoSceneItMode m_whoSceneIt;
   OutcomeSportMode m_outcomeSport;
+  StoryMode m_story;
+  Golf3DMode m_golf3D;
   std::uint64_t m_lastThrowPulseCount{0};
   std::int32_t m_browseItemsViewed{0};
 };

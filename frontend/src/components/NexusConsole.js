@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import {
   Database, Heart, Wifi, Layers, X, CheckCircle2, AlertCircle,
-  Clock, Cpu, Terminal, ChevronRight, Activity
+  Clock, Cpu, Terminal, ChevronRight, Activity, Send
 } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -32,21 +32,21 @@ export const statusColor = (status) => {
 // ── Boot step sequence ───────────────────────────────────────────
 const BOOT_STEPS = ["FIREBASE", "HEALTHKIT", "AVATAR", "EMERGENT", "READY"];
 
-// ── Simulated log events ─────────────────────────────────────────
-const LOG_POOL = [
-  "Nexus heartbeat OK — all subsystems nominal",
-  "Firestore listener reattached (token refresh)",
-  "HealthKit read authorization confirmed",
-  "Emergent WebSocket ping/pong ✓ (42ms)",
-  "Avatar mesh streamed from CDN",
-  "Mode registry validated: 19 entries",
-  "UE5 bridge channel open — MapLoaded acknowledged",
-  "Session entropy seeded via SecureEnclave",
-  "PRQ computation pipeline idle",
-  "BioFuel sync interval triggered (Firestore)",
-  "Sovereign Hub presence updated",
-  "Emergent event bus drained (0 queued)",
-];
+// ── Log level detection ──────────────────────────────────────────
+function logLevel(msg) {
+  const m = msg.toLowerCase();
+  if (m.includes("error") || m.includes("fail") || m.includes("exception")) return "error";
+  if (m.includes("warn") || m.includes("timeout") || m.includes("retry")) return "warn";
+  if (m.includes("debug") || m.includes("trace")) return "debug";
+  return "info";
+}
+
+function logColor(level) {
+  if (level === "error") return "#f87171"; // red
+  if (level === "warn")  return "#fbbf24"; // amber
+  if (level === "debug") return "#71717a"; // zinc
+  return "#22d3ee"; // cyan (info)
+}
 
 const fmtTime = () => {
   const n = new Date();
@@ -113,9 +113,13 @@ export const NexusConsole = ({ onClose }) => {
 
   // Connection log
   const [logLines, setLogLines] = useState([
-    { ts: fmtTime(), msg: "NexusConsole initialized" },
+    { ts: fmtTime(), msg: "[INFO] NexusConsole initialized", level: "info" },
   ]);
   const logRef = useRef(null);
+
+  // Command input
+  const [cmdInput, setCmdInput] = useState("");
+  const [cmdPending, setCmdPending] = useState(false);
 
   // Fetch from /api/nexus/status, fall back to mock if 404
   const fetchStatus = useCallback(async () => {
@@ -143,7 +147,28 @@ export const NexusConsole = ({ onClose }) => {
 
   // Append a log line
   const appendLog = (msg) => {
-    setLogLines((prev) => [...prev.slice(-49), { ts: fmtTime(), msg }]);
+    const level = logLevel(msg);
+    setLogLines((prev) => [...prev.slice(-199), { ts: fmtTime(), msg, level }]);
+  };
+
+  // Send a fel.* command to the backend
+  const sendCommand = async (cmd) => {
+    const trimmed = (cmd || cmdInput).trim();
+    if (!trimmed || cmdPending) return;
+    setCmdInput("");
+    setCmdPending(true);
+    appendLog(`[CMD] > ${trimmed}`);
+    try {
+      // POST to /api/games/session as agent command channel (fel.* prefix routed server-side)
+      const r = await axios.post(`${API}/games/session`, { fel_command: trimmed });
+      const reply = r.data?.response || r.data?.result || JSON.stringify(r.data).slice(0, 200);
+      appendLog(`[INFO] ${reply}`);
+    } catch (e) {
+      const detail = e?.response?.data?.detail || e.message;
+      appendLog(`[ERROR] Command failed: ${detail}`);
+    } finally {
+      setCmdPending(false);
+    }
   };
 
   // Boot sequence animation on mount
@@ -155,7 +180,7 @@ export const NexusConsole = ({ onClose }) => {
       if (step >= BOOT_STEPS.length) {
         clearInterval(interval);
         setBootDone(true);
-        appendLog("Boot sequence complete — NEXUS READY");
+        appendLog("[INFO] Boot sequence complete — NEXUS READY");
       }
     }, 600);
     return () => clearInterval(interval);
@@ -164,12 +189,41 @@ export const NexusConsole = ({ onClose }) => {
   // Initial status fetch
   useEffect(() => { fetchStatus(); }, [fetchStatus]);
 
-  // Simulated log event drip every 7s
+  // Real polling: /api/production/health + /api/hub/status every 5s
   useEffect(() => {
-    const interval = setInterval(() => {
-      const msg = LOG_POOL[Math.floor(Math.random() * LOG_POOL.length)];
-      appendLog(msg);
-    }, 7000);
+    const poll = async () => {
+      try {
+        const [health, hub] = await Promise.allSettled([
+          axios.get(`${API}/production/health`),
+          axios.get(`${API}/hub/status`),
+        ]);
+        if (health.status === "fulfilled") {
+          const d = health.value.data;
+          const modeCount = d?.checks?.mode_manager?.production_modes ?? "?";
+          appendLog(`[INFO] Production health: ${d?.status || "OK"} · ${modeCount} modes`);
+          if (hub.status === "fulfilled") {
+            const h = hub.value.data;
+            const wsStatus = h?.websocket?.status === "connected" ? "connected" : "disconnected";
+            const wsDetail = `clients: ${h?.websocket?.connected_clients?.length ?? 0} · msgs: ${h?.websocket?.total_messages ?? 0}`;
+            const dbStatus = h?.database?.status === "ready" ? "ready" : "loading";
+            const dbDetail = `venues: ${h?.database?.total_venues ?? 0}`;
+            setSubsystems((prev) => ({
+              ...prev,
+              websocket: { status: wsStatus, detail: wsDetail },
+              firestore: { status: dbStatus, detail: dbDetail },
+            }));
+            appendLog(`[INFO] Hub status polled — WS: ${wsStatus}`);
+          }
+        } else {
+          appendLog("[WARN] Production health endpoint unreachable — backend offline?");
+        }
+      } catch (e) {
+        appendLog(`[ERROR] Poll failed: ${e.message}`);
+      }
+    };
+
+    poll();
+    const interval = setInterval(poll, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -337,19 +391,39 @@ export const NexusConsole = ({ onClose }) => {
           {/* ── Connection log ── */}
           <section data-testid="nexus-connection-log">
             <div className="text-[10px] uppercase tracking-[0.35em] text-zinc-500 mb-2 flex items-center gap-2">
-              <Terminal className="w-3 h-3" /> Connection Log
+              <Terminal className="w-3 h-3" /> Live Console
             </div>
             <div
               ref={logRef}
               className="bg-zinc-950 border border-zinc-800 p-3 font-mono text-[10px] leading-relaxed space-y-0.5 overflow-y-auto"
-              style={{ maxHeight: "130px" }}
+              style={{ maxHeight: "180px" }}
             >
-              {logLines.slice(-5).map((line, i) => (
+              {logLines.slice(-30).map((line, i) => (
                 <div key={i} className="flex gap-2">
                   <span className="text-zinc-600 shrink-0">{line.ts}</span>
-                  <span className="text-cyan-400">{line.msg}</span>
+                  <span style={{ color: logColor(line.level || "info") }}>{line.msg}</span>
                 </div>
               ))}
+            </div>
+            {/* Command input */}
+            <div className="flex gap-2 mt-2">
+              <input
+                data-testid="nexus-cmd-input"
+                value={cmdInput}
+                onChange={(e) => setCmdInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && sendCommand()}
+                placeholder="fel.* command (e.g. cell.status, cell.train_now)"
+                className="flex-1 bg-zinc-950 border border-zinc-800 px-3 py-1.5 text-[10px] font-mono text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-cyan-400/50"
+                disabled={cmdPending}
+              />
+              <button
+                data-testid="nexus-cmd-send"
+                onClick={() => sendCommand()}
+                disabled={cmdPending || !cmdInput.trim()}
+                className="px-3 py-1.5 bg-cyan-400/10 border border-cyan-400/30 text-cyan-400 hover:bg-cyan-400/20 transition-colors disabled:opacity-40"
+              >
+                <Send className="w-3 h-3" />
+              </button>
             </div>
           </section>
 
@@ -417,9 +491,13 @@ export const NexusPage = () => {
 
   // Connection log
   const [logLines, setLogLines] = useState([
-    { ts: fmtTime(), msg: "NexusPage initialized" },
+    { ts: fmtTime(), msg: "[INFO] NexusPage initialized", level: "info" },
   ]);
   const logRef = useRef(null);
+
+  // Command input
+  const [cmdInput, setCmdInput] = useState("");
+  const [cmdPending, setCmdPending] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -443,7 +521,26 @@ export const NexusPage = () => {
   }, []);
 
   const appendLog = (msg) => {
-    setLogLines((prev) => [...prev.slice(-49), { ts: fmtTime(), msg }]);
+    const level = logLevel(msg);
+    setLogLines((prev) => [...prev.slice(-199), { ts: fmtTime(), msg, level }]);
+  };
+
+  const sendCommand = async (cmd) => {
+    const trimmed = (cmd || cmdInput).trim();
+    if (!trimmed || cmdPending) return;
+    setCmdInput("");
+    setCmdPending(true);
+    appendLog(`[CMD] > ${trimmed}`);
+    try {
+      const r = await axios.post(`${API}/games/session`, { fel_command: trimmed });
+      const reply = r.data?.response || r.data?.result || JSON.stringify(r.data).slice(0, 200);
+      appendLog(`[INFO] ${reply}`);
+    } catch (e) {
+      const detail = e?.response?.data?.detail || e.message;
+      appendLog(`[ERROR] Command failed: ${detail}`);
+    } finally {
+      setCmdPending(false);
+    }
   };
 
   useEffect(() => {
@@ -454,7 +551,7 @@ export const NexusPage = () => {
       if (step >= BOOT_STEPS.length) {
         clearInterval(interval);
         setBootDone(true);
-        appendLog("Boot sequence complete — NEXUS READY");
+        appendLog("[INFO] Boot sequence complete — NEXUS READY");
       }
     }, 600);
     return () => clearInterval(interval);
@@ -462,11 +559,36 @@ export const NexusPage = () => {
 
   useEffect(() => { fetchStatus(); }, [fetchStatus]);
 
+  // Real polling
   useEffect(() => {
-    const interval = setInterval(() => {
-      const msg = LOG_POOL[Math.floor(Math.random() * LOG_POOL.length)];
-      appendLog(msg);
-    }, 7000);
+    const poll = async () => {
+      try {
+        const [health, hub] = await Promise.allSettled([
+          axios.get(`${API}/production/health`),
+          axios.get(`${API}/hub/status`),
+        ]);
+        if (health.status === "fulfilled") {
+          const d = health.value.data;
+          const modeCount = d?.checks?.mode_manager?.production_modes ?? "?";
+          appendLog(`[INFO] Health: ${d?.status || "OK"} · ${modeCount} modes`);
+          if (hub.status === "fulfilled") {
+            const h = hub.value.data;
+            const wsStatus = h?.websocket?.status === "connected" ? "connected" : "disconnected";
+            setSubsystems((prev) => ({
+              ...prev,
+              websocket: { status: wsStatus, detail: `clients: ${h?.websocket?.connected_clients?.length ?? 0}` },
+              firestore: { status: h?.database?.status === "ready" ? "ready" : "loading", detail: `venues: ${h?.database?.total_venues ?? 0}` },
+            }));
+          }
+        } else {
+          appendLog("[WARN] Backend health unreachable");
+        }
+      } catch (e) {
+        appendLog(`[ERROR] Poll failed: ${e.message}`);
+      }
+    };
+    poll();
+    const interval = setInterval(poll, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -528,7 +650,7 @@ export const NexusPage = () => {
           <SubsystemTile icon={Database}  name="Firestore"        status={subsystems.firestore.status}  detail={subsystems.firestore.detail}  testId="page-subsystem-firestore" />
           <SubsystemTile icon={Heart}     name="HealthKit"        status={subsystems.healthkit.status}  detail={subsystems.healthkit.detail}  testId="page-subsystem-healthkit" />
           <SubsystemTile icon={Wifi}      name="Emergent WS"      status={subsystems.websocket.status}  detail={subsystems.websocket.detail}  testId="page-subsystem-websocket" />
-          <SubsystemTile icon={Layers}    name="Unreal Framework" status={subsystems.unreal.status}     detail={subsystems.unreal.detail}     testId="page-subsystem-unreal" />
+          <SubsystemTile icon={Layers}    name="NEXUS Engine"     status={subsystems.unreal.status}     detail={subsystems.unreal.detail}     testId="page-subsystem-unreal" />
         </div>
       </section>
 
@@ -553,18 +675,37 @@ export const NexusPage = () => {
         </section>
       )}
 
-      {/* Log */}
+      {/* Live Console + Command Input */}
       <section>
         <div className="text-[10px] uppercase tracking-[0.35em] text-zinc-500 mb-2 flex items-center gap-2">
-          <Terminal className="w-3 h-3" /> Connection Log
+          <Terminal className="w-3 h-3" /> Live Console
         </div>
-        <div ref={logRef} className="bg-zinc-950 border border-zinc-800 p-3 font-mono text-[10px] leading-relaxed space-y-0.5 overflow-y-auto" style={{ maxHeight: "130px" }}>
-          {logLines.slice(-5).map((line, i) => (
+        <div ref={logRef} className="bg-zinc-950 border border-zinc-800 p-3 font-mono text-[10px] leading-relaxed space-y-0.5 overflow-y-auto" style={{ maxHeight: "200px" }}>
+          {logLines.slice(-30).map((line, i) => (
             <div key={i} className="flex gap-2">
               <span className="text-zinc-600 shrink-0">{line.ts}</span>
-              <span className="text-cyan-400">{line.msg}</span>
+              <span style={{ color: logColor(line.level || "info") }}>{line.msg}</span>
             </div>
           ))}
+        </div>
+        <div className="flex gap-2 mt-2">
+          <input
+            data-testid="nexus-page-cmd-input"
+            value={cmdInput}
+            onChange={(e) => setCmdInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && sendCommand()}
+            placeholder="fel.* command (e.g. cell.status, cell.train_now)"
+            className="flex-1 bg-zinc-950 border border-zinc-800 px-3 py-1.5 text-[10px] font-mono text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-cyan-400/50"
+            disabled={cmdPending}
+          />
+          <button
+            data-testid="nexus-page-cmd-send"
+            onClick={() => sendCommand()}
+            disabled={cmdPending || !cmdInput.trim()}
+            className="px-3 py-1.5 bg-cyan-400/10 border border-cyan-400/30 text-cyan-400 hover:bg-cyan-400/20 transition-colors disabled:opacity-40"
+          >
+            <Send className="w-3 h-3" />
+          </button>
         </div>
       </section>
 

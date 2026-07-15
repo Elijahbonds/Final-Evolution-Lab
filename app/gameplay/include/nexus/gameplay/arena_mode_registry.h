@@ -3,12 +3,20 @@
 // `legacyUeMapAlias` retains archived UE `/Game/FEL/Maps/*` strings for vault JSON compat only.
 #pragma once
 
+
+#include <cstdint>
+
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
+
+// GCC 13.3 workaround: forward-declare enum classes before large STL includes.
+namespace nexus { namespace gameplay {
+  enum class ArenaReleaseState : std::uint8_t;
+} } // namespace nexus::gameplay
 
 namespace nexus::gameplay {
 

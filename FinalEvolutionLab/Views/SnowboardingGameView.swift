@@ -21,6 +21,9 @@ private let snowTricks: [SnowTrick] = [
     SnowTrick(name: "Spin",   points: 100, icon: "arrow.clockwise.circle"),
     SnowTrick(name: "Indy",   points: 120, icon: "figure.snowboarding"),
     SnowTrick(name: "Method", points: 140, icon: "star.fill"),
+    SnowTrick(name: "Melon",  points: 130, icon: "circle.fill"),
+    SnowTrick(name: "Tail",   points: 110, icon: "arrowshape.down.fill"),
+    SnowTrick(name: "900",    points: 350, icon: "arrow.2.circlepath"),
 ]
 
 // MARK: - Swipe direction
@@ -872,16 +875,17 @@ struct SnowboardingGameView: View {
     let gameMode: GameMode
 
     private let totalRounds = 6
-    private let slopeDuration: Double = 5.0
+    private let slopeDuration: Double = 8.0
     private let xpCapPerSession = 500
     private let accentColor = Color(red: 0.85, green: 0.92, blue: 1.0)
     private let snowBlue = Color(red: 0.4, green: 0.7, blue: 1.0)
+    private let maxTricksPerAir = 2
 
     @Environment(\.dismiss) private var dismiss
 
     @State private var phase: SnowPhase = .ready
     @State private var currentRound = 1
-    @State private var slopeTimeLeft: Double = 5.0
+    @State private var slopeTimeLeft: Double = 8.0
     @State private var slopeTimer: Task<Void, Never>? = nil
 
     @State private var speed: Double = 0
@@ -897,7 +901,8 @@ struct SnowboardingGameView: View {
 
     @State private var roundTrickPoints = 0
     @State private var roundTrickNames: [String] = []
-    @State private var trickDoneThisAir = false
+    @State private var tricksThisAir = 0
+    @State private var trickyMeter: Double = 0
 
     @State private var totalScore = 0
     @State private var roundScores: [Int] = []
@@ -917,6 +922,8 @@ struct SnowboardingGameView: View {
     // Judge scores revealed after each jump
     @State private var judgeScores: [Int] = []
 
+    private var uberReady: Bool { trickyMeter >= 100 }
+
     var body: some View {
         ZStack {
             Theme.deepBlack.ignoresSafeArea()
@@ -926,7 +933,7 @@ struct SnowboardingGameView: View {
             case .ready:
                 GetReadyScreen(
                     title: "Snowboarding",
-                    subtitle: "6 jumps · Gain speed · Nail tricks in the air",
+                    subtitle: "6 jumps · 8s each · Gain speed · Combo tricks",
                     countdown: 3,
                     accentColor: accentColor,
                     onComplete: { startSlope() }
@@ -1107,6 +1114,14 @@ struct SnowboardingGameView: View {
             jumpHeightVisual
             Spacer()
             jumpTrickPopup.frame(height: 80)
+            trickyMeterView
+                .padding(.horizontal, 20)
+                .padding(.bottom, 16)
+            if phase == .trick && uberReady {
+                uberTrickButton
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 16)
+            }
             if phase == .trick {
                 trickButtonGrid.padding(.horizontal, 20).padding(.bottom, 32)
             } else {
@@ -1219,10 +1234,61 @@ struct SnowboardingGameView: View {
                         .background(Theme.cardBackground).clipShape(.rect(cornerRadius: 12))
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(accentColor.opacity(0.25), lineWidth: 1))
                     }
-                    .buttonStyle(.plain).disabled(trickDoneThisAir).opacity(trickDoneThisAir ? 0.4 : 1.0)
+                    .buttonStyle(.plain).disabled(tricksThisAir >= maxTricksPerAir).opacity(tricksThisAir >= maxTricksPerAir ? 0.4 : 1.0)
                 }
             }
         }
+    }
+
+    private var trickyMeterView: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Text("TRICKY")
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .foregroundStyle(.yellow)
+                Spacer()
+                Text("UBER")
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .foregroundStyle(uberReady ? .orange : .secondary)
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Theme.cardBorder)
+                        .frame(height: 14)
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(LinearGradient(colors: [.yellow, .orange], startPoint: .leading, endPoint: .trailing))
+                        .frame(width: geo.size.width * CGFloat(trickyMeter / 100), height: 14)
+                        .animation(.spring(response: 0.2), value: trickyMeter)
+                }
+            }
+            .frame(height: 14)
+
+            Text("\(Int(trickyMeter)) / 100")
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.8))
+        }
+    }
+
+    private var uberTrickButton: some View {
+        Button {
+            guard phase == .trick, uberReady else { return }
+            trickyMeter = 0
+            roundTrickPoints += 300
+            roundTrickNames.append("UBER")
+            hapticHeavy()
+            showTrickPopup(name: "UBER TRICK!", points: 300)
+        } label: {
+            Text("UBER TRICK +300")
+                .font(.system(size: 12, weight: .black, design: .monospaced))
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(LinearGradient(colors: [.yellow, .orange], startPoint: .leading, endPoint: .trailing))
+                .clipShape(.rect(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Round Result
@@ -1270,7 +1336,7 @@ struct SnowboardingGameView: View {
         slopeTimeLeft = slopeDuration
         roundTrickPoints = 0
         roundTrickNames = []
-        trickDoneThisAir = false
+        tricksThisAir = 0
         phase = .slope
         slopeTimer?.cancel()
         slopeTimer = Task {
@@ -1328,6 +1394,7 @@ struct SnowboardingGameView: View {
     private func missGate() {
         lastGateMissed = true
         speed = max(0, speed - 20)
+        trickyMeter = max(0, trickyMeter - 30.0)
         withAnimation { showGatePenalty = true }
         // Crash/wipeout haptics
         hapticError()
@@ -1374,6 +1441,7 @@ struct SnowboardingGameView: View {
     private func landJump() {
         airTimer?.cancel()
         jumpHeight = 0
+        tricksThisAir = 0
         // Trick landing haptic — heavy impact
         hapticHeavy()
 
@@ -1407,25 +1475,24 @@ struct SnowboardingGameView: View {
     private func handleAirTrick(dir: SnowSwipeDir) {
         guard phase == .trick else { return }
         switch dir {
-        case .up:    performSnowTrick(snowTricks[2])
-        case .right: performSnowTrick(snowTricks[1])
-        case .left:  performSnowTrick(snowTricks[0])
-        case .down:  performSnowTrick(snowTricks[3])
+        case .up:    performSnowTrick(snowTricks[0])
+        case .right: performSnowTrick(snowTricks[2])
+        case .left:  performSnowTrick(snowTricks[4])
+        case .down:  performSnowTrick(snowTricks[1])
         }
     }
 
     private func performSnowTrick(_ trick: SnowTrick) {
-        guard (phase == .jump || phase == .trick) && !trickDoneThisAir else { return }
-        trickDoneThisAir = true
-        roundTrickPoints += trick.points
+        guard (phase == .jump || phase == .trick) && tricksThisAir < maxTricksPerAir else { return }
+        let multiplier: Double = tricksThisAir == 1 ? 1.5 : 1.0
+        let awardedPoints = Int(Double(trick.points) * multiplier)
+        tricksThisAir += 1
+        roundTrickPoints += awardedPoints
         roundTrickNames.append(trick.name)
+        trickyMeter = min(100, trickyMeter + 15.0)
         // Trick execution haptic — medium
         hapticMedium()
-        showTrickPopup(name: trick.name, points: trick.points)
-        Task {
-            try? await Task.sleep(for: .milliseconds(800))
-            await MainActor.run { if phase == .trick { trickDoneThisAir = false } }
-        }
+        showTrickPopup(name: multiplier > 1.0 ? "\(trick.name) x1.5" : trick.name, points: awardedPoints)
     }
 
     // MARK: - Trick popup

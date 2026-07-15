@@ -1,0 +1,2 @@
+/usr/bin/ar qc libnexus_cell.a CMakeFiles/nexus_cell.dir/engine/cell/src/wisdom_store.cpp.o CMakeFiles/nexus_cell.dir/engine/cell/src/experience_ledger.cpp.o CMakeFiles/nexus_cell.dir/engine/cell/src/budget_meter.cpp.o CMakeFiles/nexus_cell.dir/engine/cell/src/mastery_tracker.cpp.o CMakeFiles/nexus_cell.dir/engine/cell/src/batch_learner.cpp.o CMakeFiles/nexus_cell.dir/engine/cell/src/research_loop.cpp.o CMakeFiles/nexus_cell.dir/engine/cell/src/self_improvement_scheduler.cpp.o
+/usr/bin/ranlib libnexus_cell.a

@@ -7,7 +7,7 @@ namespace nexus::gameplay {
 
 namespace {
 
-constexpr std::array<ArenaModeConfig, 19> kModes{{
+constexpr std::array<ArenaModeConfig, 20> kModes{{
     {.id = "basketball_h2h",
      .displayName = "Head to Head",
      .venueToken = "Venice_Beach_Court",
@@ -120,7 +120,7 @@ constexpr std::array<ArenaModeConfig, 19> kModes{{
      .scoringEnabled = true,
      .releaseState = ArenaReleaseState::kProduction},
     {.id = "volleyball",
-     .displayName = "Rally Ace",
+     .displayName = "Beach Volleyball",
      .venueToken = "Sand_Court",
      .vaultDisplayMode = "volleyball",
      .nexusMeshPath = "assets/nexus/imported/volleyball_sand_court_environment_model_fbx_mobile.nexusmesh.json",
@@ -220,6 +220,20 @@ constexpr std::array<ArenaModeConfig, 19> kModes{{
      .defaultMatchDurationSeconds = 0.0F,
      .scoringEnabled = false,
      .releaseState = ArenaReleaseState::kNonGameModule},
+    // Story mode — KH1-style action RPG traversal through the expanded Venice Beach world.
+    // Uses the court_carnival_story_map expanded layout (5 streaming zones, 20 board spaces).
+    // Release state: kStaging until full boss fight polish + renderer integration passes.
+    {.id = "story_carnival",
+     .displayName = "Legends of the Boardwalk",
+     .venueToken = "Venice_Beach_Court",
+     .vaultDisplayMode = "Venice_Beach_Story",
+     .nexusMeshPath = "assets/nexus/imported/venice_beach_court_model_fbx_mobile.nexusmesh.json",
+     .legacyUeMapAlias = "/Game/FEL/Maps/Venice_Beach_Story",
+     .inputScheme = "story_action",
+     .modeWeight = 1.5F,
+     .defaultMatchDurationSeconds = 0.0F,
+     .scoringEnabled = true,
+     .releaseState = ArenaReleaseState::kStaging},
 }};
 
 [[nodiscard]] auto resolveModeId(std::string_view modeId) -> std::string_view {
