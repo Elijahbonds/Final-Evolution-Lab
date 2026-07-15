@@ -57,12 +57,35 @@ namespace clips {
   inline constexpr std::string_view kKarateDown   = "karate_knockdown";
   inline constexpr std::string_view kKarateWin    = "karate_victory_pose";
 
-  // ── Basketball (pickup / 3v3) ────────────────────────────────────────────
-  inline constexpr std::string_view kBballDribble = "bball_dribble_run";
-  inline constexpr std::string_view kBballShoot   = "bball_shoot_jumper";
-  inline constexpr std::string_view kBballScore   = "bball_score_celebrate";
-  inline constexpr std::string_view kBballDefend  = "bball_defend_stance";
-  inline constexpr std::string_view kBballBlock   = "bball_block_reach";
+  // ── Basketball (pickup / H2H / 3v3 / dunk) ──────────────────────────────
+  // ── No-ball locomotion ───────────────────────────────────────────────────
+  inline constexpr std::string_view kBballIdle        = "bball_idle_stand";
+  inline constexpr std::string_view kBballWalk        = "bball_walk_noBall";   // walking, no possession
+  inline constexpr std::string_view kBballJog         = "bball_jog_noBall";    // jogging, no possession
+  // ── Ball-possession locomotion ───────────────────────────────────────────
+  inline constexpr std::string_view kBballDribbleWalk = "bball_dribble_walk";  // slow dribble
+  inline constexpr std::string_view kBballDribble     = "bball_dribble_run";   // full-speed dribble
+  inline constexpr std::string_view kBballCarry       = "bball_carry_twohand"; // ball held (no dribble)
+  // ── Ball pickup transitions ──────────────────────────────────────────────
+  inline constexpr std::string_view kBballPickupRebound   = "bball_pickup_rebound";    // jump + two-hand grab (airborne ball)
+  inline constexpr std::string_view kBballPickupLiveBounce= "bball_pickup_livebounce"; // bend + snatch mid-bounce
+  inline constexpr std::string_view kBballPickupFloor     = "bball_pickup_floor";      // bend down + scoop (dead ball)
+  // ── Dribble moves ────────────────────────────────────────────────────────
+  inline constexpr std::string_view kBballCrossover   = "bball_crossover";
+  inline constexpr std::string_view kBballBehindBack  = "bball_behind_back";
+  inline constexpr std::string_view kBballSpin        = "bball_spin_move";
+  inline constexpr std::string_view kBballHesitation  = "bball_hesitation";
+  // ── Shooting / defense ───────────────────────────────────────────────────
+  inline constexpr std::string_view kBballShoot       = "bball_shoot_jumper";
+  inline constexpr std::string_view kBballScore       = "bball_score_celebrate";
+  inline constexpr std::string_view kBballDefend      = "bball_defend_stance";
+  inline constexpr std::string_view kBballBlock       = "bball_block_reach";
+  // ── Signature dunk packages (NBA Live 07/08 / 2K style) ─────────────────
+  inline constexpr std::string_view kDunkWindmill          = "dunk_windmill";
+  inline constexpr std::string_view kDunkReverseOneHand    = "dunk_reverse_onehand";
+  inline constexpr std::string_view kDunkAlleyOopCatch     = "dunk_alleyoop_catch";
+  inline constexpr std::string_view kDunkTomahawk          = "dunk_tomahawk";
+  inline constexpr std::string_view kDunkPutback           = "dunk_putback_slam";
 
   // ── Soccer ───────────────────────────────────────────────────────────────
   inline constexpr std::string_view kSoccerDribble= "soccer_dribble_jog";

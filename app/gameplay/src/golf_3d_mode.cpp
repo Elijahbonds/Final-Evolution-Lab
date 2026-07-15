@@ -127,7 +127,8 @@ void Golf3DMode::update(double deltaSeconds) {
     // Power meter auto-fills
     m_powerMeter = std::min(m_powerMeter + kPowerFillRate * static_cast<float>(deltaSeconds), 1.0F);
     if (m_powerMeter >= 1.0F && !m_powerLocked) {
-      // Auto-transition to downswing at full power (player must tap before this)
+      // Power auto-filled — set locked at 1.0 and transition to downswing.
+      m_powerLocked = true;
       m_phase = GolfSwingPhase::kDownswing;
       m_phaseTimer = 0.0F;
     }
