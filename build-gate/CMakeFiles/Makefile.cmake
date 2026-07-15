@@ -94,6 +94,7 @@ set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/nexus_dunk_contest_test.dir/DependInfo.cmake"
   "CMakeFiles/nexus_golf3d_karate_test.dir/DependInfo.cmake"
   "CMakeFiles/nexus_story_mode_test.dir/DependInfo.cmake"
+  "CMakeFiles/nexus_secondary_modes_test.dir/DependInfo.cmake"
   "CMakeFiles/nexus_generative_test.dir/DependInfo.cmake"
   "CMakeFiles/nexus_physics_test.dir/DependInfo.cmake"
   "CMakeFiles/nexus_physics_advanced_test.dir/DependInfo.cmake"

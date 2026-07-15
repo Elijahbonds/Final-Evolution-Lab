@@ -22,6 +22,7 @@
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles/nexus_dunk_contest_test.dir
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles/nexus_golf3d_karate_test.dir
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles/nexus_story_mode_test.dir
+/home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles/nexus_secondary_modes_test.dir
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles/nexus_generative_test.dir
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles/nexus_physics_test.dir
 /home/runner/work/Final-Evolution-Lab/Final-Evolution-Lab/build-gate/CMakeFiles/nexus_physics_advanced_test.dir
