@@ -60,12 +60,12 @@ createSharedSystems). Karate trio = next-in-line (registry-live, unrouted).
 | Unity6-FinalEvolutionLab · UnrealIntegration · UnrealStarter · NexusStarter · FinalEvolutionLab (iOS) + fastlane/Gemfile | Legacy/parallel runtimes — frozen |
 | seeles_work/ | Asset source of record (keep) |
 
-### CUT — awaiting Elijah sign-off (nothing removed yet)
-1. `seeles_unzipped/` (1.1MB) — partial duplicate of seeles_work.
-2. `build-gate/`, `build-headless/`, `build-story/` on-disk trees — already untracked/gitignored; disk cleanup only.
-3. `ping_pong_output.txt`, `udp_output.txt` — stray debug dumps at repo root.
-4. `frontend/build/` local artifacts (untracked).
-Reply "approve cuts 1-4" (or a subset) and they're removed in one commit.
+### CUT — EXECUTED 2026-07-15 (approved by Elijah)
+1. ✂ `seeles_unzipped/` — removed (seeles_work remains the source of record).
+2. ✂ `build-gate/`, `build-headless/`, `build-story/` on-disk trees — deleted
+   (regenerable; gitignored).
+3. ✂ `ping_pong_output.txt`, `udp_output.txt` — removed.
+4. ✂ `frontend/build/` local artifacts — deleted (regenerable).
 
 ## Venice USE-NOW plan (next step after sign-off)
 venice-blacktop.glb (immediate) + FBX→GLB conversions (hero fidelity) +
