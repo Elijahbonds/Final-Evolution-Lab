@@ -6,6 +6,7 @@ import {
   Gift, Zap, Upload, Video, MessageSquare, Palette, Shirt
 } from "lucide-react";
 import { API_URL } from "@/lib/apiClient";
+import { AvatarCreator } from "@/components/AvatarCreator";
 
 const API = API_URL;
 
