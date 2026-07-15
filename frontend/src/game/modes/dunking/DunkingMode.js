@@ -346,12 +346,16 @@ export class DunkingMode extends GameModeInterface {
   }
 
   /**
-   * Gravity multiplier for the current vertical velocity (commit 3 swaps
-   * this to the velocity-driven curve; constant 1.0 until then).
+   * Velocity-driven gravity curve (the anti-floaty fix): ascent is light,
+   * the peak hangs, the descent slams down. Values live in feelConfig so
+   * every mode tunes the same knobs.
    * @private
    */
   _gravityScale() {
-    return 1.0;
+    const g = feelConfig.gravity;
+    if (this._verticalVelocity > g.peakVelocityWindow) return g.ascentScale;
+    if (this._verticalVelocity >= -g.peakVelocityWindow) return g.peakScale;
+    return g.descentScale;
   }
 
   /**

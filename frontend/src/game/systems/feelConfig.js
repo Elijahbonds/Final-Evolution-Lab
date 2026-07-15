@@ -30,10 +30,10 @@ export const feelConfig = {
   // descent slams). This is the anti-floaty fix.
   gravity: {
     base: 9.81,
-    ascentScale: 0.8,        // TUNE(elijah)
-    peakScale: 0.0,          // TUNE(elijah) — hang-time
-    descentScale: 2.0,       // TUNE(elijah)
-    peakVelocityWindow: 1.2, // TUNE(elijah) — |vy| below this = "peak"
+    ascentScale: 0.8,        // TUNE(elijah) — light rise
+    peakScale: 0.35,         // TUNE(elijah) — ≈0 = hang-time; EXACTLY 0 never falls
+    descentScale: 2.0,       // TUNE(elijah) — snaps down
+    peakVelocityWindow: 0.9, // TUNE(elijah) — |vy| below this = "peak" (hang ≈ 0.5s at these values)
   },
 
   // Court bounds for free movement (Venice court, matches HOOP_POSITION space).
