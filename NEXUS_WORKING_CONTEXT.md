@@ -42,10 +42,14 @@ another mode. Reject any change that puts mode-specific logic in the core loop.
 Build a core once per archetype; modes are skins on top.
 
 ## Current priority (FIREWALL — do not drift)
-- Validate the DUNK CONTEST core loop feel with PLACEHOLDER assets FIRST.
-- No animation retarget spend or visual polish until the loop is proven fun.
-- Nexus productization and Cell subsystem are POST-FEL. Do not scaffold them.
-- One mode at a time. If a task grows past the Dunk loop, STOP and flag it.
+- ✅ 2026-07-15: Dunk feel gate CALLED by Elijah — feel work STOPPED per DoD
+  (6 systems + standing test suite shipped, commits 187f0d8..d507fda).
+- CURRENT: IRL H2H slice — video dunk runs, Mirror Triumph (beat your own
+  verified best), same-device couch H2H. LOCAL-ONLY v1 (likeness video never
+  leaves the device), zero money (REAL_MONEY_COMPETITION stays off), server
+  seams typed to the Abacus competition API for later connection.
+- Still true: no animation retarget spend or visual polish; Nexus/Cell
+  productization POST-FEL; one slice at a time — grows past IRL H2H → STOP.
 
 ## Feel philosophy (this is the real target)
 "Console feel" here = perceived responsiveness + weight, achieved with
