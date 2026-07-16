@@ -1,3 +1,5 @@
+import { SOCCER_MANIFEST, scheduleIntegrityValidation } from '../../core/sceneManifest.js';
+
 let babylonModulePromise = null;
 
 async function loadBabylonCore() {
@@ -36,10 +38,48 @@ export class SoccerScene {
     this._cameraAngle = 'penalty';
     this._ballHome = { x: 0, y: 0.36, z: -15.5 };
     this._keeperHome = { x: 0, y: 1.1, z: -28 };
+    this._disposedScene = false;
+    this._frameCallback = null;
+    this._shakeRemainingMs = 0;
+    this._shakeDurationMs = 220; // TUNE(elijah)
+    this._shakeIntensity = 0;
+    this._shakeBaseY = null;
+  }
+
+  /** Registers the per-frame callback (drives a mode's FixedStepLoop). */
+  setFrameCallback(cb) { this._frameCallback = cb; }
+
+  /** Deterministic damped-sine camera shake (target.y, base-restored). */
+  applyCameraShake(intensity) {
+    if (!this.camera) return;
+    if (this._shakeBaseY === null) this._shakeBaseY = this.camera.target.y;
+    this._shakeIntensity = Math.max(this._shakeIntensity, intensity);
+    this._shakeRemainingMs = this._shakeDurationMs;
+  }
+
+  /** @private */
+  _applyShakeFrame(dtMs) {
+    if (this._shakeRemainingMs <= 0 || !this.camera || this._shakeBaseY === null) return;
+    this._shakeRemainingMs -= dtMs;
+    if (this._shakeRemainingMs <= 0) {
+      this.camera.target.y = this._shakeBaseY;
+      this._shakeBaseY = null;
+      this._shakeIntensity = 0;
+      return;
+    }
+    const life = this._shakeRemainingMs / this._shakeDurationMs;
+    const t = (this._shakeDurationMs - this._shakeRemainingMs) / 1000;
+    this.camera.target.y = this._shakeBaseY + Math.sin(t * 55) * this._shakeIntensity * life;
   }
 
   async init() {
     const babylon = await loadBabylonCore();
+
+    // Disposed while loading (StrictMode remount): never create an Engine.
+    if (this._disposedScene) {
+      this.isFallback = true;
+      return { engine: null, scene: null, camera: null, assets: this.assets, isFallback: true };
+    }
 
     if (!babylon || !this.canvas) {
       this.isFallback = true;
@@ -304,7 +344,14 @@ export class SoccerScene {
     };
 
     this.setCameraAngle('penalty');
-    this.engine.runRenderLoop(() => this.scene?.render());
+    scheduleIntegrityValidation(this, SOCCER_MANIFEST);
+
+    this.engine.runRenderLoop(() => {
+      const dtMs = this.engine.getDeltaTime();
+      if (this._frameCallback) this._frameCallback(dtMs);
+      this._applyShakeFrame(dtMs);
+      this.scene?.render();
+    });
     this._handleResize = () => this.engine?.resize();
     if (typeof window !== 'undefined') window.addEventListener('resize', this._handleResize);
 
@@ -475,6 +522,7 @@ export class SoccerScene {
   }
 
   dispose() {
+    this._disposedScene = true;
     if (typeof window !== 'undefined' && this._handleResize) {
       window.removeEventListener('resize', this._handleResize);
     }

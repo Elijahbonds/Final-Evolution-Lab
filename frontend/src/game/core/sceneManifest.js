@@ -69,6 +69,21 @@ export function validateSceneIntegrity(scene, manifest) {
   return { ok: missing.length === 0 && invisible.length === 0, missing, invisible };
 }
 
+/** @type {SceneManifest} */
+export const SOCCER_MANIFEST = {
+  sceneId: 'soccer-penalty',
+  mode: 'soccer',
+  archetype: 'court-rally',
+  requiredNodes: ['pitch', 'goalLeft', 'goalRight', 'soccerBall', 'goalkeeper'],
+  props: [],
+  spawnPoints: [
+    { name: 'player', x: 0, y: 0, z: -13.2 },
+    { name: 'ball', x: 0, y: 0.36, z: -15.5 },
+  ],
+  cameraRig: 'penalty',
+  lighting: 'stadium',
+};
+
 /**
  * Schedules integrity validation on a live scene: re-checks every rendered
  * frame from minFrame until it PASSES or times out — materials, shadow

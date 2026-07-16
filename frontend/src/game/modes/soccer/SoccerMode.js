@@ -1,5 +1,7 @@
 import { GameModeInterface, ModePhase } from '../GameModeInterface.js';
 import InputSystem from '../../input/InputSystem.js';
+import { SensoryBus } from '../../systems/SensoryBus.js';
+import { feelConfig } from '../../systems/feelConfig.js';
 import SoccerScene from './SoccerScene.js';
 
 const TOTAL_SHOTS = 5;
@@ -25,6 +27,8 @@ export class SoccerMode extends GameModeInterface {
     this.scene = null;
     this.systems = null;
     this.input = null;
+    this._sensory = null;
+    this._disposed = false;
     this._resetTimer = null;
     this._shotLocked = false;
     this._shotPower = 0;
@@ -55,9 +59,26 @@ export class SoccerMode extends GameModeInterface {
     const { createSharedSystems } = await import('../../systems/index.js');
     this.systems = createSharedSystems(this.container);
 
+    this._disposed = false;
     this.scene = new SoccerScene(this.canvas, this.systems);
     await this.scene.init();
+
+    // Disposed while init awaited (StrictMode remount) — bail cleanly.
+    if (this._disposed) {
+      this.scene.dispose();
+      this.scene = null;
+      return this.getState();
+    }
     this.scene.setCameraAngle('penalty');
+
+    this._sensory = new SensoryBus({
+      camera: this.scene && !this.scene.isFallback ? this.scene : null,
+      sfx: {
+        impact: '/audio/sfx_punch_impact.mp3',
+        crowd:  '/audio/sfx_crowd_cheer.mp3',
+        swoosh: '/audio/sfx_basketball_swoosh.mp3',
+      },
+    });
 
     this.input = new InputSystem(this.getModeId());
     this.input.onEvent = (event) => this.update(event);
@@ -144,6 +165,9 @@ export class SoccerMode extends GameModeInterface {
     this.state.lastAimX = aimX;
     this.state.lastResult = result;
 
+    // Kick thud on the strike frame
+    this._sensory?.emit({ sfx: 'impact', volume: 0.5 + power * 0.5, shake: 0.05 + power * 0.06 });
+
     this.scene?.animateGoalkeeperDive?.(keeperZone);
     this.scene?.animateBallKick?.(
       {
@@ -161,6 +185,12 @@ export class SoccerMode extends GameModeInterface {
       this.state.prq = clamp(this.state.prq + 8, 0, 100);
       this.systems?.audio?.playEvent?.('goal');
       this.systems?.audio?.playEvent?.('crowd_swell');
+      this._sensory?.emit({
+        sfx: 'crowd',
+        volume: feelConfig.sensory.crowdVolume,
+        shake: 0.2, // TUNE(elijah)
+        rumbleMs: feelConfig.sensory.rumbleMs,
+      });
       this.systems?.vfx?.trigger?.('goal', { points: 1 });
       this.systems?.vfx?.trigger?.('camera_shake', { intensity: 0.65, duration: 280 });
       this.scene?.setCameraAngle?.('goalkeeper');
@@ -242,10 +272,13 @@ export class SoccerMode extends GameModeInterface {
   }
 
   dispose() {
+    this._disposed = true;
     if (this._resetTimer) {
       clearTimeout(this._resetTimer);
       this._resetTimer = null;
     }
+    this._sensory?.dispose();
+    this._sensory = null;
     this.scene?.dispose?.();
     this.scene = null;
     this.systems?.score?.reset?.();
