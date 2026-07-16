@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { saveRun, listRuns, updateRun, deleteRun, bestRun } from '@/lib/irlRuns';
+import { saveRun, listRuns, updateRun, deleteRun, bestRun, SubmissionAPI } from '@/lib/irlRuns';
 
 /**
  * IRL Dunk — H2H & Mirror Triumph (v1, local-only).
@@ -45,6 +45,18 @@ export default function IRLDunkPage() {
   };
 
   const startDuel = (a, b) => setDuel({ a, b, winnerId: null });
+
+  const submitForReview = async (run) => {
+    try {
+      const resp = await SubmissionAPI.submitForReview(run);
+      await updateRun(run.id, { status: 'submitted', reviewRef: resp?.reviewRef ?? resp?.id ?? 'submitted' });
+    } catch (e) {
+      console.error('[irl] review submission failed', e);
+      await updateRun(run.id, { status: 'provisional' });
+      window.alert(`Review submission failed: ${e.message}`);
+    }
+    await refresh();
+  };
 
   const judgeDuel = async (winner, loser) => {
     await updateRun(winner.id, { h2hWins: (winner.h2hWins ?? 0) + 1 });
@@ -146,6 +158,18 @@ export default function IRLDunkPage() {
                 )}
                 {best && r.id !== best.id && (
                   <button style={btnGhost} onClick={() => setMirror({ current: r, best })}>🪞 Mirror</button>
+                )}
+                {r.status === 'provisional' && (
+                  <button
+                    style={{ ...btnGhost, opacity: SubmissionAPI.isConfigured() ? 1 : 0.45 }}
+                    disabled={!SubmissionAPI.isConfigured()}
+                    title={SubmissionAPI.isConfigured()
+                      ? 'Send score + metadata for human review (video stays on this device)'
+                      : 'Review pipeline not connected (REACT_APP_FEL_PLATFORM_URL unset)'}
+                    onClick={() => submitForReview(r)}
+                  >
+                    📤 Review
+                  </button>
                 )}
                 <button style={{ ...btnGhost, color: '#f87171' }} onClick={async () => { await deleteRun(r.id); refresh(); }}>
                   Delete

@@ -97,17 +97,60 @@ export function bestRun(runs) {
 }
 
 /**
- * Server seam — mirrors the platform competition API. All methods are
- * intentionally NOT implemented in v1 (local-only); the UI must treat
- * rejection as the normal case until the review pipeline exists.
+ * Review-pipeline bridge — typed client against the FEL platform
+ * competition API (the deployed app's routes). Configure via
+ * REACT_APP_FEL_PLATFORM_URL (e.g. https://finalevolution.abacusai.app).
+ *
+ * PRIVACY: submissions carry METADATA ONLY (score, notes, client run id,
+ * timestamps) — the likeness VIDEO never leaves this device until a
+ * consent + storage flow exists on the platform side. Scores submitted
+ * here stay 'submitted' until a human reviewer verifies them; nothing is
+ * auto-verified.
  */
+const PLATFORM_URL = (process.env.REACT_APP_FEL_PLATFORM_URL || '').replace(/\/$/, '');
+
 export const SubmissionAPI = {
-  /** POST /api/competition/submit-score */
-  async submitForReview() {
-    throw new Error('Review pipeline not connected in local-only v1');
+  /** True when a platform base URL is configured at build time. */
+  isConfigured() {
+    return PLATFORM_URL.length > 0;
   },
-  /** GET /api/mirror-triumph */
+
+  platformUrl() {
+    return PLATFORM_URL;
+  },
+
+  /**
+   * POST /api/competition/submit-score — metadata-only review request.
+   * @param {{ id: string, selfScore: number, notes?: string, createdAt: string }} run
+   * @returns {Promise<object>} platform response (reviewRef expected)
+   */
+  async submitForReview(run) {
+    if (!PLATFORM_URL) throw new Error('Review pipeline not connected: set REACT_APP_FEL_PLATFORM_URL');
+    const res = await fetch(`${PLATFORM_URL}/api/competition/submit-score`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mode: 'irl_dunk',
+        clientRunId: run.id,
+        score: run.selfScore,
+        notes: run.notes ?? '',
+        recordedAt: run.createdAt,
+        source: 'manual', // PRQ integrity: self-reported until reviewed
+      }),
+    });
+    if (!res.ok) throw new Error(`submit-score failed: HTTP ${res.status}`);
+    return res.json();
+  },
+
+  /**
+   * GET /api/mirror-triumph — the platform's verified best for this athlete.
+   * @returns {Promise<object>}
+   */
   async fetchVerifiedBest() {
-    throw new Error('Review pipeline not connected in local-only v1');
+    if (!PLATFORM_URL) throw new Error('Review pipeline not connected: set REACT_APP_FEL_PLATFORM_URL');
+    const res = await fetch(`${PLATFORM_URL}/api/mirror-triumph`, { credentials: 'include' });
+    if (!res.ok) throw new Error(`mirror-triumph failed: HTTP ${res.status}`);
+    return res.json();
   },
 };
