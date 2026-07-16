@@ -194,6 +194,30 @@ export const SPRINT_MANIFEST = {
   lighting: 'day',
 };
 
+/** @type {SceneManifest} */
+export const GYMNASTICS_MANIFEST = {
+  sceneId: 'gym-vault',
+  mode: 'gymnastics',
+  archetype: 'air-session',
+  requiredNodes: ['runway', 'vaultTable', 'landingMat', 'playerCapsule', 'gymSky'],
+  props: [],
+  spawnPoints: [{ name: 'player', x: 0, y: 0, z: 0 }],
+  cameraRig: 'chase',
+  lighting: 'indoor',
+};
+
+/** @type {SceneManifest} */
+export const BIGAIR_MANIFEST = {
+  sceneId: 'bigair-kicker',
+  mode: 'big_air',
+  archetype: 'air-session',
+  requiredNodes: ['runway', 'kicker', 'landingMat', 'playerCapsule', 'bigairSky'],
+  props: [],
+  spawnPoints: [{ name: 'player', x: 0, y: 0, z: 0 }],
+  cameraRig: 'chase',
+  lighting: 'alpine',
+};
+
 /**
  * Schedules integrity validation on a live scene: re-checks every rendered
  * frame from minFrame until it PASSES or times out — materials, shadow

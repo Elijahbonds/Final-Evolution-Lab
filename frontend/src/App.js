@@ -32,6 +32,10 @@ import PlayHubPage from "@/components/PlayHubPage";
 import PlaySnowboardPage from "@/components/PlaySnowboardPage";
 import PlaySurfPage from "@/components/PlaySurfPage";
 import PlaySprintPage from "@/components/PlaySprintPage";
+import PlayBrainBrawlPage from "@/components/PlayBrainBrawlPage";
+import PlayWhoSceneItPage from "@/components/PlayWhoSceneItPage";
+import PlayGymnasticsPage from "@/components/PlayGymnasticsPage";
+import PlayBigAirPage from "@/components/PlayBigAirPage";
 import { TriviaArenaView } from "@/components/TriviaArenaView";
 import Phase3HUD from "@/components/hud/Phase3HUD";
 import { FEL_ARENA_MODES } from "@/lib/arenaModes";
@@ -1768,6 +1772,10 @@ function AppRouter() {
       <Route path="/play/snowboard" element={<PlaySnowboardPage />} />
       <Route path="/play/surf" element={<PlaySurfPage />} />
       <Route path="/play/sprint" element={<PlaySprintPage />} />
+      <Route path="/play/brain-brawl" element={<PlayBrainBrawlPage />} />
+      <Route path="/play/who-scene-it" element={<PlayWhoSceneItPage />} />
+      <Route path="/play/gymnastics" element={<PlayGymnasticsPage />} />
+      <Route path="/play/big-air" element={<PlayBigAirPage />} />
       <Route path="/download" element={<DownloadPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

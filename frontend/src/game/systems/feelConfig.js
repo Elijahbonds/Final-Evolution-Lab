@@ -140,6 +140,34 @@ export const feelConfig = {
     maxSpeed: 11.5,          // TUNE(elijah) — human-ish ceiling
   },
 
+  // Gymnastics vault (air-session archetype: cadence run → punch → flips → stick).
+  gymnastics: {
+    attemptsPerRound: 3,     // TUNE(elijah)
+    launchZ: -22,            // TUNE(elijah) — vault table position
+    maxRunSpeed: 9,          // TUNE(elijah)
+    perfectImpulse: 0.9,     // TUNE(elijah)
+    goodImpulse: 0.55,       // TUNE(elijah)
+    runDrag: 2.0,            // TUNE(elijah)
+    baseLaunch: 3.2,         // TUNE(elijah) — vertical m/s minimum
+    speedLaunchBonus: 2.6,   // TUNE(elijah) — extra at full run speed
+    basePoints: 40,          // TUNE(elijah)
+    pointsPerRotation: 60,   // TUNE(elijah)
+  },
+
+  // Big-Air (air-session archetype: carve run → kicker → spins → land).
+  bigair: {
+    attemptsPerRound: 3,     // TUNE(elijah)
+    launchZ: -26,            // TUNE(elijah) — kicker position
+    maxRunSpeed: 13,         // TUNE(elijah)
+    perfectImpulse: 0,       // (carve modes build speed passively)
+    goodImpulse: 0,
+    runDrag: -4.5,           // TUNE(elijah) — NEGATIVE drag = slope acceleration
+    baseLaunch: 3.6,         // TUNE(elijah)
+    speedLaunchBonus: 3.2,   // TUNE(elijah)
+    basePoints: 50,          // TUNE(elijah)
+    pointsPerRotation: 70,   // TUNE(elijah)
+  },
+
   // Court bounds for free movement (Venice court, matches HOOP_POSITION space).
   court: {
     minX: -7, maxX: 7,

@@ -19,15 +19,18 @@ const LIVE = [
   { route: '/play/snowboard',  title: 'Mountain Run',   sub: 'Steeper and faster',        icon: '🏂', arch: 'CARVE' },
   { route: '/play/surf',       title: 'Venice Break',   sub: 'Ride the trim line',        icon: '🏄', arch: 'CARVE' },
   { route: '/play/sprint',     title: '100m Dash',      sub: 'Alternate on the beat',     icon: '🏃', arch: 'RHYTHM' },
+  { route: '/play/brain-brawl', title: 'Brain Brawl',   sub: 'Training science, timed',   icon: '🧠', arch: 'RHYTHM' },
+  { route: '/play/who-scene-it', title: 'Who-Scene-It',  sub: 'Name the FEL scene',        icon: '🎬', arch: 'RHYTHM' },
+  { route: '/play/gymnastics', title: 'Vault',          sub: 'Sprint · punch · stick it', icon: '🤸', arch: 'AIR' },
+  { route: '/play/big-air',    title: 'Big Air',        sub: 'Kicker spins, clean lands', icon: '🎿', arch: 'AIR' },
   { route: '/irl/dunk',        title: 'IRL Dunk',       sub: 'Mirror Triumph · Couch H2H', icon: '🎥', arch: 'IRL' },
 ];
 
 const SOON = [
-  { title: 'Story Mode', icon: '📖' }, { title: 'Brain Brawl', icon: '🧠' },
-  { title: 'Gymnastics', icon: '🤸' },
+  { title: 'Story Mode', icon: '📖' },
 ];
 
-const ARCH_COLORS = { COURT: '#60a5fa', RALLY: '#34d399', CARVE: '#f472b6', RHYTHM: '#a78bfa', IRL: '#facc15' };
+const ARCH_COLORS = { COURT: '#60a5fa', RALLY: '#34d399', CARVE: '#f472b6', RHYTHM: '#a78bfa', AIR: '#fb923c', IRL: '#facc15' };
 
 export default function PlayHubPage() {
   return (

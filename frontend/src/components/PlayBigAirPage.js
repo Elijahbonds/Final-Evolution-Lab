@@ -1,0 +1,86 @@
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import BigAirMode from '@/game/modes/bigair/BigAirMode.js';
+import GamepadOverlay from '@/game/input/GamepadOverlay.js';
+
+const POLL_MS = 100;
+
+/** Big-Air kicker. Route: /play/big-air — the slope does the work — △ spins, ✕ stick */
+export default function PlayBigAirPage() {
+  const navigate = useNavigate();
+  const canvasRef = useRef(null);
+  const containerRef = useRef(null);
+  const modeRef = useRef(null);
+  const [s, setS] = useState(null);
+  const [status, setStatus] = useState('loading');
+
+  const startRound = useCallback(async () => {
+    const mode = modeRef.current;
+    if (!mode) return;
+    setStatus('loading');
+    try {
+      await mode.start(containerRef.current);
+      setStatus('playing');
+    } catch (err) {
+      console.error('[PlayBigAirPage] failed to start', err);
+      setStatus('error');
+    }
+  }, []);
+
+  useEffect(() => {
+    const mode = new BigAirMode('big_air', canvasRef.current, containerRef.current);
+    modeRef.current = mode;
+    if (typeof window !== 'undefined') window.__felMode = mode;
+    let pollTimer = null;
+    (async () => {
+      await startRound();
+      pollTimer = setInterval(() => {
+        const snap = mode.getState();
+        setS(snap);
+        if (snap.phase === 'finished') setStatus('finished');
+      }, POLL_MS);
+    })();
+    return () => {
+      if (pollTimer) clearInterval(pollTimer);
+      mode.dispose();
+      modeRef.current = null;
+    };
+  }, [startRound]);
+
+  const gamepadProps = modeRef.current?.getGamepadProps?.() ?? {};
+
+  return (
+    <div ref={containerRef} style={{ position: 'fixed', inset: 0, background: '#0d1118', overflow: 'hidden', fontFamily: 'system-ui, sans-serif' }}>
+      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', touchAction: 'none' }} />
+      <div style={{ position: 'absolute', top: 14, left: 14, zIndex: 60, background: 'rgba(8,10,16,0.85)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, padding: 14, color: '#f8fafc', minWidth: 220 }}>
+        <div style={{ fontSize: 11, letterSpacing: '0.1em', color: '#94a3b8' }}>BIG AIR</div>
+        <div style={{ fontSize: 34, fontWeight: 900, color: '#facc15' }}>{s?.score ?? 0}</div>
+        <div style={{ fontSize: 12, color: '#e2e8f0', display: 'grid', gap: 2, marginTop: 6 }}>
+          <span>attempt {s?.attempt ?? 0}/{s?.attemptsPerRound ?? 3} · {s?.airPhase ?? '—'}</span>
+          <span>run {s?.speed ?? 0} m/s · air {s?.height ?? 0}m · spins {s?.spinTurns ?? 0}</span>
+          {s?.lastGrade && <span style={{ color: '#3DDC84', fontWeight: 800 }}>{s.lastGrade} · {s.lastRotations} rot</span>}
+        </div>
+      </div>
+      <button onClick={() => navigate(-1)} style={{ position: 'absolute', top: 14, right: 14, zIndex: 60, padding: '8px 14px', borderRadius: 10, cursor: 'pointer', background: 'rgba(15,18,26,0.85)', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.14)', fontSize: 13, fontWeight: 600 }}>✕ Exit</button>
+      {status === 'loading' && <div style={overlayStyle}><div style={{ color: '#e2e8f0', fontSize: 18, fontWeight: 700 }}>DROPPING IN…</div></div>}
+      {status === 'error' && <div style={overlayStyle}><div style={{ color: '#f87171', fontSize: 16, fontWeight: 700 }}>Failed to start — check the console.</div></div>}
+      {status === 'finished' && (
+        <div style={overlayStyle}>
+          <div style={{ display: 'grid', gap: 12, justifyItems: 'center' }}>
+            <div style={{ color: '#facc15', fontSize: 32, fontWeight: 900 }}>ROUND COMPLETE</div>
+            <div style={{ color: '#fff', fontSize: 44, fontWeight: 900 }}>{s?.score ?? 0}</div>
+            <div style={{ color: '#94a3b8', fontSize: 13 }}>{(s?.attempts ?? []).map(a => a.grade).join(' · ')}</div>
+            <button onClick={startRound} style={{ padding: '12px 26px', borderRadius: 12, cursor: 'pointer', background: '#facc15', color: '#111827', border: 'none', fontSize: 15, fontWeight: 800 }}>GO AGAIN</button>
+          </div>
+        </div>
+      )}
+      {status === 'playing' && <GamepadOverlay {...gamepadProps} isActive />}
+    </div>
+  );
+}
+
+const overlayStyle = {
+  position: 'absolute', inset: 0, zIndex: 80,
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  background: 'rgba(6,8,14,0.78)', backdropFilter: 'blur(4px)',
+};
