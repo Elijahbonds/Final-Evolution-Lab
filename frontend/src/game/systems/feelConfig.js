@@ -74,6 +74,15 @@ export const feelConfig = {
     hitShake: 0.05,          // TUNE(elijah)
     heavyShake: 0.14,        // TUNE(elijah)
     koShake: 0.3,            // TUNE(elijah)
+    // Over-shoulder locomotion + spacing (CoD-zombies/soulslike spacing feel)
+    moveSpeed: 2.6,          // TUNE(elijah) — m/s at full stick
+    moveAccel: 18,           // TUNE(elijah)
+    moveDecel: 20,           // TUNE(elijah)
+    arenaBound: 3.6,         // TUNE(elijah) — tatami half-extent
+    strikeRangeM: 1.7,       // TUNE(elijah) — player strikes land within this
+    aiRangeM: 2.0,           // TUNE(elijah) — AI attacks land within this
+    pursuitSpeed: 1.6,       // TUNE(elijah) — opponent closes distance at this speed
+    pursuitStopM: 1.3,       // TUNE(elijah) — opponent settles HERE: inside both strike ranges
   },
 
   // Court bounds for free movement (Venice court, matches HOOP_POSITION space).

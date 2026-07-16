@@ -68,6 +68,38 @@ export class KarateScene {
   /** Registers the per-frame callback that drives the mode's FixedStepLoop. */
   setFrameCallback(cb) { this._frameCallback = cb; }
 
+  /**
+   * Zero-alloc fighter transform updates from the mode's interpolated sim.
+   * Facing is a Y rotation in radians.
+   */
+  updateFighterTransforms(playerPos, playerFacing, opponentPos, opponentFacing) {
+    const p = this._playerParts.root;
+    const o = this._opponentParts.root;
+    if (p) { p.position.x = playerPos.x; p.position.z = playerPos.z; p.rotation.y = playerFacing; }
+    if (o) { o.position.x = opponentPos.x; o.position.z = opponentPos.z; o.rotation.y = opponentFacing; }
+  }
+
+  /**
+   * Over-shoulder chase frame: camera sits behind the player looking past
+   * them at the opponent. Deterministic, lerp-smoothed, wrap-safe.
+   * Active only while cameraAngle === 'overShoulder'.
+   */
+  updateOverShoulderCamera(playerPos, opponentPos) {
+    const cam = this.camera;
+    if (!cam || this._cameraAngle !== 'overShoulder') return;
+    const dx = opponentPos.x - playerPos.x;
+    const dz = opponentPos.z - playerPos.z;
+    // Camera offset direction = away from the opponent, behind the player.
+    const desired = Math.atan2(-dz, -dx);
+    let delta = desired - cam.alpha;
+    while (delta > Math.PI) delta -= 2 * Math.PI;
+    while (delta < -Math.PI) delta += 2 * Math.PI;
+    cam.alpha += delta * 0.08;                     // TUNE(elijah)
+    cam.target.x += (playerPos.x + dx * 0.3 - cam.target.x) * 0.1;
+    cam.target.z += (playerPos.z + dz * 0.3 - cam.target.z) * 0.1;
+    cam.target.y += (1.0 - cam.target.y) * 0.1;
+  }
+
   /** Deterministic damped-sine camera shake (additive on target.y). */
   applyCameraShake(intensity) {
     if (!this.camera) return;
@@ -465,10 +497,13 @@ export class KarateScene {
    */
   setCameraAngle(angle) {
     if (!this.camera) return;
+    this._cameraAngle = angle;
     const presets = {
       actionCloseUp: { alpha: -Math.PI / 2.2, beta: Math.PI / 3.2, radius: 5.0 },
       broadcast:     { alpha: -Math.PI / 2,   beta: Math.PI / 3,   radius: 7.5 },
       chase:         { alpha: -Math.PI / 2,   beta: Math.PI / 3.5, radius: 6.5 },
+      // Alpha is dynamic (updateOverShoulderCamera); beta/radius set here.
+      overShoulder:  { alpha: -Math.PI / 2,   beta: 1.25,          radius: 3.8 }, // TUNE(elijah)
     };
     const p = presets[angle] ?? presets.broadcast;
     this.camera.alpha  = p.alpha;

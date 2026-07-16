@@ -26,6 +26,15 @@ const AI_ATTACK_INTERVAL_MS_MAX = 2800;
 const LOW_HP_THRESHOLD  = 25;
 
 function clampHP(v) { return Math.max(0, Math.min(100, v)); }
+function clampV(v, min, max) { return v < min ? min : v > max ? max : v; }
+
+/** Move `current` toward `target` by at most `maxDelta` (no allocation). */
+function approach(current, target, maxDelta) {
+  const diff = target - current;
+  if (diff > maxDelta) return current + maxDelta;
+  if (diff < -maxDelta) return current - maxDelta;
+  return target;
+}
 
 function createSystems() {
   return {
@@ -89,6 +98,15 @@ export class KarateMode extends GameModeInterface {
     this.playerStatus = { blockUntil: 0, invincibleUntil: 0, hitStunUntil: 0 };
     this.opponentStatus = { hitStunUntil: 0 };
 
+    // Over-shoulder locomotion state (fixed-step sim, render-interpolated)
+    this.playerPosition   = { x: -0.7, z: 0.5 };
+    this.opponentPosition = { x:  0.7, z: 2.5 };
+    this.playerVelocity   = { x: 0, z: 0 };
+    this._prevP   = { x: -0.7, z: 0.5 };
+    this._prevO   = { x:  0.7, z: 2.5 };
+    this._renderP = { x: -0.7, z: 0.5 };
+    this._renderO = { x:  0.7, z: 2.5 };
+
     // Feel systems (same process as Dunk)
     this._disposed = false;
     this._loop = null;
@@ -110,6 +128,7 @@ export class KarateMode extends GameModeInterface {
         [MatchPhase.COUNTDOWN]: {},
         [MatchPhase.FIGHT]: {
           enter: () => {
+            this.scene?.setCameraAngle?.('overShoulder');
             this.systems?.audio?.playEvent('match_start');
             this.systems?.audio?.playEvent('crowd_loop_start', { intensity: 0.08 });
             this._aiNextIn = this._aiDelay() / 1000;
@@ -181,10 +200,15 @@ export class KarateMode extends GameModeInterface {
     }, 1000);
 
     // Fixed-timestep simulation drives match flow + the AI attack clock.
+    this.playerPosition.x = -0.7; this.playerPosition.z = 0.5;
+    this.opponentPosition.x = 0.7; this.opponentPosition.z = 2.5;
+    this.playerVelocity.x = 0; this.playerVelocity.z = 0;
+
     this._loop = new FixedStepLoop({
       hz: feelConfig.timestepHz,
       maxAccumulatedMs: feelConfig.maxAccumulatedMs,
       update: (dt) => this._fixedUpdate(dt),
+      render: (alpha) => this._renderInterpolate(alpha),
     });
     this._loop.start();
     if (this.scene && !this.scene.isFallback && this.scene.setFrameCallback) {
@@ -227,6 +251,7 @@ export class KarateMode extends GameModeInterface {
         }
         break;
       case MatchPhase.FIGHT: {
+        this._updateMovement(dt);
         this._aiNextIn -= dt;
         if (this._aiNextIn <= 0) {
           this._aiAttack();
@@ -236,6 +261,71 @@ export class KarateMode extends GameModeInterface {
       }
       default:
         break;
+    }
+  }
+
+  /**
+   * Over-shoulder locomotion, one fixed step. Stick is opponent-relative
+   * (lock-on convention: up closes distance, x strafes). The opponent
+   * pursues to just inside AI range — spacing is the tactical layer.
+   * Zero-alloc.
+   * @private
+   */
+  _updateMovement(dt) {
+    const k = feelConfig.karate;
+    this._prevP.x = this.playerPosition.x; this._prevP.z = this.playerPosition.z;
+    this._prevO.x = this.opponentPosition.x; this._prevO.z = this.opponentPosition.z;
+
+    // Facing basis: player → opponent
+    let fx = this.opponentPosition.x - this.playerPosition.x;
+    let fz = this.opponentPosition.z - this.playerPosition.z;
+    const flen = Math.sqrt(fx * fx + fz * fz) || 1;
+    fx /= flen; fz /= flen;
+    const rx = fz, rz = -fx;
+
+    const stick = this.input ? this.input.leftStick : null;
+    const sx = stick ? stick.x : 0;
+    const sy = stick ? stick.y : 0;
+    const held = stick && stick.magnitude > 0.05;
+    const rate = (held ? k.moveAccel : k.moveDecel) * dt;
+    this.playerVelocity.x = approach(this.playerVelocity.x, (-sy * fx + sx * rx) * k.moveSpeed, rate);
+    this.playerVelocity.z = approach(this.playerVelocity.z, (-sy * fz + sx * rz) * k.moveSpeed, rate);
+    const b = k.arenaBound;
+    this.playerPosition.x = clampV(this.playerPosition.x + this.playerVelocity.x * dt, -b, b);
+    this.playerPosition.z = clampV(this.playerPosition.z + this.playerVelocity.z * dt, -b, b);
+
+    // Opponent pursuit
+    let ox = this.playerPosition.x - this.opponentPosition.x;
+    let oz = this.playerPosition.z - this.opponentPosition.z;
+    const gap = Math.sqrt(ox * ox + oz * oz) || 1;
+    if (gap > k.pursuitStopM) {
+      ox /= gap; oz /= gap;
+      this.opponentPosition.x = clampV(this.opponentPosition.x + ox * k.pursuitSpeed * dt, -b, b);
+      this.opponentPosition.z = clampV(this.opponentPosition.z + oz * k.pursuitSpeed * dt, -b, b);
+    }
+  }
+
+  /** @private */
+  _fighterDistance() {
+    const dx = this.playerPosition.x - this.opponentPosition.x;
+    const dz = this.playerPosition.z - this.opponentPosition.z;
+    return Math.sqrt(dx * dx + dz * dz);
+  }
+
+  /**
+   * Render-rate interpolation of both fighters + over-shoulder camera drive.
+   * @private
+   */
+  _renderInterpolate(alpha) {
+    const rp = this._renderP, ro = this._renderO;
+    rp.x = this._prevP.x + (this.playerPosition.x - this._prevP.x) * alpha;
+    rp.z = this._prevP.z + (this.playerPosition.z - this._prevP.z) * alpha;
+    ro.x = this._prevO.x + (this.opponentPosition.x - this._prevO.x) * alpha;
+    ro.z = this._prevO.z + (this.opponentPosition.z - this._prevO.z) * alpha;
+    const pf = Math.atan2(ro.x - rp.x, ro.z - rp.z);
+    if (this.scene) {
+      this.scene.updateFighterTransforms?.(rp, pf, ro, pf + Math.PI);
+      this.scene.updateOverShoulderCamera?.(rp, ro);
     }
   }
 
@@ -264,6 +354,8 @@ export class KarateMode extends GameModeInterface {
   /** @private — AI picks a move */
   _aiAttack() {
     if (this.state.opponentHealth <= 0) return;
+    // Spacing works both ways: out of range, the AI keeps pursuing instead.
+    if (this._fighterDistance() > feelConfig.karate.aiRangeM) return;
     const roll = Math.random();
     const variant = roll < 0.6 ? 'light' : roll < 0.85 ? 'heavy' : 'special';
     const damage  = STRIKE_DAMAGE[variant] * (0.8 + Math.random() * 0.4);
@@ -338,6 +430,13 @@ export class KarateMode extends GameModeInterface {
   _performStrike(variant, now = Date.now()) {
     const stun = now < this.opponentStatus.hitStunUntil;
     if (stun) return;
+
+    // Spacing: strikes only land in range — whiffs cost tempo, not combo.
+    if (this._fighterDistance() > feelConfig.karate.strikeRangeM) {
+      this.state.lastAction = 'WHIFF';
+      this.systems.audio?.playEvent('swoosh');
+      return;
+    }
 
     const damage = STRIKE_DAMAGE[variant] ?? STRIKE_DAMAGE.light;
     const combo  = this.systems.comboSystem.registerStrike();
@@ -414,6 +513,7 @@ export class KarateMode extends GameModeInterface {
       lastAction:     this.state.lastAction,
       showPerfectGuard: this.state.showPerfectGuard,
       matchPhase:     this._matchFsm.current,
+      fighterDistance: Math.round(this._fighterDistance() * 100) / 100,
       countdownMsRemaining: this._matchFsm.current === MatchPhase.COUNTDOWN
         ? Math.max(0, feelConfig.karate.countdownMs - this._matchFsm.timeInState * 1000)
         : 0,
