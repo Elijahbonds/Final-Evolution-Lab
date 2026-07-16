@@ -98,6 +98,30 @@ export const SKATE_MANIFEST = {
   lighting: 'sunset',
 };
 
+/** @type {SceneManifest} */
+export const TENNIS_MANIFEST = {
+  sceneId: 'clay-court',
+  mode: 'tennis',
+  archetype: 'court-rally',
+  requiredNodes: ['clayCourt', 'netRibbon', 'tennisBall', 'playerCapsule', 'opponentCapsule'],
+  props: [],
+  spawnPoints: [{ name: 'player', x: 0, y: 0, z: 14 }],
+  cameraRig: 'rally',
+  lighting: 'day',
+};
+
+/** @type {SceneManifest} */
+export const GOLF_MANIFEST = {
+  sceneId: 'links-hole',
+  mode: 'golf',
+  archetype: 'court-rally',
+  requiredNodes: ['golfRough', 'golfFairway', 'golfGreen', 'golfPin', 'golfBall'],
+  props: [],
+  spawnPoints: [{ name: 'player', x: 0, y: 0, z: 0 }],
+  cameraRig: 'tee',
+  lighting: 'day',
+};
+
 /**
  * Schedules integrity validation on a live scene: re-checks every rendered
  * frame from minFrame until it PASSES or times out — materials, shadow

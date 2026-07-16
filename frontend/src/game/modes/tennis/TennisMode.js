@@ -1,5 +1,7 @@
 import { InputSystem } from '../../input/InputSystem.js';
 import { GameModeInterface, ModePhase } from '../GameModeInterface.js';
+import { SensoryBus } from '../../systems/SensoryBus.js';
+import { feelConfig } from '../../systems/feelConfig.js';
 import TennisScene from './TennisScene.js';
 
 let sharedSystemsModulePromise = null;
@@ -53,6 +55,8 @@ export class TennisMode extends GameModeInterface {
     super(modeId, canvas);
 
     this.container = container ?? null;
+    this._sensory = null;
+    this._disposed = false;
     this.scene = null;
     this.systems = null;
     this.input = null;
@@ -89,6 +93,7 @@ export class TennisMode extends GameModeInterface {
 
   async start(container) {
     this.dispose();
+    this._disposed = false;
 
     this.container = container ?? this.container;
     const { createSharedSystems } = await loadSharedSystems();
@@ -99,6 +104,21 @@ export class TennisMode extends GameModeInterface {
 
     this.scene = new TennisScene(this.canvas, this.systems);
     await this.scene.init();
+
+    // Disposed while init awaited (StrictMode remount) — bail cleanly.
+    if (this._disposed) {
+      this.scene.dispose();
+      this.scene = null;
+      return this.getState();
+    }
+    this._sensory = new SensoryBus({
+      camera: this.scene && !this.scene.isFallback ? this.scene : null,
+      sfx: {
+        impact: '/audio/sfx_punch_impact.mp3',
+        swoosh: '/audio/sfx_basketball_swoosh.mp3',
+        crowd:  '/audio/sfx_crowd_cheer.mp3',
+      },
+    });
     this.scene.setCameraAngle('serve');
 
     this.input = new InputSystem('tennis');
@@ -238,6 +258,12 @@ export class TennisMode extends GameModeInterface {
     this._lastStrokeAt = now;
     this._expectedSwingAt = null;
     this._rallyHits += 1;
+    // Racket contact thud on the strike frame
+    this._sensory?.emit({
+      sfx: 'impact',
+      volume: perfect ? 0.8 : 0.45,
+      shake: perfect ? 0.08 : 0.04, // TUNE(elijah)
+    });
 
     if (perfect && Math.random() < aceChance) {
       this.scene?.triggerAce();
@@ -406,6 +432,9 @@ export class TennisMode extends GameModeInterface {
   }
 
   dispose() {
+    this._disposed = true;
+    this._sensory?.dispose();
+    this._sensory = null;
     this._clearAiTimer();
     this._clearSwingTimer();
     this.scene?.dispose();

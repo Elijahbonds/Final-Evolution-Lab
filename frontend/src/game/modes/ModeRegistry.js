@@ -17,6 +17,8 @@ const LIVE_MODE_IDS = new Set([
   'karate',
   'soccer',
   'skateboarding',
+  'tennis',
+  'golf',
 ]);
 
 function cloneStub(modeEntry, canvas) {

@@ -1,4 +1,6 @@
 import { GameModeInterface, ModePhase } from '../GameModeInterface.js';
+import { SensoryBus } from '../../systems/SensoryBus.js';
+import { feelConfig } from '../../systems/feelConfig.js';
 import { InputSystem } from '../../input/InputSystem.js';
 import { GolfScene } from './GolfScene.js';
 
@@ -36,6 +38,8 @@ export class GolfMode extends GameModeInterface {
     super(modeId, canvas);
 
     this.container = container ?? null;
+    this._sensory = null;
+    this._disposed = false;
     this.scene = null;
     this.systems = null;
     this.input = null;
@@ -76,6 +80,7 @@ export class GolfMode extends GameModeInterface {
 
   async start(container) {
     this.dispose();
+    this._disposed = false;
     this.container = container ?? this.container;
 
     const { createSharedSystems } = await loadSharedSystems();
@@ -86,6 +91,21 @@ export class GolfMode extends GameModeInterface {
 
     this.scene = new GolfScene(this.canvas, this.systems);
     await this.scene.init(this.canvas);
+
+    // Disposed while init awaited (StrictMode remount) — bail cleanly.
+    if (this._disposed) {
+      this.scene.dispose();
+      this.scene = null;
+      return this.getState();
+    }
+    this._sensory = new SensoryBus({
+      camera: this.scene && !this.scene.isFallback ? this.scene : null,
+      sfx: {
+        impact: '/audio/sfx_punch_impact.mp3',
+        swoosh: '/audio/sfx_basketball_swoosh.mp3',
+        crowd:  '/audio/sfx_crowd_cheer.mp3',
+      },
+    });
     this.scene.setCameraAngle('tee');
 
     this.input = new InputSystem('golf');
@@ -298,6 +318,8 @@ export class GolfMode extends GameModeInterface {
     const aimedEnd = this._worldEndForShot(shotDistance, accuracy);
 
     this._shotInFlight = true;
+    // Club strike thud on the swing frame
+    this._sensory?.emit({ sfx: 'impact', volume: 0.55, shake: 0.05 }); // TUNE(elijah)
     this.state.strokes += 1;
     this.state.lastShotDistance = shotDistance;
     this.state.lastShotAccuracy = round(accuracy, 2);
@@ -356,6 +378,13 @@ export class GolfMode extends GameModeInterface {
   _finishHole() {
     const scoreDelta = this._scoreDeltaForHole(this.state.strokes);
     const holedInOne = this.state.strokes === 1;
+    // Sink celebration: crowd + shake, bigger on a hole-in-one
+    this._sensory?.emit({
+      sfx: 'crowd',
+      volume: feelConfig.sensory.crowdVolume,
+      shake: holedInOne ? 0.25 : 0.1, // TUNE(elijah)
+      rumbleMs: holedInOne ? feelConfig.sensory.rumbleMs : 0,
+    });
     const resultLabel = holedInOne
       ? 'HOLE IN ONE'
       : this.state.strokes === 2
@@ -447,6 +476,9 @@ export class GolfMode extends GameModeInterface {
   }
 
   dispose() {
+    this._disposed = true;
+    this._sensory?.dispose();
+    this._sensory = null;
     this._clearChargeTicker();
     this._clearTimers();
     this.scene?.dispose?.();
