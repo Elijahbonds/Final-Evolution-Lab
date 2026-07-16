@@ -1,3 +1,5 @@
+import { feelConfig } from '../../systems/feelConfig.js';
+
 // Premium DunkingScene — Venice Beach Court with full 3D production quality.
 // Mirrors iOS GameSceneHostView + CourtSceneView scenic passes.
 //
@@ -61,34 +63,81 @@ export class DunkingScene {
     this._shakeRemainingMs = 0;
     this._shakeDurationMs = 220; // TUNE(elijah)
     this._shakeIntensity = 0;
-    this._shakeBaseY = null;
+    // Dynamic camera state (commit 6) — preallocated, composed per frame
+    this._playerRenderPos = { x: 0, y: 0, z: 4 };
+    this._speedRatio = 0;
+    this._camBaseFov = 0;
+    this._follow = { x: 0, y: 1.2, z: 0 };
   }
 
   /**
    * Deterministic camera shake (damped sine — no RNG per working context).
+   * Produces an additive target offset composed in _updateCameraFrame.
    * Intensity ≈ world-units of peak vertical target offset.
    * @param {number} intensity
    */
   applyCameraShake(intensity) {
     if (!this.camera) return;
-    if (this._shakeBaseY === null) this._shakeBaseY = this.camera.target.y;
     this._shakeIntensity = Math.max(this._shakeIntensity, intensity);
     this._shakeRemainingMs = this._shakeDurationMs;
   }
 
-  /** @private — applied per frame inside the render loop. */
-  _applyShakeFrame(dtMs) {
-    if (this._shakeRemainingMs <= 0 || !this.camera || this._shakeBaseY === null) return;
-    this._shakeRemainingMs -= dtMs;
-    if (this._shakeRemainingMs <= 0) {
-      this.camera.target.y = this._shakeBaseY;
-      this._shakeBaseY = null;
-      this._shakeIntensity = 0;
-      return;
+  /**
+   * Ground-projected camera basis for camera-relative input.
+   * Writes { fx, fz, rx, rz } (forward + right unit vectors) into `out`.
+   * @returns {boolean} false when no camera exists (caller uses fallback)
+   */
+  getCameraGroundBasis(out) {
+    if (!this.camera) return false;
+    let fx = this.camera.target.x - this.camera.position.x;
+    let fz = this.camera.target.z - this.camera.position.z;
+    const len = Math.sqrt(fx * fx + fz * fz);
+    if (len < 1e-4) return false;
+    fx /= len; fz /= len;
+    out.fx = fx; out.fz = fz;
+    out.rx = -fz; out.rz = fx; // right = forward rotated -90° around +Y
+    return true;
+  }
+
+  /** @private — follow + apex lift + FOV stretch + shake, composed per frame. */
+  _updateCameraFrame(dtMs) {
+    const cam = this.camera;
+    if (!cam) return;
+
+    // Shake offset (decaying sine), computed regardless of camera mode
+    let shakeY = 0;
+    if (this._shakeRemainingMs > 0) {
+      this._shakeRemainingMs -= dtMs;
+      if (this._shakeRemainingMs <= 0) {
+        this._shakeIntensity = 0;
+      } else {
+        const life = this._shakeRemainingMs / this._shakeDurationMs; // 1 → 0
+        const t = (this._shakeDurationMs - this._shakeRemainingMs) / 1000;
+        shakeY = Math.sin(t * 55) * this._shakeIntensity * life;
+      }
     }
-    const life = this._shakeRemainingMs / this._shakeDurationMs; // 1 → 0
-    const t = (this._shakeDurationMs - this._shakeRemainingMs) / 1000;
-    this.camera.target.y = this._shakeBaseY + Math.sin(t * 55) * this._shakeIntensity * life;
+
+    // Scenic sequences (hero/recovery/approach) own the camera — only the
+    // gameplay angle gets follow + FOV, so nothing fights the animations.
+    if (this._cameraAngle !== 'gameplay') return;
+
+    const cfg = feelConfig.camera;
+    const p = this._playerRenderPos;
+    const wantX = p.x * cfg.followWeight;
+    const wantZ = p.z * cfg.followWeight;
+    const wantY = cfg.baseTargetY + p.y * cfg.airborneLift; // apex follow
+    this._follow.x += (wantX - this._follow.x) * cfg.followLerp;
+    this._follow.y += (wantY - this._follow.y) * cfg.followLerp;
+    this._follow.z += (wantZ - this._follow.z) * cfg.followLerp;
+    cam.target.x = this._follow.x;
+    cam.target.y = this._follow.y + shakeY;
+    cam.target.z = this._follow.z;
+
+    // Velocity-based FOV stretch (+fovStretchMax at full sprint)
+    if (this._camBaseFov > 0) {
+      const wantFov = this._camBaseFov * (1 + cfg.fovStretchMax * this._speedRatio);
+      cam.fov += (wantFov - cam.fov) * cfg.fovLerp;
+    }
   }
 
   /**
@@ -102,8 +151,13 @@ export class DunkingScene {
    * Places the player mesh from the mode's interpolated simulation state.
    * Zero-alloc: sets position components directly.
    * @param {{x: number, y: number, z: number}} pos
+   * @param {number} [speedRatio] — horizontal speed / runSpeed (0..1), drives FOV stretch
    */
-  updatePlayerTransform(pos) {
+  updatePlayerTransform(pos, speedRatio) {
+    this._playerRenderPos.x = pos.x;
+    this._playerRenderPos.y = pos.y ?? 0;
+    this._playerRenderPos.z = pos.z;
+    if (speedRatio !== undefined) this._speedRatio = speedRatio;
     const p = this.assets.player;
     if (!p) return;
     p.position.x = pos.x;
@@ -163,8 +217,10 @@ export class DunkingScene {
     this.scene.fogDensity = 0.012;
 
     // ── Camera — ArcRotate with scenic preset positions ─────────────────────
+    // Camera sits BEHIND THE PLAYER (+z side) looking down-court at the hoop
+    // — dunk-contest framing: rim up-screen, run-up visible. (commit 6)
     this.camera = new ArcRotateCamera(
-      'dunkingCamera', -Math.PI / 2, Math.PI / 3.5, 28, Vector3.Zero(), this.scene
+      'dunkingCamera', Math.PI / 2, Math.PI / 3.5, 28, Vector3.Zero(), this.scene
     );
     this.camera.lowerRadiusLimit  = 18;
     this.camera.upperRadiusLimit  = 38;
@@ -412,10 +468,12 @@ export class DunkingScene {
     this.assets.player = player;
 
     // ── Render loop (also drives the mode's fixed-step simulation) ──────────
+    this._camBaseFov = this.camera.fov;
+
     this.engine.runRenderLoop(() => {
       const dtMs = this.engine.getDeltaTime();
       if (this._frameCallback) this._frameCallback(dtMs);
-      this._applyShakeFrame(dtMs);
+      this._updateCameraFrame(dtMs);
       this.scene?.render();
     });
 
@@ -438,10 +496,10 @@ export class DunkingScene {
     this._cameraAngle = angle;
 
     const targets = {
-      approach:  { alpha: -Math.PI / 2, beta: Math.PI / 3.8, radius: 34 },
-      gameplay:  { alpha: -Math.PI / 2, beta: Math.PI / 3.5, radius: 28 },
-      hero:      { alpha: -Math.PI / 2.4, beta: Math.PI / 4,  radius: 18 },
-      recovery:  { alpha: -Math.PI / 2, beta: Math.PI / 2.8, radius: 32 },
+      approach:  { alpha: Math.PI / 2, beta: Math.PI / 3.8, radius: 34 },
+      gameplay:  { alpha: Math.PI / 2, beta: Math.PI / 3.5, radius: 28 },
+      hero:      { alpha: Math.PI / 2.4, beta: Math.PI / 4,  radius: 18 },
+      recovery:  { alpha: Math.PI / 2, beta: Math.PI / 2.8, radius: 32 },
     };
     const t = targets[angle] ?? targets.gameplay;
 

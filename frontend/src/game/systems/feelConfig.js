@@ -36,6 +36,16 @@ export const feelConfig = {
     peakVelocityWindow: 0.9, // TUNE(elijah) — |vy| below this = "peak" (hang ≈ 0.5s at these values)
   },
 
+  // Dynamic camera (commit 6) — the viewport directs attention.
+  camera: {
+    followWeight: 0.45,      // TUNE(elijah) — how far the target tracks the player (0=center court, 1=lock)
+    followLerp: 0.06,        // TUNE(elijah) — target smoothing per frame
+    baseTargetY: 1.2,        // TUNE(elijah) — resting look height
+    airborneLift: 0.55,      // TUNE(elijah) — extra target lift per meter of jump height (apex follow)
+    fovStretchMax: 0.12,     // TUNE(elijah) — +12% FOV at full sprint
+    fovLerp: 0.05,           // TUNE(elijah) — FOV smoothing per frame
+  },
+
   // Sensory event bus (commit 5) — the synchronized "thud".
   sensory: {
     bigLandingVy: 3.5,       // TUNE(elijah) — |vy| at impact that counts as a BIG landing

@@ -114,6 +114,9 @@ export class DunkingMode extends GameModeInterface {
     this._sensory = null;
     this._impactVy = 0;
 
+    // Camera-relative input basis (commit 6) — preallocated
+    this._camBasis = { fx: 0, fz: -1, rx: 1, rz: 0 };
+
     // Movement FSM: Idle→Approach→JumpPrep→Ascent→Peak→Descent→Contact→Landing
     this._fsm = this._createMovementFsm();
 
@@ -287,8 +290,22 @@ export class DunkingMode extends GameModeInterface {
 
     const cfg = feelConfig.movement;
     const rate = (held ? cfg.accel : cfg.decel) * dt;
-    this.playerVelocity.x = approach(this.playerVelocity.x, sx * cfg.runSpeed, rate);
-    this.playerVelocity.z = approach(this.playerVelocity.z, -sy * cfg.runSpeed, rate);
+
+    // Camera-relative mapping: stick-up runs where the camera looks (toward
+    // the hoop in the gameplay frame). Falls back to world axes without a 3D
+    // camera. Basis is ground-projected, computed from the real transform.
+    let tx;
+    let tz;
+    if (this.scene && !this.scene.isFallback && this.scene.getCameraGroundBasis?.(this._camBasis)) {
+      const b = this._camBasis;
+      tx = (-sy * b.fx + sx * b.rx) * cfg.runSpeed;
+      tz = (-sy * b.fz + sx * b.rz) * cfg.runSpeed;
+    } else {
+      tx = sx * cfg.runSpeed;
+      tz = -sy * cfg.runSpeed;
+    }
+    this.playerVelocity.x = approach(this.playerVelocity.x, tx, rate);
+    this.playerVelocity.z = approach(this.playerVelocity.z, tz, rate);
 
     this._prevPos.x = this.playerPosition.x;
     this._prevPos.y = this.playerPosition.y;
@@ -479,7 +496,14 @@ export class DunkingMode extends GameModeInterface {
     r.x = p.x + (c.x - p.x) * alpha;
     r.y = p.y + (c.y - p.y) * alpha;
     r.z = p.z + (c.z - p.z) * alpha;
-    if (this.scene && this.scene.updatePlayerTransform) this.scene.updatePlayerTransform(r);
+    if (this.scene && this.scene.updatePlayerTransform) {
+      const v = this.playerVelocity;
+      const speedRatio = Math.min(
+        1,
+        Math.sqrt(v.x * v.x + v.z * v.z) / feelConfig.movement.runSpeed
+      );
+      this.scene.updatePlayerTransform(r, speedRatio);
+    }
   }
 
   /**
