@@ -59,7 +59,11 @@ punch list serves that moment.
 **GAPS (should):**
 5. Support/contact path in both apps.
 6. EU AI Act disclosure copy on Coach chat + Studio outputs.
-7. Repo slice smoke tests (scene integrity + anim invariants, mirroring QA1).
+7. Repo slice smoke tests — PARTIALLY CLOSED 2026-07-15: standing jest
+   suite for the feel systems (frame-rate independence, buffer semantics,
+   arc continuity, gravity boundaries — 9 tests) at
+   frontend/src/game/__tests__/feelSystems.test.js. Still open: scene
+   integrity + anim invariants (mirror of QA1).
 8. Data-deletion path for PRQ entries.
 **LATER (polish):** audio set beyond one impact SFX, visual polish, more
 modes — all firewalled behind the feel gate anyway.
