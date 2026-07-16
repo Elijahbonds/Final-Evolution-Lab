@@ -7,12 +7,16 @@ import { TennisMode } from './tennis/index.js';
 import { FootballMode } from './football/index.js';
 import { VolleyballMode } from './volleyball/index.js';
 import { BaseballMode } from './baseball/index.js';
+import SkateMode from './skate/SkateMode.js';
 
-// v1 hero modes only — other implemented modes stay registered but gated
-// until the dunk core loop is proven fun. Re-add ids here as modes graduate.
+// Modes graduate here when they are ROUTED and verified playable:
+// dunk (feel gate passed) · karate (round gate + locomotion) ·
+// soccer (court-rally) · skateboarding (ride/carve).
 const LIVE_MODE_IDS = new Set([
   'basketball_dunk',
   'karate',
+  'soccer',
+  'skateboarding',
 ]);
 
 function cloneStub(modeEntry, canvas) {
@@ -84,7 +88,7 @@ const MODES = {
   gymnastics: createStub('gymnastics'),
   brain_brawl: createStub('brain_brawl'),
   surfing: createStub('surfing'),
-  skateboarding: createStub('skateboarding'),
+  skateboarding: SkateMode,
   snowboarding: createStub('snowboarding'),
   market_browse: createStub('market_browse'),
   trivia_arena: createStub('trivia_arena'),

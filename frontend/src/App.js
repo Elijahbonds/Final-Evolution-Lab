@@ -22,6 +22,7 @@ import PlayDunkPage from "@/components/PlayDunkPage";
 import IRLDunkPage from "@/components/IRLDunkPage";
 import PlayKaratePage from "@/components/PlayKaratePage";
 import PlaySoccerPage from "@/components/PlaySoccerPage";
+import PlaySkatePage from "@/components/PlaySkatePage";
 import { TriviaArenaView } from "@/components/TriviaArenaView";
 import Phase3HUD from "@/components/hud/Phase3HUD";
 import { FEL_ARENA_MODES } from "@/lib/arenaModes";
@@ -1748,6 +1749,7 @@ function AppRouter() {
       <Route path="/irl/dunk" element={<IRLDunkPage />} />
       <Route path="/play/karate" element={<PlayKaratePage />} />
       <Route path="/play/soccer" element={<PlaySoccerPage />} />
+      <Route path="/play/skate" element={<PlaySkatePage />} />
       <Route path="/download" element={<DownloadPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

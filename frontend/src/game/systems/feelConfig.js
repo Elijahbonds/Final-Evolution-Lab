@@ -85,6 +85,27 @@ export const feelConfig = {
     pursuitStopM: 1.3,       // TUNE(elijah) — opponent settles HERE: inside both strike ranges
   },
 
+  // Skateboard ride/carve archetype (endless Venice strip).
+  skate: {
+    cruiseSpeed: 6.0,        // TUNE(elijah) — starting forward speed m/s
+    minSpeed: 3.0,           // TUNE(elijah)
+    maxSpeed: 9.5,           // TUNE(elijah)
+    pumpAccel: 3.5,          // TUNE(elijah) — stick-up speed gain /s
+    brakeDecel: 5.0,         // TUNE(elijah) — stick-down speed loss /s
+    steerSpeed: 4.0,         // TUNE(elijah) — lateral m/s at full stick
+    laneHalfWidth: 4.0,      // TUNE(elijah)
+    ollieImpulse: 3.4,       // TUNE(elijah) — vertical m/s (gravity curve applies)
+    stripLength: 60,         // TUNE(elijah) — loop length before wrap
+    rail: {
+      x: 2.2, y: 0.55,       // TUNE(elijah) — rail position/height
+      zStart: -18, zEnd: -38,
+      lockRadius: 1.6,       // TUNE(elijah) — grind lock-on distance (airborne)
+      grindSpeed: 7.5,       // TUNE(elijah)
+      pointsPerSec: 25,      // TUNE(elijah)
+    },
+    olliePoints: 10,         // TUNE(elijah)
+  },
+
   // Court bounds for free movement (Venice court, matches HOOP_POSITION space).
   court: {
     minX: -7, maxX: 7,

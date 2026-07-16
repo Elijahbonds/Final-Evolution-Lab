@@ -84,6 +84,20 @@ export const SOCCER_MANIFEST = {
   lighting: 'stadium',
 };
 
+/** @type {SceneManifest} */
+export const SKATE_MANIFEST = {
+  sceneId: 'venice-strip',
+  mode: 'skateboarding',
+  archetype: 'ride-carve',
+  requiredNodes: ['strip', 'grindRail', 'playerCapsule', 'veniceSky'],
+  props: [
+    { name: 'veniceSky', source: '/backdrops/venice-sky-sunset.jpg' }, // Elijah's photo — SAFE
+  ],
+  spawnPoints: [{ name: 'player', x: 0, y: 0, z: 0 }],
+  cameraRig: 'chase',
+  lighting: 'sunset',
+};
+
 /**
  * Schedules integrity validation on a live scene: re-checks every rendered
  * frame from minFrame until it PASSES or times out — materials, shadow
