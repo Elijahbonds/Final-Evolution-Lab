@@ -1,3 +1,4 @@
+import { BASEBALL_MANIFEST, scheduleIntegrityValidation } from '../../core/sceneManifest.js';
 let babylonModulePromise;
 
 async function loadBabylonCore() {
@@ -43,9 +44,46 @@ export class BaseballScene {
     this._timers = new Set();
   }
 
+  // Graduation shell (shared process): StrictMode guard, frame hook, shake
+  _disposedScene = false;
+  _frameCallback = null;
+  _shakeRemainingMs = 0;
+  _shakeDurationMs = 220; // TUNE(elijah)
+  _shakeIntensity = 0;
+  _shakeBaseY = null;
+
+  setFrameCallback(cb) { this._frameCallback = cb; }
+
+  applyCameraShake(intensity) {
+    if (!this.camera) return;
+    if (this._shakeBaseY === null) this._shakeBaseY = this.camera.target.y;
+    this._shakeIntensity = Math.max(this._shakeIntensity, intensity);
+    this._shakeRemainingMs = this._shakeDurationMs;
+  }
+
+  _applyShakeFrame(dtMs) {
+    if (this._shakeRemainingMs <= 0 || !this.camera || this._shakeBaseY === null) return;
+    this._shakeRemainingMs -= dtMs;
+    if (this._shakeRemainingMs <= 0) {
+      this.camera.target.y = this._shakeBaseY;
+      this._shakeBaseY = null;
+      this._shakeIntensity = 0;
+      return;
+    }
+    const life = this._shakeRemainingMs / this._shakeDurationMs;
+    const t = (this._shakeDurationMs - this._shakeRemainingMs) / 1000;
+    this.camera.target.y = this._shakeBaseY + Math.sin(t * 55) * this._shakeIntensity * life;
+  }
+
   async init(canvas = this.canvas) {
     if (canvas) this.canvas = canvas;
     const babylon = await loadBabylonCore();
+
+    // Disposed while loading (StrictMode remount): never create an Engine.
+    if (this._disposedScene) {
+      this.isFallback = true;
+      return { engine: null, scene: null, camera: null, assets: this.assets, isFallback: true };
+    }
 
     if (!babylon || !this.canvas) {
       this.isFallback = true;
@@ -318,7 +356,14 @@ export class BaseballScene {
     };
     this.scene.onBeforeRenderObservable.add(this._beforeRender);
 
-    this.engine.runRenderLoop(() => this.scene?.render());
+    scheduleIntegrityValidation(this, BASEBALL_MANIFEST);
+
+    this.engine.runRenderLoop(() => {
+      const dtMs = this.engine.getDeltaTime();
+      if (this._frameCallback) this._frameCallback(dtMs);
+      this._applyShakeFrame(dtMs);
+      this.scene?.render();
+    });
     this._handleResize = () => this.engine?.resize();
     if (typeof window !== 'undefined') window.addEventListener('resize', this._handleResize);
 
@@ -521,6 +566,7 @@ export class BaseballScene {
   }
 
   dispose() {
+    this._disposedScene = true;
     this._timers.forEach((timer) => clearTimeout(timer));
     this._timers.clear();
     if (typeof window !== 'undefined' && this._handleResize) {

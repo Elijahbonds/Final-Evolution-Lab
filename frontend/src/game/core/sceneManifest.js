@@ -122,6 +122,42 @@ export const GOLF_MANIFEST = {
   lighting: 'day',
 };
 
+/** @type {SceneManifest} */
+export const VOLLEYBALL_MANIFEST = {
+  sceneId: 'sand-court',
+  mode: 'volleyball',
+  archetype: 'court-rally',
+  requiredNodes: ['sand', 'topTape', 'ball', 'player'],
+  props: [],
+  spawnPoints: [{ name: 'player', x: 0, y: 0, z: 10 }],
+  cameraRig: 'serve',
+  lighting: 'day',
+};
+
+/** @type {SceneManifest} */
+export const BASEBALL_MANIFEST = {
+  sceneId: 'ballpark',
+  mode: 'baseball',
+  archetype: 'court-rally',
+  requiredNodes: ['outfieldGrass', 'infieldDirt', 'pitchersMound', 'baseball', 'wallBack'],
+  props: [],
+  spawnPoints: [{ name: 'player', x: 0, y: 0, z: 0 }],
+  cameraRig: 'batter',
+  lighting: 'day',
+};
+
+/** @type {SceneManifest} */
+export const FOOTBALL_MANIFEST = {
+  sceneId: 'gridiron',
+  mode: 'football',
+  archetype: 'court-free-3d',
+  requiredNodes: ['footballField', 'endZoneNorth', 'endZoneSouth', 'football', 'playerHelmet'],
+  props: [],
+  spawnPoints: [{ name: 'player', x: 0, y: 0, z: 50 }],
+  cameraRig: 'chase',
+  lighting: 'stadium',
+};
+
 /**
  * Schedules integrity validation on a live scene: re-checks every rendered
  * frame from minFrame until it PASSES or times out — materials, shadow

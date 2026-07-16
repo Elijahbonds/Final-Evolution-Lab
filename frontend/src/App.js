@@ -25,6 +25,9 @@ import PlaySoccerPage from "@/components/PlaySoccerPage";
 import PlaySkatePage from "@/components/PlaySkatePage";
 import PlayTennisPage from "@/components/PlayTennisPage";
 import PlayGolfPage from "@/components/PlayGolfPage";
+import PlayVolleyballPage from "@/components/PlayVolleyballPage";
+import PlayBaseballPage from "@/components/PlayBaseballPage";
+import PlayFootballPage from "@/components/PlayFootballPage";
 import { TriviaArenaView } from "@/components/TriviaArenaView";
 import Phase3HUD from "@/components/hud/Phase3HUD";
 import { FEL_ARENA_MODES } from "@/lib/arenaModes";
@@ -1754,6 +1757,9 @@ function AppRouter() {
       <Route path="/play/skate" element={<PlaySkatePage />} />
       <Route path="/play/tennis" element={<PlayTennisPage />} />
       <Route path="/play/golf" element={<PlayGolfPage />} />
+      <Route path="/play/volleyball" element={<PlayVolleyballPage />} />
+      <Route path="/play/baseball" element={<PlayBaseballPage />} />
+      <Route path="/play/football" element={<PlayFootballPage />} />
       <Route path="/download" element={<DownloadPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

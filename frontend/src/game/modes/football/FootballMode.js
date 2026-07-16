@@ -1,5 +1,7 @@
 import { InputSystem } from '../../input/InputSystem.js';
 import { GameModeInterface, ModePhase } from '../GameModeInterface.js';
+import { SensoryBus } from '../../systems/SensoryBus.js';
+import { feelConfig } from '../../systems/feelConfig.js';
 import FootballScene from './FootballScene.js';
 
 const DRIVE_START_YARD = 20;
@@ -27,6 +29,8 @@ export class FootballMode extends GameModeInterface {
     super(modeId, canvas);
 
     this.container = container ?? null;
+    this._sensory = null;
+    this._disposed = false;
     this.scene = null;
     this.systems = null;
     this.input = null;
@@ -61,6 +65,7 @@ export class FootballMode extends GameModeInterface {
 
   async start(container) {
     this.dispose();
+    this._disposed = false;
     this.container = container ?? this.container;
 
     const { createSharedSystems } = await import('../../systems/index.js');
@@ -71,6 +76,21 @@ export class FootballMode extends GameModeInterface {
 
     this.scene = new FootballScene(this.canvas, this.systems);
     await this.scene.init();
+
+    // Disposed while init awaited (StrictMode remount) — bail cleanly.
+    if (this._disposed) {
+      this.scene.dispose();
+      this.scene = null;
+      return this.getState();
+    }
+    this._sensory = new SensoryBus({
+      camera: this.scene && !this.scene.isFallback ? this.scene : null,
+      sfx: {
+        impact: '/audio/sfx_punch_impact.mp3',
+        swoosh: '/audio/sfx_basketball_swoosh.mp3',
+        crowd:  '/audio/sfx_crowd_cheer.mp3',
+      },
+    });
     this.scene.setCameraAngle('line_of_scrimmage');
 
     this.input = new InputSystem('football');
@@ -262,6 +282,7 @@ export class FootballMode extends GameModeInterface {
   _scoreTouchdown() {
     this._awaitingPAT = true;
     this.state.touchdowns += 1;
+    this._sensory?.emit({ sfx: 'crowd', volume: feelConfig.sensory.crowdVolume, shake: 0.2, rumbleMs: feelConfig.sensory.rumbleMs }); // TUNE(elijah)
     this.state.score = this.systems.scoreSystem?.addPoints(6, 1) ?? (this.state.score + 6);
     this.state.lastMove = 'TOUCHDOWN!';
     this.state.winner = 'player';
@@ -388,6 +409,9 @@ export class FootballMode extends GameModeInterface {
   }
 
   dispose() {
+    this._disposed = true;
+    this._sensory?.dispose();
+    this._sensory = null;
     if (this.loopTimer) {
       clearInterval(this.loopTimer);
       this.loopTimer = null;

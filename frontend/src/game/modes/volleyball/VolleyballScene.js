@@ -1,3 +1,4 @@
+import { VOLLEYBALL_MANIFEST, scheduleIntegrityValidation } from '../../core/sceneManifest.js';
 let babylonModulePromise = null;
 
 const PARTICLE_TEXTURE_DATA_URI =
@@ -43,8 +44,45 @@ export class VolleyballScene {
     this._timeouts = new Set();
   }
 
+  // Graduation shell (shared process): StrictMode guard, frame hook, shake
+  _disposedScene = false;
+  _frameCallback = null;
+  _shakeRemainingMs = 0;
+  _shakeDurationMs = 220; // TUNE(elijah)
+  _shakeIntensity = 0;
+  _shakeBaseY = null;
+
+  setFrameCallback(cb) { this._frameCallback = cb; }
+
+  applyCameraShake(intensity) {
+    if (!this.camera) return;
+    if (this._shakeBaseY === null) this._shakeBaseY = this.camera.target.y;
+    this._shakeIntensity = Math.max(this._shakeIntensity, intensity);
+    this._shakeRemainingMs = this._shakeDurationMs;
+  }
+
+  _applyShakeFrame(dtMs) {
+    if (this._shakeRemainingMs <= 0 || !this.camera || this._shakeBaseY === null) return;
+    this._shakeRemainingMs -= dtMs;
+    if (this._shakeRemainingMs <= 0) {
+      this.camera.target.y = this._shakeBaseY;
+      this._shakeBaseY = null;
+      this._shakeIntensity = 0;
+      return;
+    }
+    const life = this._shakeRemainingMs / this._shakeDurationMs;
+    const t = (this._shakeDurationMs - this._shakeRemainingMs) / 1000;
+    this.camera.target.y = this._shakeBaseY + Math.sin(t * 55) * this._shakeIntensity * life;
+  }
+
   async init() {
     const babylon = await loadBabylonCore();
+
+    // Disposed while loading (StrictMode remount): never create an Engine.
+    if (this._disposedScene) {
+      this.isFallback = true;
+      return { engine: null, scene: null, camera: null, assets: this.assets, isFallback: true };
+    }
     this._babylon = babylon;
 
     if (!babylon || !this.canvas) {
@@ -315,7 +353,12 @@ export class VolleyballScene {
 
     this.setCameraAngle('serve');
 
+    scheduleIntegrityValidation(this, VOLLEYBALL_MANIFEST);
+
     this.engine.runRenderLoop(() => {
+      const dtMs = this.engine.getDeltaTime();
+      if (this._frameCallback) this._frameCallback(dtMs);
+      this._applyShakeFrame(dtMs);
       this.scene?.render();
     });
 
@@ -432,6 +475,7 @@ export class VolleyballScene {
   }
 
   dispose() {
+    this._disposedScene = true;
     this._activeAnimations.forEach((cancel) => cancel());
     this._activeAnimations.clear();
     this._timeouts.forEach((id) => clearTimeout(id));

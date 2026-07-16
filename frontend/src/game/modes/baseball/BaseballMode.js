@@ -1,4 +1,6 @@
 import { GameModeInterface, ModePhase } from '../GameModeInterface.js';
+import { SensoryBus } from '../../systems/SensoryBus.js';
+import { feelConfig } from '../../systems/feelConfig.js';
 import { InputSystem } from '../../input/InputSystem.js';
 import { BaseballScene } from './BaseballScene.js';
 
@@ -35,6 +37,8 @@ export class BaseballMode extends GameModeInterface {
     super(modeId, canvas);
 
     this.container = container ?? null;
+    this._sensory = null;
+    this._disposed = false;
     this.scene = null;
     this.systems = null;
     this.input = null;
@@ -67,6 +71,7 @@ export class BaseballMode extends GameModeInterface {
 
   async start(container) {
     this.dispose();
+    this._disposed = false;
 
     this.container = container ?? this.container;
     const { createSharedSystems } = await loadSharedSystems();
@@ -77,6 +82,21 @@ export class BaseballMode extends GameModeInterface {
 
     this.scene = new BaseballScene(this.canvas, this.systems);
     await this.scene.init();
+
+    // Disposed while init awaited (StrictMode remount) — bail cleanly.
+    if (this._disposed) {
+      this.scene.dispose();
+      this.scene = null;
+      return this.getState();
+    }
+    this._sensory = new SensoryBus({
+      camera: this.scene && !this.scene.isFallback ? this.scene : null,
+      sfx: {
+        impact: '/audio/sfx_punch_impact.mp3',
+        swoosh: '/audio/sfx_basketball_swoosh.mp3',
+        crowd:  '/audio/sfx_crowd_cheer.mp3',
+      },
+    });
     this.scene.setCameraAngle('batter');
 
     this.input = new InputSystem('baseball');
@@ -150,6 +170,7 @@ export class BaseballMode extends GameModeInterface {
       this._markAtBat();
       this.state.hits += 1;
       this.state.homeRuns += 1;
+      this._sensory?.emit({ sfx: 'crowd', volume: feelConfig.sensory.crowdVolume, shake: 0.22, rumbleMs: feelConfig.sensory.rumbleMs }); // TUNE(elijah)
       this.state.lastResult = 'HOMERUN';
       this.state.score = this.systems.scoreSystem.addPoints(3);
       this.state.prq = this.systems.prqSystem.recordEvent({ type: 'combo', quality: 'perfect' });
@@ -166,6 +187,7 @@ export class BaseballMode extends GameModeInterface {
       this._markAtBat();
       this.state.hits += 1;
       this.state.lastResult = 'HIT';
+      this._sensory?.emit({ sfx: 'impact', volume: 0.7, shake: 0.07 }); // TUNE(elijah)
       this.state.score = this.systems.scoreSystem.addPoints(1);
       this.state.prq = this.systems.prqSystem.recordEvent({ type: 'hit', quality: isBunt ? 'ok' : 'good' });
       this.systems.audio.playEvent('hit_ball');
@@ -358,6 +380,9 @@ export class BaseballMode extends GameModeInterface {
   }
 
   dispose() {
+    this._disposed = true;
+    this._sensory?.dispose();
+    this._sensory = null;
     this._clearAllTimers();
     this.scene?.dispose();
     this.scene = null;
