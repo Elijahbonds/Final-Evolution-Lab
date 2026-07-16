@@ -168,6 +168,19 @@ export const feelConfig = {
     pointsPerRotation: 70,   // TUNE(elijah)
   },
 
+  // Story mode (board engine from the C++ donor).
+  story: {
+    retreatHp: 60,           // TUNE(elijah) — HP after a knockout retreat
+    bossFirstAttackS: 2.0,   // TUNE(elijah) — grace before the boss swings
+    bossAttackBaseS: 2.2,    // TUNE(elijah) — divided by boss aggression
+    bossDmgMin: 8,           // TUNE(elijah)
+    bossDmgMax: 16,          // TUNE(elijah)
+    strikeCooldownS: 0.45,   // TUNE(elijah) — anti-mash
+    strikeMin: 10,           // TUNE(elijah)
+    strikeMax: 18,           // TUNE(elijah)
+    bossShardBonus: 50,      // TUNE(elijah)
+  },
+
   // Court bounds for free movement (Venice court, matches HOOP_POSITION space).
   court: {
     minX: -7, maxX: 7,

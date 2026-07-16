@@ -12,6 +12,7 @@ import SnowboardMode from './snowboard/SnowboardMode.js';
 import SurfMode from './surf/SurfMode.js';
 import GymnasticsMode from './gymnastics2/GymnasticsMode.js';
 import BigAirMode from './bigair/BigAirMode.js';
+import StoryMode from './story/StoryMode.js';
 
 // Modes graduate here when they are ROUTED and verified playable:
 // dunk (feel gate passed) · karate (round gate + locomotion) ·
@@ -30,6 +31,7 @@ const LIVE_MODE_IDS = new Set([
   'surfing',
   'gymnastics',
   'big_air',
+  'story',
 ]);
 
 function cloneStub(modeEntry, canvas) {
@@ -104,6 +106,7 @@ const MODES = {
   surfing: SurfMode,
   skateboarding: SkateMode,
   snowboarding: SnowboardMode,
+  story: StoryMode,
   market_browse: createStub('market_browse'),
   trivia_arena: createStub('trivia_arena'),
 };

@@ -23,14 +23,13 @@ const LIVE = [
   { route: '/play/who-scene-it', title: 'Who-Scene-It',  sub: 'Name the FEL scene',        icon: '🎬', arch: 'RHYTHM' },
   { route: '/play/gymnastics', title: 'Vault',          sub: 'Sprint · punch · stick it', icon: '🤸', arch: 'AIR' },
   { route: '/play/big-air',    title: 'Big Air',        sub: 'Kicker spins, clean lands', icon: '🎿', arch: 'AIR' },
+  { route: '/play/story',      title: 'Story Mode',     sub: 'Free Venice, zone by zone', icon: '📖', arch: 'BOARD' },
   { route: '/irl/dunk',        title: 'IRL Dunk',       sub: 'Mirror Triumph · Couch H2H', icon: '🎥', arch: 'IRL' },
 ];
 
-const SOON = [
-  { title: 'Story Mode', icon: '📖' },
-];
+const SOON = [];
 
-const ARCH_COLORS = { COURT: '#60a5fa', RALLY: '#34d399', CARVE: '#f472b6', RHYTHM: '#a78bfa', AIR: '#fb923c', IRL: '#facc15' };
+const ARCH_COLORS = { COURT: '#60a5fa', RALLY: '#34d399', CARVE: '#f472b6', RHYTHM: '#a78bfa', AIR: '#fb923c', BOARD: '#F2C14E', IRL: '#facc15' };
 
 export default function PlayHubPage() {
   return (

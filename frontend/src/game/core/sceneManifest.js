@@ -218,6 +218,18 @@ export const BIGAIR_MANIFEST = {
   lighting: 'alpine',
 };
 
+/** @type {SceneManifest} */
+export const STORY_MANIFEST = {
+  sceneId: 'venice-board',
+  mode: 'story',
+  archetype: 'board',
+  requiredNodes: ['tile0', 'tile19', 'storyToken', 'veniceSky'],
+  props: [],
+  spawnPoints: [{ name: 'player', x: 0, y: 0, z: -9 }],
+  cameraRig: 'board',
+  lighting: 'sunset',
+};
+
 /**
  * Schedules integrity validation on a live scene: re-checks every rendered
  * frame from minFrame until it PASSES or times out — materials, shadow
