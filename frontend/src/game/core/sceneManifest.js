@@ -1,0 +1,70 @@
+/**
+ * Scene manifest + integrity gate (mode-agnostic).
+ *
+ * A map is a DATA FILE + assets, not bespoke code: the manifest declares
+ * what a scene needs (required nodes, props, spawn points, camera rig,
+ * archetype) and the integrity gate refuses to call a scene "playable"
+ * until every required node is present AND visibly rendering — this is
+ * what catches missing rims and floor-on-sky material failures.
+ */
+
+/**
+ * @typedef {{ sceneId: string, mode: string, archetype: string,
+ *   requiredNodes: string[], props?: { name: string, source: string }[],
+ *   spawnPoints?: { name: string, x: number, y: number, z: number }[],
+ *   cameraRig?: string, lighting?: string }} SceneManifest
+ */
+
+/** @type {SceneManifest} */
+export const VENICE_COURT_MANIFEST = {
+  sceneId: 'venice-court',
+  mode: 'basketball_dunk',
+  archetype: 'court-free-3d',
+  requiredNodes: ['court', 'backboard', 'hoop', 'playerCapsule', 'veniceSky', 'veniceBlacktop'],
+  props: [
+    { name: 'veniceBlacktop', source: '/models/venice-blacktop.glb' }, // license NEEDS-VERIFY(elijah) — Meshy/Luma-derived
+    { name: 'veniceSky', source: '/backdrops/venice-sky-sunset.jpg' }, // Elijah's own photo — license SAFE
+  ],
+  spawnPoints: [{ name: 'player', x: 0, y: 0, z: 4 }],
+  cameraRig: 'gameplay',
+  lighting: 'sunset',
+};
+
+/**
+ * Validates a live Babylon scene against a manifest.
+ * A node passes when it exists, is enabled, and (for meshes) is visible
+ * with a ready material — catches "markings floating on sky".
+ *
+ * @param {import('@babylonjs/core').Scene} scene
+ * @param {SceneManifest} manifest
+ * @returns {{ ok: boolean, missing: string[], invisible: string[] }}
+ */
+export function validateSceneIntegrity(scene, manifest) {
+  const missing = [];
+  const invisible = [];
+  for (const name of manifest.requiredNodes) {
+    const node = scene.getMeshByName?.(name) ?? scene.getNodeByName?.(name);
+    if (!node) { missing.push(name); continue; }
+    const enabled = node.isEnabled?.() ?? true;
+    const visible = node.isVisible !== false && (node.visibility === undefined || node.visibility > 0);
+    const materialReady = node.material === undefined || node.material === null || node.material.isReady?.(node) !== false;
+    if (!enabled || !visible || !materialReady) invisible.push(name);
+  }
+  return { ok: missing.length === 0 && invisible.length === 0, missing, invisible };
+}
+
+/**
+ * Pure manifest sanity check (unit-testable without a scene): every
+ * manifest must declare an id, a mode, at least one required node, and a
+ * spawn point for its player when the archetype moves an avatar.
+ */
+export function validateManifestShape(manifest) {
+  const problems = [];
+  if (!manifest.sceneId) problems.push('sceneId missing');
+  if (!manifest.mode) problems.push('mode missing');
+  if (!manifest.requiredNodes?.length) problems.push('requiredNodes empty');
+  if (manifest.archetype?.includes('court') && !manifest.spawnPoints?.some((s) => s.name === 'player')) {
+    problems.push('court archetype requires a player spawn point');
+  }
+  return { ok: problems.length === 0, problems };
+}

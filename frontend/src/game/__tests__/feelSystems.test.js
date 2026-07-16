@@ -9,6 +9,7 @@ import { InputBuffer } from '../systems/InputBuffer.js';
 import { StateMachine } from '../systems/StateMachine.js';
 import { ArcDrive } from '../systems/ArcDrive.js';
 import { feelConfig } from '../systems/feelConfig.js';
+import { VENICE_COURT_MANIFEST, validateManifestShape } from '../core/sceneManifest.js';
 
 /** Minimal vertical simulator using the production gravity curve. */
 function makeJumpSim() {
@@ -137,6 +138,24 @@ describe('ArcDrive — continuity (DoD: never jerks)', () => {
     expect(maxStep).toBeLessThan(0.25);                    // no teleports
     expect(arc.endVerticalVelocity()).toBeLessThan(0);     // handing back falling
     expect(Number.isFinite(arc.endVerticalVelocity())).toBe(true);
+  });
+});
+
+describe('sceneManifest — shape contract', () => {
+  test('the Venice manifest is well-formed', () => {
+    const r = validateManifestShape(VENICE_COURT_MANIFEST);
+    expect(r.ok).toBe(true);
+    expect(VENICE_COURT_MANIFEST.requiredNodes).toContain('hoop');
+    expect(VENICE_COURT_MANIFEST.requiredNodes).toContain('backboard');
+  });
+
+  test('court archetype without a player spawn fails', () => {
+    const r = validateManifestShape({
+      sceneId: 'x', mode: 'y', archetype: 'court-free-3d',
+      requiredNodes: ['court'], spawnPoints: [],
+    });
+    expect(r.ok).toBe(false);
+    expect(r.problems.join()).toMatch(/spawn/);
   });
 });
 

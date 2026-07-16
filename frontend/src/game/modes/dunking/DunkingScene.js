@@ -1,4 +1,5 @@
 import { feelConfig } from '../../systems/feelConfig.js';
+import { VENICE_COURT_MANIFEST, validateSceneIntegrity } from '../../core/sceneManifest.js';
 
 // Premium DunkingScene — Venice Beach Court with full 3D production quality.
 // Mirrors iOS GameSceneHostView + CourtSceneView scenic passes.
@@ -80,6 +81,69 @@ export class DunkingScene {
     if (!this.camera) return;
     this._shakeIntensity = Math.max(this._shakeIntensity, intensity);
     this._shakeRemainingMs = this._shakeDurationMs;
+  }
+
+  /**
+   * Venice identity layer: photo sky dome (Elijah's own sunset panorama)
+   * + Meshy/Luma blacktop GLB as the surrounding environment. Each piece
+   * degrades independently and loudly — a failed load shows up in the
+   * integrity gate, never as a silent generic scene.
+   * @private
+   */
+  async _buildVeniceEnvironment(babylon) {
+    const { MeshBuilder, StandardMaterial, Texture, SceneLoader } = babylon;
+
+    // Sky dome — license SAFE (Elijah's photo)
+    try {
+      const sky = MeshBuilder.CreateSphere(
+        'veniceSky', { diameter: 220, sideOrientation: 1 /* BACKSIDE */ }, this.scene
+      );
+      const mat = new StandardMaterial('veniceSkyMat', this.scene);
+      mat.emissiveTexture = new Texture('/backdrops/venice-sky-sunset.jpg', this.scene);
+      mat.disableLighting = true;
+      mat.backFaceCulling = false;
+      mat.fogEnabled = false; // scene fog would swallow the dome at r≈110
+      sky.material = mat;
+      this.scene.fogDensity = 0.004; // TUNE(elijah) — light haze; night value buried Venice
+      sky.isPickable = false;
+      sky.rotation.y = Math.PI; // TUNE(elijah) — orient the pier/palms
+      if (this.assets.sky?.setEnabled) this.assets.sky.setEnabled(false); // retire gradient sky
+      this.assets.veniceSky = sky;
+    } catch (e) {
+      console.error('[venice] sky dome failed', e);
+    }
+
+    // Blacktop GLB — license NEEDS-VERIFY(elijah), Meshy/Luma-derived
+    try {
+      await import('@babylonjs/loaders/glTF');
+      const result = await SceneLoader.ImportMeshAsync('', '/models/', 'venice-blacktop.glb', this.scene);
+      const root = result.meshes[0];
+      root.name = 'veniceBlacktop';
+
+      // Normalize: center on origin, ground at y≈0, max extent ~44 units
+      let minX = Infinity, minY = Infinity, minZ = Infinity;
+      let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+      for (const mesh of result.meshes) {
+        if (!mesh.getBoundingInfo || mesh === root) continue;
+        mesh.computeWorldMatrix(true);
+        const bb = mesh.getBoundingInfo().boundingBox;
+        minX = Math.min(minX, bb.minimumWorld.x); maxX = Math.max(maxX, bb.maximumWorld.x);
+        minY = Math.min(minY, bb.minimumWorld.y); maxY = Math.max(maxY, bb.maximumWorld.y);
+        minZ = Math.min(minZ, bb.minimumWorld.z); maxZ = Math.max(maxZ, bb.maximumWorld.z);
+      }
+      if (Number.isFinite(minX)) {
+        const extent = Math.max(maxX - minX, maxZ - minZ) || 1;
+        const scale = 44 / extent; // TUNE(elijah) — environment footprint
+        root.scaling.setAll(scale);
+        root.position.x = -((minX + maxX) / 2) * scale;
+        root.position.z = -((minZ + maxZ) / 2) * scale;
+        root.position.y = -minY * scale - 0.04; // top surface just under the court
+      }
+      result.meshes.forEach((m) => { m.isPickable = false; });
+      this.assets.veniceBlacktop = root;
+    } catch (e) {
+      console.error('[venice] blacktop GLB failed', e);
+    }
   }
 
   /**
@@ -220,7 +284,7 @@ export class DunkingScene {
     // Camera sits BEHIND THE PLAYER (+z side) looking down-court at the hoop
     // — dunk-contest framing: rim up-screen, run-up visible. (commit 6)
     this.camera = new ArcRotateCamera(
-      'dunkingCamera', Math.PI / 2, Math.PI / 3.5, 28, Vector3.Zero(), this.scene
+      'dunkingCamera', Math.PI / 2, 1.18, 28, Vector3.Zero(), this.scene
     );
     this.camera.lowerRadiusLimit  = 18;
     this.camera.upperRadiusLimit  = 38;
@@ -470,6 +534,27 @@ export class DunkingScene {
     // ── Render loop (also drives the mode's fixed-step simulation) ──────────
     this._camBaseFov = this.camera.fov;
 
+    // ── Venice environment (manifest-driven) + integrity gate ───────────────
+    await this._buildVeniceEnvironment(babylon);
+    if (court?.name !== undefined) court.name = 'court';
+    if (backboard?.name !== undefined) backboard.name = 'backboard';
+    if (hoop?.name !== undefined) hoop.name = 'hoop';
+
+    // The gate validates what the EYE would see, so it must run after real
+    // frames have rendered (materials compile on first render — validating
+    // inside init() reports everything "not ready").
+    this.integrity = { ok: false, pending: true };
+    const integrityObs = this.scene.onAfterRenderObservable.add(() => {
+      if (this.engine.frameId < 5) return;
+      this.scene.onAfterRenderObservable.remove(integrityObs);
+      this.integrity = validateSceneIntegrity(this.scene, VENICE_COURT_MANIFEST);
+      if (!this.integrity.ok) {
+        // Fail loudly: a scene with a missing rim or unrendered floor is not
+        // playable — this gate catches it before a human does.
+        console.error('[scene-integrity] venice-court FAILED', JSON.stringify(this.integrity));
+      }
+    });
+
     this.engine.runRenderLoop(() => {
       const dtMs = this.engine.getDeltaTime();
       if (this._frameCallback) this._frameCallback(dtMs);
@@ -496,10 +581,12 @@ export class DunkingScene {
     this._cameraAngle = angle;
 
     const targets = {
-      approach:  { alpha: Math.PI / 2, beta: Math.PI / 3.8, radius: 34 },
-      gameplay:  { alpha: Math.PI / 2, beta: Math.PI / 3.5, radius: 28 },
+      // Betas lowered toward the horizon so the Venice sunset lives in the
+      // gameplay frame, not just in scenic cuts. TUNE(elijah)
+      approach:  { alpha: Math.PI / 2, beta: 1.22, radius: 34 },
+      gameplay:  { alpha: Math.PI / 2, beta: 1.18, radius: 28 },
       hero:      { alpha: Math.PI / 2.4, beta: Math.PI / 4,  radius: 18 },
-      recovery:  { alpha: Math.PI / 2, beta: Math.PI / 2.8, radius: 32 },
+      recovery:  { alpha: Math.PI / 2, beta: 1.25, radius: 32 },
     };
     const t = targets[angle] ?? targets.gameplay;
 
