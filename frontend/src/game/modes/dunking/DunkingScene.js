@@ -1,5 +1,5 @@
 import { feelConfig } from '../../systems/feelConfig.js';
-import { VENICE_COURT_MANIFEST, validateSceneIntegrity } from '../../core/sceneManifest.js';
+import { VENICE_COURT_MANIFEST, scheduleIntegrityValidation } from '../../core/sceneManifest.js';
 
 // Premium DunkingScene — Venice Beach Court with full 3D production quality.
 // Mirrors iOS GameSceneHostView + CourtSceneView scenic passes.
@@ -540,20 +540,9 @@ export class DunkingScene {
     if (backboard?.name !== undefined) backboard.name = 'backboard';
     if (hoop?.name !== undefined) hoop.name = 'hoop';
 
-    // The gate validates what the EYE would see, so it must run after real
-    // frames have rendered (materials compile on first render — validating
-    // inside init() reports everything "not ready").
-    this.integrity = { ok: false, pending: true };
-    const integrityObs = this.scene.onAfterRenderObservable.add(() => {
-      if (this.engine.frameId < 5) return;
-      this.scene.onAfterRenderObservable.remove(integrityObs);
-      this.integrity = validateSceneIntegrity(this.scene, VENICE_COURT_MANIFEST);
-      if (!this.integrity.ok) {
-        // Fail loudly: a scene with a missing rim or unrendered floor is not
-        // playable — this gate catches it before a human does.
-        console.error('[scene-integrity] venice-court FAILED', JSON.stringify(this.integrity));
-      }
-    });
+    // Validates what the EYE would see: retries per frame until materials/
+    // shadows/textures are compiled; only a timeout is a FAIL.
+    scheduleIntegrityValidation(this, VENICE_COURT_MANIFEST);
 
     this.engine.runRenderLoop(() => {
       const dtMs = this.engine.getDeltaTime();

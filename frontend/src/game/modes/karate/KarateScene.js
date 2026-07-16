@@ -1,3 +1,5 @@
+import { DOJO_MANIFEST, scheduleIntegrityValidation } from '../../core/sceneManifest.js';
+
 // Premium KarateScene — Zen Dojo with full 3D production quality.
 // Mirrors iOS CourtSceneView (Zen_Dojo variant) + GameSceneHostView scenic passes.
 //
@@ -55,10 +57,49 @@ export class KarateScene {
     this._playerParts   = {};
     this._opponentParts = {};
     this._hitFlashTimer = null;
+    this._frameCallback = null;
+    this._disposedScene = false;
+    this._shakeRemainingMs = 0;
+    this._shakeDurationMs = 220; // TUNE(elijah)
+    this._shakeIntensity = 0;
+    this._shakeBaseY = null;
+  }
+
+  /** Registers the per-frame callback that drives the mode's FixedStepLoop. */
+  setFrameCallback(cb) { this._frameCallback = cb; }
+
+  /** Deterministic damped-sine camera shake (additive on target.y). */
+  applyCameraShake(intensity) {
+    if (!this.camera) return;
+    if (this._shakeBaseY === null) this._shakeBaseY = this.camera.target.y;
+    this._shakeIntensity = Math.max(this._shakeIntensity, intensity);
+    this._shakeRemainingMs = this._shakeDurationMs;
+  }
+
+  /** @private */
+  _applyShakeFrame(dtMs) {
+    if (this._shakeRemainingMs <= 0 || !this.camera || this._shakeBaseY === null) return;
+    this._shakeRemainingMs -= dtMs;
+    if (this._shakeRemainingMs <= 0) {
+      this.camera.target.y = this._shakeBaseY;
+      this._shakeBaseY = null;
+      this._shakeIntensity = 0;
+      return;
+    }
+    const life = this._shakeRemainingMs / this._shakeDurationMs;
+    const t = (this._shakeDurationMs - this._shakeRemainingMs) / 1000;
+    this.camera.target.y = this._shakeBaseY + Math.sin(t * 55) * this._shakeIntensity * life;
   }
 
   async init() {
     const babylon = await loadBabylonCore();
+
+    // Disposed while the module loaded (StrictMode remount): never create an
+    // Engine — the replacement scene owns the canvas.
+    if (this._disposedScene) {
+      this.isFallback = true;
+      return { engine: null, scene: null, camera: null, assets: this.assets, isFallback: true };
+    }
 
     if (!babylon || !this.canvas) {
       this.isFallback = true;
@@ -256,11 +297,57 @@ export class KarateScene {
       opponent: this._opponentParts,
     };
 
-    this.engine.runRenderLoop(() => { this.scene?.render(); });
+    // ── Dojo environment (manifest-driven) + integrity gate ─────────────────
+    await this._buildDojoEnvironment(babylon);
+    scheduleIntegrityValidation(this, DOJO_MANIFEST);
+
+    this.engine.runRenderLoop(() => {
+      const dtMs = this.engine.getDeltaTime();
+      if (this._frameCallback) this._frameCallback(dtMs);
+      this._applyShakeFrame(dtMs);
+      this.scene?.render();
+    });
     this._handleResize = () => this.engine?.resize();
     if (typeof window !== 'undefined') window.addEventListener('resize', this._handleResize);
 
     return { engine: this.engine, scene: this.scene, camera: this.camera, assets: this.assets, isFallback: false };
+  }
+
+  /**
+   * Dojo identity layer: candlelit-mood GLB surroundings. Degrades loudly
+   * into the integrity gate, never silently.
+   * @private
+   */
+  async _buildDojoEnvironment(babylon) {
+    const { SceneLoader } = babylon;
+    try {
+      await import('@babylonjs/loaders/glTF');
+      const result = await SceneLoader.ImportMeshAsync('', '/models/', 'dojo.glb', this.scene);
+      const root = result.meshes[0];
+      root.name = 'dojoEnv';
+      let minX = Infinity, minY = Infinity, minZ = Infinity;
+      let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+      for (const mesh of result.meshes) {
+        if (!mesh.getBoundingInfo || mesh === root) continue;
+        mesh.computeWorldMatrix(true);
+        const bb = mesh.getBoundingInfo().boundingBox;
+        minX = Math.min(minX, bb.minimumWorld.x); maxX = Math.max(maxX, bb.maximumWorld.x);
+        minY = Math.min(minY, bb.minimumWorld.y); maxY = Math.max(maxY, bb.maximumWorld.y);
+        minZ = Math.min(minZ, bb.minimumWorld.z); maxZ = Math.max(maxZ, bb.maximumWorld.z);
+      }
+      if (Number.isFinite(minX)) {
+        const extent = Math.max(maxX - minX, maxZ - minZ) || 1;
+        const scale = 16 / extent; // TUNE(elijah) — dojo footprint around the 8u tatami
+        root.scaling.setAll(scale);
+        root.position.x = -((minX + maxX) / 2) * scale;
+        root.position.z = -((minZ + maxZ) / 2) * scale;
+        root.position.y = -minY * scale - 0.06; // floor just under the tatami
+      }
+      result.meshes.forEach((m) => { m.isPickable = false; });
+      this.assets.dojoEnv = root;
+    } catch (e) {
+      console.error('[dojo] environment GLB failed', e);
+    }
   }
 
   /** @private — build a multi-capsule character rig */
@@ -390,6 +477,7 @@ export class KarateScene {
   }
 
   dispose() {
+    this._disposedScene = true;
     if (typeof window !== 'undefined' && this._handleResize) {
       window.removeEventListener('resize', this._handleResize);
     }

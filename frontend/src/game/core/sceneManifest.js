@@ -30,6 +30,22 @@ export const VENICE_COURT_MANIFEST = {
   lighting: 'sunset',
 };
 
+/** @type {SceneManifest} */
+export const DOJO_MANIFEST = {
+  sceneId: 'zen-dojo',
+  mode: 'karate',
+  archetype: 'court-free-3d',
+  // Torsos, not roots: fighter roots are intentionally-invisible 0.01u
+  // containers — the gate must require what the EYE sees.
+  requiredNodes: ['dojoFloor', 'playerTorso', 'opponentTorso', 'toriiBeam', 'dojoEnv'],
+  props: [
+    { name: 'dojoEnv', source: '/models/dojo.glb' }, // license NEEDS-VERIFY(elijah) — Meshy-derived
+  ],
+  spawnPoints: [{ name: 'player', x: -1.2, y: 0, z: 0 }],
+  cameraRig: 'broadcast',
+  lighting: 'candlelit',
+};
+
 /**
  * Validates a live Babylon scene against a manifest.
  * A node passes when it exists, is enabled, and (for meshes) is visible
@@ -51,6 +67,33 @@ export function validateSceneIntegrity(scene, manifest) {
     if (!enabled || !visible || !materialReady) invisible.push(name);
   }
   return { ok: missing.length === 0 && invisible.length === 0, missing, invisible };
+}
+
+/**
+ * Schedules integrity validation on a live scene: re-checks every rendered
+ * frame from minFrame until it PASSES or times out — materials, shadow
+ * effects, and streamed textures compile across the first frames, so a
+ * one-shot early check reports false negatives. Only a timeout is a FAIL.
+ *
+ * @param {{ scene: object, engine: object, integrity?: object }} host —
+ *   the scene wrapper; result is written to host.integrity
+ * @param {SceneManifest} manifest
+ * @param {{ minFrame?: number, timeoutFrames?: number }} [opts]
+ */
+export function scheduleIntegrityValidation(host, manifest, { minFrame = 5, timeoutFrames = 600 } = {}) {
+  host.integrity = { ok: false, pending: true };
+  const obs = host.scene.onAfterRenderObservable.add(() => {
+    const f = host.engine.frameId;
+    if (f < minFrame) return;
+    const result = validateSceneIntegrity(host.scene, manifest);
+    if (result.ok || f >= timeoutFrames) {
+      host.scene.onAfterRenderObservable.remove(obs);
+      host.integrity = result;
+      if (!result.ok) {
+        console.error(`[scene-integrity] ${manifest.sceneId} FAILED`, JSON.stringify(result));
+      }
+    }
+  });
 }
 
 /**

@@ -66,6 +66,16 @@ export const feelConfig = {
     rimStandoff: 0.55,       // TUNE(elijah) — stop this far in front of the rim center
   },
 
+  // Karate match flow + impact feel.
+  karate: {
+    readyMs: 800,            // TUNE(elijah) — READY hold before countdown
+    countdownMs: 3000,       // TUNE(elijah) — 3-2-1 before FIGHT
+    koHitStopMs: 300,        // TUNE(elijah) — freeze on the KO hit (felt before announced)
+    hitShake: 0.05,          // TUNE(elijah)
+    heavyShake: 0.14,        // TUNE(elijah)
+    koShake: 0.3,            // TUNE(elijah)
+  },
+
   // Court bounds for free movement (Venice court, matches HOOP_POSITION space).
   court: {
     minX: -7, maxX: 7,
