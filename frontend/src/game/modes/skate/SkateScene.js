@@ -22,9 +22,14 @@ async function loadBabylonCore() {
 }
 
 export class SkateScene {
-  constructor(canvas, systems = {}) {
+  constructor(canvas, systems = {}, theme = null) {
     this.canvas = canvas;
     this.systems = systems;
+    this._theme = theme ?? {
+      skyName: 'veniceSky', skyTexture: '/backdrops/venice-sky-sunset.jpg',
+      stripColor: '#6E5B4A', railColor: '#C8CCD4', playerColor: '#4FA3E0',
+      manifest: SKATE_MANIFEST,
+    };
     this.engine = null;
     this.scene = null;
     this.camera = null;
@@ -100,9 +105,9 @@ export class SkateScene {
     sun.diffuse = Color3.FromHexString('#FFB870');
 
     // Venice sunset dome (Elijah's photo — license SAFE)
-    const sky = MeshBuilder.CreateSphere('veniceSky', { diameter: 260, sideOrientation: 1 }, this.scene);
+    const sky = MeshBuilder.CreateSphere(this._theme.skyName, { diameter: 260, sideOrientation: 1 }, this.scene);
     const skyMat = new StandardMaterial('veniceSkyMat', this.scene);
-    skyMat.emissiveTexture = new Texture('/backdrops/venice-sky-sunset.jpg', this.scene);
+    skyMat.emissiveTexture = new Texture(this._theme.skyTexture, this.scene);
     skyMat.disableLighting = true;
     skyMat.backFaceCulling = false;
     skyMat.fogEnabled = false;
@@ -114,7 +119,7 @@ export class SkateScene {
     const strip = MeshBuilder.CreateGround('strip', { width: k.laneHalfWidth * 2 + 4, height: k.stripLength + 40 }, this.scene);
     strip.position.z = -(k.stripLength / 2);
     const stripMat = new StandardMaterial('stripMat', this.scene);
-    stripMat.diffuseColor = Color3.FromHexString('#6E5B4A'); // sun-worn boardwalk
+    stripMat.diffuseColor = Color3.FromHexString(this._theme.stripColor);
     stripMat.specularColor = Color3.Black();
     strip.material = stripMat;
 
@@ -123,7 +128,7 @@ export class SkateScene {
     const rail = MeshBuilder.CreateBox('grindRail', { width: 0.09, height: 0.09, depth: railLen }, this.scene);
     rail.position.set(k.rail.x, k.rail.y, (k.rail.zStart + k.rail.zEnd) / 2);
     const railMat = new StandardMaterial('railMat', this.scene);
-    railMat.diffuseColor = Color3.FromHexString('#C8CCD4');
+    railMat.diffuseColor = Color3.FromHexString(this._theme.railColor);
     railMat.emissiveColor = Color3.FromHexString('#3A3F48');
     rail.material = railMat;
     // Rail legs
@@ -137,12 +142,12 @@ export class SkateScene {
     const player = MeshBuilder.CreateCapsule('playerCapsule', { height: 1.9, radius: 0.35 }, this.scene);
     player.position.set(0, 0.95, 0);
     const playerMat = new StandardMaterial('playerMat', this.scene);
-    playerMat.diffuseColor = Color3.FromHexString('#4FA3E0');
+    playerMat.diffuseColor = Color3.FromHexString(this._theme.playerColor);
     player.material = playerMat;
 
     this.assets = { sky, strip, rail, player };
 
-    scheduleIntegrityValidation(this, SKATE_MANIFEST);
+    scheduleIntegrityValidation(this, this._theme.manifest);
 
     this.engine.runRenderLoop(() => {
       const dtMs = this.engine.getDeltaTime();

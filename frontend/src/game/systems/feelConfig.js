@@ -106,6 +106,40 @@ export const feelConfig = {
     olliePoints: 10,         // TUNE(elijah)
   },
 
+  // Snowboard skin (ride/carve — steeper, faster, longer rail = a rock ledge).
+  snowboard: {
+    cruiseSpeed: 8.0, minSpeed: 4.5, maxSpeed: 13.0,          // TUNE(elijah)
+    pumpAccel: 4.5, brakeDecel: 6.0, steerSpeed: 5.0,          // TUNE(elijah)
+    laneHalfWidth: 5.0, ollieImpulse: 3.8, stripLength: 70,    // TUNE(elijah)
+    rail: { x: -2.4, y: 0.5, zStart: -20, zEnd: -46, lockRadius: 1.7, grindSpeed: 9.0, pointsPerSec: 28 },
+    olliePoints: 12,
+  },
+
+  // Surf skin (ride/carve — slower, wide lane, the "rail" is the wave lip trim line).
+  surf: {
+    cruiseSpeed: 5.0, minSpeed: 2.5, maxSpeed: 8.0,            // TUNE(elijah)
+    pumpAccel: 3.0, brakeDecel: 4.0, steerSpeed: 4.5,           // TUNE(elijah)
+    laneHalfWidth: 6.0, ollieImpulse: 3.0, stripLength: 64,     // TUNE(elijah)
+    rail: { x: 3.0, y: 0.45, zStart: -16, zEnd: -40, lockRadius: 1.8, grindSpeed: 6.5, pointsPerSec: 22 },
+    olliePoints: 10,
+  },
+
+  // Sprint — rhythm/UI archetype (alternating footstrike cadence).
+  sprint: {
+    raceDistanceM: 100,      // TUNE(elijah)
+    readyMs: 1000,           // TUNE(elijah)
+    setMs: 1400,             // TUNE(elijah) — hold your nerve; tap early = false start
+    targetIntervalMs: 220,   // TUNE(elijah) — sweet-spot step cadence
+    perfectWindowMs: 40,     // TUNE(elijah)
+    goodWindowMs: 90,        // TUNE(elijah)
+    perfectImpulse: 0.85,    // TUNE(elijah) — m/s per perfect step
+    goodImpulse: 0.55,       // TUNE(elijah)
+    offImpulse: 0.2,         // TUNE(elijah)
+    stumblePenalty: 0.55,    // TUNE(elijah) — speed multiplier on a same-foot fault
+    drag: 2.2,               // TUNE(elijah) — m/s² decay (stop tapping, stop running)
+    maxSpeed: 11.5,          // TUNE(elijah) — human-ish ceiling
+  },
+
   // Court bounds for free movement (Venice court, matches HOOP_POSITION space).
   court: {
     minX: -7, maxX: 7,

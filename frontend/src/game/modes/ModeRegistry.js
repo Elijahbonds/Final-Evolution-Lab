@@ -8,6 +8,8 @@ import { FootballMode } from './football/index.js';
 import { VolleyballMode } from './volleyball/index.js';
 import { BaseballMode } from './baseball/index.js';
 import SkateMode from './skate/SkateMode.js';
+import SnowboardMode from './snowboard/SnowboardMode.js';
+import SurfMode from './surf/SurfMode.js';
 
 // Modes graduate here when they are ROUTED and verified playable:
 // dunk (feel gate passed) · karate (round gate + locomotion) ·
@@ -22,6 +24,8 @@ const LIVE_MODE_IDS = new Set([
   'volleyball',
   'baseball',
   'football',
+  'snowboarding',
+  'surfing',
 ]);
 
 function cloneStub(modeEntry, canvas) {
@@ -92,9 +96,9 @@ const MODES = {
   volleyball: VolleyballMode,
   gymnastics: createStub('gymnastics'),
   brain_brawl: createStub('brain_brawl'),
-  surfing: createStub('surfing'),
+  surfing: SurfMode,
   skateboarding: SkateMode,
-  snowboarding: createStub('snowboarding'),
+  snowboarding: SnowboardMode,
   market_browse: createStub('market_browse'),
   trivia_arena: createStub('trivia_arena'),
 };

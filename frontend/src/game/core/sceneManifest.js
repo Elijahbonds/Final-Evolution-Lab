@@ -158,6 +158,42 @@ export const FOOTBALL_MANIFEST = {
   lighting: 'stadium',
 };
 
+/** @type {SceneManifest} */
+export const SNOWBOARD_MANIFEST = {
+  sceneId: 'mountain-run',
+  mode: 'snowboarding',
+  archetype: 'ride-carve',
+  requiredNodes: ['strip', 'grindRail', 'playerCapsule', 'alpineSky'],
+  props: [],
+  spawnPoints: [{ name: 'player', x: 0, y: 0, z: 0 }],
+  cameraRig: 'chase',
+  lighting: 'alpine',
+};
+
+/** @type {SceneManifest} */
+export const SURF_MANIFEST = {
+  sceneId: 'venice-break',
+  mode: 'surfing',
+  archetype: 'ride-carve',
+  requiredNodes: ['strip', 'grindRail', 'playerCapsule', 'oceanSky'],
+  props: [],
+  spawnPoints: [{ name: 'player', x: 0, y: 0, z: 0 }],
+  cameraRig: 'chase',
+  lighting: 'day',
+};
+
+/** @type {SceneManifest} */
+export const SPRINT_MANIFEST = {
+  sceneId: 'track-100m',
+  mode: 'sprint',
+  archetype: 'rhythm-ui',
+  requiredNodes: ['track', 'finishLine', 'playerCapsule', 'daySky'],
+  props: [],
+  spawnPoints: [{ name: 'player', x: 0, y: 0, z: 0 }],
+  cameraRig: 'chase',
+  lighting: 'day',
+};
+
 /**
  * Schedules integrity validation on a live scene: re-checks every rendered
  * frame from minFrame until it PASSES or times out — materials, shadow

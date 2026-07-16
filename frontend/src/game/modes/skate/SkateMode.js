@@ -21,16 +21,21 @@ function clampValue(v, min, max) { return v < min ? min : v > max ? max : v; }
  * fixed-step cruise with pump/brake, ollie on the variable-gravity curve,
  * GRIND LOCK-ON via ArcDrive (the dunk drive interface, reused as specced),
  * SensoryBus lands/grind-hits, endless Venice strip. Placeholder assets
- * per the feel gate; every number // TUNE(elijah) in feelConfig.skate.
+ * per the feel gate; every number // TUNE(elijah) in this._cfg.
  */
 export class SkateMode extends GameModeInterface {
-  constructor(modeIdOrCanvas, maybeCanvas, container) {
+  get _cfg() { return feelConfig[this._cfgKey] ?? feelConfig.skate; }
+
+  constructor(modeIdOrCanvas, maybeCanvas, container, opts = {}) {
     const hasExplicitModeId = typeof modeIdOrCanvas === 'string';
     const modeId = hasExplicitModeId ? modeIdOrCanvas : 'skateboarding';
     const canvas = hasExplicitModeId ? maybeCanvas : modeIdOrCanvas;
     super(modeId, canvas);
 
     this.container = container ?? null;
+    // Ride/carve theming: config section + scene theme (snowboard/surf skins)
+    this._cfgKey = opts.configKey ?? 'skate';
+    this._theme = opts.theme ?? null;
     this.scene = null;
     this._disposed = false;
     this._loop = null;
@@ -41,7 +46,7 @@ export class SkateMode extends GameModeInterface {
 
     // Sim state (preallocated)
     this.playerPosition = { x: 0, y: 0, z: 0 };
-    this._speed = feelConfig.skate.cruiseSpeed;
+    this._speed = this._cfg.cruiseSpeed;
     this._verticalVelocity = 0;
     this._stick = { x: 0, y: 0, magnitude: 0 };
     this._prevPos = { x: 0, y: 0, z: 0 };
@@ -77,7 +82,7 @@ export class SkateMode extends GameModeInterface {
     this._disposed = false;
     this.container = container ?? this.container;
 
-    this.scene = new SkateScene(this.canvas, {});
+    this.scene = new SkateScene(this.canvas, {}, this._theme);
     await this.scene.init();
     if (this._disposed) {
       this.scene.dispose();
@@ -86,7 +91,7 @@ export class SkateMode extends GameModeInterface {
     }
 
     this.playerPosition.x = 0; this.playerPosition.y = 0; this.playerPosition.z = 0;
-    this._speed = feelConfig.skate.cruiseSpeed;
+    this._speed = this._cfg.cruiseSpeed;
     this._verticalVelocity = 0;
     this._grindDrive.cancel();
     this._inputBuffer.clear();
@@ -155,7 +160,7 @@ export class SkateMode extends GameModeInterface {
   /** @private — one fixed step */
   _fixedUpdate(dt) {
     if (this.state.phase !== ModePhase.ACTIVE) return;
-    const k = feelConfig.skate;
+    const k = this._cfg;
     const g = feelConfig.gravity;
 
     this._prevPos.x = this.playerPosition.x;
@@ -256,15 +261,15 @@ export class SkateMode extends GameModeInterface {
     }
 
     // Endless strip: wrap the world
-    if (this.playerPosition.z < -feelConfig.skate.stripLength) {
-      this.playerPosition.z += feelConfig.skate.stripLength;
-      this._prevPos.z += feelConfig.skate.stripLength;
+    if (this.playerPosition.z < -this._cfg.stripLength) {
+      this.playerPosition.z += this._cfg.stripLength;
+      this._prevPos.z += this._cfg.stripLength;
     }
   }
 
   /** @private */
   _nearRail() {
-    const r = feelConfig.skate.rail;
+    const r = this._cfg.rail;
     const withinZ = this.playerPosition.z <= r.zStart + r.lockRadius && this.playerPosition.z >= r.zEnd;
     const dx = Math.abs(this.playerPosition.x - r.x);
     return withinZ && dx <= r.lockRadius;
@@ -272,7 +277,7 @@ export class SkateMode extends GameModeInterface {
 
   /** @private — ArcDrive lock-on to the rail entry point (no jerk). */
   _beginGrind() {
-    const r = feelConfig.skate.rail;
+    const r = this._cfg.rail;
     const entryZ = Math.min(r.zStart, Math.max(r.zEnd, this.playerPosition.z - 0.5));
     this._grindDrive.begin({
       start: this.playerPosition,
@@ -347,7 +352,7 @@ export class SkateMode extends GameModeInterface {
     this.scene = null;
     this._fsm.transition(SkatePhase.CRUISE);
     this.playerPosition = { x: 0, y: 0, z: 0 };
-    this._speed = feelConfig.skate.cruiseSpeed;
+    this._speed = this._cfg.cruiseSpeed;
     this._verticalVelocity = 0;
     this.state = this._createInitialState();
   }
