@@ -15,12 +15,14 @@ by every player inside the platform, using the files in this package.
   and Bio-Fuel state. Tone: SUPPORTIVE coach (existing product directive — see
   `backend/routers/biofuel.py` "supportive AI Coach Neuro-Cues"). It explains
   what to do next and why, in plain language, and can adjust today's session.
-- **CELL** — the arena AI. The competitive personality of The Nexus: rival,
-  hype-man, and challenge-issuer. Appears as a floating orb in the console/game
-  surfaces: post-game trash talk & props, issues daily challenges ("beat 17 yd or
-  stay soft"), narrates Triumph Arena stakes, and fronts the Glitch Boss arc in The
-  Nexus Initiative. Tone: cocky, sharp, funny — never abusive, never demeaning about
-  bodies, always beatable. Persona copy is a config (`personas.ts`) — tune freely.
+- **CELL** — the Nexus AI. **Cell belongs to the Nexus, not the wider game**: he is
+  the resident intelligence of The Nexus surfaces ONLY — The Nexus Initiative mode
+  (Sanctum, rails, Glitch Boss arc) and the Nexus console surface. Within the Nexus
+  he is rival, hype-man, and challenge-issuer: reacts to Nexus runs, issues Nexus
+  challenges, narrates the boss arc. He does NOT appear on the FEL hub, other game
+  modes' result screens, or the Coach surfaces. Tone: cocky, sharp, funny — never
+  abusive, never demeaning about bodies, always beatable. Persona copy is a config
+  (`personas.ts`) — tune freely.
 
 Both run through ONE server chat route (`aiChatApi.ts`) that: selects the persona,
 builds the grounding context from platform data, calls the LLM provider seam
@@ -45,9 +47,10 @@ overlay — with quick-action chips.
    last game sessions, biofuel summary. Fail soft: missing data = shorter context.
 3. **Coach surfaces:** Coach tab (full panel); "Ask Coach about this" buttons on
    the plan viewer and result screens (deep-link with a prefilled question).
-4. **Cell surfaces:** floating orb on hub + post-game result screens; Cell fires a
-   one-liner automatically on session end (win/loss aware) with a "reply" affordance;
-   Nexus Initiative boss dialogue uses the same persona config.
+4. **Cell surfaces (Nexus ONLY):** floating orb inside The Nexus Initiative and the
+   Nexus console surface; Cell fires a one-liner automatically when a NEXUS session
+   ends (win/loss aware) with a "reply" affordance; Glitch Boss dialogue uses the
+   same persona config. Do not mount Cell on the FEL hub or non-Nexus modes.
 5. **Rate limits:** server enforces per-user daily message caps (config) so LLM cost
    is bounded; overflow shows a friendly cooldown line in-character.
 
@@ -64,8 +67,9 @@ overlay — with quick-action chips.
 ## ACCEPTANCE
 1. Coach tab: ask "what should I train today?" → answer cites the player's actual
    scan deficit + today's plan day (visible grounding, not generic advice).
-2. Result screen: finish a game → Cell fires an automatic in-character line about
-   THAT result; tapping the orb opens chat and it continues the thread.
+2. Nexus: finish a Nexus Initiative run → Cell fires an automatic in-character line
+   about THAT run; tapping the orb opens chat and continues the thread. Verify Cell
+   does NOT render outside Nexus surfaces.
 3. Streaming replies render token-by-token; daily cap produces the in-character
    cooldown message.
 4. Injury question → Coach declines diagnosis and refers out (recorded).
