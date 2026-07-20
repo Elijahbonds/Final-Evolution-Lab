@@ -16,12 +16,17 @@ into every batch handed to Abacus.
 | E7 | Two control decks on screen at once, neither works | Legacy in-canvas buttons AND new deck both mounted; neither wired to InputBus | M35 | DOM census: exactly ONE stick + ONE action cluster; every verb visibly acts |
 | E8 | Dunk sequence stalls forever mid-attempt | No timeout on cinematic phases; a failed clip/await hangs the mode | M35 | Watchdog budgets on every phase; deliberately ignore SLAM → auto-resolves as miss |
 | E9 | Hero/action out of frame (karate stares at floor, football runner invisible, camera at feet) | Camera targeted feet/look-ahead at y=0 with no pitch cap or subject-height offset | **M37** | FrameGuard: hero projected on-screen ≥95% of a 60s run in every mode; `[FEL-FRAME]` errors are zero |
-| E10 | Board sports render NOTHING (flat clear-color screen, HUD ticking) | Ride modes never build world geometry / camera opens facing empty space | **M38** | SpawnGuard: `[FEL-SPAWN]` asserts ≥ N world meshes + hero visible before phase=playing; screenshot of each ride mode shows terrain |
+| E10 | Board sports render NOTHING (flat clear-color screen, HUD ticking) | Ride modes never build world geometry / camera opens facing empty space | **M39** | SpawnGuard: `[FEL-SPAWN]` asserts ≥ N world meshes + hero visible before phase=playing; screenshot of each ride mode shows terrain |
 | E11 | Precision sports (tennis/golf/baseball/soccer) have no characters at all | Modes drive a ball but never spawn the athlete or furniture | **M40** | SpawnGuard hero assert; screenshots show athlete + net/flag/plate/keeper |
 | E12 | 404 on every mode page: `/img/venues/*.jpg` | Venue thumbnail images never shipped | **M37** | Network tab: zero 404s on mode routes (procedural thumbnails) |
 | E13 | Buttons/keys "don't work" even when one deck renders | Touch deck not wired to InputBus; keyboard map undocumented/divergent | M35/M37 | Single KeyboardMap + TouchOverlay both emit the same FelInput; sweep proves every verb acts |
 | E14 | Secrets nearly committed (Firebase plist, API keys) | Config files in repo tree | early | `.gitignore` covers them; secret scan green on every batch; env vars only |
 | E15 | Real-money features shippable without gates | — | M33/M36 | Cash entry requires geo+18+ +limits; USD rails separate from shards; free contests unaffected |
+| E16 | Characters T-pose almost everywhere, on almost every action, across EVERY mode, with no console warning | Every sport-specific clip name in the mode code (`golf_address`, `tennis_forehand`, `board_ride_idle`, `run_forward`, `derby_swing`, `karate_punch_light`, `penalty_strike`, …) does not exist on the live rig — it ships only `guard/high_kick/hook/jab/jumpshot/roundhouse/run/uppercut/walk` plus the M24 authored set. Unresolved `animator.play()` calls silently no-op instead of logging or falling back, so weights stay at zero (bind pose). This is content-availability, not a logic bug — see M42 README "content gap" note. | **M42** | `clipRegistry.REAL_CLIPS`/`SPORT_CLIP` is the only source of clip-name strings in mode code; `installSafePlay` makes an unresolved name impossible to reach silently — any miss logs `[FEL-ANIM] MISSING CLIP` AND substitutes a real clip. Sweep: zero T-pose frames, zero unlogged bind-pose in any mode |
+| E17 | Camera pressed flat against a dojo wall, filling the frame with a blank tan plane | M37's occlusion pull-in (`hit.pickedPoint - toCam*0.3`) could still land inside/against geometry in tight venues; the 'fight' preset's 5.2-unit pullback exceeds the dojo room's clearance from off-center player positions | **M42** | CameraDirector v2.2: minimum safe distance (1.8u) + larger pull-in margin (0.6u) + two alternate-angle retries + guaranteed-clear overhead fallback if boxed in on all three; fight preset pulled to 4.2u. Sweep: record 60s of karate near every wall — camera never shows a blank surface at point-blank range |
+| E18 | Skater falls through the skatepark floor forever (observed y=0 → y=−151, still falling) | Rider's ground-snap depends entirely on a single downward raycast; if it misses for any reason there is no floor | **M42** | GroundRide v3: hard floor clamp — after N consecutive missed raycasts or any position below the venue floor − 0.5, the rider is force-clamped to the floor and re-grounded. Categorically prevents infinite falling regardless of raycast reliability |
+| E19 | Mid-drive in football, the field vanishes and the runner floats in an empty void for ~1s around a tackle/down transition | Suspected: shared bulk-dispose path (`MobPool.disposeAll()`) reaching further than the mode's own defenders | **M42** | FootballRushMode owns its defender list directly and disposes exactly those characters — no shared bulk-dispose call. Sweep: play a full 4-down drive, confirm the field and hero are visible through every tackle/first-down transition |
+| E20 | HUD shows duplicated labels: "RD RD 1/7", "5 YD · 0 EVA YD · 0 EVA", "1 GOALS PTS" | Mode code embedded its own label text ("RD ", "YD · N EVA", "GOALS") into a field name the live bezel ALSO auto-decorates | **M42** | Mode code passes bare values (`round: '1/7'`, `yards: 5`, `evades: 0`, `score: 1`) for any bezel-templated field name; custom text goes only in `hint`/`banner`. Sweep: no doubled words in any HUD readout |
 
 ## REGRESSION SWEEP (run before every promote)
 1. Console sweep of all mode routes: zero `MISSING CLIP`, zero `sceneFilename`,
@@ -29,8 +34,26 @@ into every batch handed to Abacus.
 2. DOM census on two modes: exactly one control deck.
 3. 60s recorded run of karate + dunk + one ride mode + one precision mode:
    characters on the floor plane, no T-pose, hero framed, world visible.
-4. Smoke test (M31) green across every mode id.
-5. Secret scanner green.
+4. HUD readout check on every mode: no doubled words ("RD RD", "YD · N EVA
+   YD · N EVA") in any field.
+5. Camera-in-geometry check: stand a fighter next to every dojo wall/pillar —
+   camera never fills the frame with a blank surface at point-blank range.
+6. Ride-mode floor check: skate/snowboard/surf for 60s each — the rider's Y
+   position never drifts below the venue floor.
+7. Smoke test (M31) green across every mode id.
+8. Secret scanner green.
+
+## CONTENT GAP (not a code defect — flagged for the content workstream)
+The live hero rig ships nine generic clips (`guard, high_kick, hook, jab,
+jumpshot, roundhouse, run, uppercut, walk`) plus sixteen procedurally-authored
+ones (idle/strafe/jump/dunk*/football*/karate_hit_react/karate_knockdown).
+E16's fix (clipRegistry) makes every mode ANIMATED and never bind-posed by
+aliasing sport gestures onto these clips, but a golf swing playing 'roundhouse'
+or a tennis forehand playing 'jab' is a stand-in, not a correct sport-specific
+animation. Closing this gap for real requires either commissioning/importing
+actual golf/tennis/board/soccer mocap clips, or authoring more procedural
+clips the M24 way (as was done for the basketball Eastbay dunk and the
+football evasions). Recommend prioritizing by mode traffic once M42 ships.
 
 Diagnostics stay loud in production (`[FEL-ANIM]`, `[FEL-WATCHDOG]`,
 `[FEL-FRAME]`, `[FEL-SPAWN]`, `[FEL-DUNK]`) — they are how each live audit
