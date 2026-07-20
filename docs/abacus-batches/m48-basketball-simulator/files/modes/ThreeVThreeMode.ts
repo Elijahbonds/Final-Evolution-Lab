@@ -1,0 +1,318 @@
+// ThreeVThreeMode — REPLACES whatever currently drives `/play/threevthree`.
+// Same new-implementation scope note as OneVOneMode.ts: this repo has never
+// seen the existing 3v3 source, so this is a complete rebuild on the M48
+// basketball core, matched to the live HUD contract observed (AST counter,
+// TO 21 · timer). Two AI teammates hold spacing and cut to the rim when a
+// lane opens (TeammateBrain); pass to whoever's open with the same button
+// board's STYLE binding used for pass. Defense is simulated when the other
+// team has the ball — a full manual 3-defender possession is a much larger
+// system (opponent ball-handling AI, opponent shot selection, opponent
+// passing) than fits honestly in this pass; the possession still reads as
+// real back-and-forth basketball (your D positioning affects their make%),
+// it just isn't a second fully manual offense. Flagged plainly, not hidden.
+
+import { MeshBuilder, Vector3 } from '@babylonjs/core';
+import type { AbstractMesh } from '@babylonjs/core';
+import { CharacterLibrary, type SpawnedCharacter } from '../core/CharacterLibrary';
+import { neverBindPose } from '../anim/importSanitizer';
+import { installSafePlay, SPORT_CLIP } from '../anim/clipRegistry';
+import { VenueKit } from '../visual/VenueKit';
+import { BallSim } from '../core/BallPhysics';
+import { attachBallToHand, releaseBall } from '../anim/ballRig';
+import { PlayerSlot, LocalInputSource, AISource } from '../core/PlayerSlot';
+import { DribbleController, ShotMeter, DefenderBrain, TeammateBrain, contestLevel, clampToHalfCourt, SHOT_QUALITY_PCT, type ShotQuality } from '../core/BasketballCore';
+import { SoundKit } from '../audio/SoundKit';
+import { EffectsKit } from '../visual/EffectsKit';
+import { assertSpawned } from '../core/FrameGuard';
+import type { ModeContext, ModeDefinition } from '../core/ModeHarness';
+import type { FelInput } from '../core/InputBus';
+import { DUNK_CONFIG as SHARED_CFG } from './modeConfigs';
+
+const RIM = new Vector3(0, 3.05, -0.6);
+const TARGET_SCORE = 21;
+const PAINT_RADIUS = 4.5;
+const POSSESSION_SEC = 90;
+
+interface Body { char: SpawnedCharacter; slot: PlayerSlot; drib: DribbleController }
+
+export const ThreeVThreeMode: ModeDefinition = (() => {
+  let me: Body;
+  let mates: Body[] = [];
+  let foes: Body[] = [];
+  let ball: AbstractMesh, ballSim: BallSim;
+  let localSource: LocalInputSource;
+  let shotMeter: ShotMeter;
+  let myScore = 0, foeScore = 0, assists = 0, timeLeft = POSSESSION_SEC;
+  let carrierId: 'me' | 'mate0' | 'mate1' | 'foeTeam' = 'me';
+  let shooting = false, ended = false, lastPasserWasMe = false;
+
+  const cfg = { heroUrl: SHARED_CFG.heroUrl };
+
+  function allyPositions(): Vector3[] { return [me.char.root.position, ...mates.map((m) => m.char.root.position)]; }
+  function foePositions(): Vector3[] { return foes.map((f) => f.char.root.position); }
+  function carrierBody(): Body | null {
+    if (carrierId === 'me') return me;
+    if (carrierId === 'mate0') return mates[0];
+    if (carrierId === 'mate1') return mates[1];
+    return null;
+  }
+
+  function giveBallTo(id: typeof carrierId): void {
+    carrierId = id;
+    const body = carrierBody();
+    if (body) attachBallToHand(ball, body.char.skeleton, 'RightHand');
+  }
+
+  function resetPossession(toMe = true): void {
+    me.char.root.position.set(0, 0, 6);
+    mates[0].char.root.position.set(-3.5, 0, 4);
+    mates[1].char.root.position.set(3.5, 0, 4);
+    foes.forEach((f, i) => f.char.root.position.set((i - 1) * 3, 0, 2));
+    shooting = false;
+    if (toMe) giveBallTo('me');
+  }
+
+  return {
+    modeId: 'threevthree', mood: 'goldenHour', camPreset: 'team',
+
+    async load(ctx: ModeContext) {
+      VenueKit.buildCourt(ctx.scene, 'venice');
+      const spawnBody = async (pos: Vector3, tint: string | undefined, ai: boolean, aiKind: 'teammate' | 'defender', slotAngle = 0): Promise<Body> => {
+        const char = await CharacterLibrary.spawn(ctx.scene, cfg.heroUrl, { position: pos, tint, startClip: SPORT_CLIP.idle });
+        neverBindPose(char.animator, SPORT_CLIP.idle);
+        installSafePlay(char.animator, 'threevthree');
+        ctx.groundLock?.track(char.root, char.skeleton);
+        const slot = ai
+          ? new PlayerSlot('ai', new AISource(char.root.position, {
+              ball: () => ball.position, hoop: () => RIM, allies: allyPositions, foes: foePositions,
+            }, aiKind === 'teammate' ? new TeammateBrain(slotAngle) : new DefenderBrain(0.55)), false)
+          : new PlayerSlot('me', localSource, true);
+        return { char, slot, drib: new DribbleController() };
+      };
+
+      localSource = new LocalInputSource();
+      me = await spawnBody(new Vector3(0, 0, 6), undefined, false, 'teammate');
+      mates = [
+        await spawnBody(new Vector3(-3.5, 0, 4), '#22d3ee', true, 'teammate', Math.PI * 0.25),
+        await spawnBody(new Vector3(3.5, 0, 4), '#22d3ee', true, 'teammate', -Math.PI * 0.25),
+      ];
+      foes = [
+        await spawnBody(new Vector3(-2, 0, 2), '#ff2d78', true, 'defender'),
+        await spawnBody(new Vector3(0, 0, 1.5), '#ff2d78', true, 'defender'),
+        await spawnBody(new Vector3(2, 0, 2), '#ff2d78', true, 'defender'),
+      ];
+
+      ball = MeshBuilder.CreateSphere('ball', { diameter: 0.24 }, ctx.scene);
+      ballSim = new BallSim(ball, 0.12);
+      shotMeter = new ShotMeter();
+      EffectsKit.ambient(ctx.scene, 'venice');
+      EffectsKit.ballTrail(ctx.scene, ball);
+      SoundKit.startAmbient('stadium');
+
+      myScore = 0; foeScore = 0; assists = 0; timeLeft = POSSESSION_SEC; ended = false;
+      ctx.heroRef = () => me.char.root;
+      ctx.objectiveRef = () => RIM;
+      ctx.camDirector.snapTo(me.char.root.position, RIM);
+      assertSpawned(ctx.scene, { hero: me.char.root, minWorldMeshes: 6, modeId: 'threevthree' });
+      resetPossession(true);
+      ctx.setHud({
+        score: myScore, foeScore, target: TARGET_SCORE, time: timeLeft, ast: assists,
+        hint: 'WASD — work the court · PASS to the open man · HOLD SHOOT, release in the green',
+      });
+    },
+
+    onInput(ctx: ModeContext, e: FelInput) {
+      SoundKit.unlock();
+      localSource.feed(e);
+    },
+
+    update(ctx: ModeContext, dt: number) {
+      if (ended) return;
+      timeLeft -= dt;
+      if (timeLeft <= 0) {
+        ended = true; SoundKit.play('whistle');
+        return ctx.end(myScore >= foeScore ? 'WIN' : 'LOSS', myScore, { foeScore, assists });
+      }
+      ctx.setHud({ time: Math.ceil(timeLeft) });
+
+      // poll every body
+      me.slot.poll(dt);
+      for (const m of mates) m.slot.poll(dt);
+      for (const f of foes) f.slot.poll(dt);
+
+      const iAmCarrier = carrierId === 'me';
+      const meIntent = me.slot.intent;
+      const drib = me.drib.update(dt, meIntent.moveX, meIntent.moveY, meIntent.sprint);
+      if (!shooting) {
+        me.char.root.position.addInPlace(me.drib.vel.scale(dt));
+        clampToHalfCourt(me.char.root.position, 8, 15);
+        me.char.root.rotation.y = drib.facingRad;
+        me.char.animator.play(drib.speed01 > 0.15 ? SPORT_CLIP.moveLoop : SPORT_CLIP.idle, { loop: true });
+      }
+
+      // teammates: move via their brain; if they're carrying, chase the hoop a little
+      for (let i = 0; i < mates.length; i++) {
+        const body = mates[i];
+        const intent = body.slot.intent;
+        const vel = new Vector3(intent.moveX, 0, -intent.moveY).scale(4.2);
+        body.char.root.position.addInPlace(vel.scale(dt));
+        clampToHalfCourt(body.char.root.position, 8, 15);
+        if (vel.lengthSquared() > 0.1) body.char.root.rotation.y = Math.atan2(vel.x, vel.z);
+        body.char.animator.play(vel.lengthSquared() > 0.3 ? SPORT_CLIP.moveLoop : SPORT_CLIP.idle, { loop: true });
+        if (carrierId === (i === 0 ? 'mate0' : 'mate1') && Vector3.Distance(body.char.root.position, RIM) < 3.5 && Math.random() < 0.01) {
+          void teammateShoots(ctx, body, i);
+        }
+      }
+
+      // defenders
+      for (const f of foes) {
+        const intent = f.slot.intent;
+        const vel = new Vector3(intent.moveX, 0, -intent.moveY).scale(3.8);
+        f.char.root.position.addInPlace(vel.scale(dt));
+        clampToHalfCourt(f.char.root.position, 8, 15);
+        if (vel.lengthSquared() > 0.1) f.char.root.rotation.y = Math.atan2(vel.x, vel.z);
+        f.char.animator.play(vel.lengthSquared() > 0.3 ? SPORT_CLIP.moveLoop : SPORT_CLIP.idle, { loop: true });
+      }
+
+      // pass (kick it out to whichever teammate is more open)
+      if (iAmCarrier && !shooting && meIntent.pass) {
+        const open = mates
+          .map((m, i) => ({ i, d: Math.min(...foePositions().map((f) => Vector3.Distance(f, m.char.root.position))) }))
+          .sort((a, b) => b.d - a.d)[0];
+        if (open) {
+          giveBallTo(open.i === 0 ? 'mate0' : 'mate1');
+          lastPasserWasMe = true;
+          SoundKit.play('uiTick', { pitch: 1.3 });
+          EffectsKit.burst(ctx.scene, me.char.root.position.add(new Vector3(0, 1.2, 0)), 'sparks');
+        }
+      }
+
+      // shoot (only while I'm the carrier)
+      if (iAmCarrier && !shooting && meIntent.actionHeld > 0.02) {
+        shooting = true;
+        const nearestFoePos = foes.reduce<Vector3 | null>((best, f) =>
+          !best || Vector3.Distance(f.char.root.position, me.char.root.position) < Vector3.Distance(best, me.char.root.position)
+            ? f.char.root.position : best, null);
+        const contest = contestLevel(me.char.root.position, nearestFoePos);
+        shotMeter.start(contest);
+        me.char.animator.play(SPORT_CLIP.dunkChargeGather, { loop: true });
+      }
+      if (iAmCarrier && shooting) {
+        const t = shotMeter.update(dt);
+        ctx.setHud({ shotMeterT: t });
+        if (meIntent.action || t >= 1) {
+          const quality = shotMeter.release();
+          void resolveMyShot(ctx, quality);
+        }
+      }
+
+      // steal (defenders occasionally poke the carrier)
+      const carrier = carrierBody();
+      if (carrier && carrierId !== 'foeTeam' && !shooting) {
+        for (const f of foes) {
+          if (f.slot.intent.steal && Vector3.Distance(f.char.root.position, carrier.char.root.position) < 1.2) {
+            SoundKit.play('impact', { pitch: 1.2, volume: 0.3 });
+            ctx.setHud({ banner: 'STOLEN!' });
+            setTimeout(() => ctx.setHud({ banner: '' }), 700);
+            void opponentPossession(ctx);
+            break;
+          }
+        }
+      }
+
+      ctx.camDirector.update(me.char.root.position, me.drib.vel, RIM);
+    },
+
+    dispose() {
+      me?.char.dispose(); mates.forEach((m) => m.char.dispose()); foes.forEach((f) => f.char.dispose());
+      ball?.dispose(); SoundKit.stopAmbient();
+    },
+  };
+
+  async function teammateShoots(ctx: ModeContext, body: Body, _i: number): Promise<void> {
+    if (shooting) return;
+    shooting = true;
+    const dist = Vector3.Distance(body.char.root.position, RIM);
+    const points = dist > PAINT_RADIUS ? 2 : 1;
+    const made = Math.random() < 0.55;
+    releaseBall(ball);
+    body.char.animator.play(SPORT_CLIP.dunkLaunchPower, { onEnd: () => body.char.animator.play(SPORT_CLIP.idle, { loop: true }) });
+    if (made) {
+      myScore += points;
+      if (lastPasserWasMe) { assists++; ctx.setHud({ ast: assists }); }
+      SoundKit.play('score'); EffectsKit.burst(ctx.scene, RIM, 'net');
+      ctx.setHud({ score: myScore, banner: 'ASSISTED BUCKET' });
+    } else {
+      SoundKit.play('miss');
+      ctx.setHud({ banner: 'MISS' });
+    }
+    lastPasserWasMe = false;
+    setTimeout(() => ctx.setHud({ banner: '' }), 800);
+    if (myScore >= TARGET_SCORE) { ended = true; SoundKit.play('whistle'); ctx.end('WIN', myScore, { foeScore, assists }); return; }
+    setTimeout(() => { if (!ended) { void opponentPossession(ctx); } }, made ? 200 : 900);
+  }
+
+  async function resolveMyShot(ctx: ModeContext, quality: ShotQuality): Promise<void> {
+    shooting = false;
+    const pct = SHOT_QUALITY_PCT[quality];
+    const dist = Vector3.Distance(me.char.root.position, RIM);
+    const points = dist > PAINT_RADIUS ? 2 : 1;
+    const made = Math.random() < pct;
+    releaseBall(ball);
+    me.char.animator.play(SPORT_CLIP.dunkLaunchPower, { onEnd: () => me.char.animator.play(SPORT_CLIP.idle, { loop: true }) });
+
+    if (made) {
+      myScore += points;
+      SoundKit.play('score', { pitch: quality === 'perfect' ? 1.2 : 1 });
+      EffectsKit.burst(ctx.scene, RIM, 'net');
+      if (quality === 'perfect') SoundKit.play('crowdCheer');
+      ctx.setHud({ score: myScore, banner: quality === 'perfect' ? 'SPLASH!' : 'GOOD!' });
+    } else {
+      SoundKit.play('miss');
+      ballSim.launch(ball.getAbsolutePosition(), new Vector3((Math.random() - 0.5) * 2, 3, (Math.random() - 0.5) * 2));
+      ctx.setHud({ banner: quality === 'brick' ? 'AIRBALL' : 'RIMS OUT' });
+    }
+    setTimeout(() => ctx.setHud({ banner: '' }), 800);
+    if (myScore >= TARGET_SCORE) { ended = true; SoundKit.play('whistle'); ctx.end('WIN', myScore, { foeScore, assists }); return; }
+    setTimeout(() => { if (!ended) void opponentPossession(ctx); }, made ? 200 : 900);
+  }
+
+  async function opponentPossession(ctx: ModeContext): Promise<void> {
+    if (ended) return;
+    carrierId = 'foeTeam';
+    ctx.setHud({ hint: 'DEFEND!' });
+    // abstracted possession: the defenders' current positioning sets the
+    // make chance — good on-ball D (tight to the eventual "shooter") lowers
+    // it — then it resolves with a brief, watchable drive-and-shoot beat.
+    const shooter = foes[Math.floor(Math.random() * foes.length)];
+    const t0 = performance.now();
+    const from = shooter.char.root.position.clone();
+    shooter.char.animator.play(SPORT_CLIP.moveLoop, { loop: true });
+    await new Promise<void>((res) => {
+      const obs = ctx.scene.onBeforeRenderObservable.add(() => {
+        const k = Math.min(1, (performance.now() - t0) / 1100);
+        shooter.char.root.position.x = from.x + (RIM.x - from.x) * k * 0.6;
+        shooter.char.root.position.z = from.z + (RIM.z + 2.2 - from.z) * k;
+        if (k >= 1) { ctx.scene.onBeforeRenderObservable.remove(obs); res(); }
+      });
+    });
+    const nearestD = Math.min(...allyPositions().map((p) => Vector3.Distance(p, shooter.char.root.position)));
+    const defenseFactor = Math.max(0, Math.min(1, 1 - nearestD / 3));
+    const made = Math.random() < 0.5 - defenseFactor * 0.3;
+    shooter.char.animator.play(SPORT_CLIP.dunkLaunchPower, { onEnd: () => shooter.char.animator.play(SPORT_CLIP.idle, { loop: true }) });
+    if (made) {
+      foeScore += 2;
+      SoundKit.play('crowdGroan', { volume: 0.4 });
+      ctx.setHud({ foeScore, banner: 'THEY SCORE' });
+    } else {
+      SoundKit.play('impact', { pitch: 0.9, volume: 0.3 });
+      ctx.setHud({ banner: 'STOP!' });
+      ctx.feel?.impact?.(0.2);
+    }
+    setTimeout(() => ctx.setHud({ banner: '', hint: 'WASD — work the court · PASS to the open man · HOLD SHOOT, release in the green' }), 800);
+    if (foeScore >= TARGET_SCORE) { ended = true; SoundKit.play('whistle'); ctx.end('LOSS', myScore, { foeScore, assists }); return; }
+    setTimeout(() => { if (!ended) resetPossession(true); }, 900);
+  }
+})();
+
+// HUD fields introduced: foeScore, target, ast (assists), shotMeterT, time.
