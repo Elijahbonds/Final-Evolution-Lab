@@ -34,6 +34,18 @@ into every batch handed to Abacus.
 
 | E25 | Dunk Contest: character is in a dead T-pose through the entire charge/launch/apex sequence, legs never bend for the jump, despite console showing zero errors | Live-instrumented proof (patched the actual deployed bundle, not just batch source) shows clip resolution, registration, AND crossfade weight all reach a fully correct state (`k=1.000` on the exact intended clip) — the failure sits at the bone-transform→rendered-mesh boundary, past what remote console/JS instrumentation can directly observe. Forcing CPU skinning (ruling out GPU float-texture skinning limits) did not change the outcome, though a forced shader recompile wasn't confirmed. Test environment caveat: only a software-rendered sandbox browser was available — a real GPU device was never tried | **M51 (partial — mitigation + detection, not a confirmed root-cause fix)** | `SkinningGuard` fires a loud `[FEL-ANIM] SKINNING STALL` console error within ~1/3s of any character whose bone never visibly moves despite a correctly-weighted playing clip, and attempts an automatic CPU-skinning fallback. Also fixed independently in M51: every mode's every-frame `.play(sameClip, {loop:true})` call in `update()` was resetting weight to 0 and restarting the crossfade every single frame — confirmed live via bundle instrumentation — now a no-op for an already-current, already-playing clip. **Needs a real-device check**: confirm whether Dunk Contest animates correctly on actual hardware; if yes, this was a sandbox-only artifact and the CPU-skin fallback can be dropped |
 
+| E26 | 1v1 Hoops / 3v3: right after a shot near the rim, the camera can transiently bury itself in the baseline wall (frame full of flat wall paint) or drop under the court plane (mostly-black frame), recovering after | The `hoops`/`team` presets' pullback + the new drive/arc sequences put the camera behind the baseline where the venue wall and floor edge sit closer than the presets' distance; occlusion resolution recovers but the bad frames are visible | open — found in the M63-live sweep | Candidate fix: clamp camera target z ≥ baseline+margin in hoops/team presets, or reuse the fight preset's MIN_SAFE_DISTANCE+overhead-fallback path for baseline proximity. Sweep: drive to the rim and shoot repeatedly — zero point-blank-wall or under-floor frames |
+
+**E25 RESOLVED (reframed)** — the M63-live sweep shows the player's pose now
+visibly differs by phase (bent-forward gather while charging vs. arms-out at
+idle), i.e. skeletal animation WORKS and always did — consistent with every
+M51 instrumentation result. The residual "T-pose look" is a CONTENT issue:
+the authored `idle_stand` clip keys the arms only ~8-10° away from this
+rig's arms-out bind pose, so idling is nearly indistinguishable from bind.
+Fix is content, not pipeline: re-author `idle_stand` (and the low-deviation
+locomotion fills) with arms brought DOWN to a natural stance (~65-75° of
+arm rotation), which will also make every mode's idle instantly look right.
+
 ## REGRESSION SWEEP (run before every promote)
 1. Console sweep of all mode routes: zero `MISSING CLIP`, zero `sceneFilename`,
    zero `[FEL-FRAME]`, zero `[FEL-SPAWN]`, zero unexpected 404s.
