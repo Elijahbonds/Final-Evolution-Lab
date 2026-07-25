@@ -1,0 +1,109 @@
+# .github/workflows/fel-pipeline.yml
+#
+# THE FEL PIPELINE — fail-closed checks on every push, run on your Mac mini.
+#
+# WHAT THIS DOES AND DOESN'T DO (read before wiring):
+# The Babylon game source is NOT in this repo — it lives in Abacus, which
+# owns the build and the deploy. So this workflow deliberately does NOT try
+# to `npm run build` or `npm run deploy` the game; those steps would fail on
+# day one. What it DOES do is gate everything this repo actually owns:
+#   · batch structure + syntax  → a broken drop is caught before you drag it
+#   · asset budgets + skeleton  → a bad asset can never reach assets/ready/
+#   · secret scan               → nothing sensitive gets committed
+#   · post-deploy smoke test    → the live link is verified after a drop
+#
+# When the game source does move into this repo, add the build/deploy job at
+# the bottom — the gates above stay exactly as they are.
+
+name: FEL Pipeline
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      smoke:
+        description: 'Run the live smoke test'
+        type: boolean
+        default: false
+
+jobs:
+  gate:
+    name: Batch & asset gate
+    # swap to [self-hosted, macmini] once the runner is registered (§3 of the
+    # README). ubuntu-latest works too — these checks are pure Node/Python.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Verify drag-and-drop batches
+        run: node tools/verify_batch.mjs --all
+
+      - name: Asset gate (budgets, textures, skeleton)
+        run: |
+          if [ -d assets/ready ]; then
+            python3 tools/validate_assets.py assets/ready --json asset-report.json
+          else
+            echo "no assets/ready — nothing to validate"
+          fi
+
+      - name: Secret scan
+        run: |
+          # fail on anything that looks like a live credential
+          if grep -rInE \
+            '(sk_live_[A-Za-z0-9]{8,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|"private_key":)' \
+            --exclude-dir=node_modules --exclude-dir=.git . ; then
+            echo "::error::possible secret committed — remove it and rotate the key"
+            exit 1
+          fi
+          echo "secret scan clean"
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-reports
+          path: |
+            asset-report.json
+          if-no-files-found: ignore
+
+  smoke:
+    name: Live smoke test
+    needs: gate
+    # only on demand: this tests the DEPLOYED app, so it is meaningful after
+    # a drop into Abacus, not on every push to this repo
+    if: github.event_name == 'workflow_dispatch' && inputs.smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm i -D playwright && npx playwright install --with-deps chromium
+      - name: Smoke the live link
+        run: node tools/smoke.mjs --url https://finalevolution.abacusai.app
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-shots
+          path: |
+            smoke-shots/
+            smoke-report.json
+          if-no-files-found: ignore
+
+  # ── ADD THIS WHEN THE GAME SOURCE LIVES IN THE REPO ────────────────────
+  # build:
+  #   needs: gate
+  #   runs-on: [self-hosted, macmini]
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - run: npm ci
+  #     - run: npm run typecheck        # tsc --noEmit
+  #     - run: npm run lint
+  #     - run: npm run build
+  #     - run: npm run deploy           # only reached if everything above passed

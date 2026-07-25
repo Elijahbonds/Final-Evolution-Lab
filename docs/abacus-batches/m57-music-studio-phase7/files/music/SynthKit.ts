@@ -30,7 +30,7 @@ export const KIT_META: Record<KitId, { label: string; blurb: string; unlockShard
   street: { label: 'STREET', blurb: 'The classic boom — free', unlockShards: 0 },
   neon: { label: 'NEON', blurb: 'Bright, tight, electric', unlockShards: 200 },
   dust: { label: 'DUST', blurb: 'Lo-fi, warm, worn-in', unlockShards: 400 },
-];
+};
 
 interface KitFlavor {
   kickFreq: number; kickDecay: number; kickClick: number;
