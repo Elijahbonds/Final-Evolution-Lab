@@ -25,7 +25,22 @@
   - `Services/` — HealthKit, Firebase, WebSocket (`ArenaWebSocketService`), Realtime DB (`ArenaRealtimeService`), `EmergentRealtimeTrust` (anti-cheat gate)
   - `Generated/SocialDataConnect/` — Firebase Data Connect generated Swift client
 - **Persistence:** `SaveSystem.swift` (UserDefaults). No remote profile sync yet.
-- **Build:** Xcode 15+ on macOS. Cannot be built in a Cloud Agent VM.
+- **Build:** **Xcode 16.3+ / Swift 6.1+** on macOS. Two hard floors, neither
+  of which was documented:
+  - `project.pbxproj` is `objectVersion = 77` and uses
+    `PBXFileSystemSynchronizedRootGroup` — **Xcode 16 cannot be opened by
+    Xcode 15 at all.**
+  - 147 declarations across 40 files apply `nonisolated` to a *type*, which is
+    Swift 6.1 (SE-0449). Swift 6.0 / Xcode 16.0–16.2 rejects every one of them.
+    Verified against a real Swift 6.0.3 compiler, not inferred.
+- **Cannot be BUILT in a Cloud Agent VM — but it can be partially CHECKED.**
+  74% of the sources import SwiftUI/UIKit/Firebase and need Apple SDKs, so no
+  linkable build exists off-Apple. However `bash tools/swift_typecheck.sh`
+  type-checks **45 of 159 files** — the whole physics/rules/engine core
+  (`ArcadePhysics`, `MatrixPhysicsEngine`, `HelpDefense3v3`,
+  `AvatarStateMachine`, `ShardEconomy`, `Matchmaking`) — with a real Swift
+  compiler on Linux. That check found a non-exhaustive `switch` in
+  `GamePhysicsConfig.forMode` that no static tool had caught.
 
 ### FastAPI backend (`backend/`)
 

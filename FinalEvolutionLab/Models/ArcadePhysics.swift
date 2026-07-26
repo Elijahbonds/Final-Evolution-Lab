@@ -239,7 +239,10 @@ nonisolated struct GamePhysicsConfig: Sendable {
         let auditBonus: Float = audit?.isPrimed == true ? 0.12 : 0
 
         switch mode {
-        case .basketballHeadToHead, .basketballDunkContest, .basketball3v3:
+        // `.basketballIRL` and `.courtCarnival` are played on the same court
+        // with the same movement model, so they share the basketball profile.
+        case .basketballHeadToHead, .basketballDunkContest, .basketball3v3,
+             .basketballIRL, .courtCarnival:
             return GamePhysicsConfig(
                 jumpHeight: 1.8 + (normalized + auditBonus) * 2.2,
                 moveSpeed: 0.65 + (normalized + auditBonus) * 0.75,
@@ -303,7 +306,9 @@ nonisolated struct GamePhysicsConfig: Sendable {
                 floorShakeAmplitude: 0.02 + normalized * 0.03,
                 particleTrailDensity: 10 + normalized * 25
             )
-        case .gymnastics, .brainBrawl:
+        // `.whoSceneIt` is a seated recall game like `.brainBrawl` — same
+        // low-locomotion profile.
+        case .gymnastics, .brainBrawl, .whoSceneIt:
             return GamePhysicsConfig(
                 jumpHeight: 1.0 + normalized * 1.8,
                 moveSpeed: 0.5 + normalized * 0.6,
@@ -318,6 +323,17 @@ nonisolated struct GamePhysicsConfig: Sendable {
                 impactIntensity: 0.45 + normalized * 0.45,
                 floorShakeAmplitude: 0.012 + normalized * 0.022,
                 particleTrailDensity: 14 + normalized * 26
+            )
+        // `.marketBrowse` is the Creator Market — a browsing surface with no
+        // avatar locomotion. It reaches here only because it is a GameModeId;
+        // an inert config is the correct answer, not a scaled athletic one.
+        case .marketBrowse:
+            return GamePhysicsConfig(
+                jumpHeight: 0,
+                moveSpeed: 0,
+                impactIntensity: 0,
+                floorShakeAmplitude: 0,
+                particleTrailDensity: 0
             )
         }
     }
