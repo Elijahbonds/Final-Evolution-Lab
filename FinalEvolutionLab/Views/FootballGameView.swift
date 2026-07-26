@@ -270,7 +270,7 @@ private struct FootballFieldDrawer {
                 // #2b slightly darker stripe
                 ctx.fill(
                     Path(CGRect(x: fieldLeft, y: sy, width: fieldWidth, height: stripeH)),
-                    with: .color(Color(black: 1).opacity(0.018))
+                    with: .color(Color.black.opacity(0.018))
                 )
             }
         }

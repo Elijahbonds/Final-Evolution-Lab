@@ -204,6 +204,9 @@ struct ResultScreen: View {
     var prqCurrent: Double = PRQ.default
     var modeAttributeLabel: String? = nil
     var modeAttributeValue: Double? = nil
+    var timingGrade: String? = nil
+    var xpEarned: Int = 0
+    var maxCombo: Int = 0
     var onReturn: () -> Void
 
     enum ResultWinner {
@@ -387,6 +390,10 @@ struct ResultScreen: View {
                 )
                 .opacity(appeared ? 1 : 0)
 
+                sessionStatsStrip
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared ? 0 : 8)
+
                 prqBreakdownSection
                     .opacity(appeared ? 1 : 0)
                     .offset(y: appeared ? 0 : 8)
@@ -475,6 +482,63 @@ struct ResultScreen: View {
                 }
             }
         }
+    }
+
+    private var sessionStatsStrip: some View {
+        HStack(spacing: FELSpacing.sm) {
+            if let timingGrade, !timingGrade.isEmpty {
+                statChip(
+                    icon: "timer",
+                    label: "TIMING",
+                    value: timingGrade.uppercased(),
+                    tint: .yellow
+                )
+            }
+
+            if maxCombo > 1 {
+                statChip(
+                    icon: "flame.fill",
+                    label: "COMBO",
+                    value: "\(maxCombo)x",
+                    tint: accentColor
+                )
+            }
+
+            if xpEarned > 0 {
+                statChip(
+                    icon: "sparkles",
+                    label: "XP",
+                    value: "+\(xpEarned)",
+                    tint: Theme.brandCyan
+                )
+            }
+        }
+        .padding(.horizontal, FELSpacing.lg)
+    }
+
+    private func statChip(icon: String, label: String, value: String, tint: Color) -> some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 9, weight: .bold))
+                Text(label)
+                    .font(FELTypography.mono(8, weight: .black))
+            }
+            .foregroundStyle(tint.opacity(0.85))
+            Text(value)
+                .font(FELTypography.mono(16, weight: .black))
+                .foregroundStyle(.white)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, FELSpacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: FELSpacing.chipRadius)
+                .fill(.ultraThinMaterial.opacity(0.25))
+                .overlay(
+                    RoundedRectangle(cornerRadius: FELSpacing.chipRadius)
+                        .stroke(tint.opacity(0.2), lineWidth: 1)
+                )
+        )
     }
 
     private var prqBreakdownSection: some View {

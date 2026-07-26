@@ -1,0 +1,13 @@
+# https://firebase.google.com/docs/data-connect/configuration-reference#connectoryaml-configuration-reference
+connectorId: social
+
+generate:
+  swiftSdk:
+    outputDir: "../../FinalEvolutionLab/Generated/SocialDataConnect"
+    package: "SocialDataConnect"
+    # After changing schema/operations, run from repo root:
+    #   firebase dataconnect:sdk:generate
+    # Then Xcode: File → Add Package Dependencies → Add Local → FinalEvolutionLab/Generated/SocialDataConnect
+  javascriptSdk:
+    outputDir: "../../frontend/src/dataconnect-generated"
+    package: "@dataconnect/generated"

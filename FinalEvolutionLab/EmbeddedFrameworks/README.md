@@ -1,22 +1,5 @@
-# Embedded Unreal framework (Swift container)
+# Embedded frameworks — **ARCHIVED / legacy reference**
 
-Place the Unreal **library / framework** output here so Xcode can copy it into `FinalEvolutionLab.app/Frameworks/` on each build:
+> **NEXUS-only production ship:** App Store builds do **not** embed legacy UE or Unity runtimes. Gameplay routes through **NEXUS** (`NexusGameplayBridge`, SceneKit/Metal). The former `UnrealManager`, `UnityManager`, and Xcode embed phase were removed 2026-06-29. See `artifacts/coord/gap_remove_inspirator_unreal.json`, `NEXUS_ONLY_PIVOT.md`.
 
-```
-FinalEvolutionLab/EmbeddedFrameworks/UnrealFramework.framework
-```
-
-## UE export expectations
-
-- The Swift shell’s `UnrealManager` loads **`UnrealFramework.framework`** from **`Bundle.main.privateFrameworksPath`** (i.e. the app’s `Frameworks` directory).
-- The framework’s **principal class** must expose Objective‑C selectors: `getInstance`, `runEmbedded`, `unloadApplication`, and `rootView` (same pattern as the legacy `UnityManager` stub).
-
-Rename your UE-produced framework to **`UnrealFramework.framework`** if Epic’s export uses a different product name, **or** change `UnrealManager.swift` to match the on-disk name.
-
-## Build pipeline
-
-1. Build the UE iOS target that produces an embeddable framework (project-specific; often “UE as a library” or a custom Xcode target).
-2. Copy the resulting `.framework` into this folder.
-3. Build **`FinalEvolutionLab.xcodeproj`** — the **Embed Unreal Framework (optional)** run script copies and code-signs when the framework exists.
-
-This directory is safe to leave empty during day-to-day Swift-only development; the Unreal UI shows a placeholder until the framework is present.
+This directory may remain empty during NEXUS development. Do not reintroduce `UnrealFramework.framework` for retail ship.

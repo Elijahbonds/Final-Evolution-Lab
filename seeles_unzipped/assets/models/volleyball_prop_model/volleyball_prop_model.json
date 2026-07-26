@@ -1,0 +1,19 @@
+{
+  "id": "volleyball_prop_model",
+  "name": "Volleyball Prop (GLB)",
+  "category": "models",
+  "type": "prop_glb",
+  "file": "volleyball_prop_model.glb",
+  "urls": ["https://static.seeles.ai/data/asset/export/851383ea-f954-403a-aa58-68bfbb358e41/1014198/thing_1014198_2888089.glb"],
+  "description": "Volleyball with blue, yellow, and white curved panel segments in classic volleyball style, GLB format for all engines",
+  "tags": ["volleyball", "ball", "prop", "sport"],
+  "keywords": ["volleyball", "blue yellow white", "sport prop", "beach volleyball"],
+  "compat": ["all"],
+  "status": "ready",
+  "created_at": "2026-05-24T00:00:00Z",
+  "source_date": "2026-05-24",
+  "source_turn": 27,
+  "version": "1.0",
+  "property_id": "search_4b9e579ba275_0",
+  "fel_modes": ["volleyball"]
+}

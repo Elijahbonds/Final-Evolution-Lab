@@ -160,14 +160,14 @@ nonisolated struct AvatarStateMachine: Sendable {
     }
 }
 
-nonisolated enum PRQTier: String, Sendable, CaseIterable {
+nonisolated enum ReadinessTier: String, Sendable, CaseIterable {
     case elite = "Elite"
     case primed = "Primed"
     case ready = "Ready"
     case recovering = "Recovering"
     case depleted = "Depleted"
 
-    static func tier(for prq: Double) -> PRQTier {
+    static func tier(for prq: Double) -> ReadinessTier {
         switch prq {
         case 90...: return .elite
         case 75..<90: return .primed

@@ -19,6 +19,12 @@ struct WorkoutDayView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     dayHeader
+                    NexusMiniSelfPreviewView(
+                        profile: vm.athleteProfile,
+                        previewHeight: 160,
+                        motionNote: "Simulated exercise demo · PRQ-driven workout plan.",
+                        prqLabel: NexusMiniSelfPreviewView.prqPrescriptionLabel(for: vm.athleteProfile)
+                    )
                     timerCard
                     if !day.warmUp.isEmpty {
                         exerciseSection(title: "WARM UP", exercises: day.warmUp, accentColor: .orange)
@@ -48,7 +54,8 @@ struct WorkoutDayView: View {
                     isCompleted: vm.completedExerciseIds.contains(exercise.id),
                     onComplete: {
                         vm.completeExercise(exercise)
-                    }
+                    },
+                    athleteProfile: vm.athleteProfile
                 )
             }
             .alert("Finish Workout?", isPresented: $showFinishConfirm) {

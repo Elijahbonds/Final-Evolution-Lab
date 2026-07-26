@@ -352,10 +352,10 @@ private struct SnowSlopeDrawer {
 
         // Board — tinted with jacket color hint
         gc.fill(Path(roundedRect: CGRect(x: -22, y: 4, width: 44, height: 7),
-                     cornerRadius: CGSize(width: 3, height: 3)),
+                     cornerSize: CGSize(width: 3, height: 3)),
                 with: .color(.white.opacity(0.90)))
         gc.fill(Path(roundedRect: CGRect(x: -22, y: 4, width: 44, height: 2),
-                     cornerRadius: CGSize(width: 1, height: 1)),
+                     cornerSize: CGSize(width: 1, height: 1)),
                 with: blue)
 
         // Legs — crouched at high speed
@@ -822,10 +822,10 @@ private struct SnowJumpDrawer {
         var boardGC = gc
         if boardTilt != 0 { boardGC.rotate(by: .radians(boardTilt)) }
         boardGC.fill(Path(roundedRect: CGRect(x: -24, y: 8, width: 48, height: 9),
-                          cornerRadius: CGSize(width: 4, height: 4)),
+                          cornerSize: CGSize(width: 4, height: 4)),
                      with: .color(.white.opacity(0.92)))
         boardGC.fill(Path(roundedRect: CGRect(x: -24, y: 8, width: 48, height: 3),
-                          cornerRadius: CGSize(width: 2, height: 2)), with: blue)
+                          cornerSize: CGSize(width: 2, height: 2)), with: blue)
 
         // Legs — arms extend for grab tricks
         var legs = Path()

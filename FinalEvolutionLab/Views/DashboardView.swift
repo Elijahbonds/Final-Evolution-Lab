@@ -7,27 +7,46 @@ struct DashboardView: View {
     @State private var appeared: Bool = false
     @State private var gaugeAnimationProgress: Double = 0
     @State private var showShareToFeed: Bool = false
+    @State private var showScanToGenerate: Bool = false
+    @State private var showGameGenerator: Bool = false
     @State private var bridgeToastVisible: Bool = false
-    @State private var orbRingRotation: Double = 0
-    @State private var outerPulse: Double = 0.5
-    @State private var particlePhase: Double = 0
+    @State private var pendingArenaMode: GameMode?
+    @State private var sessionReadiness: Double = 50
+    @State private var navigateToArenaGame: Bool = false
+    @State private var showBodyIQLab: Bool = false
+    @State private var showBioDigital: Bool = false
+    @State private var showTrainingHub: Bool = false
+    @State private var showAgentChat: Bool = false
+    @State private var showMoCapStudio: Bool = false
+    @State private var showFaceScanStudio: Bool = false
+    @State private var receiptQueueSnapshot: SessionReceiptUploadService.QueueSnapshot = SessionReceiptUploadService.queueSnapshot()
+    @State private var receiptStatusMessage: String?
 #if DEBUG
     @State private var simulateScanBusy: Bool = false
     @State private var simulateScanMessage: String?
 #endif
 
-    private var prqScore: Int { Int(viewModel.effectiveMetrics.prqScore) }
-    private var prqNormalized: Double { viewModel.effectiveMetrics.prqScore / 100.0 }
+    private var prqScore: Int { Int(viewModel.competitivePRQScore) }
+    private var prqNormalized: Double { viewModel.competitivePRQScore / 100.0 }
 
     var body: some View {
         ZStack(alignment: .bottom) {
             ScrollView {
                 VStack(spacing: 20) {
                     headerSection
+                    backendConnectionCard
+                    quickRoutesCard
+                    arenaLaunchCard
+                    educationRoutesCard
+                    sessionReceiptCard
+                    BioFuelDashboardView(viewModel: viewModel)
                     prqGaugeCard
                     healthKitRow
                     motionStreamCard
+                    scanToGenerateCard
+                    gameGeneratorCard
                     neuralSyncCard
+                    nexusStudioCard
 #if DEBUG
                     simulateSystemScanDebugCard
 #endif
@@ -60,16 +79,29 @@ struct DashboardView: View {
                     .toolbarColorScheme(.dark, for: .navigationBar)
             }
         }
+        .sheet(isPresented: $showMoCapStudio) {
+            NexusMoCapStudioView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showFaceScanStudio) {
+            NexusFaceScanView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showScanToGenerate) {
+            ScanToGenerateView()
+        }
+        .sheet(isPresented: $showGameGenerator) {
+            NavigationStack {
+                NexusGameGeneratorView(viewModel: viewModel)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button("Done") { showGameGenerator = false }
+                        }
+                    }
+            }
+        }
         .onAppear {
             withAnimation(.spring(response: 0.6)) { appeared = true }
             withAnimation(.easeOut(duration: 1.2).delay(0.3)) {
                 gaugeAnimationProgress = prqNormalized
-            }
-            withAnimation(.linear(duration: 8.0).repeatForever(autoreverses: false)) {
-                orbRingRotation = 360
-            }
-            withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
-                outerPulse = 1.0
             }
         }
         .onChange(of: prqScore) { _, newValue in
@@ -79,6 +111,23 @@ struct DashboardView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .felSystemScanBridgeCompleted)) { _ in
             triggerBridgeSyncFeedback()
+        }
+        .navigationDestination(isPresented: $navigateToArenaGame) {
+            if let mode = pendingArenaMode {
+                GamePlayView(viewModel: viewModel, gameMode: mode, sessionReadiness: sessionReadiness)
+            }
+        }
+        .navigationDestination(isPresented: $showBodyIQLab) {
+            BodyIQEducationLabView(viewModel: viewModel)
+        }
+        .navigationDestination(isPresented: $showBioDigital) {
+            BioDigitalAnatomyView(moduleId: "dashboard_preview")
+        }
+        .navigationDestination(isPresented: $showTrainingHub) {
+            TrainingHubView(labViewModel: viewModel)
+        }
+        .navigationDestination(isPresented: $showAgentChat) {
+            NexusAgentChatView()
         }
     }
 
@@ -115,44 +164,399 @@ struct DashboardView: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("PERFORMANCE DASHBOARD")
-                .font(.system(.caption, design: .monospaced, weight: .bold))
+            Text("Your performance")
+                .font(FELTypography.caption())
                 .foregroundStyle(Theme.neonGreen)
-                .tracking(4)
+                .tracking(1)
 
             Text("Status")
-                .font(.system(size: 44, weight: .black))
+                .font(FELTypography.display(44))
                 .foregroundStyle(.white)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, 8)
     }
 
+    private var backendConnectionCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Connections")
+                .font(FELTypography.headline(13))
+                .foregroundStyle(.secondary)
+
+            backendLaneRow(
+                title: "AI Studio",
+                subtitle: "Gemini · agent · generator · BioFuel",
+                icon: "sparkles",
+                pill: aiStudioStatusPill,
+                detail: NexusAIStudioBootstrap.statusLabel
+            )
+
+            backendLaneRow(
+                title: "Firebase",
+                subtitle: "Auth · Firestore · Crashlytics · distribution",
+                icon: "flame.fill",
+                pill: firebaseStatusPill,
+                detail: FirebaseBootstrap.statusLabel
+            )
+
+            Text("Core app boot requires AI Studio only. Firebase is optional for distribution and cloud sync.")
+                .font(FELTypography.caption(10))
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Theme.slateCard)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(Theme.brandBlue.opacity(0.15), lineWidth: 0.5)
+                )
+        )
+    }
+
+    private var aiStudioStatusPill: FELStatusPill {
+        if NexusAIStudioBootstrap.connectionStatus == .connected {
+            return FELStatusPill(text: "Connected", style: .connected)
+        }
+        return FELStatusPill(text: "Offline", style: .offline)
+    }
+
+    private var firebaseStatusPill: FELStatusPill {
+        switch FirebaseBootstrap.connectionStatus {
+        case .live:
+            return FELStatusPill(text: "Live", style: .live)
+        case .preview:
+            return FELStatusPill(text: "Preview", style: .preview)
+        case .unavailable:
+            return FELStatusPill(text: "Offline", style: .offline)
+        case .disabled:
+            return FELStatusPill(text: "Off", style: .disabled)
+        }
+    }
+
+    private var quickRoutesCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Quick access")
+                .font(FELTypography.headline(13))
+                .foregroundStyle(.secondary)
+
+            Button { showTrainingHub = true } label: {
+                dashboardRouteRow(
+                    title: "Train",
+                    subtitle: "Workouts · drills · recovery",
+                    icon: "figure.highintensity.intervaltraining",
+                    color: Theme.brandBlue,
+                    previewText: nil
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button { showAgentChat = true } label: {
+                dashboardRouteRow(
+                    title: "Agent",
+                    subtitle: "List modes · playtest · build gate",
+                    icon: "sparkles",
+                    color: Theme.elitePurple,
+                    previewText: FELPremiumCopy.Preview.toolChips
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button { showMoCapStudio = true } label: {
+                dashboardRouteRow(
+                    title: "3D MoCap Studio",
+                    subtitle: "Markerless 3D motion capture & playback",
+                    icon: "figure.walk.motion",
+                    color: Theme.brandCyan,
+                    previewText: "BETA"
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button { showFaceScanStudio = true } label: {
+                dashboardRouteRow(
+                    title: "Face Scan Studio",
+                    subtitle: "Markerless 3D face scan & Live Link",
+                    icon: "faceid",
+                    color: Theme.brandCyan,
+                    previewText: "LIVE LINK"
+                )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Theme.slateCard)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(Color.white.opacity(0.06), lineWidth: 0.5)
+                )
+        )
+    }
+
+    private func backendLaneRow(
+        title: String,
+        subtitle: String,
+        icon: String,
+        pill: FELStatusPill,
+        detail: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(pill.style.color)
+                    .frame(width: 32, height: 32)
+                    .background(Circle().fill(pill.style.color.opacity(0.12)))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 8) {
+                        Text(title)
+                            .font(FELTypography.headline(13))
+                            .foregroundStyle(.white)
+                        pill
+                    }
+                    Text(subtitle)
+                        .font(FELTypography.caption(10))
+                        .foregroundStyle(.tertiary)
+                }
+                Spacer()
+            }
+
+            Text(detail)
+                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var arenaLaunchCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "gamecontroller.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Theme.brandCyan)
+                Text("ARENA · NEXUS")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .tracking(2)
+                Spacer()
+                Text("\(GameModeRegistry.catalogModes.count) MODES")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundStyle(Theme.brandCyan)
+            }
+
+            Text("Dunk Contest → Metal when venue mesh bundled · else SceneKit · NEXUS_USE_METAL=1 forces Metal")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.tertiary)
+
+            HStack(spacing: 10) {
+                ForEach(GameModeRegistry.nexusSprintModes.prefix(3)) { mode in
+                    Button {
+                        pendingArenaMode = mode
+                        sessionReadiness = viewModel.effectiveMetrics.neuralDrive
+                        navigateToArenaGame = true
+                    } label: {
+                        Text(mode.name)
+                            .font(.system(size: 10, weight: .black))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .background(mode.accentColor.opacity(0.18))
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            NavigationLink {
+                GameModeSelectionView(viewModel: viewModel)
+            } label: {
+                HStack {
+                    Text("OPEN MODE PICKER")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                }
+                .foregroundStyle(Theme.brandCyan)
+                .padding(.vertical, 10)
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Theme.slateCard)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(Theme.brandCyan.opacity(0.2), lineWidth: 1)
+                )
+        )
+    }
+
+    private var educationRoutesCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("EDUCATION")
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .tracking(2)
+
+            Button { showBodyIQLab = true } label: {
+                dashboardRouteRow(
+                    title: "Body IQ Lab",
+                    subtitle: "Movement snacks · drawing-in · prescriptions",
+                    icon: "figure.flexibility",
+                    color: Theme.elitePurple,
+                    previewText: FELPremiumCopy.Preview.nexusEducation
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button { showBioDigital = true } label: {
+                dashboardRouteRow(
+                    title: "Bio-Digital Anatomy",
+                    subtitle: "SceneKit anatomy stub — not UE FELEducationEngine",
+                    icon: "figure.stand",
+                    color: Theme.brandCyan,
+                    previewText: FELPremiumCopy.Preview.sceneKitStub
+                )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Theme.slateCard)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(Theme.elitePurple.opacity(0.15), lineWidth: 0.5)
+                )
+        )
+    }
+
+    private func dashboardRouteRow(
+        title: String,
+        subtitle: String,
+        icon: String,
+        color: Color,
+        previewText: String?
+    ) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(color)
+                .frame(width: 40, height: 40)
+                .background(Circle().fill(color.opacity(0.12)))
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(title)
+                        .font(FELTypography.headline(13))
+                        .foregroundStyle(.white)
+                    if let previewText {
+                        FELFeaturePreviewIndicator(previewText: previewText)
+                    }
+                }
+                Text(subtitle)
+                    .font(FELTypography.caption())
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 6)
+    }
+
+    private var sessionReceiptCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "doc.text.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Theme.neonGreen)
+                Text("SESSION RECEIPTS")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .tracking(2)
+                Spacer()
+                FELStatusPill(
+                    text: receiptQueueSnapshot.canPost ? "Live post" : "Local only",
+                    style: receiptQueueSnapshot.canPost ? .live : .preview,
+                    compact: true
+                )
+            }
+
+            if !NexusAIStudioBootstrap.isConfigured || !receiptQueueSnapshot.canPost {
+                FELFeaturePreviewIndicator(previewText: receiptQueueSnapshot.laneLabel)
+            }
+
+            Text("\(receiptQueueSnapshot.pendingCount) pending · \(receiptQueueSnapshot.queueDirectory)")
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundStyle(.tertiary)
+                .lineLimit(2)
+
+            if let receiptStatusMessage {
+                Text(receiptStatusMessage)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(receiptQueueSnapshot.canPost ? Theme.neonGreen : .orange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Text("Gameplay ends → flush to ~/.fel/pending_receipts → POST \(Config.gameplaySessionReceiptURL) when backend auth is available (FEL_BACKEND_AUTH_TOKEN or Firebase). Shards/PRQ apply only on HTTP 2xx (see NexusEconomyAuthority).")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button {
+                Task {
+                    let summary = await SessionReceiptUploadService.uploadPendingReceipts()
+                    receiptQueueSnapshot = SessionReceiptUploadService.queueSnapshot()
+                    if let message = summary.lastErrorMessage, summary.isPreviewLane {
+                        // Preview lane: informational only — no error toast on automatic foreground drain.
+                        receiptStatusMessage = message
+                    } else if summary.succeeded > 0, summary.failed == 0 {
+                        receiptStatusMessage = "Drained \(summary.succeeded) receipt\(summary.succeeded == 1 ? "" : "s")."
+                    } else if let message = summary.lastErrorMessage {
+                        receiptStatusMessage = message
+                    } else {
+                        receiptStatusMessage = nil
+                    }
+                }
+            } label: {
+                Text(receiptQueueSnapshot.canPost ? FELPremiumCopy.Receipt.uploadPending : FELPremiumCopy.Receipt.refreshQueue)
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Theme.neonGreen)
+                    .clipShape(.rect(cornerRadius: 10))
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Theme.slateCard)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(Theme.neonGreen.opacity(0.15), lineWidth: 0.5)
+                )
+        )
+        .onAppear {
+            receiptQueueSnapshot = SessionReceiptUploadService.queueSnapshot()
+            receiptStatusMessage = SessionReceiptUploadService.lastDrainSummary?.lastErrorMessage
+        }
+    }
+
     private var prqGaugeCard: some View {
         VStack(spacing: 16) {
             ZStack {
-                // Outermost ambient glow ring — pulses with breathing animation
-                Circle()
-                    .stroke(Theme.neonGreen.opacity(outerPulse * 0.12), lineWidth: 22)
-                    .frame(width: 200, height: 200)
-                    .blur(radius: 8)
-
-                // Counter-rotating dashed ring (outer)
-                Circle()
-                    .stroke(
-                        AngularGradient(
-                            colors: [Theme.neonGreen.opacity(0.3), .clear, Theme.neonGreen.opacity(0.2)],
-                            center: .center),
-                        style: StrokeStyle(lineWidth: 1, dash: [4, 8]))
-                    .frame(width: 196, height: 196)
-                    .rotationEffect(.degrees(-orbRingRotation * 0.7))
-
-                // Track ring
                 Circle()
                     .stroke(Color.white.opacity(0.06), lineWidth: 12)
                     .frame(width: 180, height: 180)
 
-                // PRQ progress arc
                 Circle()
                     .trim(from: 0, to: gaugeAnimationProgress)
                     .stroke(
@@ -160,57 +564,38 @@ struct DashboardView: View {
                             colors: [Theme.neonGreen.opacity(0.4), Theme.neonGreen, Theme.neonGreen.opacity(0.8)],
                             center: .center,
                             startAngle: .degrees(0),
-                            endAngle: .degrees(360)),
-                        style: StrokeStyle(lineWidth: 12, lineCap: .round))
+                            endAngle: .degrees(360)
+                        ),
+                        style: StrokeStyle(lineWidth: 12, lineCap: .round)
+                    )
                     .frame(width: 180, height: 180)
                     .rotationEffect(.degrees(-90))
 
-                // Co-rotating thin inner ring
-                Circle()
-                    .stroke(Theme.neonGreen.opacity(0.08), lineWidth: 1.5)
-                    .frame(width: 162, height: 162)
-                    .rotationEffect(.degrees(orbRingRotation))
-
-                // Inner fill
                 Circle()
                     .fill(Theme.neonGreen.opacity(0.05))
                     .frame(width: 156, height: 156)
 
-                // Score + label
                 VStack(spacing: 4) {
                     Text("\(prqScore)")
                         .font(.system(size: 56, weight: .black, design: .monospaced))
                         .foregroundStyle(.white)
                         .contentTransition(.numericText())
-                        .shadow(color: Theme.neonGreen.opacity(0.35), radius: 10)
 
                     Text("PRQ")
                         .font(.system(size: 10, weight: .heavy, design: .monospaced))
                         .foregroundStyle(Theme.neonGreen)
                         .tracking(4)
                 }
-
-                // Orbiting energy dot at arc endpoint
-                let angle = gaugeAnimationProgress * 360.0 - 90.0
-                Circle()
-                    .fill(Theme.neonGreen)
-                    .frame(width: 10, height: 10)
-                    .shadow(color: Theme.neonGreen, radius: 6)
-                    .offset(x: 90 * CGFloat(cos(angle * .pi / 180)),
-                            y: 90 * CGFloat(sin(angle * .pi / 180)))
             }
 
             HStack(spacing: 12) {
-                HStack(spacing: 5) {
-                    Circle().fill(tierColor).frame(width: 6, height: 6)
-                    Text(viewModel.userPRQTier.rawValue)
-                        .font(.system(size: 11, weight: .black, design: .monospaced))
-                        .foregroundStyle(tierColor)
-                }
-                .padding(.horizontal, 12).padding(.vertical, 5)
-                .background(tierColor.opacity(0.12))
-                .clipShape(Capsule())
-                .overlay(Capsule().stroke(tierColor.opacity(0.25), lineWidth: 1))
+                Text(viewModel.userPRQTier.rawValue)
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(tierColor)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 5)
+                    .background(tierColor.opacity(0.12))
+                    .clipShape(Capsule())
 
                 Text("\(viewModel.profile.totalWorkouts) sessions")
                     .font(.system(size: 10, weight: .medium))
@@ -220,17 +605,12 @@ struct DashboardView: View {
         .padding(24)
         .frame(maxWidth: .infinity)
         .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 20).fill(Theme.slateCard)
-                // Subtle diagonal gradient overlay
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(LinearGradient(
-                        colors: [Theme.neonGreen.opacity(0.04), .clear, Theme.neonGreen.opacity(0.02)],
-                        startPoint: .topLeading, endPoint: .bottomTrailing))
-                RoundedRectangle(cornerRadius: 20)
-                    .strokeBorder(Theme.neonGreen.opacity(0.18), lineWidth: 1)
-            }
-            .shadow(color: Theme.neonGreen.opacity(0.08), radius: 20, y: 4)
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Theme.slateCard)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .strokeBorder(Theme.neonGreen.opacity(0.15), lineWidth: 1)
+                )
         )
     }
 
@@ -369,6 +749,116 @@ struct DashboardView: View {
         .frame(maxWidth: .infinity)
     }
 
+    private var scanToGenerateCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "viewfinder.circle.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Theme.brandCyan)
+
+                Text("SCAN TO GENERATE")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .tracking(2)
+
+                Spacer()
+
+                FELFeaturePreviewIndicator(previewText: FELPremiumCopy.Preview.nexus)
+            }
+
+            Text(FELPremiumCopy.Emulator.scanToArena)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button {
+                showScanToGenerate = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                    Text("OPEN SCAN FLOW")
+                }
+                .font(.system(size: 11, weight: .black, design: .monospaced))
+                .tracking(1)
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(
+                    LinearGradient(
+                        colors: [Theme.brandCyan, Theme.brandBlue.opacity(0.85)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .clipShape(.rect(cornerRadius: 12))
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Theme.slateCard)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(Theme.brandCyan.opacity(0.15), lineWidth: 0.5)
+                )
+        )
+    }
+
+    private var gameGeneratorCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "wand.and.stars")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Theme.elitePurple)
+
+                Text("GAME GENERATOR")
+                    .font(.system(size: 10, weight: .black, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .tracking(2)
+
+                Spacer()
+
+                FELFeaturePreviewIndicator(previewText: FELPremiumCopy.Preview.nexus)
+            }
+
+            Text(FELPremiumCopy.Emulator.describeToGame)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button {
+                showGameGenerator = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "gamecontroller.fill")
+                    Text("OPEN GENERATOR")
+                }
+                .font(.system(size: 11, weight: .black, design: .monospaced))
+                .tracking(1)
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(
+                    LinearGradient(
+                        colors: [Theme.elitePurple, Theme.brandCyan.opacity(0.85)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .clipShape(.rect(cornerRadius: 12))
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Theme.slateCard)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(Theme.elitePurple.opacity(0.15), lineWidth: 0.5)
+                )
+        )
+    }
+
     private var neuralSyncCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -383,14 +873,14 @@ struct DashboardView: View {
 
                 Spacer()
 
-                let unityManager = UnityManager.shared
+                let isLinked = NexusGameplayBridge.isLinked
                 Circle()
-                    .fill(unityManager.isUnityLoaded ? Theme.neonGreen : .orange)
+                    .fill(isLinked ? Theme.neonGreen : .orange)
                     .frame(width: 8, height: 8)
 
-                Text(unityManager.isUnityLoaded ? "LINKED" : "STANDBY")
+                Text(isLinked ? "LINKED" : "STANDBY")
                     .font(.system(size: 9, weight: .black, design: .monospaced))
-                    .foregroundStyle(unityManager.isUnityLoaded ? Theme.neonGreen : .orange)
+                    .foregroundStyle(isLinked ? Theme.neonGreen : .orange)
             }
 
             HStack(spacing: 12) {
@@ -444,7 +934,7 @@ struct DashboardView: View {
                 Spacer()
             }
 
-            Text("Writes a mock scan to Firestore and pushes JSON to Unreal + Emergent WebSocket (if configured). Check Xcode console for [NexusBridge].")
+            Text("Writes a mock scan to Firestore and queues JSON for NEXUS gameplay bridge (if linked). Check Xcode console for bridge logs.")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.tertiary)
 
@@ -498,6 +988,70 @@ struct DashboardView: View {
         )
     }
 #endif
+
+    private var nexusStudioCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "hammer.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Theme.brandCyan)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("NEXUS STUDIO")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .tracking(2)
+                    Text("Editor · Run · Cursor bridge")
+                        .font(.system(size: 9, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.tertiary)
+                }
+
+                Spacer()
+
+                FELFeaturePreviewIndicator(previewText: FELPremiumCopy.Preview.ideV03, dotColor: Theme.brandCyan)
+            }
+
+            Text("Embedded code browser for engine/, FinalEvolutionLab/, app/gameplay/, and assets/. Search, recent files, sandbox edits, and in-app playtest.")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button {
+                NexusStudioCoordinator.shared.open(panel: .editor)
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "chevron.left.forwardslash.chevron.right")
+                        .font(.system(size: 14, weight: .bold))
+                    Text("OPEN NEXUS STUDIO")
+                        .font(.system(size: 12, weight: .black, design: .monospaced))
+                        .tracking(1)
+                }
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Theme.brandCyan)
+                .clipShape(.rect(cornerRadius: 12))
+            }
+
+            Button {
+                NexusStudioCoordinator.shared.openRunPanel(modeId: nil)
+            } label: {
+                Label("Open Studio Run panel", systemImage: "play.rectangle")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(Theme.neonGreen)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Theme.slateCard)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(Theme.brandCyan.opacity(0.2), lineWidth: 0.5)
+                )
+        )
+    }
 
     private var shareToFeedButton: some View {
         Button {

@@ -1,0 +1,8 @@
+# Privileged operations for Firebase Admin SDK / backend jobs only — no Swift SDK (see generate below).
+# Deploy with `firebase deploy --only dataconnect`; invoke via Admin SDK from trusted environments.
+connectorId: admin
+
+generate:
+  javascriptSdk:
+    outputDir: "../../frontend/src/dataconnect-admin-generated"
+    package: "@dataconnect/admin-generated"

@@ -1,5 +1,6 @@
 import Foundation
 import HealthKit
+import CoreMotion
 
 @Observable
 @MainActor
@@ -22,6 +23,10 @@ class HealthKitService {
 
     private let store = HKHealthStore()
     private var refreshTask: Task<Void, Never>?
+
+    private enum DefaultsKey {
+        static let rhrBaselineEMA = "fel.hk.rhrBaselineEMA"
+    }
 
     func requestAuthorization() async {
         guard isAvailable else { return }
@@ -104,33 +109,89 @@ class HealthKitService {
         refreshTask = nil
     }
 
+    // MARK: - Vertical jump tracking (CoreMotion flight-time estimation)
+
+    private let jumpMotionManager = CMMotionManager()
+    private var jumpHandler: ((Double) -> Void)?
+    private var freefallStartTimestamp: TimeInterval?
+
+    /// Starts vertical-jump detection; `onJump` receives estimated height in inches.
+    /// Uses the flight-time method (h = g·t²/8): airborne = total acceleration near 0g,
+    /// landing = impact spike. Requires the phone on the athlete (pocket/waistband).
+    func startJumpTracking(onJump: @escaping (Double) -> Void) {
+        guard jumpMotionManager.isDeviceMotionAvailable else { return }
+        jumpHandler = onJump
+        freefallStartTimestamp = nil
+        jumpMotionManager.deviceMotionUpdateInterval = 1.0 / 100.0
+        jumpMotionManager.startDeviceMotionUpdates(to: .main) { [weak self] motion, _ in
+            guard let self, let motion else { return }
+            let g = motion.gravity, u = motion.userAcceleration
+            let totalG = ((g.x + u.x) * (g.x + u.x)
+                        + (g.y + u.y) * (g.y + u.y)
+                        + (g.z + u.z) * (g.z + u.z)).squareRoot()
+            let now = motion.timestamp
+            if totalG < 0.35 {
+                if self.freefallStartTimestamp == nil { self.freefallStartTimestamp = now }
+            } else if totalG > 1.6, let start = self.freefallStartTimestamp {
+                self.freefallStartTimestamp = nil
+                let flight = now - start
+                guard flight > 0.15, flight < 1.2 else { return }
+                let meters = 9.81 * flight * flight / 8.0
+                self.jumpHandler?(meters * 39.3701)
+            }
+        }
+    }
+
+    func stopJumpTracking() {
+        jumpMotionManager.stopDeviceMotionUpdates()
+        jumpHandler = nil
+        freefallStartTimestamp = nil
+    }
+
     private func calculateNeuralReadiness() {
         var score: Double = 50
+
+        if restingHeartRate > 0 {
+            let alpha = 0.12
+            let prior = UserDefaults.standard.double(forKey: DefaultsKey.rhrBaselineEMA)
+            let ema = prior > 0 ? prior * (1 - alpha) + restingHeartRate * alpha : restingHeartRate
+            UserDefaults.standard.set(ema, forKey: DefaultsKey.rhrBaselineEMA)
+        }
+
+        let athleteRhrBaseline: Double = {
+            let ema = UserDefaults.standard.double(forKey: DefaultsKey.rhrBaselineEMA)
+            return ema > 0 ? ema : 60.0
+        }()
 
         if hrvValue > 0 {
             let hrvNormalized = min(1.0, max(0, (hrvValue - 20) / 80.0))
             score = 30 + hrvNormalized * 50
+        } else {
+            score = score * 0.92 + 4
         }
 
         if restingHeartRate > 0 {
-            let rhrBaseline: Double = 60
-            let rhrDeviation = abs(restingHeartRate - rhrBaseline)
-            let rhrPenalty = min(20, rhrDeviation * 1.5)
-            if restingHeartRate > rhrBaseline + 5 {
+            let rhrDeviation = abs(restingHeartRate - athleteRhrBaseline)
+            let rhrPenalty = min(20, rhrDeviation * 1.2)
+            if restingHeartRate > athleteRhrBaseline + 5 {
                 score -= rhrPenalty
-            } else if restingHeartRate < rhrBaseline {
-                score += min(10, (rhrBaseline - restingHeartRate) * 0.5)
+            } else if restingHeartRate < athleteRhrBaseline - 2 {
+                score += min(10, (athleteRhrBaseline - restingHeartRate) * 0.45)
             }
         }
 
         if activeCalories > 0 {
-            let activityBonus = min(10, activeCalories / 50.0)
+            let activityBonus = min(8, activeCalories / 65.0)
             score += activityBonus
+        }
+
+        if sleepHoursLastNight > 0, sleepHoursLastNight < 6.25, activeCalories > 320 {
+            score -= min(16, (activeCalories / 500.0) * 12)
         }
 
         if weeklyHRVAverage > 0 && hrvValue > 0 {
             let deviation = (hrvValue - weeklyHRVAverage) / weeklyHRVAverage
-            score += deviation * 15
+            score += deviation * 12
         }
 
         neuralReadinessScore = min(100, max(0, score))

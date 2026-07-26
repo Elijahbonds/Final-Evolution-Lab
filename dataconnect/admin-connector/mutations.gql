@@ -1,0 +1,42 @@
+# Admin / backend only (@auth NO_ACCESS). Invoke via Firebase Admin Data Connect from trusted jobs (session verification, ops).
+# `targetFirebaseUid` identifies the athlete row — does not rely on end-user auth context.
+
+mutation AppendShardLedger($targetFirebaseUid: String!, $deltaShards: Int!, $reason: String!, $referenceId: String) @auth(level: NO_ACCESS) @transaction {
+  query
+    @check(expr: "response.query.users.size() > 0 && response.query.priorGrants.size() == 0", message: "Shard grant already recorded.")
+    @redact {
+    users(where: { firebaseUid: { eq: $targetFirebaseUid } }, limit: 1) {
+      id
+      evolutionShards
+    }
+    priorGrants: shardLedgers(
+      where: {
+        user: { firebaseUid: { eq: $targetFirebaseUid } }
+        reason: { eq: $reason }
+        referenceId: { eq: $referenceId }
+      }
+      limit: 1
+    ) {
+      id
+    }
+  }
+  shardLedger_insert(
+    data: {
+      userId_expr: "response.query.users[0].id"
+      deltaShards: $deltaShards
+      reason: $reason
+      referenceId: $referenceId
+      dedupeKey_expr: "vars.targetFirebaseUid + '|' + vars.reason + '|' + (vars.referenceId != null ? vars.referenceId : '')"
+    }
+  )
+  user_update(
+    key: { id_expr: "response.query.users[0].id" }
+    data: { evolutionShards_update: { inc: $deltaShards } }
+  )
+}
+
+mutation CreateCreatorCardCatalogItem($catalogCardId: String!, $displayName: String!, $rarityTier: String) @auth(level: NO_ACCESS) {
+  creatorCard_insert(
+    data: { catalogCardId: $catalogCardId, displayName: $displayName, rarityTier: $rarityTier }
+  )
+}

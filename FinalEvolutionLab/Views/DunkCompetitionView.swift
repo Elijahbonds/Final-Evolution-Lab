@@ -1,181 +1,7 @@
 import SwiftUI
 import AVFoundation
 
-// MARK: - Dunk Type
-
-enum DunkType: String, CaseIterable {
-    case windmill      = "WINDMILL"
-    case reverse360    = "REVERSE 360"
-    case betweenLegs   = "BETWEEN LEGS"
-    case cradle        = "CRADLE"
-    case tomahawk      = "TOMAHAWK"
-    case doublePump    = "DOUBLE PUMP"
-    case alleyOop      = "LOFT JAM"
-
-    var comboLength: Int {
-        switch self {
-        case .alleyOop:    return 3
-        case .tomahawk:    return 4
-        case .cradle:      return 4
-        case .reverse360:  return 4
-        case .windmill:    return 5
-        case .betweenLegs: return 5
-        case .doublePump:  return 5
-        }
-    }
-
-    var baseDifficulty: Int {
-        switch self {
-        case .alleyOop:    return 1
-        case .tomahawk:    return 2
-        case .cradle:      return 2
-        case .reverse360:  return 3
-        case .windmill:    return 4
-        case .betweenLegs: return 5
-        case .doublePump:  return 5
-        }
-    }
-
-    var crowdFactor: CGFloat {
-        switch self {
-        case .alleyOop:    return 0.60
-        case .tomahawk:    return 0.65
-        case .cradle:      return 0.70
-        case .reverse360:  return 0.75
-        case .windmill:    return 0.85
-        case .betweenLegs: return 0.95
-        case .doublePump:  return 1.00
-        }
-    }
-
-    var comboSequence: [SwipeDirection] {
-        switch self {
-        case .windmill:    return [.up, .right, .down, .left, .up]
-        case .reverse360:  return [.right, .right, .down, .left]
-        case .betweenLegs: return [.down, .right, .up, .left, .right]
-        case .alleyOop:    return [.up, .up, .left]
-        case .cradle:      return [.left, .down, .right, .up]
-        case .tomahawk:    return [.up, .left, .up, .right]
-        case .doublePump:  return [.up, .down, .up, .down, .right]
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .windmill:    return "arrow.clockwise.circle.fill"
-        case .reverse360:  return "arrow.uturn.backward.circle.fill"
-        case .betweenLegs: return "figure.basketball"
-        case .alleyOop:    return "arrow.up.circle.fill"
-        case .cradle:      return "hand.raised.circle.fill"
-        case .tomahawk:    return "bolt.circle.fill"
-        case .doublePump:  return "arrow.up.arrow.down.circle.fill"
-        }
-    }
-
-    var description: String {
-        switch self {
-        case .windmill:    return "FULL ROTATION"
-        case .reverse360:  return "TURN & BURN"
-        case .betweenLegs: return "THROUGH THE LEGS"
-        case .alleyOop:    return "CATCH & SLAM"
-        case .cradle:      return "ROCK THE BABY"
-        case .tomahawk:    return "ONE HAND JAM"
-        case .doublePump:  return "FAKE & STUFF"
-        }
-    }
-}
-
-// MARK: - Swipe Direction
-
-enum SwipeDirection: String, CaseIterable {
-    case up, left, right, down
-
-    var arrow: String {
-        switch self {
-        case .up:    return "↑"
-        case .left:  return "←"
-        case .right: return "→"
-        case .down:  return "↓"
-        }
-    }
-}
-
-// MARK: - Hit Quality
-
-enum HitQuality {
-    case perfect, good, miss
-
-    var color: Color {
-        switch self {
-        case .perfect: return .green
-        case .good:    return .white
-        case .miss:    return .red
-        }
-    }
-
-    var label: String {
-        switch self {
-        case .perfect: return "PERFECT!"
-        case .good:    return "GOOD"
-        case .miss:    return "MISS!"
-        }
-    }
-
-    var scoreMultiplier: CGFloat {
-        switch self {
-        case .perfect: return 1.0
-        case .good:    return 0.65
-        case .miss:    return 0.0
-        }
-    }
-}
-
-// Multiplier table for consecutive perfects (index = consecutive count)
-private let comboMultipliers: [CGFloat] = [1.0, 1.3, 1.6, 2.0, 2.5]
-
-// MARK: - Particles & Popups
-
-private struct RimSpark: Identifiable {
-    let id = UUID()
-    var x: CGFloat
-    var y: CGFloat
-    var vx: CGFloat
-    var vy: CGFloat
-    var alpha: CGFloat
-    var size: CGFloat
-}
-
-private struct ScorePopup: Identifiable {
-    let id = UUID()
-    let text: String
-    var yOffset: CGFloat
-    var opacity: Double
-    let xPos: CGFloat
-    let color: Color
-}
-
-// MARK: - Dunk Phase
-
-private enum DunkPhase: Equatable {
-    case dunkSelect
-    case approach
-    case comboInput
-    case rimMoment
-    case judgeReveal
-    case aiTurn
-    case finalResult
-}
-
-// MARK: - Judge Score
-
-private struct JudgeScore: Identifiable {
-    let id = UUID()
-    let judgeIndex: Int
-    let score: Double
-    var revealed: Bool
-}
-
-// MARK: - Lobby Models
+// MARK: - Models
 
 private struct LobbyPlayer: Identifiable {
     let id: String
@@ -224,8 +50,37 @@ private enum CompFee: Equatable {
 }
 
 private enum CompPhase {
-    case lobby, matched, dunkContest, result
+    case lobby, matched, setup, countdown(Int), battle, result
 }
+
+private struct CompResult {
+    let playerJumps: Int
+    let playerMaxHeight: Double
+    let opponentJumps: Int
+    let opponentMaxHeight: Double
+    var playerWon: Bool { playerMaxHeight >= opponentMaxHeight }
+    var payout: Int
+}
+
+// MARK: - Jump Score Record
+
+private struct JumpRecord: Identifiable {
+    let id = UUID()
+    let score: Double
+    let timestamp: Date
+}
+
+// MARK: - Score Popup Particle
+
+private struct ScorePopup: Identifiable {
+    let id = UUID()
+    let score: Double
+    var yOffset: CGFloat
+    var opacity: Double
+    let xPos: CGFloat
+}
+
+// MARK: - Static Lobby Data
 
 private let lobbyPlayers: [LobbyPlayer] = [
     LobbyPlayer(id: "sky", displayName: "SkyWalker_88", prq: 82, wins: 14, losses: 3,
@@ -242,805 +97,11 @@ private let lobbyPlayers: [LobbyPlayer] = [
                 entryFee: .shards(500), avatarColor: .cyan, city: "Brooklyn, NY"),
 ]
 
-// MARK: - Dunk Arena Canvas
+// MARK: - Feedback Labels
 
-private struct DunkArenaCanvas: View {
-    let runProgress: CGFloat
-    let isSlowMo: Bool
-    let selectedDunk: DunkType?
-    let sparks: [RimSpark]
-    let crowdEnergy: CGFloat
-    let scorePopups: [ScorePopup]
-    let rimGlow: CGFloat
-    let playerScore: Double
-    let aiScore: Double
-    let dunkRound: Int
+private let dunkFeedbacks = ["HEAT CHECK!", "HANG TIME!", "NASTY!", "POSTER!", "FILTHY!", "FACIAL!", "WINDMILL!", "BODIED!"]
 
-    var body: some View {
-        TimelineView(.animation) { tl in
-            Canvas { ctx, size in
-                let t = tl.date.timeIntervalSinceReferenceDate
-                let W = size.width
-                let H = size.height
-
-                // ── VENICE BEACH SKY ──────────────────────────────────────
-                // California sky: deep ocean blue fading to warm horizon
-                var skyPath = Path()
-                skyPath.addRect(CGRect(x: 0, y: 0, width: W, height: H))
-                ctx.fill(skyPath, with: .linearGradient(
-                    Gradient(colors: [
-                        Color(red: 0.18, green: 0.42, blue: 0.78),
-                        Color(red: 0.42, green: 0.70, blue: 0.92),
-                        Color(red: 0.78, green: 0.88, blue: 0.96)
-                    ]),
-                    startPoint: CGPoint(x: W / 2, y: 0),
-                    endPoint: CGPoint(x: W / 2, y: H * 0.55)
-                ))
-
-                // Sun: warm golden disc upper-left
-                let sunX = W * 0.12, sunY = H * 0.10
-                var sunGlowCtx = ctx
-                sunGlowCtx.addFilter(.blur(radius: 28))
-                var sunGlowPath = Path()
-                sunGlowPath.addEllipse(in: CGRect(x: sunX - 30, y: sunY - 30, width: 60, height: 60))
-                sunGlowCtx.fill(sunGlowPath, with: .color(Color(red: 1.0, green: 0.92, blue: 0.30).opacity(0.75)))
-                var sunPath = Path()
-                sunPath.addEllipse(in: CGRect(x: sunX - 14, y: sunY - 14, width: 28, height: 28))
-                ctx.fill(sunPath, with: .color(Color(red: 1.0, green: 0.94, blue: 0.45)))
-
-                // Ocean strip at horizon
-                let horizonY = H * 0.46
-                var oceanPath = Path()
-                oceanPath.addRect(CGRect(x: 0, y: horizonY, width: W, height: H * 0.06))
-                ctx.fill(oceanPath, with: .linearGradient(
-                    Gradient(colors: [Color(red: 0.12, green: 0.48, blue: 0.82), Color(red: 0.25, green: 0.60, blue: 0.88)]),
-                    startPoint: CGPoint(x: 0, y: horizonY),
-                    endPoint: CGPoint(x: W, y: horizonY)
-                ))
-                // Ocean shimmer
-                for wave in 0..<6 {
-                    let wx = W * CGFloat(wave) / 5.0 + CGFloat(sin(t * 1.2 + Double(wave))) * 8
-                    var wavePath = Path()
-                    wavePath.move(to: CGPoint(x: wx, y: horizonY + 8))
-                    wavePath.addCurve(to: CGPoint(x: wx + 30, y: horizonY + 8),
-                                      control1: CGPoint(x: wx + 8, y: horizonY + 3),
-                                      control2: CGPoint(x: wx + 22, y: horizonY + 3))
-                    ctx.stroke(wavePath, with: .color(.white.opacity(0.25)), lineWidth: 0.8)
-                }
-
-                // Boardwalk / concrete strip between ocean and court
-                let boardwalkY = H * 0.52
-                var bwPath = Path()
-                bwPath.addRect(CGRect(x: 0, y: boardwalkY, width: W, height: H * 0.04))
-                ctx.fill(bwPath, with: .color(Color(red: 0.72, green: 0.68, blue: 0.60)))
-
-                // ── PALM TREES ──────────────────────────────────────────────
-                let floorY = H * 0.56
-                let palmPositions: [(CGFloat, CGFloat, CGFloat)] = [
-                    (W * 0.06, floorY, 1.0),
-                    (W * 0.94, floorY, 0.85),
-                    (W * 0.88, floorY - 20, 0.7)
-                ]
-                for (px, py, scale) in palmPositions {
-                    // Trunk
-                    var trunkPath = Path()
-                    let trunkLean = (px < W / 2) ? -8.0 : 8.0
-                    trunkPath.move(to: CGPoint(x: px, y: py))
-                    trunkPath.addCurve(
-                        to: CGPoint(x: px + trunkLean, y: py - 90 * scale),
-                        control1: CGPoint(x: px - trunkLean * 0.3, y: py - 30 * scale),
-                        control2: CGPoint(x: px + trunkLean * 0.7, y: py - 60 * scale)
-                    )
-                    ctx.stroke(trunkPath, with: .color(Color(red: 0.55, green: 0.38, blue: 0.18)), lineWidth: CGFloat(6 * scale))
-                    // Fronds (5 leaves)
-                    let frondBase = CGPoint(x: px + trunkLean, y: py - 90 * scale)
-                    let frondSway = CGFloat(sin(t * 1.3 + Double(px))) * 4 * scale
-                    for f in 0..<5 {
-                        let angle = Double(f) * .pi * 2 / 5 + Double(t) * 0.15
-                        let frondLen: CGFloat = 32 * scale
-                        var frond = Path()
-                        frond.move(to: frondBase)
-                        frond.addCurve(
-                            to: CGPoint(x: frondBase.x + cos(angle) * frondLen + frondSway,
-                                        y: frondBase.y + sin(angle) * frondLen * 0.5),
-                            control1: CGPoint(x: frondBase.x + cos(angle) * frondLen * 0.4,
-                                              y: frondBase.y - 8),
-                            control2: CGPoint(x: frondBase.x + cos(angle) * frondLen * 0.8,
-                                              y: frondBase.y + sin(angle) * frondLen * 0.3)
-                        )
-                        ctx.stroke(frond, with: .color(Color(red: 0.12, green: 0.55, blue: 0.18)), lineWidth: CGFloat(2.5 * scale))
-                    }
-                }
-
-                // ── VENICE BEACH COLORFUL COURT SURFACE ─────────────────────
-                // The famous mural court: colorful geometric sections
-                var courtBg = Path()
-                courtBg.addRect(CGRect(x: 0, y: floorY, width: W, height: H - floorY))
-                ctx.fill(courtBg, with: .color(Color(red: 0.22, green: 0.22, blue: 0.24))) // dark asphalt base
-
-                // Colorful mural panels on court surface (Venice Beach iconic look)
-                let panelColors: [Color] = [
-                    Color(red: 0.90, green: 0.22, blue: 0.18),  // red
-                    Color(red: 0.18, green: 0.45, blue: 0.85),  // blue
-                    Color(red: 0.95, green: 0.72, blue: 0.08),  // gold
-                    Color(red: 0.15, green: 0.65, blue: 0.30),  // green
-                    Color(red: 0.72, green: 0.18, blue: 0.78),  // purple
-                    Color(red: 0.95, green: 0.48, blue: 0.10),  // orange
-                ]
-                let courtH = H - floorY
-                let panelW = W / CGFloat(panelColors.count)
-                for (i, panelColor) in panelColors.enumerated() {
-                    var panel = Path()
-                    panel.addRect(CGRect(x: CGFloat(i) * panelW, y: floorY, width: panelW, height: courtH * 0.55))
-                    ctx.fill(panel, with: .color(panelColor.opacity(0.30)))
-                    // Panel border lines
-                    var pBorder = Path()
-                    pBorder.addRect(CGRect(x: CGFloat(i) * panelW, y: floorY, width: panelW, height: courtH * 0.55))
-                    ctx.stroke(pBorder, with: .color(panelColor.opacity(0.15)), lineWidth: 0.5)
-                }
-
-                // Court boundary white line
-                var courtLine = Path()
-                courtLine.addRect(CGRect(x: W * 0.04, y: floorY + 4, width: W * 0.92, height: courtH * 0.85))
-                ctx.stroke(courtLine, with: .color(.white.opacity(0.55)), lineWidth: 1.5)
-
-                // Three-point arc
-                var arcPath = Path()
-                arcPath.addArc(center: CGPoint(x: W * 0.80, y: floorY + courtH * 0.4),
-                               radius: W * 0.22, startAngle: .degrees(200), endAngle: .degrees(340), clockwise: false)
-                ctx.stroke(arcPath, with: .color(.white.opacity(0.45)), lineWidth: 1.2)
-
-                // Paint / key rectangle
-                let paintLeft  = W * 0.62
-                let paintRight = W * 0.88
-                var paintRect = Path()
-                paintRect.addRect(CGRect(x: paintLeft, y: floorY, width: paintRight - paintLeft, height: H - floorY))
-                ctx.stroke(paintRect, with: .color(.white.opacity(0.40)), lineWidth: 1.5)
-                // Paint fill with slight color
-                var paintFill = Path()
-                paintFill.addRect(CGRect(x: paintLeft + 1, y: floorY + 1,
-                                          width: paintRight - paintLeft - 2, height: H - floorY - 2))
-                ctx.fill(paintFill, with: .color(Color(red: 0.18, green: 0.40, blue: 0.82).opacity(0.18)))
-                var ftLine = Path()
-                ftLine.move(to: CGPoint(x: paintLeft, y: floorY + (H - floorY) * 0.38))
-                ftLine.addLine(to: CGPoint(x: paintRight, y: floorY + (H - floorY) * 0.38))
-                ctx.stroke(ftLine, with: .color(.white.opacity(0.35)), lineWidth: 1.0)
-
-                // Floor rim glow reflection
-                var floorGlow = ctx
-                floorGlow.addFilter(.blur(radius: 22))
-                var floorGlowPath = Path()
-                floorGlowPath.addEllipse(in: CGRect(x: W * 0.40, y: floorY - 10, width: W * 0.5, height: 60))
-                floorGlow.fill(floorGlowPath, with: .color(Color(red: 1.0, green: 0.5, blue: 0.1)
-                    .opacity(0.20 + Double(rimGlow) * 0.45)))
-
-                // ── VENICE BALL SHOP (boardwalk vendor stall, left side) ────
-                let shopX = W * 0.02
-                let shopY = boardwalkY - 55
-                // Stall awning
-                var awningPath = Path()
-                awningPath.move(to: CGPoint(x: shopX, y: shopY))
-                awningPath.addLine(to: CGPoint(x: shopX + 70, y: shopY))
-                awningPath.addLine(to: CGPoint(x: shopX + 65, y: shopY + 14))
-                awningPath.addLine(to: CGPoint(x: shopX + 5, y: shopY + 14))
-                awningPath.closeSubpath()
-                ctx.fill(awningPath, with: .linearGradient(
-                    Gradient(colors: [Color(red: 0.92, green: 0.18, blue: 0.18), Color(red: 0.75, green: 0.10, blue: 0.10)]),
-                    startPoint: CGPoint(x: shopX, y: shopY),
-                    endPoint: CGPoint(x: shopX + 70, y: shopY)
-                ))
-                // Awning stripes
-                for s in 0..<5 {
-                    let sx = shopX + CGFloat(s) * 13
-                    var stripe = Path()
-                    stripe.move(to: CGPoint(x: sx, y: shopY))
-                    stripe.addLine(to: CGPoint(x: sx + 5, y: shopY + 14))
-                    ctx.stroke(stripe, with: .color(.white.opacity(0.35)), lineWidth: 2)
-                }
-                // Awning fringe
-                for f in 0..<8 {
-                    let fx2 = shopX + 5 + CGFloat(f) * 9
-                    let fSway = CGFloat(sin(t * 2.0 + Double(f) * 0.8)) * 2
-                    var fringe = Path()
-                    fringe.move(to: CGPoint(x: fx2, y: shopY + 14))
-                    fringe.addLine(to: CGPoint(x: fx2 + fSway, y: shopY + 22))
-                    ctx.stroke(fringe, with: .color(Color(red: 0.92, green: 0.18, blue: 0.18)), lineWidth: 2)
-                }
-                // Stall counter / table
-                var tableTop = Path()
-                tableTop.addRoundedRect(in: CGRect(x: shopX, y: shopY + 14, width: 70, height: 8),
-                                         cornerSize: CGSize(width: 2, height: 2))
-                ctx.fill(tableTop, with: .color(Color(red: 0.55, green: 0.35, blue: 0.15)))
-                // Basketballs on display (3 balls)
-                for b in 0..<3 {
-                    let bx = shopX + 12 + CGFloat(b) * 22
-                    let by = shopY + 14 - 9
-                    var ballPath = Path()
-                    ballPath.addEllipse(in: CGRect(x: bx - 8, y: by - 8, width: 16, height: 16))
-                    ctx.fill(ballPath, with: .color(Color(red: 0.90, green: 0.42, blue: 0.08)))
-                    // Ball lines
-                    var ballLineH = Path()
-                    ballLineH.move(to: CGPoint(x: bx - 7, y: by)); ballLineH.addLine(to: CGPoint(x: bx + 7, y: by))
-                    ctx.stroke(ballLineH, with: .color(.black.opacity(0.35)), lineWidth: 0.8)
-                    var ballLineV = Path()
-                    ballLineV.move(to: CGPoint(x: bx, y: by - 7)); ballLineV.addLine(to: CGPoint(x: bx, y: by + 7))
-                    ctx.stroke(ballLineV, with: .color(.black.opacity(0.35)), lineWidth: 0.8)
-                }
-                // Shop sign
-                var signPath = Path()
-                signPath.addRoundedRect(in: CGRect(x: shopX + 5, y: shopY - 22, width: 60, height: 16),
-                                         cornerSize: CGSize(width: 3, height: 3))
-                ctx.fill(signPath, with: .color(Color(red: 0.10, green: 0.10, blue: 0.10).opacity(0.85)))
-                ctx.stroke(signPath, with: .color(.white.opacity(0.4)), lineWidth: 0.8)
-
-                // Chain-link fence behind basket
-                let fenceY = floorY - 80
-                for fx in stride(from: W * 0.55, through: W, by: 18.0) {
-                    var fenceV = Path()
-                    fenceV.move(to: CGPoint(x: fx, y: fenceY))
-                    fenceV.addLine(to: CGPoint(x: fx, y: floorY))
-                    ctx.stroke(fenceV, with: .color(.white.opacity(0.08)), lineWidth: 0.5)
-                }
-                for fy in stride(from: fenceY, through: floorY, by: 14.0) {
-                    var fenceH = Path()
-                    fenceH.move(to: CGPoint(x: W * 0.55, y: fy))
-                    fenceH.addLine(to: CGPoint(x: W, y: fy))
-                    ctx.stroke(fenceH, with: .color(.white.opacity(0.06)), lineWidth: 0.4)
-                }
-
-                // ── OUTDOOR CROWD (bystanders around court perimeter) ────────
-                let crowdPulse = CGFloat(sin(t * 3.5)) * crowdEnergy * 5
-                let crowdColors: [Color] = [.cyan, .orange, .yellow, .white, .purple, .green, .pink, .red]
-                // Two rows of spectators on the left side of court
-                for row in 0..<2 {
-                    let rowY = floorY + 20 + CGFloat(row) * 18
-                    for col in 0..<8 {
-                        let dotX = W * 0.04 + CGFloat(col) * (W * 0.15 / 8)
-                        let jitter = CGFloat(sin(t * 2.5 + Double(col) * 0.7)) * 3 * crowdEnergy
-                        let dotY = rowY + jitter + (row == 0 ? crowdPulse * 0.3 : 0)
-                        var dotPath = Path()
-                        dotPath.addEllipse(in: CGRect(x: dotX - 4, y: dotY - 4, width: 8, height: 8))
-                        let c = crowdColors[(col + row * 2) % crowdColors.count]
-                        ctx.fill(dotPath, with: .color(c.opacity(0.65 + Double(crowdEnergy) * 0.25)))
-                        if crowdEnergy > 0.5 {
-                            var armL = Path(); armL.move(to: CGPoint(x: dotX, y: dotY - 4))
-                            armL.addLine(to: CGPoint(x: dotX - 6, y: dotY - 11 + jitter * 0.5))
-                            var armR = Path(); armR.move(to: CGPoint(x: dotX, y: dotY - 4))
-                            armR.addLine(to: CGPoint(x: dotX + 6, y: dotY - 11 + jitter * 0.5))
-                            ctx.stroke(armL, with: .color(c.opacity(0.45)), lineWidth: 0.9)
-                            ctx.stroke(armR, with: .color(c.opacity(0.45)), lineWidth: 0.9)
-                        }
-                    }
-                }
-                // Spectators along baseline (bottom)
-                for col in 0..<16 {
-                    let dotX = W * 0.08 + CGFloat(col) * (W * 0.84 / 15.0)
-                    let jitter = CGFloat(sin(t * 2.0 + Double(col) * 0.5)) * 4 * crowdEnergy
-                    let dotY = H - 18 + jitter + crowdPulse * 0.2
-                    var dotPath = Path()
-                    dotPath.addEllipse(in: CGRect(x: dotX - 5, y: dotY - 5, width: 10, height: 10))
-                    let c = crowdColors[col % crowdColors.count]
-                    ctx.fill(dotPath, with: .color(c.opacity(0.60 + Double(crowdEnergy) * 0.30)))
-                    if crowdEnergy > 0.6 {
-                        var armL = Path(); armL.move(to: CGPoint(x: dotX, y: dotY - 5))
-                        armL.addLine(to: CGPoint(x: dotX - 7, y: dotY - 14 + jitter * 0.4))
-                        var armR = Path(); armR.move(to: CGPoint(x: dotX, y: dotY - 5))
-                        armR.addLine(to: CGPoint(x: dotX + 7, y: dotY - 14 + jitter * 0.4))
-                        ctx.stroke(armL, with: .color(c.opacity(0.40)), lineWidth: 0.8)
-                        ctx.stroke(armR, with: .color(c.opacity(0.40)), lineWidth: 0.8)
-                    }
-                }
-
-                // ── RIM: orange circle + chain net (zigzag below) ─────────
-                let basketX = W * 0.82
-                let rimY    = H * 0.30
-
-                // Backboard pole
-                var pole = Path()
-                pole.move(to: CGPoint(x: basketX + 30, y: floorY))
-                pole.addLine(to: CGPoint(x: basketX + 30, y: rimY - 15))
-                ctx.stroke(pole, with: .color(Color(red: 0.55, green: 0.55, blue: 0.60)), lineWidth: 5)
-
-                // Backboard: gray rectangle slightly above rim
-                var bbPath = Path()
-                bbPath.addRoundedRect(in: CGRect(x: basketX - 5, y: rimY - 45, width: 70, height: 45),
-                                       cornerSize: CGSize(width: 3, height: 3))
-                ctx.fill(bbPath, with: .linearGradient(
-                    Gradient(colors: [Color(red: 0.78, green: 0.80, blue: 0.85),
-                                      Color(red: 0.50, green: 0.53, blue: 0.58)]),
-                    startPoint: CGPoint(x: basketX, y: rimY - 45),
-                    endPoint: CGPoint(x: basketX, y: rimY)
-                ))
-                ctx.stroke(bbPath, with: .color(.white.opacity(0.4)), lineWidth: 1.5)
-                var bbInner = Path()
-                bbInner.addRect(CGRect(x: basketX + 8, y: rimY - 38, width: 42, height: 26))
-                ctx.stroke(bbInner, with: .color(.white.opacity(0.3)), lineWidth: 1.0)
-
-                // Rim glow halo
-                let rimGlowAlpha = Double(rimGlow)
-                if rimGlowAlpha > 0 {
-                    var rimGlowCtx = ctx
-                    rimGlowCtx.addFilter(.blur(radius: 12))
-                    var rimGlowPath = Path()
-                    rimGlowPath.addEllipse(in: CGRect(x: basketX - 22, y: rimY - 6, width: 50, height: 16))
-                    rimGlowCtx.fill(rimGlowPath, with: .color(Color(red: 1.0, green: 0.5, blue: 0.1)
-                        .opacity(rimGlowAlpha * 0.8)))
-                }
-                // Rim: orange circle
-                var rimPath = Path()
-                rimPath.addEllipse(in: CGRect(x: basketX - 20, y: rimY - 4, width: 46, height: 12))
-                ctx.stroke(rimPath, with: .color(Color(red: 1.0, green: 0.45, blue: 0.10)), lineWidth: 3.5)
-
-                // Net (zigzag below rim)
-                let netTopL = CGPoint(x: basketX - 20, y: rimY + 4)
-                let netTopR = CGPoint(x: basketX + 26, y: rimY + 4)
-                let netSway = CGFloat(sin(t * 2.5)) * 3
-                let netBot  = CGPoint(x: (netTopL.x + netTopR.x) / 2 + netSway, y: rimY + 38)
-                for n in 0..<5 {
-                    let tFrac = CGFloat(n) / 4.0
-                    var netLine = Path()
-                    let nx = netTopL.x + (netTopR.x - netTopL.x) * tFrac
-                    netLine.move(to: CGPoint(x: nx, y: rimY + 4))
-                    netLine.addLine(to: CGPoint(x: netBot.x - 10 + tFrac * 20, y: netBot.y))
-                    ctx.stroke(netLine, with: .color(.white.opacity(0.3)), lineWidth: 0.8)
-                }
-                for n in 0..<4 {
-                    let hFrac = CGFloat(n + 1) / 5.0
-                    let lx = netTopL.x + (netBot.x - 10 - netTopL.x) * hFrac
-                    let rx = netTopR.x + (netBot.x + 10 - netTopR.x) * hFrac
-                    let ny = netTopL.y + (netBot.y - netTopL.y) * hFrac
-                    var hNet = Path()
-                    hNet.move(to: CGPoint(x: lx, y: ny))
-                    hNet.addLine(to: CGPoint(x: rx, y: ny))
-                    ctx.stroke(hNet, with: .color(.white.opacity(0.2)), lineWidth: 0.6)
-                }
-
-                // ── RIM SPARK PARTICLES (20 sparks radiating outward) ─────
-                for spark in sparks {
-                    var sparkGlowCtx = ctx
-                    sparkGlowCtx.addFilter(.blur(radius: 4))
-                    var sparkGlowPath = Path()
-                    sparkGlowPath.addEllipse(in: CGRect(x: spark.x - spark.size / 2, y: spark.y - spark.size / 2,
-                                                         width: spark.size, height: spark.size))
-                    sparkGlowCtx.fill(sparkGlowPath, with: .color(Color.yellow.opacity(Double(spark.alpha) * 0.5)))
-                    var sparkPath = Path()
-                    sparkPath.addEllipse(in: CGRect(x: spark.x - spark.size / 2, y: spark.y - spark.size / 2,
-                                                     width: spark.size, height: spark.size))
-                    ctx.fill(sparkPath, with: .color(Color.orange.opacity(Double(spark.alpha))))
-                }
-
-                // ── PLAYER RUNNING FIGURE (left to right) ─────────────────
-                if runProgress > 0 && runProgress < 1.0 {
-                    let playerX = W * 0.05 + (basketX - 50 - W * 0.05) * runProgress
-                    let playerFloorY = floorY + 10
-                    let runCycle = sin(t * (8 + Double(runProgress) * 6))
-                    let lean = runProgress * 8
-
-                    var playerSpot = ctx
-                    playerSpot.addFilter(.blur(radius: 30))
-                    var spotP = Path()
-                    spotP.addEllipse(in: CGRect(x: playerX - 40, y: playerFloorY - 90, width: 80, height: 100))
-                    playerSpot.fill(spotP, with: .color(Color(red: 1.0, green: 0.85, blue: 0.5)
-                        .opacity(0.20 + Double(runProgress) * 0.15)))
-
-                    let shadowW: CGFloat = 24 - runProgress * 4
-                    var shadowPath = Path()
-                    shadowPath.addEllipse(in: CGRect(x: playerX - shadowW / 2, y: playerFloorY + 2,
-                                                      width: shadowW, height: 5))
-                    ctx.fill(shadowPath, with: .color(.black.opacity(0.4)))
-
-                    let bodyH: CGFloat = 40
-                    let legSwing = CGFloat(runCycle) * 10
-
-                    var torsoPath = Path()
-                    torsoPath.addRoundedRect(
-                        in: CGRect(x: playerX - 7 + lean * 0.5, y: playerFloorY - bodyH - 30, width: 14, height: bodyH),
-                        cornerSize: CGSize(width: 5, height: 5)
-                    )
-                    ctx.fill(torsoPath, with: .color(Color(red: 0.0, green: 0.8, blue: 1.0)))
-
-                    var headPath = Path()
-                    headPath.addEllipse(in: CGRect(x: playerX - 9 + lean, y: playerFloorY - bodyH - 48,
-                                                    width: 18, height: 18))
-                    ctx.fill(headPath, with: .color(Color(red: 0.0, green: 0.8, blue: 1.0)))
-
-                    var legL = Path()
-                    legL.move(to: CGPoint(x: playerX, y: playerFloorY - 30))
-                    legL.addLine(to: CGPoint(x: playerX - 5 - legSwing, y: playerFloorY))
-                    ctx.stroke(legL, with: .color(Color(red: 0.0, green: 0.6, blue: 0.9)), lineWidth: 4)
-
-                    var legR = Path()
-                    legR.move(to: CGPoint(x: playerX, y: playerFloorY - 30))
-                    legR.addLine(to: CGPoint(x: playerX + 5 + legSwing, y: playerFloorY))
-                    ctx.stroke(legR, with: .color(Color(red: 0.0, green: 0.6, blue: 0.9)), lineWidth: 4)
-
-                    var armL = Path()
-                    armL.move(to: CGPoint(x: playerX - 5, y: playerFloorY - bodyH - 15))
-                    armL.addLine(to: CGPoint(x: playerX - 18, y: playerFloorY - bodyH - 15 - legSwing * 0.5))
-                    ctx.stroke(armL, with: .color(Color(red: 0.0, green: 0.8, blue: 1.0)), lineWidth: 3)
-
-                    var armR = Path()
-                    armR.move(to: CGPoint(x: playerX + 5, y: playerFloorY - bodyH - 15))
-                    armR.addLine(to: CGPoint(x: playerX + 18, y: playerFloorY - bodyH - 15 + legSwing * 0.5))
-                    ctx.stroke(armR, with: .color(Color(red: 0.0, green: 0.8, blue: 1.0)), lineWidth: 3)
-                }
-
-                // ── RIM MOMENT: player frozen mid-air at rim, arms extended, ball overhead
-                if runProgress >= 1.0 {
-                    let poseX = basketX - 22
-                    let poseY = rimY - 20
-
-                    // Warm glow overlay on canvas frame (cinematic)
-                    var screenGlow = ctx
-                    screenGlow.addFilter(.blur(radius: 55))
-                    var screenGlowPath = Path()
-                    screenGlowPath.addRect(CGRect(x: 0, y: 0, width: W, height: H))
-                    screenGlow.fill(screenGlowPath, with: .color(Color(red: 1.0, green: 0.4, blue: 0.05).opacity(0.28)))
-
-                    var torsoP = Path()
-                    torsoP.addRoundedRect(in: CGRect(x: poseX - 8, y: poseY - 40, width: 16, height: 35),
-                                          cornerSize: CGSize(width: 5, height: 5))
-                    ctx.fill(torsoP, with: .color(Color(red: 0.0, green: 0.85, blue: 1.0)))
-
-                    var headP = Path()
-                    headP.addEllipse(in: CGRect(x: poseX - 9, y: poseY - 56, width: 18, height: 18))
-                    ctx.fill(headP, with: .color(Color(red: 0.0, green: 0.85, blue: 1.0)))
-
-                    var armLUp = Path()
-                    armLUp.move(to: CGPoint(x: poseX - 6, y: poseY - 38))
-                    armLUp.addLine(to: CGPoint(x: poseX - 22, y: poseY - 58))
-                    ctx.stroke(armLUp, with: .color(Color(red: 0.0, green: 0.85, blue: 1.0)), lineWidth: 4)
-
-                    var armRUp = Path()
-                    armRUp.move(to: CGPoint(x: poseX + 6, y: poseY - 38))
-                    armRUp.addLine(to: CGPoint(x: poseX + 16, y: poseY - 58))
-                    ctx.stroke(armRUp, with: .color(Color(red: 0.0, green: 0.85, blue: 1.0)), lineWidth: 4)
-
-                    var legLDown = Path()
-                    legLDown.move(to: CGPoint(x: poseX - 3, y: poseY - 5))
-                    legLDown.addLine(to: CGPoint(x: poseX - 18, y: poseY + 18))
-                    ctx.stroke(legLDown, with: .color(Color(red: 0.0, green: 0.6, blue: 0.9)), lineWidth: 4)
-
-                    var legRDown = Path()
-                    legRDown.move(to: CGPoint(x: poseX + 3, y: poseY - 5))
-                    legRDown.addLine(to: CGPoint(x: poseX + 18, y: poseY + 18))
-                    ctx.stroke(legRDown, with: .color(Color(red: 0.0, green: 0.6, blue: 0.9)), lineWidth: 4)
-
-                    // Ball above head with orange glow
-                    // var glow = ctx; glow.addFilter(.blur(radius: 12))
-                    // glow.fill(ballPath, with: .color(.orange.opacity(0.55)))
-                    // ctx.fill(ballPath, with: .color(.orange))
-                    let ballX = poseX
-                    let ballY = poseY - 74
-                    var ballGlow = ctx
-                    ballGlow.addFilter(.blur(radius: 12))
-                    var ballGlowPath = Path()
-                    ballGlowPath.addEllipse(in: CGRect(x: ballX - 14, y: ballY - 14, width: 28, height: 28))
-                    ballGlow.fill(ballGlowPath, with: .color(Color.orange.opacity(0.55)))
-                    var ballPath = Path()
-                    ballPath.addEllipse(in: CGRect(x: ballX - 10, y: ballY - 10, width: 20, height: 20))
-                    ctx.fill(ballPath, with: .color(Color(red: 0.9, green: 0.42, blue: 0.10)))
-                    ctx.stroke(ballPath, with: .color(.black.opacity(0.4)), lineWidth: 1)
-                    var seamV = Path()
-                    seamV.addArc(center: CGPoint(x: ballX, y: ballY), radius: 9,
-                                 startAngle: .degrees(-90), endAngle: .degrees(90), clockwise: false)
-                    ctx.stroke(seamV, with: .color(.black.opacity(0.3)), lineWidth: 0.8)
-                    var seamH = Path()
-                    seamH.move(to: CGPoint(x: ballX - 9, y: ballY))
-                    seamH.addLine(to: CGPoint(x: ballX + 9, y: ballY))
-                    ctx.stroke(seamH, with: .color(.black.opacity(0.3)), lineWidth: 0.8)
-                }
-
-                // ── SCOREBOARD: floating score in upper center ────────────
-                var hudBack = Path()
-                hudBack.addRoundedRect(in: CGRect(x: W * 0.10, y: H * 0.11, width: W * 0.80, height: 40),
-                                        cornerSize: CGSize(width: 8, height: 8))
-                ctx.fill(hudBack, with: .color(.black.opacity(0.72)))
-                ctx.stroke(hudBack, with: .color(Color.orange.opacity(0.35)), lineWidth: 1)
-
-                ctx.draw(
-                    Text(String(format: "YOU: %.1f", playerScore))
-                        .font(.system(size: 13, weight: .black, design: .monospaced))
-                        .foregroundStyle(Color.cyan),
-                    at: CGPoint(x: W * 0.28, y: H * 0.11 + 20)
-                )
-                ctx.draw(
-                    Text("RND \(dunkRound)/3")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .foregroundStyle(Color.white.opacity(0.6)),
-                    at: CGPoint(x: W * 0.50, y: H * 0.11 + 20)
-                )
-                ctx.draw(
-                    Text(String(format: "AI: %.1f", aiScore))
-                        .font(.system(size: 13, weight: .black, design: .monospaced))
-                        .foregroundStyle(Color(red: 1.0, green: 0.55, blue: 0.10)),
-                    at: CGPoint(x: W * 0.73, y: H * 0.11 + 20)
-                )
-
-                // ── SCORE POPUPS ──────────────────────────────────────────
-                for popup in scorePopups {
-                    var pgCtx = ctx
-                    pgCtx.addFilter(.blur(radius: 5))
-                    pgCtx.draw(
-                        Text(popup.text)
-                            .font(.system(size: 26, weight: .black, design: .monospaced))
-                            .foregroundStyle(popup.color.opacity(popup.opacity * 0.4)),
-                        at: CGPoint(x: popup.xPos, y: H * 0.35 + popup.yOffset)
-                    )
-                    ctx.draw(
-                        Text(popup.text)
-                            .font(.system(size: 26, weight: .black, design: .monospaced))
-                            .foregroundStyle(popup.color.opacity(popup.opacity)),
-                        at: CGPoint(x: popup.xPos, y: H * 0.35 + popup.yOffset)
-                    )
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Crowd Meter
-
-private struct CrowdMeterView: View {
-    let energy: CGFloat
-
-    var body: some View {
-        VStack(spacing: 4) {
-            Text("CROWD")
-                .font(.system(size: 7, weight: .black, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.5))
-
-            ZStack(alignment: .bottom) {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.white.opacity(0.08))
-                    .frame(width: 12, height: 140)
-
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(LinearGradient(
-                        colors: [Color.orange, Color.yellow, Color.green],
-                        startPoint: .bottom, endPoint: .top
-                    ))
-                    .frame(width: 10, height: max(2, 138 * energy))
-                    .animation(.spring(response: 0.3), value: energy)
-            }
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(Color.white.opacity(0.15), lineWidth: 0.8)
-                    .frame(width: 12, height: 140)
-            )
-
-            Text(energyLabel)
-                .font(.system(size: 6, weight: .black, design: .monospaced))
-                .foregroundStyle(energyColor)
-                .multilineTextAlignment(.center)
-                .frame(width: 32)
-        }
-    }
-
-    private var energyLabel: String {
-        if energy > 0.95 { return "WILD" }
-        if energy > 0.70 { return "HOT" }
-        if energy > 0.40 { return "WARM" }
-        return "COLD"
-    }
-
-    private var energyColor: Color {
-        if energy > 0.95 { return .yellow }
-        if energy > 0.70 { return .orange }
-        if energy > 0.40 { return Color(red: 0.9, green: 0.6, blue: 0.1) }
-        return .white.opacity(0.3)
-    }
-}
-
-// MARK: - Judge Panel
-
-private struct JudgePanelView: View {
-    let scores: [JudgeScore]
-
-    var total: Double { scores.filter(\.revealed).map(\.score).reduce(0, +) }
-    var allRevealed: Bool { scores.allSatisfy(\.revealed) }
-
-    var body: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 16) {
-                ForEach(scores) { judge in
-                    VStack(spacing: 6) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.white.opacity(0.06))
-                                .frame(width: 44, height: 44)
-                            Text("J\(judge.judgeIndex + 1)")
-                                .font(.system(size: 14, weight: .black, design: .monospaced))
-                                .foregroundStyle(Color.orange.opacity(0.8))
-                        }
-                        if judge.revealed {
-                            Text(String(format: "%.1f", judge.score))
-                                .font(.system(size: 22, weight: .black, design: .monospaced))
-                                .foregroundStyle(Color(red: 1.0, green: 0.85, blue: 0.20))
-                                .transition(.scale.combined(with: .opacity))
-                        } else {
-                            Text("—")
-                                .font(.system(size: 22, weight: .black, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.2))
-                        }
-                        Text("JUDGE \(judge.judgeIndex + 1)")
-                            .font(.system(size: 7, weight: .black, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.35))
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-            }
-
-            // Score formula: "8.5 + 9.0 + 8.5 = 26.0 / 30"
-            if allRevealed && scores.count == 3 {
-                let s = scores.map { String(format: "%.1f", $0.score) }
-                (
-                    Text("\(s[0]) + \(s[1]) + \(s[2]) = ")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.55))
-                    +
-                    Text(String(format: "%.1f / 30", total))
-                        .font(.system(size: 13, weight: .black, design: .monospaced))
-                        .foregroundStyle(Color(red: 1.0, green: 0.85, blue: 0.2))
-                )
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.black.opacity(0.70))
-                .overlay(RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.orange.opacity(0.25), lineWidth: 1))
-        )
-    }
-}
-
-// MARK: - Combo Prompt View (shrinking ring countdown)
-
-private struct ComboPromptView: View {
-    let direction: SwipeDirection?
-    let flashColor: Color?
-    let stepIndex: Int
-    let totalSteps: Int
-    let timeRemaining: CGFloat     // 1.0 → 0.0 over 0.45s
-    let consecutivePerfects: Int
-
-    @State private var pulseScale: CGFloat = 1.0
-
-    var body: some View {
-        VStack(spacing: 14) {
-            // Progress dots
-            HStack(spacing: 8) {
-                ForEach(0..<totalSteps, id: \.self) { i in
-                    Circle()
-                        .fill(i < stepIndex ? Color.green
-                              : (i == stepIndex ? Color.white : Color.white.opacity(0.2)))
-                        .frame(width: 8, height: 8)
-                }
-            }
-
-            // Consecutive perfect multiplier badge
-            if consecutivePerfects > 0 {
-                let mult = comboMultipliers[min(consecutivePerfects, comboMultipliers.count - 1)]
-                Text(String(format: "x%.1f", mult))
-                    .font(.system(size: 13, weight: .black, design: .monospaced))
-                    .foregroundStyle(Color.yellow)
-                    .padding(.horizontal, 10).padding(.vertical, 4)
-                    .background(Color.yellow.opacity(0.15))
-                    .clipShape(Capsule())
-            }
-
-            if let dir = direction {
-                ZStack {
-                    // Countdown ring track
-                    Circle()
-                        .stroke(Color.white.opacity(0.08), lineWidth: 3)
-                        .frame(width: 96, height: 96)
-
-                    // Shrinking ring countdown
-                    Circle()
-                        .trim(from: 0, to: timeRemaining)
-                        .stroke(
-                            (flashColor ?? Color.white).opacity(0.65),
-                            style: StrokeStyle(lineWidth: 3, lineCap: .round)
-                        )
-                        .frame(width: 96, height: 96)
-                        .rotationEffect(.degrees(-90))
-                        .animation(.linear(duration: 0.05), value: timeRemaining)
-
-                    // Pulse fill
-                    Circle()
-                        .fill((flashColor ?? Color.white).opacity(0.10))
-                        .frame(width: 82, height: 82)
-                        .scaleEffect(pulseScale)
-
-                    // Arrow
-                    Text(dir.arrow)
-                        .font(.system(size: 52, weight: .black))
-                        .foregroundStyle(flashColor ?? Color.white)
-                        .scaleEffect(pulseScale)
-                }
-                .onAppear {
-                    pulseScale = 1.0
-                    withAnimation(.easeInOut(duration: 0.22).repeatForever(autoreverses: true)) {
-                        pulseScale = 1.10
-                    }
-                }
-                .onChange(of: dir) { _ in
-                    pulseScale = 1.0
-                    withAnimation(.easeInOut(duration: 0.22).repeatForever(autoreverses: true)) {
-                        pulseScale = 1.10
-                    }
-                }
-
-                Text("SWIPE \(dir.rawValue.uppercased())")
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
-                    .foregroundStyle(flashColor ?? Color.white.opacity(0.6))
-            }
-        }
-    }
-}
-
-// MARK: - Dunk Select Card
-
-private struct DunkSelectCard: View {
-    let move: DunkType
-    let isSelected: Bool
-    let onSelect: () -> Void
-
-    var body: some View {
-        Button(action: onSelect) {
-            VStack(spacing: 10) {
-                Image(systemName: move.icon)
-                    .font(.system(size: 26, weight: .bold))
-                    .foregroundStyle(isSelected ? Color.black : Color.orange)
-
-                Text(move.rawValue)
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .foregroundStyle(isSelected ? .black : .white)
-                    .multilineTextAlignment(.center)
-
-                Text(move.description)
-                    .font(.system(size: 7, design: .monospaced))
-                    .foregroundStyle(isSelected ? Color.black.opacity(0.7) : Color.white.opacity(0.45))
-                    .multilineTextAlignment(.center)
-
-                HStack(spacing: 2) {
-                    ForEach(0..<5, id: \.self) { i in
-                        Image(systemName: i < move.baseDifficulty ? "star.fill" : "star")
-                            .font(.system(size: 7))
-                            .foregroundStyle(isSelected ? Color.black.opacity(0.6) : Color.orange.opacity(0.6))
-                    }
-                }
-
-                // Combo arrow preview
-                HStack(spacing: 3) {
-                    ForEach(move.comboSequence.indices, id: \.self) { i in
-                        Text(move.comboSequence[i].arrow)
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(isSelected ? Color.black.opacity(0.7) : Color.white.opacity(0.5))
-                    }
-                }
-            }
-            .padding(14)
-            .frame(width: 130, height: 185)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(isSelected ? Color.orange : Color.white.opacity(0.06))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(isSelected ? Color.yellow : Color.orange.opacity(0.3),
-                                    lineWidth: isSelected ? 2 : 1)
-                    )
-            )
-            .scaleEffect(isSelected ? 1.04 : 1.0)
-            .animation(.spring(response: 0.25), value: isSelected)
-        }
-    }
-}
-
-// MARK: - Lobby Canvas
+// MARK: - LobbyCanvas
 
 private struct LobbyCanvas: View {
     var body: some View {
@@ -1050,61 +111,171 @@ private struct LobbyCanvas: View {
                 let W = size.width
                 let H = size.height
 
-                var skyRect = Path()
-                skyRect.addRect(CGRect(x: 0, y: 0, width: W, height: H * 0.6))
+                // -- Sky gradient base --
+                let skyTop = Color(red: 0.08, green: 0.22, blue: 0.55)
+                let skyMid = Color(red: 0.25, green: 0.55, blue: 0.85)
+                let skyBot = Color(red: 0.85, green: 0.65, blue: 0.35)
+                var skyRect = Path(); skyRect.addRect(CGRect(x: 0, y: 0, width: W, height: H * 0.6))
                 ctx.fill(skyRect, with: .linearGradient(
-                    Gradient(colors: [
-                        Color(red: 0.08, green: 0.22, blue: 0.55),
-                        Color(red: 0.25, green: 0.55, blue: 0.85),
-                        Color(red: 0.85, green: 0.65, blue: 0.35)
-                    ]),
-                    startPoint: CGPoint(x: W / 2, y: 0),
-                    endPoint: CGPoint(x: W / 2, y: H * 0.6)
+                    Gradient(colors: [skyTop, skyMid, skyBot]),
+                    startPoint: CGPoint(x: W/2, y: 0),
+                    endPoint: CGPoint(x: W/2, y: H * 0.6)
                 ))
 
+                // -- Animated sun --
                 let sunY = H * 0.18 + sin(t * 0.15) * 3
                 let sunX = W * 0.72
                 var sunGlow = ctx
                 sunGlow.addFilter(.blur(radius: 18))
-                var sunGlowPath = Path()
-                sunGlowPath.addEllipse(in: CGRect(x: sunX - 30, y: sunY - 30, width: 60, height: 60))
+                var sunGlowPath = Path(); sunGlowPath.addEllipse(in: CGRect(x: sunX-30, y: sunY-30, width: 60, height: 60))
                 sunGlow.fill(sunGlowPath, with: .color(Color(red: 1.0, green: 0.9, blue: 0.5).opacity(0.5)))
-                var sunPath = Path()
-                sunPath.addEllipse(in: CGRect(x: sunX - 18, y: sunY - 18, width: 36, height: 36))
+                var sunPath = Path(); sunPath.addEllipse(in: CGRect(x: sunX-18, y: sunY-18, width: 36, height: 36))
                 ctx.fill(sunPath, with: .color(Color(red: 1.0, green: 0.95, blue: 0.6)))
 
+                // -- Sun rays --
+                for i in 0..<8 {
+                    let angle = Double(i) * (.pi / 4) + t * 0.08
+                    let rx = sunX + cos(angle) * 28
+                    let ry = sunY + sin(angle) * 28
+                    var rayPath = Path()
+                    rayPath.move(to: CGPoint(x: sunX + cos(angle)*20, y: sunY + sin(angle)*20))
+                    rayPath.addLine(to: CGPoint(x: rx + cos(angle)*12, y: ry + sin(angle)*12))
+                    ctx.stroke(rayPath, with: .color(Color(red: 1.0, green: 0.95, blue: 0.5).opacity(0.4)), lineWidth: 1.5)
+                }
+
+                // -- Horizon floor (beach/court) --
                 let horizon = H * 0.55
                 var floorPath = Path()
                 floorPath.addRect(CGRect(x: 0, y: horizon, width: W, height: H - horizon))
                 ctx.fill(floorPath, with: .linearGradient(
-                    Gradient(colors: [Color(red: 0.18, green: 0.55, blue: 0.22),
-                                      Color(red: 0.12, green: 0.38, blue: 0.16)]),
-                    startPoint: CGPoint(x: W / 2, y: horizon),
-                    endPoint: CGPoint(x: W / 2, y: H)
+                    Gradient(colors: [Color(red: 0.18, green: 0.55, blue: 0.22), Color(red: 0.12, green: 0.38, blue: 0.16)]),
+                    startPoint: CGPoint(x: W/2, y: horizon),
+                    endPoint: CGPoint(x: W/2, y: H)
                 ))
 
+                // -- Court surface --
+                var courtPath = Path()
+                courtPath.addRect(CGRect(x: W*0.05, y: horizon + H*0.06, width: W*0.9, height: H*0.28))
+                ctx.fill(courtPath, with: .color(Color(red: 0.14, green: 0.35, blue: 0.62).opacity(0.85)))
+
+                // -- Court lines --
+                ctx.stroke(Path(CGRect(x: W*0.06, y: horizon + H*0.07, width: W*0.88, height: H*0.26)),
+                           with: .color(.white.opacity(0.3)), lineWidth: 1.5)
+                var centerLine = Path()
+                centerLine.move(to: CGPoint(x: W*0.5, y: horizon + H*0.07))
+                centerLine.addLine(to: CGPoint(x: W*0.5, y: horizon + H*0.33))
+                ctx.stroke(centerLine, with: .color(.white.opacity(0.2)), lineWidth: 1.0)
+                var centerCircle = Path()
+                centerCircle.addEllipse(in: CGRect(x: W*0.5-28, y: horizon+H*0.12, width: 56, height: 56))
+                ctx.stroke(centerCircle, with: .color(.white.opacity(0.2)), lineWidth: 1.0)
+
+                // -- Palm trees (animated sway) --
+                drawPalmTree(ctx: ctx, x: W*0.08, y: horizon, swayT: t, scale: 0.9)
+                drawPalmTree(ctx: ctx, x: W*0.92, y: horizon, swayT: t + 1.2, scale: 1.0)
+                drawPalmTree(ctx: ctx, x: W*0.18, y: horizon + 8, swayT: t + 0.5, scale: 0.7)
+                drawPalmTree(ctx: ctx, x: W*0.82, y: horizon + 4, swayT: t + 0.8, scale: 0.75)
+
+                // -- Scoreboard at top --
+                var sbBack = Path()
+                sbBack.addRoundedRect(in: CGRect(x: W*0.2, y: H*0.03, width: W*0.6, height: H*0.11), cornerSize: CGSize(width: 6, height: 6))
+                ctx.fill(sbBack, with: .color(Color.black.opacity(0.7)))
+                ctx.stroke(sbBack, with: .color(Color(red: 0.0, green: 0.9, blue: 1.0).opacity(0.5)), lineWidth: 1.5)
+
+                // -- Moving crowd silhouettes --
                 for i in 0..<24 {
                     let fi = Double(i)
-                    let crowdX = (CGFloat(i) / 24.0) * W +
-                        CGFloat(fmod(t * 8 * (i % 2 == 0 ? 1 : -1), W / 4))
-                    let crowdBaseY = horizon - H * 0.04 + CGFloat(sin(t * 2.0 + fi * 0.7)) * 3
+                    let crowdX = (CGFloat(i) / 24.0) * W + CGFloat(fmod(t * 8 * (i%2 == 0 ? 1 : -1), W/4))
+                    let crowdBaseY = horizon - H*0.04 + CGFloat(sin(t * 2.0 + fi * 0.7)) * 3
                     let crowdH: CGFloat = 22 + CGFloat(i % 4) * 4
                     var headPath = Path()
-                    headPath.addEllipse(in: CGRect(x: crowdX - 5, y: crowdBaseY - crowdH, width: 10, height: 10))
-                    let cc = [Color.cyan, Color.orange, Color.yellow, Color.white, Color.purple][i % 5].opacity(0.55)
-                    ctx.fill(headPath, with: .color(cc))
+                    headPath.addEllipse(in: CGRect(x: crowdX-5, y: crowdBaseY-crowdH, width: 10, height: 10))
+                    var bodyPath = Path()
+                    bodyPath.move(to: CGPoint(x: crowdX, y: crowdBaseY-crowdH+10))
+                    bodyPath.addLine(to: CGPoint(x: crowdX, y: crowdBaseY))
+                    bodyPath.addLine(to: CGPoint(x: crowdX-6, y: crowdBaseY + 8))
+                    bodyPath.move(to: CGPoint(x: crowdX, y: crowdBaseY))
+                    bodyPath.addLine(to: CGPoint(x: crowdX+6, y: crowdBaseY + 8))
+                    bodyPath.move(to: CGPoint(x: crowdX-7, y: crowdBaseY-crowdH/2))
+                    bodyPath.addLine(to: CGPoint(x: crowdX+7, y: crowdBaseY-crowdH/2))
+                    let crowdColor = [Color.cyan, Color.orange, Color.yellow, Color.white, Color.purple][i % 5].opacity(0.55)
+                    ctx.fill(headPath, with: .color(crowdColor))
+                    ctx.stroke(bodyPath, with: .color(crowdColor), lineWidth: 1.2)
+                }
+
+                // -- Ocean/water strip behind court --
+                var oceanPath = Path()
+                oceanPath.addRect(CGRect(x: 0, y: horizon - H*0.04, width: W, height: H*0.05))
+                ctx.fill(oceanPath, with: .linearGradient(
+                    Gradient(colors: [Color(red: 0.05, green: 0.5, blue: 0.85).opacity(0.7), Color.clear]),
+                    startPoint: CGPoint(x: W/2, y: horizon - H*0.04),
+                    endPoint: CGPoint(x: W/2, y: horizon)
+                ))
+
+                // -- Wave animation --
+                for w in 0..<3 {
+                    let waveY = horizon - H*0.025 + CGFloat(w) * 5
+                    var wavePath = Path()
+                    wavePath.move(to: CGPoint(x: 0, y: waveY))
+                    for x in stride(from: 0, through: W, by: 8) {
+                        let wy = waveY + CGFloat(sin(Double(x)/30.0 + t*2.0 + Double(w)*1.2)) * 2.5
+                        wavePath.addLine(to: CGPoint(x: x, y: wy))
+                    }
+                    ctx.stroke(wavePath, with: .color(.white.opacity(0.15 + Double(w)*0.05)), lineWidth: 0.8)
                 }
             }
         }
     }
 }
 
-// MARK: - Result Canvas
+// MARK: - Canvas Helper: Palm Tree
 
-private struct ResultCanvas: View {
-    let playerWon: Bool
+private func drawPalmTree(ctx: GraphicsContext, x: CGFloat, y: CGFloat, swayT: Double, scale: CGFloat) {
+    let sway = CGFloat(sin(swayT * 0.7)) * 5 * scale
+    // Trunk
+    var trunk = Path()
+    trunk.move(to: CGPoint(x: x, y: y))
+    trunk.addCurve(to: CGPoint(x: x + sway, y: y - 55*scale),
+                   control1: CGPoint(x: x + sway*0.3, y: y - 20*scale),
+                   control2: CGPoint(x: x + sway*0.7, y: y - 40*scale))
+    ctx.stroke(trunk, with: .color(Color(red: 0.55, green: 0.38, blue: 0.18)), lineWidth: 5*scale)
+
+    // Fronds
+    let topX = x + sway
+    let topY = y - 55*scale
+    let frondAngles: [Double] = [-0.4, -0.8, -1.2, -1.6, -2.0, -2.4, -2.8, 0.0]
+    for angle in frondAngles {
+        let frondSway = CGFloat(sin(swayT * 1.3 + angle)) * 6 * scale
+        var frond = Path()
+        frond.move(to: CGPoint(x: topX, y: topY))
+        let ex = topX + CGFloat(cos(angle)) * 28 * scale + frondSway
+        let ey = topY + CGFloat(sin(angle)) * 16 * scale
+        frond.addQuadCurve(
+            to: CGPoint(x: ex, y: ey),
+            control: CGPoint(x: topX + CGFloat(cos(angle)) * 14 * scale, y: topY + CGFloat(sin(angle)) * 8 * scale - 8 * scale)
+        )
+        ctx.stroke(frond, with: .color(Color(red: 0.15, green: 0.62, blue: 0.15).opacity(0.9)), lineWidth: 2.5*scale)
+    }
+
+    // Coconuts
+    for i in 0..<2 {
+        var nut = Path()
+        nut.addEllipse(in: CGRect(x: topX - 4*scale + CGFloat(i)*6*scale, y: topY - 2*scale, width: 7*scale, height: 7*scale))
+        ctx.fill(nut, with: .color(Color(red: 0.6, green: 0.35, blue: 0.1)))
+    }
+}
+
+// MARK: - DunkArenaCanvas
+
+private struct DunkArenaCanvas: View {
     let playerScore: Double
-    let aiScore: Double
+    let opponentScore: Double
+    let playerJumps: [JumpRecord]
+    let jumpProgress: Double          // 0→1→0 arc, driven by active jump
+    let isJumping: Bool
+    let opponentJumpPhase: Double
+    let scorePopups: [ScorePopup]
+    let opponentName: String
+    let lastFeedback: String
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -1113,137 +284,617 @@ private struct ResultCanvas: View {
                 let W = size.width
                 let H = size.height
 
-                var bgP = Path()
-                bgP.addRect(CGRect(x: 0, y: 0, width: W, height: H))
-                ctx.fill(bgP, with: .color(Color(red: 0.06, green: 0.06, blue: 0.12)))
-
-                // Confetti particle shower
-                let confColors: [Color] = [.yellow, .cyan, .orange, .green, .purple, .pink, .white]
-                for i in 0..<55 {
-                    let fi = Double(i)
-                    let seed = fi * 113.7
-                    let cx = CGFloat(fmod(seed * 0.617, 1.0)) * W
-                    let speed = 0.05 + CGFloat(fmod(seed * 0.3, 0.06))
-                    let cy = CGFloat(fmod(CGFloat(t) * speed + CGFloat(fmod(seed * 0.5, 1.0)), 1.1)) * H
-                    let sz: CGFloat = 5 + CGFloat(fmod(seed * 0.22, 5))
-                    let wobX = cx + CGFloat(sin(t * 1.4 + fi * 0.55)) * 14
-                    var confP = Path()
-                    confP.addRect(CGRect(x: wobX - sz / 2, y: cy - sz / 2, width: sz, height: sz))
-                    ctx.fill(confP, with: .color(confColors[i % confColors.count].opacity(0.75)))
-                }
-
-                // Central glow
-                var cg = ctx
-                cg.addFilter(.blur(radius: 40))
-                var cgP = Path()
-                cgP.addEllipse(in: CGRect(x: W / 2 - 90, y: H * 0.22 - 90, width: 180, height: 180))
-                cg.fill(cgP, with: .color((playerWon ? Color.yellow : Color.red).opacity(0.32)))
-
-                // WIN/LOSS title
-                var tg = ctx
-                tg.addFilter(.blur(radius: 10))
-                tg.draw(
-                    Text(playerWon ? "YOU WIN!" : "DEFEATED")
-                        .font(.system(size: 52, weight: .black, design: .monospaced))
-                        .foregroundStyle((playerWon ? Color.yellow : Color.red).opacity(0.5)),
-                    at: CGPoint(x: W / 2, y: H * 0.22)
-                )
-                ctx.draw(
-                    Text(playerWon ? "YOU WIN!" : "DEFEATED")
-                        .font(.system(size: 52, weight: .black, design: .monospaced))
-                        .foregroundStyle(playerWon ? Color.yellow : Color.red),
-                    at: CGPoint(x: W / 2, y: H * 0.22)
-                )
-
-                // Winner crown
-                if playerWon {
-                    let crownX = W / 2
-                    let crownY = H * 0.22 - 48
-                    var crown = Path()
-                    crown.move(to: CGPoint(x: crownX - 22, y: crownY + 14))
-                    crown.addLine(to: CGPoint(x: crownX - 22, y: crownY))
-                    crown.addLine(to: CGPoint(x: crownX - 10, y: crownY + 10))
-                    crown.addLine(to: CGPoint(x: crownX, y: crownY - 6))
-                    crown.addLine(to: CGPoint(x: crownX + 10, y: crownY + 10))
-                    crown.addLine(to: CGPoint(x: crownX + 22, y: crownY))
-                    crown.addLine(to: CGPoint(x: crownX + 22, y: crownY + 14))
-                    crown.closeSubpath()
-                    ctx.fill(crown, with: .color(Color.yellow.opacity(0.9)))
-                    ctx.stroke(crown, with: .color(Color(red: 1.0, green: 0.7, blue: 0.0)), lineWidth: 1.5)
-                }
-
-                // Side-by-side score bars
-                let barTop = H * 0.34
-                let barH: CGFloat = 22
-                let maxBar = W * 0.38
-                let pFrac = CGFloat(min(1.0, playerScore / 30.0))
-                let aFrac = CGFloat(min(1.0, aiScore / 30.0))
-
-                // YOU bar (centre leftward)
-                var youBarPath = Path()
-                youBarPath.addRoundedRect(
-                    in: CGRect(x: W * 0.5 - maxBar * pFrac - 4, y: barTop, width: maxBar * pFrac, height: barH),
-                    cornerSize: CGSize(width: 4, height: 4)
-                )
-                ctx.fill(youBarPath, with: .linearGradient(
-                    Gradient(colors: [Color.cyan.opacity(0.4), Color.cyan]),
-                    startPoint: CGPoint(x: W * 0.5 - maxBar * pFrac, y: barTop),
-                    endPoint: CGPoint(x: W * 0.5, y: barTop)
+                // -------------------------------------------------------
+                // SKY GRADIENT
+                // -------------------------------------------------------
+                var skyPath = Path(); skyPath.addRect(CGRect(x: 0, y: 0, width: W, height: H))
+                ctx.fill(skyPath, with: .linearGradient(
+                    Gradient(colors: [
+                        Color(red: 0.04, green: 0.14, blue: 0.42),
+                        Color(red: 0.1, green: 0.38, blue: 0.72),
+                        Color(red: 0.72, green: 0.55, blue: 0.28)
+                    ]),
+                    startPoint: CGPoint(x: W/2, y: 0),
+                    endPoint: CGPoint(x: W/2, y: H*0.55)
                 ))
+
+                // -------------------------------------------------------
+                // SUN
+                // -------------------------------------------------------
+                let sunX = W * 0.8
+                let sunY = H * 0.12 + CGFloat(sin(t*0.1)) * 2
+                var sunBlur = ctx
+                sunBlur.addFilter(.blur(radius: 20))
+                var sunGlowP = Path(); sunGlowP.addEllipse(in: CGRect(x: sunX-35, y: sunY-35, width: 70, height: 70))
+                sunBlur.fill(sunGlowP, with: .color(Color(red: 1.0, green: 0.85, blue: 0.4).opacity(0.45)))
+                var sunP = Path(); sunP.addEllipse(in: CGRect(x: sunX-16, y: sunY-16, width: 32, height: 32))
+                ctx.fill(sunP, with: .color(Color(red: 1.0, green: 0.96, blue: 0.7)))
+
+                // -------------------------------------------------------
+                // VENICE BEACH OCEAN STRIP
+                // -------------------------------------------------------
+                let horizonY = H * 0.38
+                var oceanPath = Path()
+                oceanPath.addRect(CGRect(x: 0, y: horizonY - H*0.06, width: W, height: H*0.07))
+                ctx.fill(oceanPath, with: .linearGradient(
+                    Gradient(colors: [
+                        Color(red: 0.05, green: 0.55, blue: 0.85).opacity(0.8),
+                        Color(red: 0.1, green: 0.35, blue: 0.6).opacity(0.6)
+                    ]),
+                    startPoint: CGPoint(x: W/2, y: horizonY - H*0.06),
+                    endPoint: CGPoint(x: W/2, y: horizonY)
+                ))
+
+                // Wave lines
+                for w in 0..<4 {
+                    let wy = horizonY - H*0.04 + CGFloat(w)*4
+                    var wavePath = Path()
+                    wavePath.move(to: CGPoint(x: 0, y: wy))
+                    for x in stride(from: 0, through: W, by: 6) {
+                        let waveY = wy + CGFloat(sin(Double(x)/25.0 + t*2.5 + Double(w)*0.9)) * 2.0
+                        wavePath.addLine(to: CGPoint(x: x, y: waveY))
+                    }
+                    ctx.stroke(wavePath, with: .color(.white.opacity(0.12)), lineWidth: 0.7)
+                }
+
+                // -------------------------------------------------------
+                // COURT FLOOR (perspective)
+                // -------------------------------------------------------
+                var courtFloor = Path()
+                courtFloor.move(to: CGPoint(x: W*0.2, y: horizonY))
+                courtFloor.addLine(to: CGPoint(x: W*0.8, y: horizonY))
+                courtFloor.addLine(to: CGPoint(x: W, y: H))
+                courtFloor.addLine(to: CGPoint(x: 0, y: H))
+                courtFloor.closeSubpath()
+                ctx.fill(courtFloor, with: .linearGradient(
+                    Gradient(colors: [
+                        Color(red: 0.16, green: 0.38, blue: 0.65),
+                        Color(red: 0.08, green: 0.22, blue: 0.42)
+                    ]),
+                    startPoint: CGPoint(x: W/2, y: horizonY),
+                    endPoint: CGPoint(x: W/2, y: H)
+                ))
+
+                // -- Perspective court lines --
+                let vanishX = W * 0.5
+                let vanishY = horizonY
+                for i in 0..<6 {
+                    let baseX = W * CGFloat(i) / 5.0
+                    var line = Path()
+                    line.move(to: CGPoint(x: vanishX, y: vanishY))
+                    line.addLine(to: CGPoint(x: baseX, y: H))
+                    ctx.stroke(line, with: .color(.white.opacity(0.1)), lineWidth: 0.8)
+                }
+                // Horizontal depth lines
+                for d in 0..<7 {
+                    let depthT = CGFloat(d+1) / 8.0
+                    let lineY = horizonY + (H - horizonY) * depthT
+                    let spreadX = W * 0.2 * depthT
+                    var hLine = Path()
+                    hLine.move(to: CGPoint(x: W*0.2 + spreadX, y: lineY))
+                    hLine.addLine(to: CGPoint(x: W*0.8 + spreadX*0.5, y: lineY))
+                    // Actually use correct perspective spread
+                    let leftX  = vanishX - (vanishX - 0)  * depthT
+                    let rightX = vanishX + (W - vanishX) * depthT
+                    var depthLine = Path()
+                    depthLine.move(to: CGPoint(x: leftX, y: lineY))
+                    depthLine.addLine(to: CGPoint(x: rightX, y: lineY))
+                    ctx.stroke(depthLine, with: .color(.white.opacity(0.07 + Double(d)*0.01)), lineWidth: 0.7)
+                }
+
+                // Three-point arc (painted on court floor)
+                var arcPath = Path()
+                arcPath.addArc(center: CGPoint(x: W*0.5, y: H*0.92),
+                               radius: H*0.24,
+                               startAngle: .degrees(200),
+                               endAngle: .degrees(340),
+                               clockwise: false)
+                ctx.stroke(arcPath, with: .color(.white.opacity(0.15)), lineWidth: 1.2)
+
+                // Key box
+                var keyBox = Path()
+                keyBox.addRect(CGRect(x: W*0.35, y: H*0.72, width: W*0.3, height: H*0.2))
+                ctx.stroke(keyBox, with: .color(.white.opacity(0.12)), lineWidth: 1.0)
+
+                // Center circle on floor
+                var cCircle = Path()
+                cCircle.addEllipse(in: CGRect(x: W*0.38, y: H*0.78, width: W*0.24, height: H*0.08))
+                ctx.stroke(cCircle, with: .color(.white.opacity(0.08)), lineWidth: 0.8)
+
+                // -------------------------------------------------------
+                // PALM TREES
+                // -------------------------------------------------------
+                drawPalmTree(ctx: ctx, x: W*0.05, y: horizonY+4, swayT: t, scale: 1.1)
+                drawPalmTree(ctx: ctx, x: W*0.95, y: horizonY+4, swayT: t+1.4, scale: 1.0)
+                drawPalmTree(ctx: ctx, x: W*0.14, y: horizonY+10, swayT: t+0.6, scale: 0.75)
+                drawPalmTree(ctx: ctx, x: W*0.86, y: horizonY+8, swayT: t+1.0, scale: 0.8)
+
+                // -------------------------------------------------------
+                // CROWD PARTICLES (20+ dots pulsing)
+                // -------------------------------------------------------
+                for i in 0..<28 {
+                    let fi = Double(i)
+                    let crowdX = (CGFloat(i) / 28.0) * W * 1.1 - W*0.05
+                    let crowdBaseY = horizonY - 10 + CGFloat(sin(t*2.4 + fi * 0.55)) * 4
+                    let pulseSz: CGFloat = 5 + CGFloat(sin(t*3 + fi)) * 2
+                    var crowdDot = Path()
+                    crowdDot.addEllipse(in: CGRect(x: crowdX - pulseSz/2, y: crowdBaseY - pulseSz/2,
+                                                    width: pulseSz, height: pulseSz))
+                    let colors: [Color] = [.cyan, .orange, .yellow, .white, .purple, .green, .pink]
+                    ctx.fill(crowdDot, with: .color(colors[i % colors.count].opacity(0.55)))
+
+                    // Little raised-arms silhouette for crowd
+                    var arm1 = Path()
+                    arm1.move(to: CGPoint(x: crowdX, y: crowdBaseY - pulseSz/2))
+                    arm1.addLine(to: CGPoint(x: crowdX - 5, y: crowdBaseY - pulseSz/2 - 7 + CGFloat(sin(t*2+fi))*2))
+                    var arm2 = Path()
+                    arm2.move(to: CGPoint(x: crowdX, y: crowdBaseY - pulseSz/2))
+                    arm2.addLine(to: CGPoint(x: crowdX + 5, y: crowdBaseY - pulseSz/2 - 7 + CGFloat(sin(t*2+fi+1))*2))
+                    ctx.stroke(arm1, with: .color(colors[i % colors.count].opacity(0.4)), lineWidth: 0.8)
+                    ctx.stroke(arm2, with: .color(colors[i % colors.count].opacity(0.4)), lineWidth: 0.8)
+                }
+
+                // -------------------------------------------------------
+                // BACKBOARD + RIM (top-right area)
+                // -------------------------------------------------------
+                let rimX = W * 0.75
+                let rimBaseY = H * 0.22
+                let netSway = CGFloat(sin(t * 2.2)) * 3
+
+                // Backboard pole
+                var poleP = Path()
+                poleP.move(to: CGPoint(x: rimX + 20, y: horizonY))
+                poleP.addLine(to: CGPoint(x: rimX + 20, y: rimBaseY + 20))
+                ctx.stroke(poleP, with: .color(Color(red: 0.55, green: 0.55, blue: 0.6)), lineWidth: 4)
+
+                // Backboard metallic face
+                var bbPath = Path()
+                bbPath.addRoundedRect(in: CGRect(x: rimX - 22, y: rimBaseY - 22, width: 80, height: 52),
+                                       cornerSize: CGSize(width: 3, height: 3))
+                ctx.fill(bbPath, with: .linearGradient(
+                    Gradient(colors: [Color(red: 0.82, green: 0.84, blue: 0.88), Color(red: 0.55, green: 0.58, blue: 0.64)]),
+                    startPoint: CGPoint(x: rimX, y: rimBaseY-22),
+                    endPoint: CGPoint(x: rimX, y: rimBaseY+30)
+                ))
+                ctx.stroke(bbPath, with: .color(.white.opacity(0.5)), lineWidth: 1.5)
+
+                // Backboard inner box
+                var bbInner = Path()
+                bbInner.addRect(CGRect(x: rimX - 8, y: rimBaseY - 8, width: 52, height: 30))
+                ctx.stroke(bbInner, with: .color(.white.opacity(0.35)), lineWidth: 1.0)
+
+                // Rim (orange)
+                var rimPath = Path()
+                rimPath.addEllipse(in: CGRect(x: rimX - 20, y: rimBaseY + 28, width: 44, height: 10))
+                var rimGlow = ctx
+                rimGlow.addFilter(.blur(radius: 5))
+                var rimGlowP = Path()
+                rimGlowP.addEllipse(in: CGRect(x: rimX - 22, y: rimBaseY + 26, width: 48, height: 14))
+                rimGlow.fill(rimGlowP, with: .color(Color(red: 1.0, green: 0.42, blue: 0.1).opacity(0.4)))
+                ctx.stroke(rimPath, with: .color(Color(red: 1.0, green: 0.45, blue: 0.1)), lineWidth: 3.5)
+
+                // Net (animated sway)
+                let netTopL = CGPoint(x: rimX - 20, y: rimBaseY + 33)
+                let netTopR = CGPoint(x: rimX + 24, y: rimBaseY + 33)
+                let netBot  = CGPoint(x: rimX + 2 + netSway, y: rimBaseY + 60)
+                for n in 0..<5 {
+                    let tFrac = CGFloat(n) / 4.0
+                    var netLine = Path()
+                    let nx = netTopL.x + (netTopR.x - netTopL.x) * tFrac
+                    netLine.move(to: CGPoint(x: nx, y: rimBaseY + 33))
+                    netLine.addLine(to: CGPoint(x: netBot.x - 8 + tFrac*16, y: netBot.y))
+                    ctx.stroke(netLine, with: .color(.white.opacity(0.35)), lineWidth: 0.8)
+                }
+                for n in 0..<4 {
+                    let hFrac = CGFloat(n+1) / 5.0
+                    let leftX = netTopL.x + (netBot.x - 8 - netTopL.x) * hFrac
+                    let rightX = netTopR.x + (netBot.x + 8 - netTopR.x) * hFrac
+                    let netY = netTopL.y + (netBot.y - netTopL.y) * hFrac
+                    var netH = Path()
+                    netH.move(to: CGPoint(x: leftX, y: netY))
+                    netH.addLine(to: CGPoint(x: rightX, y: netY))
+                    ctx.stroke(netH, with: .color(.white.opacity(0.25)), lineWidth: 0.6)
+                }
+
+                // -------------------------------------------------------
+                // JUMP HEIGHT METER (left edge)
+                // -------------------------------------------------------
+                let meterX: CGFloat = 18
+                let meterTop = H * 0.25
+                let meterBot = H * 0.85
+                let meterH   = meterBot - meterTop
+
+                // Meter background track
+                var meterBg = Path()
+                meterBg.addRoundedRect(in: CGRect(x: meterX - 6, y: meterTop, width: 12, height: meterH),
+                                        cornerSize: CGSize(width: 3, height: 3))
+                ctx.fill(meterBg, with: .color(.black.opacity(0.55)))
+                ctx.stroke(meterBg, with: .color(.white.opacity(0.2)), lineWidth: 0.8)
+
+                // Meter fill (driven by jumpProgress)
+                let meterFill = CGFloat(sin(jumpProgress * .pi))
+                if meterFill > 0 {
+                    let fillH = meterH * meterFill
+                    var meterFillPath = Path()
+                    meterFillPath.addRoundedRect(
+                        in: CGRect(x: meterX - 5, y: meterBot - fillH, width: 10, height: fillH),
+                        cornerSize: CGSize(width: 2, height: 2)
+                    )
+                    // Glow
+                    var mGlow = ctx
+                    mGlow.addFilter(.blur(radius: 6))
+                    var mGlowPath = Path()
+                    mGlowPath.addRoundedRect(
+                        in: CGRect(x: meterX - 8, y: meterBot - fillH - 4, width: 16, height: fillH + 8),
+                        cornerSize: CGSize(width: 4, height: 4)
+                    )
+                    mGlow.fill(mGlowPath, with: .color(Color.cyan.opacity(0.45)))
+                    ctx.fill(meterFillPath, with: .linearGradient(
+                        Gradient(colors: [Color.cyan, Color(red: 0.0, green: 1.0, blue: 0.7)]),
+                        startPoint: CGPoint(x: meterX, y: meterBot - fillH),
+                        endPoint: CGPoint(x: meterX, y: meterBot)
+                    ))
+                }
+
+                // Meter tick marks
+                for tick in 0..<5 {
+                    let tickY = meterTop + meterH * CGFloat(tick) / 4.0
+                    var tickPath = Path()
+                    tickPath.move(to: CGPoint(x: meterX - 9, y: tickY))
+                    tickPath.addLine(to: CGPoint(x: meterX + 9, y: tickY))
+                    ctx.stroke(tickPath, with: .color(.white.opacity(0.25)), lineWidth: 0.6)
+                }
+
+                // "HT" label top of meter
+                ctx.draw(Text("HT").font(.system(size: 7, weight: .black, design: .monospaced)).foregroundStyle(.white.opacity(0.4)),
+                         at: CGPoint(x: meterX, y: meterTop - 8))
+
+                // -------------------------------------------------------
+                // PLAYER STICK FIGURE (left side)
+                // -------------------------------------------------------
+                let playerBaseX = W * 0.28
+                let playerFloorY = H * 0.78
+                let jumpArc = CGFloat(sin(jumpProgress * .pi))
+                let playerY = playerFloorY - jumpArc * H * 0.28
+
+                drawStickFigure(ctx: ctx,
+                                x: playerBaseX,
+                                floorY: playerFloorY,
+                                currentY: playerY,
+                                jumpArc: jumpArc,
+                                color: Color(red: 0.0, green: 0.9, blue: 1.0),
+                                isLeft: true,
+                                t: t)
+
+                // Shadow under player
+                let shadowAlpha = 0.35 * (1 - Double(jumpArc) * 0.7)
+                let shadowW = 22 + jumpArc * (-8)
+                var shadowPath = Path()
+                shadowPath.addEllipse(in: CGRect(x: playerBaseX - shadowW/2, y: playerFloorY + 2,
+                                                  width: shadowW, height: 5))
+                ctx.fill(shadowPath, with: .color(.black.opacity(shadowAlpha)))
+
+                // -------------------------------------------------------
+                // OPPONENT STICK FIGURE (right side)
+                // -------------------------------------------------------
+                let oppBaseX = W * 0.68
+                let oppFloorY = H * 0.78
+                let oppArc = CGFloat(sin(opponentJumpPhase * .pi))
+                let oppY = oppFloorY - oppArc * H * 0.28
+
+                drawStickFigure(ctx: ctx,
+                                x: oppBaseX,
+                                floorY: oppFloorY,
+                                currentY: oppY,
+                                jumpArc: oppArc,
+                                color: Color(red: 1.0, green: 0.38, blue: 0.1),
+                                isLeft: false,
+                                t: t)
+
+                let oppShadowAlpha = 0.35 * (1 - Double(oppArc) * 0.7)
+                let oppShadowW = 22 + oppArc * (-8)
+                var oppShadowPath = Path()
+                oppShadowPath.addEllipse(in: CGRect(x: oppBaseX - oppShadowW/2, y: oppFloorY + 2,
+                                                     width: oppShadowW, height: 5))
+                ctx.fill(oppShadowPath, with: .color(.black.opacity(oppShadowAlpha)))
+
+                // -------------------------------------------------------
+                // NAME TAGS above figures
+                // -------------------------------------------------------
+                let playerNameY = playerY - 45
                 ctx.draw(
-                    Text(String(format: "YOU  %.1f", playerScore))
+                    Text("YOU")
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundStyle(Color.cyan),
+                    at: CGPoint(x: playerBaseX, y: playerNameY)
+                )
+                let oppName = String(opponentName.prefix(8)).uppercased()
+                ctx.draw(
+                    Text(oppName)
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundStyle(Color(red: 1.0, green: 0.38, blue: 0.1)),
+                    at: CGPoint(x: oppBaseX, y: oppY - 45)
+                )
+
+                // -------------------------------------------------------
+                // SCORE HUD PANEL (top center)
+                // -------------------------------------------------------
+                var hudBack = Path()
+                hudBack.addRoundedRect(in: CGRect(x: W*0.15, y: 8, width: W*0.7, height: 40),
+                                        cornerSize: CGSize(width: 8, height: 8))
+                ctx.fill(hudBack, with: .color(.black.opacity(0.65)))
+                ctx.stroke(hudBack, with: .color(Color.cyan.opacity(0.4)), lineWidth: 1)
+
+                let playerScoreStr = String(format: "YOU: %.1f/30", playerScore)
+                let oppScoreStr    = String(format: "%.1f/30 :%@", opponentScore, opponentName.prefix(6).uppercased())
+                ctx.draw(
+                    Text(playerScoreStr)
                         .font(.system(size: 11, weight: .black, design: .monospaced))
                         .foregroundStyle(Color.cyan),
-                    at: CGPoint(x: W * 0.5 - maxBar * pFrac / 2 - 4, y: barTop + barH / 2)
+                    at: CGPoint(x: W*0.3, y: 28)
                 )
-
-                // AI bar (centre rightward)
-                var aiBarPath = Path()
-                aiBarPath.addRoundedRect(
-                    in: CGRect(x: W * 0.5 + 4, y: barTop, width: maxBar * aFrac, height: barH),
-                    cornerSize: CGSize(width: 4, height: 4)
-                )
-                ctx.fill(aiBarPath, with: .linearGradient(
-                    Gradient(colors: [Color(red: 1.0, green: 0.5, blue: 0.1),
-                                      Color(red: 1.0, green: 0.5, blue: 0.1).opacity(0.4)]),
-                    startPoint: CGPoint(x: W * 0.5, y: barTop),
-                    endPoint: CGPoint(x: W * 0.5 + maxBar * aFrac, y: barTop)
-                ))
                 ctx.draw(
-                    Text(String(format: "%.1f  AI", aiScore))
+                    Text("VS")
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.5)),
+                    at: CGPoint(x: W*0.5, y: 28)
+                )
+                ctx.draw(
+                    Text(oppScoreStr)
                         .font(.system(size: 11, weight: .black, design: .monospaced))
-                        .foregroundStyle(Color(red: 1.0, green: 0.5, blue: 0.1)),
-                    at: CGPoint(x: W * 0.5 + maxBar * aFrac / 2 + 4, y: barTop + barH / 2)
+                        .foregroundStyle(Color(red: 1.0, green: 0.55, blue: 0.1)),
+                    at: CGPoint(x: W*0.72, y: 28)
                 )
 
-                // Center divider line
-                var divLine = Path()
-                divLine.move(to: CGPoint(x: W * 0.5, y: barTop - 4))
-                divLine.addLine(to: CGPoint(x: W * 0.5, y: barTop + barH + 4))
-                ctx.stroke(divLine, with: .color(.white.opacity(0.35)), lineWidth: 1.5)
+                // -------------------------------------------------------
+                // FEEDBACK TEXT
+                // -------------------------------------------------------
+                if !lastFeedback.isEmpty {
+                    let feedbackAlpha = 0.8 + sin(t * 4) * 0.2
+                    var feedGlow = ctx
+                    feedGlow.addFilter(.blur(radius: 10))
+                    ctx.draw(
+                        Text(lastFeedback)
+                            .font(.system(size: 20, weight: .black, design: .monospaced))
+                            .foregroundStyle(Color.yellow.opacity(feedbackAlpha)),
+                        at: CGPoint(x: W*0.5, y: H*0.5)
+                    )
+                }
 
-                // Spinning stars for win
-                if playerWon {
-                    for corner in [(W * 0.12, H * 0.10), (W * 0.88, H * 0.10)] {
-                        let cx = corner.0, cy = corner.1
-                        let spin = t * 0.9
-                        var star = Path()
-                        for pt in 0..<5 {
-                            let angle = Double(pt) * (.pi * 2 / 5) - .pi / 2 + spin
-                            let innerAngle = angle + .pi / 5
-                            let r: CGFloat = 16, ir: CGFloat = 8
-                            if pt == 0 {
-                                star.move(to: CGPoint(x: cx + CGFloat(cos(angle)) * r,
-                                                       y: cy + CGFloat(sin(angle)) * r))
-                            } else {
-                                star.addLine(to: CGPoint(x: cx + CGFloat(cos(angle)) * r,
-                                                          y: cy + CGFloat(sin(angle)) * r))
-                            }
-                            star.addLine(to: CGPoint(x: cx + CGFloat(cos(innerAngle)) * ir,
-                                                      y: cy + CGFloat(sin(innerAngle)) * ir))
-                        }
-                        star.closeSubpath()
-                        ctx.fill(star, with: .color(Color.yellow.opacity(0.7)))
+                // -------------------------------------------------------
+                // SCORE POPUPS (float up from rim)
+                // -------------------------------------------------------
+                for popup in scorePopups {
+                    let glowCtx2 = ctx
+                    ctx.draw(
+                        Text(String(format: "+%.1f", popup.score))
+                            .font(.system(size: 28, weight: .black, design: .monospaced))
+                            .foregroundStyle(Color.cyan.opacity(popup.opacity)),
+                        at: CGPoint(x: popup.xPos, y: rimBaseY + 20 + popup.yOffset)
+                    )
+                    _ = glowCtx2 // suppress warning
+                }
+
+                // -------------------------------------------------------
+                // AMBIENT LIGHT FLARE (top-right corner behind rim)
+                // -------------------------------------------------------
+                var flareCtx = ctx
+                flareCtx.addFilter(.blur(radius: 25))
+                var flarePath = Path()
+                flarePath.addEllipse(in: CGRect(x: W*0.6, y: H*0.05, width: W*0.4, height: H*0.25))
+                flareCtx.fill(flarePath, with: .color(Color(red: 1.0, green: 0.9, blue: 0.5).opacity(0.12 + sin(t*0.3)*0.04)))
+
+                // -------------------------------------------------------
+                // JUMP STREAK INDICATOR (bottom-left)
+                // -------------------------------------------------------
+                let jumpCount = playerJumps.count
+                ctx.draw(
+                    Text("JUMPS: \(jumpCount)/5")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.55)),
+                    at: CGPoint(x: W*0.17, y: H*0.92)
+                )
+
+                // Jump history dots
+                for j in 0..<min(5, jumpCount) {
+                    let jx = W*0.07 + CGFloat(j)*14
+                    let jy = H*0.95
+                    let score = j < playerJumps.count ? playerJumps[j].score : 0
+                    let dotColor: Color = score >= 9.0 ? .yellow : score >= 7.5 ? .cyan : .green
+                    var jDot = Path()
+                    jDot.addEllipse(in: CGRect(x: jx-5, y: jy-5, width: 10, height: 10))
+                    ctx.fill(jDot, with: .color(dotColor.opacity(0.8)))
+                }
+                for j in jumpCount..<5 {
+                    let jx = W*0.07 + CGFloat(j)*14
+                    let jy = H*0.95
+                    var jDotEmpty = Path()
+                    jDotEmpty.addEllipse(in: CGRect(x: jx-5, y: jy-5, width: 10, height: 10))
+                    ctx.stroke(jDotEmpty, with: .color(.white.opacity(0.2)), lineWidth: 1.0)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Canvas Helper: Stick Figure
+
+private func drawStickFigure(
+    ctx: GraphicsContext,
+    x: CGFloat,
+    floorY: CGFloat,
+    currentY: CGFloat,
+    jumpArc: CGFloat,
+    color: Color,
+    isLeft: Bool,
+    t: Double
+) {
+    let headR: CGFloat = 9
+    let torsoLen: CGFloat = 26
+    let armLen: CGFloat  = 18
+    let legLen: CGFloat  = 22
+
+    // Glow effect
+    var glowCtx = ctx
+    glowCtx.addFilter(.blur(radius: 7))
+
+    // Y is the feet position; figure drawn upward from feet
+    let feetY = currentY
+    let torsoTop = feetY - legLen - torsoLen
+    let headY = torsoTop - headR
+
+    // Arms angle changes when jumping
+    let armAngle: CGFloat = jumpArc > 0.3 ? -0.8 : CGFloat(sin(t * 1.2)) * 0.3
+    let legSpread: CGFloat = jumpArc > 0.3 ? 12 : 6
+
+    // Glow body
+    var glowHead = Path(); glowHead.addEllipse(in: CGRect(x: x-headR-2, y: headY-headR-2, width: (headR+2)*2, height: (headR+2)*2))
+    glowCtx.fill(glowHead, with: .color(color.opacity(0.25)))
+
+    // Head
+    var headPath = Path(); headPath.addEllipse(in: CGRect(x: x-headR, y: headY-headR, width: headR*2, height: headR*2))
+    ctx.fill(headPath, with: .color(color.opacity(0.9)))
+
+    // Torso
+    var torso = Path()
+    torso.move(to: CGPoint(x: x, y: headY + headR))
+    torso.addLine(to: CGPoint(x: x, y: feetY - legLen))
+    ctx.stroke(torso, with: .color(color), lineWidth: 2.5)
+
+    // Arms (raised when jumping)
+    let armDir: CGFloat = isLeft ? 1 : -1
+    var leftArm = Path()
+    leftArm.move(to: CGPoint(x: x, y: torsoTop + 8))
+    leftArm.addLine(to: CGPoint(x: x - armLen * cos(armAngle + 0.3),
+                                 y: torsoTop + 8 - armLen * sin(armAngle + 0.3) * armDir))
+    ctx.stroke(leftArm, with: .color(color), lineWidth: 2.0)
+
+    var rightArm = Path()
+    rightArm.move(to: CGPoint(x: x, y: torsoTop + 8))
+    rightArm.addLine(to: CGPoint(x: x + armLen * cos(armAngle + 0.3),
+                                  y: torsoTop + 8 - armLen * sin(armAngle + 0.3) * armDir))
+    ctx.stroke(rightArm, with: .color(color), lineWidth: 2.0)
+
+    // Legs (spread when jumping)
+    var leftLeg = Path()
+    leftLeg.move(to: CGPoint(x: x, y: feetY - legLen))
+    leftLeg.addLine(to: CGPoint(x: x - legSpread, y: feetY))
+    ctx.stroke(leftLeg, with: .color(color), lineWidth: 2.0)
+
+    var rightLeg = Path()
+    rightLeg.move(to: CGPoint(x: x, y: feetY - legLen))
+    rightLeg.addLine(to: CGPoint(x: x + legSpread, y: feetY))
+    ctx.stroke(rightLeg, with: .color(color), lineWidth: 2.0)
+
+    // Shoes
+    var lShoe = Path()
+    lShoe.addEllipse(in: CGRect(x: x-legSpread-5, y: feetY-3, width: 12, height: 5))
+    ctx.fill(lShoe, with: .color(color.opacity(0.7)))
+    var rShoe = Path()
+    rShoe.addEllipse(in: CGRect(x: x+legSpread-7, y: feetY-3, width: 12, height: 5))
+    ctx.fill(rShoe, with: .color(color.opacity(0.7)))
+
+    // Ball in right hand if jumping
+    if jumpArc > 0.3 {
+        let ballX = x + armLen * cos(armAngle + 0.3) + 6
+        let ballY = torsoTop + 8 - armLen * sin(armAngle + 0.3) * armDir - 6
+        var ballPath = Path()
+        ballPath.addEllipse(in: CGRect(x: ballX-7, y: ballY-7, width: 14, height: 14))
+        ctx.fill(ballPath, with: .color(Color(red: 0.9, green: 0.42, blue: 0.1)))
+        ctx.stroke(ballPath, with: .color(.black.opacity(0.5)), lineWidth: 0.8)
+        // Ball seam lines
+        var seamH = Path()
+        seamH.addArc(center: CGPoint(x: ballX, y: ballY), radius: 6, startAngle: .degrees(-30), endAngle: .degrees(210), clockwise: false)
+        ctx.stroke(seamH, with: .color(.black.opacity(0.3)), lineWidth: 0.6)
+    }
+}
+
+// MARK: - CountdownCanvas
+
+private struct CountdownCanvas: View {
+    let number: Int
+
+    var body: some View {
+        TimelineView(.animation) { tl in
+            Canvas { ctx, size in
+                let t = tl.date.timeIntervalSinceReferenceDate
+                let W = size.width
+                let H = size.height
+
+                // Sky background
+                var bgPath = Path(); bgPath.addRect(CGRect(x: 0, y: 0, width: W, height: H))
+                ctx.fill(bgPath, with: .linearGradient(
+                    Gradient(colors: [Color(red: 0.04, green: 0.04, blue: 0.18), Color(red: 0.08, green: 0.15, blue: 0.35)]),
+                    startPoint: CGPoint(x: W/2, y: 0),
+                    endPoint: CGPoint(x: W/2, y: H)
+                ))
+
+                // Pulsing ring
+                let ringPhase = fmod(t * 2.0, 1.0)
+                let ringR: CGFloat = 80 + CGFloat(ringPhase) * 60
+                let ringAlpha = 1.0 - ringPhase
+                var ring = Path()
+                ring.addEllipse(in: CGRect(x: W/2-ringR, y: H/2-ringR, width: ringR*2, height: ringR*2))
+                ctx.stroke(ring, with: .color(Color.cyan.opacity(ringAlpha * 0.7)), lineWidth: 3)
+
+                // Second ring offset
+                let ring2Phase = fmod(t * 2.0 + 0.5, 1.0)
+                let ring2R: CGFloat = 80 + CGFloat(ring2Phase) * 60
+                var ring2 = Path()
+                ring2.addEllipse(in: CGRect(x: W/2-ring2R, y: H/2-ring2R, width: ring2R*2, height: ring2R*2))
+                ctx.stroke(ring2, with: .color(Color(red: 1.0, green: 0.38, blue: 0.1).opacity((1-ring2Phase)*0.5)), lineWidth: 2)
+
+                // Glowing center circle
+                var centerGlow = ctx
+                centerGlow.addFilter(.blur(radius: 22))
+                var centerP = Path()
+                centerP.addEllipse(in: CGRect(x: W/2-45, y: H/2-45, width: 90, height: 90))
+                centerGlow.fill(centerP, with: .color(Color.cyan.opacity(0.3 + sin(t*3)*0.1)))
+
+                // Countdown number glow
+                var numGlow = ctx
+                numGlow.addFilter(.blur(radius: 14))
+                numGlow.draw(
+                    Text("\(number)")
+                        .font(.system(size: 110, weight: .black, design: .monospaced))
+                        .foregroundStyle(Color.cyan.opacity(0.4)),
+                    at: CGPoint(x: W/2, y: H/2)
+                )
+
+                // Countdown number solid
+                ctx.draw(
+                    Text("\(number)")
+                        .font(.system(size: 110, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white),
+                    at: CGPoint(x: W/2, y: H/2)
+                )
+
+                // "GET READY" label
+                ctx.draw(
+                    Text("GET READY")
+                        .font(.system(size: 13, weight: .black, design: .monospaced))
+                        .foregroundStyle(Color(red: 1.0, green: 0.3, blue: 0.1).opacity(0.9)),
+                    at: CGPoint(x: W/2, y: H/2 - 90)
+                )
+
+                // "JUMP ON THE RIM" label
+                ctx.draw(
+                    Text("JUMP ON THE RIM")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.4 + sin(t*2.5)*0.2)),
+                    at: CGPoint(x: W/2, y: H/2 + 85)
+                )
+
+                // Corner spark effects
+                for corner in 0..<4 {
+                    let cx = corner % 2 == 0 ? CGFloat(30) : W-30
+                    let cy = corner < 2 ? CGFloat(30) : H-30
+                    for spark in 0..<5 {
+                        let sa = Double(spark) * (.pi * 2 / 5) + t * 2
+                        let sr = 10 + CGFloat(sin(t*3 + Double(spark))) * 5
+                        var sparkP = Path()
+                        sparkP.addEllipse(in: CGRect(x: cx + CGFloat(cos(sa))*sr - 2, y: cy + CGFloat(sin(sa))*sr - 2, width: 4, height: 4))
+                        ctx.fill(sparkP, with: .color(Color.cyan.opacity(0.5)))
                     }
                 }
             }
@@ -1251,30 +902,187 @@ private struct ResultCanvas: View {
     }
 }
 
-// MARK: - Arena Erupts Overlay
+// MARK: - ResultCanvas
 
-private struct ArenaEruptsOverlay: View {
+private struct ResultCanvas: View {
+    let playerWon: Bool
+    let playerScore: Double
+    let opponentScore: Double
+    let payout: Int
+
+    @State private var particles: [(x: CGFloat, y: CGFloat, vx: CGFloat, vy: CGFloat, color: Color, size: CGFloat)] = []
+
     var body: some View {
-        VStack {
-            Spacer().frame(height: 72)
-            VStack(spacing: 6) {
-                Text("THE ARENA ERUPTS")
-                    .font(.system(size: 21, weight: .black, design: .monospaced))
-                    .foregroundStyle(Color.yellow)
-                    .shadow(color: Color.yellow.opacity(0.9), radius: 14)
-                Text("CROWD AT MAX ENERGY!")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .foregroundStyle(Color.orange.opacity(0.85))
-                    .tracking(2)
+        TimelineView(.animation) { tl in
+            Canvas { ctx, size in
+                let t = tl.date.timeIntervalSinceReferenceDate
+                let W = size.width
+                let H = size.height
+
+                // Background
+                var bgP = Path(); bgP.addRect(CGRect(x: 0, y: 0, width: W, height: H))
+                ctx.fill(bgP, with: .linearGradient(
+                    Gradient(colors: playerWon
+                        ? [Color(red: 0.05, green: 0.18, blue: 0.05), Color(red: 0.02, green: 0.08, blue: 0.02)]
+                        : [Color(red: 0.18, green: 0.04, blue: 0.04), Color(red: 0.08, green: 0.02, blue: 0.02)]),
+                    startPoint: CGPoint(x: W/2, y: 0),
+                    endPoint: CGPoint(x: W/2, y: H)
+                ))
+
+                // Grid lines (stylized)
+                for i in 0..<12 {
+                    let gx = W * CGFloat(i) / 11.0
+                    var gLine = Path()
+                    gLine.move(to: CGPoint(x: gx, y: 0))
+                    gLine.addLine(to: CGPoint(x: gx, y: H))
+                    ctx.stroke(gLine, with: .color(.white.opacity(0.03)), lineWidth: 0.5)
+                }
+                for i in 0..<16 {
+                    let gy = H * CGFloat(i) / 15.0
+                    var gLine = Path()
+                    gLine.move(to: CGPoint(x: 0, y: gy))
+                    gLine.addLine(to: CGPoint(x: W, y: gy))
+                    ctx.stroke(gLine, with: .color(.white.opacity(0.03)), lineWidth: 0.5)
+                }
+
+                // Confetti particles (40 dots raining down)
+                let confettiColors: [Color] = [.yellow, .cyan, .orange, .green, .purple, .pink, .white, .red]
+                for i in 0..<40 {
+                    let fi = Double(i)
+                    let seed = fi * 127.3
+                    let confX = CGFloat(fmod(seed * 0.7173, 1.0)) * W
+                    let fallSpeed = 0.06 + CGFloat(fmod(seed * 0.3, 0.08))
+                    let confY = CGFloat(fmod(CGFloat(t) * fallSpeed + CGFloat(fmod(seed * 0.5, 1.0)), 1.1)) * H
+                    let confSize: CGFloat = 5 + CGFloat(fmod(seed * 0.23, 5))
+                    let confColor = confettiColors[i % confettiColors.count]
+                    let wobbleX = confX + CGFloat(sin(t * 1.5 + fi * 0.6)) * 12
+
+                    var confP = Path()
+                    // Mix of squares and circles
+                    if i % 3 == 0 {
+                        confP.addRect(CGRect(x: wobbleX - confSize/2, y: confY - confSize/2, width: confSize, height: confSize))
+                    } else if i % 3 == 1 {
+                        confP.addEllipse(in: CGRect(x: wobbleX - confSize/2, y: confY - confSize/2, width: confSize, height: confSize))
+                    } else {
+                        // Diamond shape
+                        confP.move(to: CGPoint(x: wobbleX, y: confY - confSize/2))
+                        confP.addLine(to: CGPoint(x: wobbleX + confSize/2, y: confY))
+                        confP.addLine(to: CGPoint(x: wobbleX, y: confY + confSize/2))
+                        confP.addLine(to: CGPoint(x: wobbleX - confSize/2, y: confY))
+                        confP.closeSubpath()
+                    }
+                    ctx.fill(confP, with: .color(confColor.opacity(0.8)))
+                }
+
+                // Central glow
+                var centerGlow = ctx
+                centerGlow.addFilter(.blur(radius: 35))
+                var centerGP = Path()
+                centerGP.addEllipse(in: CGRect(x: W/2-80, y: H*0.3-80, width: 160, height: 160))
+                centerGlow.fill(centerGP, with: .color((playerWon ? Color.yellow : Color.red).opacity(0.35)))
+
+                // "YOU WIN" / "DEFEATED" title glow
+                var titleGlow = ctx
+                titleGlow.addFilter(.blur(radius: 12))
+                titleGlow.draw(
+                    Text(playerWon ? "YOU WIN" : "DEFEATED")
+                        .font(.system(size: 48, weight: .black, design: .monospaced))
+                        .foregroundStyle((playerWon ? Color.yellow : Color.red).opacity(0.5)),
+                    at: CGPoint(x: W/2, y: H * 0.3)
+                )
+                ctx.draw(
+                    Text(playerWon ? "YOU WIN" : "DEFEATED")
+                        .font(.system(size: 48, weight: .black, design: .monospaced))
+                        .foregroundStyle(playerWon ? Color.yellow : Color.red),
+                    at: CGPoint(x: W/2, y: H * 0.3)
+                )
+
+                // "IRL DUNK RESULT" subtitle
+                ctx.draw(
+                    Text("IRL DUNK RESULT")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.5)),
+                    at: CGPoint(x: W/2, y: H * 0.3 + 45)
+                )
+
+                // Score comparison bars
+                let barTop = H * 0.48
+                let barMaxW = W * 0.35
+                let maxSc = max(playerScore, opponentScore, 10.0)
+
+                // Player bar
+                let pBarW = barMaxW * CGFloat(playerScore / maxSc)
+                var pBar = Path()
+                pBar.addRoundedRect(in: CGRect(x: W*0.08, y: barTop, width: pBarW, height: 18), cornerSize: CGSize(width: 4, height: 4))
+                ctx.fill(pBar, with: .linearGradient(
+                    Gradient(colors: [Color.cyan, Color(red: 0.0, green: 0.8, blue: 1.0)]),
+                    startPoint: CGPoint(x: W*0.08, y: barTop),
+                    endPoint: CGPoint(x: W*0.08 + pBarW, y: barTop)
+                ))
+                ctx.draw(
+                    Text(String(format: "YOU  %.1f", playerScore))
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white),
+                    at: CGPoint(x: W*0.08 + pBarW/2, y: barTop + 9)
+                )
+
+                // Opp bar
+                let oBarW = barMaxW * CGFloat(opponentScore / maxSc)
+                var oBar = Path()
+                oBar.addRoundedRect(in: CGRect(x: W*0.08, y: barTop + 30, width: oBarW, height: 18), cornerSize: CGSize(width: 4, height: 4))
+                ctx.fill(oBar, with: .linearGradient(
+                    Gradient(colors: [Color(red: 1.0, green: 0.38, blue: 0.1), Color(red: 1.0, green: 0.6, blue: 0.2)]),
+                    startPoint: CGPoint(x: W*0.08, y: barTop + 30),
+                    endPoint: CGPoint(x: W*0.08 + oBarW, y: barTop + 30)
+                ))
+                ctx.draw(
+                    Text(String(format: "OPP  %.1f", opponentScore))
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundStyle(.white),
+                    at: CGPoint(x: W*0.08 + oBarW/2, y: barTop + 39)
+                )
+
+                // Payout text (if won)
+                if playerWon && payout > 0 {
+                    var payoutGlow = ctx
+                    payoutGlow.addFilter(.blur(radius: 8))
+                    payoutGlow.draw(
+                        Text("+\(payout) SHARDS")
+                            .font(.system(size: 22, weight: .black, design: .monospaced))
+                            .foregroundStyle(Color.green.opacity(0.5)),
+                        at: CGPoint(x: W/2, y: H * 0.62)
+                    )
+                    ctx.draw(
+                        Text("+\(payout) SHARDS")
+                            .font(.system(size: 22, weight: .black, design: .monospaced))
+                            .foregroundStyle(Color.green),
+                        at: CGPoint(x: W/2, y: H * 0.62)
+                    )
+                }
+
+                // Corner trophy icons drawn as paths
+                if playerWon {
+                    for corner in [(W*0.1, H*0.1), (W*0.9, H*0.1), (W*0.1, H*0.9), (W*0.9, H*0.9)] {
+                        let cx = corner.0, cy = corner.1
+                        let spinAngle = t * 0.8 + cx/100
+                        var star = Path()
+                        for pt in 0..<5 {
+                            let angle = Double(pt) * (.pi * 2 / 5) - .pi/2 + spinAngle
+                            let r: CGFloat = pt == 0 ? 14 : 7
+                            let px = cx + CGFloat(cos(angle)) * r
+                            let py = cy + CGFloat(sin(angle)) * r
+                            if pt == 0 { star.move(to: CGPoint(x: px, y: py)) }
+                            else { star.addLine(to: CGPoint(x: px, y: py)) }
+                            // Inner point
+                            let innerAngle = angle + .pi/5
+                            star.addLine(to: CGPoint(x: cx + CGFloat(cos(innerAngle))*7, y: cy + CGFloat(sin(innerAngle))*7))
+                        }
+                        star.closeSubpath()
+                        ctx.fill(star, with: .color(Color.yellow.opacity(0.55)))
+                    }
+                }
             }
-            .padding(.vertical, 14)
-            .padding(.horizontal, 28)
-            .background(Color.black.opacity(0.78))
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.yellow.opacity(0.55), lineWidth: 2))
-            Spacer()
         }
-        .transition(.scale.combined(with: .opacity))
     }
 }
 
@@ -1283,96 +1091,78 @@ private struct ArenaEruptsOverlay: View {
 struct DunkCompetitionView: View {
     let viewModel: LabViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var healthKit = HealthKitService()
 
-    // Top-level phase
-    @State private var compPhase: CompPhase = .lobby
-    @State private var selectedOpponent: LobbyPlayer? = nil
+    // Phase + matchmaking
+    @State private var phase: CompPhase = .lobby
     @State private var selectedFee: CompFee = .practice
-    @State private var showCashAlert: Bool = false
+    @State private var selectedOpponent: LobbyPlayer? = nil
+    @State private var countdownVal: Int = 3
+    @State private var battleTime: Int = 180
+    @State private var timerTask: Task<Void, Never>? = nil
 
-    // Dunk contest state
-    @State private var dunkPhase: DunkPhase = .dunkSelect
-    @State private var selectedDunk: DunkType? = nil
-    @State private var dunkRound: Int = 1
+    // Battle state
+    @State private var jumpRecords: [JumpRecord] = []
+    @State private var maxHeight: Double = 0
+    @State private var lastHeight: String = ""
+    @State private var jumpFlash: Bool = false
+    @State private var jumpProgress: Double = 0      // 0→1→0 for arc
+    @State private var jumpAnimTask: Task<Void, Never>? = nil
+    @State private var isJumping: Bool = false
+    @State private var playerScore: Double = 0       // sum of best 3 scores
+    @State private var jumpCount: Int = 0
 
-    // Scores
-    @State private var playerTotalScore: Double = 0
-    @State private var aiTotalScore: Double = 0
-    @State private var roundScores: [Double] = []
-    @State private var aiRoundScores: [Double] = []
-    @State private var aiTargetTotal: Double = 0
-
-    // Approach animation
-    @State private var runProgress: CGFloat = 0
-    @State private var approachTask: Task<Void, Never>? = nil
-    @State private var isSlowMo: Bool = false
-
-    // Combo system
-    @State private var comboStep: Int = 0
-    @State private var comboHits: [HitQuality] = []
-    @State private var currentPromptTime: Date = Date()
-    @State private var comboFlashColor: Color? = nil
-    @State private var comboFlashLabel: String = ""
-    @State private var comboTask: Task<Void, Never>? = nil
-    @State private var comboExpired: Bool = false
-    @State private var swipeGestureEnabled: Bool = false
-    @State private var consecutivePerfects: Int = 0
-    @State private var promptTimeRemaining: CGFloat = 1.0
-    @State private var ringTask: Task<Void, Never>? = nil
-
-    // Rim moment
-    @State private var rimMomentTask: Task<Void, Never>? = nil
-    @State private var rimGlow: CGFloat = 0
-    @State private var sparks: [RimSpark] = []
-    @State private var sparkAnimTask: Task<Void, Never>? = nil
-
-    // Crowd energy
-    @State private var crowdEnergy: CGFloat = 0.3
-    @State private var showArenaErupts: Bool = false
-
-    // Judge panel
-    @State private var judgeScores: [JudgeScore] = []
-    @State private var judgeRevealTask: Task<Void, Never>? = nil
-    @State private var dunkRoundScore: Double = 0
+    // Opponent
+    @State private var opponentJumps: Int = 0
+    @State private var opponentMax: Double = 0
+    @State private var opponentScore: Double = 0
+    @State private var opponentJumpPhase: Double = 0
+    @State private var opponentJumpTask: Task<Void, Never>? = nil
+    @State private var opponentUpdateTask: Task<Void, Never>? = nil
 
     // Score popups
     @State private var scorePopups: [ScorePopup] = []
+    @State private var lastFeedback: String = ""
+    @State private var feedbackTask: Task<Void, Never>? = nil
 
-    // Hit feedback flash
-    @State private var hitFeedbackText: String = ""
-    @State private var hitFeedbackColor: Color = .white
-    @State private var hitFeedbackScale: CGFloat = 0.5
-    @State private var hitFeedbackOpacity: Double = 0
+    // Result
+    @State private var result: CompResult? = nil
+    @State private var showCashAlert: Bool = false
+    @State private var lobbyRefreshTick: Int = 0
 
-    private let arenaBackground = Color(red: 0.18, green: 0.42, blue: 0.78) // Venice Beach sky
+    private let accentColor = Color(red: 1.0, green: 0.3, blue: 0.1)
 
     var body: some View {
         ZStack {
-            arenaBackground.ignoresSafeArea()
+            Theme.deepBlack.ignoresSafeArea()
 
-            switch compPhase {
+            switch phase {
             case .lobby:
                 lobbyBody
             case .matched:
                 matchedBody
-            case .dunkContest:
-                dunkContestBody
+            case .setup:
+                setupBody
+            case .countdown(let n):
+                countdownPhaseBody(n)
+            case .battle:
+                battleBody
             case .result:
-                resultBody
+                if let r = result { resultBody(r) }
             }
         }
         .alert("Cash Mode Coming Soon", isPresented: $showCashAlert) {
             Button("Got It", role: .cancel) {}
         } message: {
-            Text("Real-money competition powered by Apple Pay is in development.")
+            Text("Real-money competition powered by Apple Pay is in development. Use shards to compete now and earn your spot on the leaderboard.")
         }
         .onDisappear {
-            approachTask?.cancel()
-            comboTask?.cancel()
-            rimMomentTask?.cancel()
-            sparkAnimTask?.cancel()
-            judgeRevealTask?.cancel()
-            ringTask?.cancel()
+            timerTask?.cancel()
+            opponentUpdateTask?.cancel()
+            opponentJumpTask?.cancel()
+            jumpAnimTask?.cancel()
+            feedbackTask?.cancel()
+            healthKit.stopJumpTracking()
         }
     }
 
@@ -1380,69 +1170,95 @@ struct DunkCompetitionView: View {
 
     private var lobbyBody: some View {
         ZStack {
-            LobbyCanvas().ignoresSafeArea().opacity(0.45)
-            LinearGradient(colors: [Color.black.opacity(0.55), Color.black.opacity(0.85)],
-                           startPoint: .top, endPoint: .bottom).ignoresSafeArea()
+            // Animated lobby canvas background
+            LobbyCanvas()
+                .ignoresSafeArea()
+                .opacity(0.45)
+
+            // Dark overlay for readability
+            LinearGradient(
+                colors: [Color.black.opacity(0.55), Color.black.opacity(0.8)],
+                startPoint: .top, endPoint: .bottom
+            ).ignoresSafeArea()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
+                    // Header
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("DUNK COMPETITION")
+                        Text("IRL DUNK COMPETITION")
                             .font(.system(size: 10, weight: .black, design: .monospaced))
-                            .foregroundStyle(Color.orange)
+                            .foregroundStyle(accentColor)
                             .tracking(3)
-                        Text("Legendary Dunk Contest")
+                        Text("1v1 · Set up at a hoop · Make money")
                             .font(.system(size: 28, weight: .black))
                             .italic()
                             .foregroundStyle(.white)
-                        Text("Pick your dunk, nail the combo, earn the crowd. 3 dunks, 3 judges, highest total wins.")
+                        Text("Battle someone live in the queue or challenge a player directly. HealthKit tracks your jump height. Highest max wins.")
                             .font(.system(.caption))
                             .foregroundStyle(.secondary)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 16)
 
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
-                            ForEach([CompFee.practice, .shards(100), .shards(500), .cashComingSoon(5)],
-                                    id: \.label) { fee in
-                                feeChip(fee)
+                    // Entry Fee Picker
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("YOUR ENTRY FEE")
+                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .tracking(2)
+                            .padding(.horizontal, 20)
+
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 10) {
+                                ForEach([CompFee.practice, .shards(100), .shards(500), .shards(1000), .cashComingSoon(5), .cashComingSoon(20)], id: \.label) { fee in
+                                    feeChip(fee)
+                                }
                             }
+                            .padding(.horizontal, 20)
                         }
-                        .padding(.horizontal, 20)
                     }
 
+                    // Queue Controls
                     HStack(spacing: 12) {
                         Button { enterQueue() } label: {
-                            Label("JOIN CONTEST", systemImage: "trophy.fill")
-                                .font(.system(size: 13, weight: .black))
-                                .foregroundStyle(.black)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                                .background(Color.orange)
-                                .clipShape(.rect(cornerRadius: 14))
+                            VStack(spacing: 4) {
+                                Image(systemName: "list.number")
+                                    .font(.system(size: 20, weight: .bold))
+                                Text("JOIN QUEUE")
+                                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                            }
+                            .foregroundStyle(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(accentColor)
+                            .clipShape(.rect(cornerRadius: 14))
                         }
+
                         Button { enterQueue() } label: {
-                            Label("QUICK MATCH", systemImage: "bolt.fill")
-                                .font(.system(size: 13, weight: .black))
-                                .foregroundStyle(Color.orange)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                                .background(Color.orange.opacity(0.1))
-                                .overlay(RoundedRectangle(cornerRadius: 14)
-                                    .stroke(Color.orange.opacity(0.3), lineWidth: 1))
-                                .clipShape(.rect(cornerRadius: 14))
+                            VStack(spacing: 4) {
+                                Image(systemName: "bolt.fill")
+                                    .font(.system(size: 20, weight: .bold))
+                                Text("QUICK MATCH")
+                                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                            }
+                            .foregroundStyle(accentColor)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(accentColor.opacity(0.1))
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(accentColor.opacity(0.3), lineWidth: 1))
+                            .clipShape(.rect(cornerRadius: 14))
                         }
                     }
                     .padding(.horizontal, 20)
 
+                    // Live Lobby
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text("LIVE LOBBY")
                                 .font(.system(size: 9, weight: .black, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .tracking(2)
-                            Circle().fill(.green).frame(width: 6, height: 6)
+                            Circle().fill(.green).frame(width: 6, height: 6).symbolEffect(.pulse)
                             Text("\(lobbyPlayers.count) online")
                                 .font(.system(size: 9, design: .monospaced))
                                 .foregroundStyle(.green)
@@ -1450,11 +1266,16 @@ struct DunkCompetitionView: View {
                         .padding(.horizontal, 20)
 
                         VStack(spacing: 10) {
-                            ForEach(lobbyPlayers) { player in lobbyRow(player) }
+                            ForEach(lobbyPlayers) { player in
+                                lobbyRow(player)
+                            }
                         }
                         .padding(.horizontal, 20)
                     }
-                    .padding(.bottom, 32)
+
+                    howItWorksCard
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 32)
                 }
             }
             .scrollIndicators(.hidden)
@@ -1469,10 +1290,10 @@ struct DunkCompetitionView: View {
             Text(fee.shortLabel)
                 .font(.system(size: 11, weight: .black, design: .monospaced))
                 .foregroundStyle(selectedFee == fee ? .black : (fee.isLocked ? .secondary : fee.color))
-                .padding(.horizontal, 14).padding(.vertical, 8)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
                 .background(selectedFee == fee ? fee.color : fee.color.opacity(0.08))
-                .overlay(RoundedRectangle(cornerRadius: 20)
-                    .stroke(fee.isLocked ? Color.white.opacity(0.1) : fee.color.opacity(0.3), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 20).stroke(fee.isLocked ? Color.white.opacity(0.1) : fee.color.opacity(0.3), lineWidth: 1))
                 .clipShape(Capsule())
                 .opacity(fee.isLocked ? 0.5 : 1.0)
         }
@@ -1481,11 +1302,14 @@ struct DunkCompetitionView: View {
     private func lobbyRow(_ player: LobbyPlayer) -> some View {
         HStack(spacing: 14) {
             ZStack {
-                Circle().fill(player.avatarColor.opacity(0.15)).frame(width: 44, height: 44)
+                Circle()
+                    .fill(player.avatarColor.opacity(0.15))
+                    .frame(width: 44, height: 44)
                 Text(String(player.displayName.prefix(2)).uppercased())
                     .font(.system(size: 14, weight: .black, design: .monospaced))
                     .foregroundStyle(player.avatarColor)
             }
+
             VStack(alignment: .leading, spacing: 3) {
                 Text(player.displayName)
                     .font(.system(.subheadline, weight: .bold))
@@ -1498,13 +1322,20 @@ struct DunkCompetitionView: View {
                     Text("\(player.wins)W \(player.losses)L")
                         .font(.system(size: 9, weight: .bold, design: .monospaced))
                         .foregroundStyle(.secondary)
+                    Text("·").foregroundStyle(.secondary)
+                    Text(player.city)
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundStyle(.secondary)
                 }
             }
+
             Spacer()
+
             VStack(alignment: .trailing, spacing: 4) {
                 Text(player.entryFee.shortLabel)
                     .font(.system(size: 10, weight: .black, design: .monospaced))
                     .foregroundStyle(player.entryFee.color)
+
                 Button {
                     if player.entryFee.isLocked { showCashAlert = true; return }
                     selectedOpponent = player
@@ -1513,8 +1344,9 @@ struct DunkCompetitionView: View {
                     Text("CHALLENGE")
                         .font(.system(size: 8, weight: .black, design: .monospaced))
                         .foregroundStyle(.black)
-                        .padding(.horizontal, 10).padding(.vertical, 5)
-                        .background(Color.orange)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(accentColor)
                         .clipShape(Capsule())
                 }
             }
@@ -1527,6 +1359,46 @@ struct DunkCompetitionView: View {
         )
     }
 
+    private var howItWorksCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("HOW IT WORKS")
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .tracking(2)
+
+            ForEach(Array(zip(
+                ["1", "2", "3", "4"],
+                [
+                    ("camera.fill", "Set up your phone on a tripod facing a regulation 10-ft rim"),
+                    ("heart.fill", "Enable HealthKit — it tracks every jump height automatically"),
+                    ("timer", "3-minute window · Both players jump as many times as possible"),
+                    ("trophy.fill", "Highest max vertical wins the entry fee pot"),
+                ]
+            )), id: \.0) { num, item in
+                HStack(alignment: .top, spacing: 14) {
+                    Text(num)
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .foregroundStyle(accentColor)
+                        .frame(width: 20)
+                    Image(systemName: item.0)
+                        .font(.system(size: 12))
+                        .foregroundStyle(accentColor.opacity(0.7))
+                        .frame(width: 18)
+                    Text(item.1)
+                        .font(.system(.caption))
+                        .foregroundStyle(.white.opacity(0.75))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Theme.cardBackground)
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(accentColor.opacity(0.15), lineWidth: 1))
+        )
+    }
+
     // MARK: - Matched Phase
 
     private var matchedBody: some View {
@@ -1534,16 +1406,19 @@ struct DunkCompetitionView: View {
             Spacer()
             Text("MATCH FOUND")
                 .font(.system(size: 12, weight: .black, design: .monospaced))
-                .foregroundStyle(Color.orange).tracking(4)
+                .foregroundStyle(accentColor)
+                .tracking(4)
 
             HStack(spacing: 24) {
-                playerPod(name: "YOU", sub: "Challenger", color: Color.cyan)
+                playerPod(name: "YOU",
+                          sub: "PRQ \(Int(viewModel.effectiveMetrics.prqScore))",
+                          color: accentColor)
                 Text("VS")
                     .font(.system(size: 18, weight: .black, design: .monospaced))
                     .foregroundStyle(.secondary)
                 playerPod(name: selectedOpponent?.displayName ?? "Opponent",
-                          sub: "PRQ \(selectedOpponent?.prq ?? 72)",
-                          color: selectedOpponent?.avatarColor ?? .orange)
+                          sub: "PRQ \(selectedOpponent?.prq ?? 70)",
+                          color: selectedOpponent?.avatarColor ?? .red)
             }
             .padding(.horizontal, 32)
 
@@ -1551,22 +1426,23 @@ struct DunkCompetitionView: View {
                 Text("Entry Fee: \(selectedFee.label)")
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
                     .foregroundStyle(selectedFee.color)
-                Text("3 dunks · Judge panel scoring · Highest total wins")
-                    .font(.system(.caption)).foregroundStyle(.secondary)
+                Text("Highest max jump in 3 minutes wins")
+                    .font(.system(.caption))
+                    .foregroundStyle(.secondary)
             }
 
-            Button { beginDunkContest() } label: {
-                Text("LET'S DUNK")
+            Button { phase = .setup } label: {
+                Text("ACCEPT & SETUP")
                     .font(.system(.subheadline, weight: .black))
                     .foregroundStyle(.black)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(Color.orange)
+                    .background(accentColor)
                     .clipShape(.rect(cornerRadius: 14))
             }
             .padding(.horizontal, 32)
 
-            Button { compPhase = .lobby } label: {
+            Button { phase = .lobby } label: {
                 Text("Decline")
                     .font(.system(.caption, weight: .medium))
                     .foregroundStyle(.secondary)
@@ -1578,359 +1454,273 @@ struct DunkCompetitionView: View {
     private func playerPod(name: String, sub: String, color: Color) -> some View {
         VStack(spacing: 8) {
             ZStack {
-                Circle().fill(color.opacity(0.15)).frame(width: 64, height: 64)
+                Circle()
+                    .fill(color.opacity(0.15))
+                    .frame(width: 64, height: 64)
                 Text(String(name.prefix(2)).uppercased())
                     .font(.system(size: 20, weight: .black, design: .monospaced))
                     .foregroundStyle(color)
             }
-            Text(name).font(.system(size: 11, weight: .black)).foregroundStyle(.white).lineLimit(1)
-            Text(sub).font(.system(size: 9, design: .monospaced)).foregroundStyle(.secondary)
+            Text(name)
+                .font(.system(size: 11, weight: .black))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+            Text(sub)
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Dunk Contest Body
+    // MARK: - Setup Phase
 
-    private var dunkContestBody: some View {
-        ZStack {
-            DunkArenaCanvas(
-                runProgress: runProgress,
-                isSlowMo: isSlowMo,
-                selectedDunk: selectedDunk,
-                sparks: sparks,
-                crowdEnergy: crowdEnergy,
-                scorePopups: scorePopups,
-                rimGlow: rimGlow,
-                playerScore: playerTotalScore,
-                aiScore: aiTotalScore,
-                dunkRound: dunkRound
-            )
-            .ignoresSafeArea()
-
-            // Crowd meter on right edge
-            VStack {
-                Spacer().frame(height: 120)
-                CrowdMeterView(energy: crowdEnergy)
-                Spacer()
-            }
-            .frame(maxWidth: .infinity, alignment: .trailing)
-            .padding(.trailing, 8)
-
-            // "THE ARENA ERUPTS" overlay + confetti
-            if showArenaErupts {
-                ArenaEruptsOverlay()
-            }
-
-            // Hit feedback flash
-            if hitFeedbackOpacity > 0 {
-                Text(hitFeedbackText)
-                    .font(.system(size: 38, weight: .black, design: .monospaced))
-                    .foregroundStyle(hitFeedbackColor)
-                    .scaleEffect(hitFeedbackScale)
-                    .opacity(hitFeedbackOpacity)
-                    .shadow(color: hitFeedbackColor.opacity(0.6), radius: 12)
-                    .allowsHitTesting(false)
-            }
-
-            // Phase overlays
-            switch dunkPhase {
-            case .dunkSelect:  dunkSelectOverlay
-            case .approach:    approachOverlay
-            case .comboInput:  comboInputOverlay
-            case .rimMoment:   rimMomentOverlay
-            case .judgeReveal: judgeRevealOverlay
-            case .aiTurn:      aiTurnOverlay
-            case .finalResult: EmptyView()
-            }
-        }
-    }
-
-    // MARK: - Dunk Select Overlay
-
-    private var dunkSelectOverlay: some View {
-        VStack(spacing: 0) {
-            Spacer()
-            VStack(spacing: 16) {
-                VStack(spacing: 4) {
-                    Text("ROUND \(dunkRound) OF 3")
-                        .font(.system(size: 9, weight: .black, design: .monospaced))
-                        .foregroundStyle(Color.orange.opacity(0.7))
+    private var setupBody: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                VStack(spacing: 6) {
+                    Text("SETUP REQUIRED")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .foregroundStyle(accentColor)
                         .tracking(3)
-                    Text("CHOOSE YOUR DUNK")
-                        .font(.system(size: 20, weight: .black, design: .monospaced))
+                        .padding(.top, 32)
+                    Text("Proctored Session")
+                        .font(.system(size: 28, weight: .black))
+                        .italic()
                         .foregroundStyle(.white)
                 }
 
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(DunkType.allCases, id: \.rawValue) { move in
-                            DunkSelectCard(
-                                move: move,
-                                isSelected: selectedDunk == move,
-                                onSelect: { selectedDunk = move }
-                            )
-                        }
-                    }
-                    .padding(.horizontal, 20)
+                setupSteps
+
+                HStack(spacing: 10) {
+                    Image(systemName: healthKit.isAuthorized ? "checkmark.circle.fill" : "heart.fill")
+                        .foregroundStyle(healthKit.isAuthorized ? .green : .red)
+                    Text(healthKit.isAuthorized
+                         ? "HealthKit connected — jumps will be tracked automatically"
+                         : "HealthKit required for verified competition")
+                        .font(.system(.caption))
+                        .foregroundStyle(healthKit.isAuthorized ? .green : .red)
                 }
+                .padding(14)
+                .background(RoundedRectangle(cornerRadius: 12).fill((healthKit.isAuthorized ? Color.green : Color.red).opacity(0.08)))
+                .padding(.horizontal, 20)
 
-                Button {
-                    guard selectedDunk != nil else { return }
-                    startApproach()
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "figure.run")
-                        Text(selectedDunk != nil ? "START APPROACH" : "SELECT A DUNK")
-                    }
-                    .font(.system(size: 16, weight: .black))
-                    .foregroundStyle(selectedDunk != nil ? .black : .white.opacity(0.3))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(selectedDunk != nil ? Color.orange : Color.white.opacity(0.08))
-                    .clipShape(.rect(cornerRadius: 16))
-                    .padding(.horizontal, 20)
-                }
-                .disabled(selectedDunk == nil)
-            }
-            .padding(.vertical, 24)
-            .background(
-                Rectangle()
-                    .fill(.ultraThinMaterial)
-                    .ignoresSafeArea(edges: .bottom)
-            )
-        }
-    }
-
-    // MARK: - Approach Overlay
-
-    private var approachOverlay: some View {
-        VStack {
-            Spacer()
-            VStack(spacing: 8) {
-                if let dunk = selectedDunk {
-                    Text(dunk.rawValue)
-                        .font(.system(size: 22, weight: .black, design: .monospaced))
-                        .foregroundStyle(Color.orange)
-                    Text("GET READY FOR THE COMBO...")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.5))
-                        .tracking(2)
-                }
-            }
-            .padding(.vertical, 20)
-            .frame(maxWidth: .infinity)
-            .background(.ultraThinMaterial.opacity(0.6))
-        }
-    }
-
-    // MARK: - Combo Input Overlay
-
-    private var comboInputOverlay: some View {
-        VStack {
-            Spacer()
-            VStack(spacing: 20) {
-                if let dunk = selectedDunk, comboStep < dunk.comboSequence.count {
-                    ComboPromptView(
-                        direction: dunk.comboSequence[comboStep],
-                        flashColor: comboFlashColor,
-                        stepIndex: comboStep,
-                        totalSteps: dunk.comboSequence.count,
-                        timeRemaining: promptTimeRemaining,
-                        consecutivePerfects: consecutivePerfects
-                    )
-                }
-
-                if !comboFlashLabel.isEmpty {
-                    Text(comboFlashLabel)
-                        .font(.system(size: 14, weight: .black, design: .monospaced))
-                        .foregroundStyle(comboFlashColor ?? .white)
-                        .transition(.scale.combined(with: .opacity))
-                }
-            }
-            .padding(.vertical, 28)
-            .frame(maxWidth: .infinity)
-            .background(
-                Rectangle()
-                    .fill(.ultraThinMaterial.opacity(0.85))
-                    .ignoresSafeArea(edges: .bottom)
-            )
-        }
-        .gesture(
-            DragGesture(minimumDistance: 20)
-                .onEnded { value in
-                    guard swipeGestureEnabled else { return }
-                    handleSwipe(value)
-                }
-        )
-    }
-
-    // MARK: - Rim Moment Overlay
-
-    private var rimMomentOverlay: some View {
-        VStack {
-            Spacer()
-            VStack(spacing: 8) {
-                if let dunk = selectedDunk {
-                    Text(dunk.rawValue)
-                        .font(.system(size: 28, weight: .black, design: .monospaced))
-                        .foregroundStyle(Color.orange)
-                        .shadow(color: Color.orange.opacity(0.8), radius: 10)
-
-                    let perfects = comboHits.filter { $0 == .perfect }.count
-                    let goods    = comboHits.filter { $0 == .good }.count
-                    let misses   = comboHits.filter { $0 == .miss }.count
-                    HStack(spacing: 12) {
-                        comboHitBadge("\(perfects) PERFECT", color: .green)
-                        comboHitBadge("\(goods) GOOD", color: .white)
-                        comboHitBadge("\(misses) MISS", color: .red)
-                    }
-                }
-            }
-            .padding(.vertical, 20)
-            .frame(maxWidth: .infinity)
-            .background(.ultraThinMaterial.opacity(0.75))
-        }
-    }
-
-    private func comboHitBadge(_ text: String, color: Color) -> some View {
-        Text(text)
-            .font(.system(size: 10, weight: .black, design: .monospaced))
-            .foregroundStyle(color)
-            .padding(.horizontal, 10).padding(.vertical, 5)
-            .background(color.opacity(0.1))
-            .clipShape(Capsule())
-            .overlay(Capsule().stroke(color.opacity(0.3), lineWidth: 1))
-    }
-
-    // MARK: - Judge Reveal Overlay
-
-    private var judgeRevealOverlay: some View {
-        VStack {
-            Spacer()
-            VStack(spacing: 16) {
-                Text("JUDGE SCORES")
-                    .font(.system(size: 10, weight: .black, design: .monospaced))
-                    .foregroundStyle(Color.orange.opacity(0.7))
-                    .tracking(4)
-
-                JudgePanelView(scores: judgeScores)
-                    .padding(.horizontal, 20)
-
-                if judgeScores.allSatisfy(\.revealed) {
-                    VStack(spacing: 4) {
-                        Text(String(format: "%.1f / 30", dunkRoundScore))
-                            .font(.system(size: 36, weight: .black, design: .monospaced))
-                            .foregroundStyle(Color(red: 1.0, green: 0.85, blue: 0.20))
-                            .shadow(color: Color.yellow.opacity(0.6), radius: 8)
-
-                        Text(roundScoreLabel(dunkRoundScore))
-                            .font(.system(size: 11, weight: .black, design: .monospaced))
-                            .foregroundStyle(Color.orange)
-                            .tracking(2)
-                    }
-                    .transition(.scale.combined(with: .opacity))
-
-                    Button { proceedAfterJudges() } label: {
-                        Text(dunkRound < 3 ? "NEXT ROUND →" : "SEE FINAL RESULT")
-                            .font(.system(size: 15, weight: .black))
+                if !healthKit.isAuthorized {
+                    Button { Task { await healthKit.requestAuthorization() } } label: {
+                        Text("CONNECT HEALTHKIT")
+                            .font(.system(.subheadline, weight: .black))
                             .foregroundStyle(.black)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(Color.orange)
+                            .padding(.vertical, 16)
+                            .background(accentColor)
                             .clipShape(.rect(cornerRadius: 14))
-                            .padding(.horizontal, 20)
                     }
+                    .padding(.horizontal, 20)
                 }
+
+                Button { beginCountdown() } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "flag.checkered")
+                        Text(healthKit.isAuthorized ? "I'M SET UP — START" : "START (Simulation Mode)")
+                    }
+                    .font(.system(.subheadline, weight: .black))
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(healthKit.isAuthorized ? accentColor : Color.white.opacity(0.25))
+                    .clipShape(.rect(cornerRadius: 14))
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 32)
             }
-            .padding(.vertical, 20)
-            .background(
-                Rectangle()
-                    .fill(.ultraThinMaterial)
-                    .ignoresSafeArea(edges: .bottom)
-            )
         }
-        .animation(.spring(response: 0.35), value: judgeScores.map(\.revealed))
+        .scrollIndicators(.hidden)
     }
 
-    // MARK: - AI Turn Overlay
-
-    private var aiTurnOverlay: some View {
-        VStack {
-            Spacer()
-            VStack(spacing: 12) {
-                Text("AI OPPONENT DUNKING...")
-                    .font(.system(size: 14, weight: .black, design: .monospaced))
-                    .foregroundStyle(Color(red: 1.0, green: 0.5, blue: 0.1))
-                    .tracking(2)
-
-                ProgressView().tint(Color.orange).scaleEffect(1.4)
-
-                if !aiRoundScores.isEmpty, let lastAI = aiRoundScores.last {
-                    Text(String(format: "AI scored %.1f this round", lastAI))
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(.white.opacity(0.5))
+    private var setupSteps: some View {
+        VStack(spacing: 12) {
+            ForEach(Array(zip(
+                ["01", "02", "03", "04"],
+                [
+                    ("iphone.and.arrow.forward", "Place your phone on a tripod angled to capture your full vertical leap"),
+                    ("figure.basketball", "Position yourself under a regulation 10-foot rim"),
+                    ("camera.on.rectangle.fill", "Make sure your full body is in frame from feet to peak jump"),
+                    ("checkmark.shield.fill", "Both players confirm ready — competition starts simultaneously"),
+                ]
+            )), id: \.0) { num, item in
+                HStack(alignment: .top, spacing: 14) {
+                    Text(num)
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .foregroundStyle(accentColor)
+                        .frame(width: 24)
+                    Image(systemName: item.0)
+                        .font(.system(size: 16))
+                        .foregroundStyle(accentColor)
+                        .frame(width: 24)
+                    Text(item.1)
+                        .font(.system(.subheadline))
+                        .foregroundStyle(.white.opacity(0.85))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
+                .padding(14)
+                .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.03))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(accentColor.opacity(0.1), lineWidth: 1)))
             }
-            .padding(.vertical, 28)
-            .frame(maxWidth: .infinity)
-            .background(.ultraThinMaterial.opacity(0.85))
         }
+        .padding(.horizontal, 20)
     }
 
-    // MARK: - Result Body
+    // MARK: - Countdown Phase
 
-    private var resultBody: some View {
+    private func countdownPhaseBody(_ n: Int) -> some View {
         ZStack {
-            ResultCanvas(
-                playerWon: playerTotalScore >= aiTotalScore,
-                playerScore: playerTotalScore,
-                aiScore: aiTotalScore
+            CountdownCanvas(number: n)
+                .ignoresSafeArea()
+        }
+    }
+
+    // MARK: - Battle Phase
+
+    private var battleBody: some View {
+        ZStack(alignment: .bottom) {
+            // Full-screen canvas arena
+            DunkArenaCanvas(
+                playerScore: playerScore,
+                opponentScore: opponentScore,
+                playerJumps: jumpRecords,
+                jumpProgress: jumpProgress,
+                isJumping: isJumping,
+                opponentJumpPhase: opponentJumpPhase,
+                scorePopups: scorePopups,
+                opponentName: selectedOpponent?.displayName ?? "Opponent",
+                lastFeedback: lastFeedback
             )
             .ignoresSafeArea()
 
+            // Overlay HUD at bottom
             VStack(spacing: 0) {
-                Spacer().frame(height: 300)
+                Spacer()
 
-                VStack(spacing: 20) {
-                    VStack(spacing: 10) {
-                        Text("ROUND BREAKDOWN")
-                            .font(.system(size: 9, weight: .black, design: .monospaced))
-                            .foregroundStyle(.secondary).tracking(3)
+                // Timer + scoreboard bar
+                HStack {
+                    VStack(spacing: 2) {
+                        Text("TIME")
+                            .font(.system(size: 7, weight: .black, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                        Text(timeFormatted)
+                            .font(.system(size: 18, weight: .black, design: .monospaced))
+                            .foregroundStyle(battleTime <= 30 ? .red : .white)
+                            .contentTransition(.numericText())
+                    }
+                    Spacer()
+                    VStack(spacing: 2) {
+                        Text("YOUR MAX")
+                            .font(.system(size: 7, weight: .black, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                        Text(String(format: "%.1f\"", maxHeight))
+                            .font(.system(size: 18, weight: .black, design: .monospaced))
+                            .foregroundStyle(.cyan)
+                            .contentTransition(.numericText())
+                    }
+                    Spacer()
+                    VStack(spacing: 2) {
+                        Text("JUMPS")
+                            .font(.system(size: 7, weight: .black, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                        Text("\(jumpRecords.count)/5")
+                            .font(.system(size: 18, weight: .black, design: .monospaced))
+                            .foregroundStyle(.white)
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial.opacity(0.85))
 
-                        HStack(spacing: 8) {
-                            ForEach(0..<3, id: \.self) { i in
-                                VStack(spacing: 4) {
-                                    Text("RND \(i + 1)")
-                                        .font(.system(size: 8, weight: .black, design: .monospaced))
-                                        .foregroundStyle(.secondary)
-                                    Text(i < roundScores.count ? String(format: "%.1f", roundScores[i]) : "—")
-                                        .font(.system(size: 16, weight: .black, design: .monospaced))
-                                        .foregroundStyle(.cyan)
-                                    Text(i < aiRoundScores.count ? String(format: "%.1f", aiRoundScores[i]) : "—")
-                                        .font(.system(size: 16, weight: .black, design: .monospaced))
-                                        .foregroundStyle(Color(red: 1.0, green: 0.5, blue: 0.1))
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(10)
-                                .background(Color.white.opacity(0.05))
-                                .clipShape(.rect(cornerRadius: 10))
+                // JUMP button
+                Button {
+                    recordJump()
+                } label: {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(isJumping ? accentColor.opacity(0.4) : accentColor)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .stroke(.white.opacity(0.3), lineWidth: 1.5)
+                            )
+
+                        VStack(spacing: 4) {
+                            Text(isJumping ? "IN AIR..." : "JUMP")
+                                .font(.system(size: 24, weight: .black, design: .monospaced))
+                                .foregroundStyle(isJumping ? .white.opacity(0.6) : .white)
+                            if !lastHeight.isEmpty {
+                                Text(lastHeight)
+                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(.white.opacity(0.8))
                             }
                         }
-
-                        HStack {
-                            Text("YOU")
-                                .font(.system(size: 8, design: .monospaced)).foregroundStyle(.cyan)
-                            Spacer()
-                            Text("AI")
-                                .font(.system(size: 8, design: .monospaced))
-                                .foregroundStyle(Color(red: 1.0, green: 0.5, blue: 0.1))
-                        }
-                        .padding(.horizontal, 4)
                     }
-                    .padding(16)
-                    .background(Color.black.opacity(0.60))
-                    .clipShape(.rect(cornerRadius: 16))
-                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.08), lineWidth: 1))
+                    .frame(height: 72)
+                    .padding(.horizontal, 24)
+                }
+                .disabled(isJumping || jumpRecords.count >= 5)
+                .padding(.top, 8)
+
+                if healthKit.isAuthorized {
+                    Text("HealthKit is counting your real jumps")
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 4)
+                }
+
+                Button { endBattle() } label: {
+                    Text("END EARLY")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .foregroundStyle(.red)
+                        .padding(.horizontal, 20).padding(.vertical, 8)
+                        .background(Color.red.opacity(0.1))
+                        .clipShape(Capsule())
+                }
+                .padding(.top, 6)
+                .padding(.bottom, 24)
+            }
+        }
+    }
+
+    // MARK: - Result Phase
+
+    private func resultBody(_ r: CompResult) -> some View {
+        ZStack {
+            ResultCanvas(
+                playerWon: r.playerWon,
+                playerScore: r.playerMaxHeight,
+                opponentScore: r.opponentMaxHeight,
+                payout: r.payout
+            )
+            .ignoresSafeArea()
+
+            ScrollView {
+                VStack(spacing: 24) {
+                    Color.clear.frame(height: 0)
+                        .padding(.top, 280)
+
+                    if r.playerWon {
+                        HStack(spacing: 8) {
+                            Image(systemName: "diamond.fill")
+                                .foregroundStyle(Theme.brandCyan)
+                            Text("+\(r.payout) shards earned")
+                                .font(.system(.headline, design: .monospaced, weight: .black))
+                                .foregroundStyle(.white)
+                        }
+                        .padding(14)
+                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.green.opacity(0.12))
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.green.opacity(0.3), lineWidth: 1)))
+                        .padding(.horizontal, 20)
+                    }
+
+                    HStack(spacing: 16) {
+                        compStat("YOUR MAX", value: String(format: "%.1f\"", r.playerMaxHeight), icon: "arrow.up.circle.fill", color: accentColor)
+                        compStat("JUMPS", value: "\(r.playerJumps)", icon: "figure.basketball", color: .cyan)
+                        compStat("THEIR MAX", value: String(format: "%.1f\"", r.opponentMaxHeight), icon: "person.fill", color: selectedOpponent?.avatarColor ?? .red)
+                    }
                     .padding(.horizontal, 20)
 
                     Button { dismiss() } label: {
@@ -1939,469 +1729,255 @@ struct DunkCompetitionView: View {
                             .foregroundStyle(.black)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(Color.orange)
+                            .background(accentColor)
                             .clipShape(.rect(cornerRadius: 14))
                     }
                     .padding(.horizontal, 24)
                     .padding(.bottom, 32)
                 }
             }
+            .scrollIndicators(.hidden)
         }
     }
 
-    // MARK: - Game Flow
+    private func compStat(_ label: String, value: String, icon: String, color: Color) -> some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon).font(.system(size: 20, weight: .bold)).foregroundStyle(color)
+            Text(value).font(.system(size: 20, weight: .black, design: .monospaced)).foregroundStyle(.white)
+            Text(label).font(.system(size: 8, design: .monospaced)).foregroundStyle(.secondary).multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 14).fill(color.opacity(0.06)))
+    }
+
+    // MARK: - Helpers
+
+    private var timeFormatted: String {
+        let m = battleTime / 60
+        let s = battleTime % 60
+        return String(format: "%d:%02d", m, s)
+    }
 
     private func enterQueue() {
-        if selectedOpponent == nil { selectedOpponent = lobbyPlayers.randomElement() }
+        if selectedOpponent == nil {
+            selectedOpponent = lobbyPlayers.randomElement()
+        }
         Task {
-            try? await Task.sleep(for: .seconds(Double.random(in: 1.2...2.5)))
-            await MainActor.run { compPhase = .matched }
+            try? await Task.sleep(for: .seconds(Double.random(in: 1.5...3.0)))
+            await MainActor.run { phase = .matched }
         }
     }
 
-    private func beginDunkContest() {
-        // AI rival pre-set totals: 23–28 / 30
-        aiTargetTotal = Double.random(in: 23...28)
-        playerTotalScore = 0
-        aiTotalScore = 0
-        roundScores = []
-        aiRoundScores = []
-        dunkRound = 1
-        crowdEnergy = 0.3
-        selectedDunk = nil
-        dunkPhase = .dunkSelect
-        compPhase = .dunkContest
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-    }
-
-    // MARK: - Approach Phase
-
-    private func startApproach() {
-        guard let dunk = selectedDunk else { return }
-        dunkPhase = .approach
-        runProgress = 0
-        isSlowMo = false
-        comboHits = []
-        comboStep = 0
-        consecutivePerfects = 0
-        comboFlashColor = nil
-        comboFlashLabel = ""
-        rimGlow = 0
-        sparks = []
-
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-
-        approachTask?.cancel()
-        approachTask = Task {
-            // runProgress animates 0→1 over 1.5 seconds
-            // Combo input zone activates at runProgress == 0.55
-            let normalDuration: Double = 1.5
-            let normalSteps = 90
-            for i in 0...normalSteps {
-                guard !Task.isCancelled else { return }
-                let p = CGFloat(i) / CGFloat(normalSteps) * 0.85
-                await MainActor.run { runProgress = p }
-                try? await Task.sleep(for: .milliseconds(Int(normalDuration / Double(normalSteps) * 1000)))
-
-                if p >= 0.55 && dunkPhase == .approach {
-                    await MainActor.run {
-                        dunkPhase = .comboInput
-                        beginComboSequence(dunk: dunk)
-                    }
-                    break
-                }
-            }
-        }
-    }
-
-    // MARK: - Combo System
-
-    private func beginComboSequence(dunk: DunkType) {
-        comboStep = 0
-        consecutivePerfects = 0
-        comboExpired = false
-        swipeGestureEnabled = true
-        comboFlashColor = nil
-        comboFlashLabel = ""
-        comboTask?.cancel()
-        scheduleNextComboPrompt(dunk: dunk)
-    }
-
-    private func scheduleNextComboPrompt(dunk: DunkType) {
-        guard comboStep < dunk.comboSequence.count else {
-            swipeGestureEnabled = false
-            finishCombo(dunk: dunk)
-            return
-        }
-
-        currentPromptTime = Date()
-        comboFlashColor = nil
-        comboFlashLabel = ""
-        promptTimeRemaining = 1.0
-
-        // Shrinking ring: animates from 1.0 → 0.0 over the 0.45s window
-        ringTask?.cancel()
-        ringTask = Task {
-            let steps = 30
-            for s in 0...steps {
-                guard !Task.isCancelled else { return }
-                let remaining = 1.0 - CGFloat(s) / CGFloat(steps)
-                await MainActor.run { promptTimeRemaining = remaining }
-                try? await Task.sleep(for: .milliseconds(15))
-            }
-        }
-
-        // Each prompt shows for 0.45 seconds with a shrinking ring countdown
-        comboTask = Task {
-            try? await Task.sleep(for: .milliseconds(450))
-            guard !Task.isCancelled else { return }
-            await MainActor.run {
-                if comboStep < dunk.comboSequence.count && !comboExpired {
-                    registerHit(quality: .miss, dunk: dunk)
-                }
-            }
-        }
-    }
-
-    private func handleSwipe(_ value: DragGesture.Value) {
-        guard let dunk = selectedDunk, comboStep < dunk.comboSequence.count else { return }
-
-        let dx = value.translation.width
-        let dy = value.translation.height
-        let direction: SwipeDirection = abs(dx) > abs(dy)
-            ? (dx > 0 ? .right : .left)
-            : (dy > 0 ? .down : .up)
-
-        let expected = dunk.comboSequence[comboStep]
-        let elapsed = Date().timeIntervalSince(currentPromptTime)
-
-        let quality: HitQuality
-        if direction == expected {
-            // Within 0.15s of center → PERFECT; within 0.30s → GOOD
-            quality = elapsed <= 0.15 ? .perfect : .good
-        } else {
-            quality = .miss
-        }
-
-        comboTask?.cancel()
-        ringTask?.cancel()
-        registerHit(quality: quality, dunk: dunk)
-    }
-
-    private func registerHit(quality: HitQuality, dunk: DunkType) {
-        comboHits.append(quality)
-        comboFlashColor = quality.color
-        comboFlashLabel = quality.label
-
-        // Track consecutive perfects for multiplier boost
-        if quality == .perfect {
-            consecutivePerfects += 1
-        } else {
-            consecutivePerfects = 0
-        }
-
-        // Haptics
-        switch quality {
-        case .perfect: UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
-        case .good:    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        case .miss:    UINotificationFeedbackGenerator().notificationOccurred(.error)
-        }
-
-        showHitFeedback(text: quality.label, color: quality.color)
-        comboStep += 1
-
-        if comboStep < dunk.comboSequence.count && quality != .miss {
-            scheduleNextComboPrompt(dunk: dunk)
-        } else if quality == .miss {
-            // Chain breaks — fill remaining steps as misses
-            Task {
-                for _ in comboStep..<dunk.comboSequence.count {
-                    await MainActor.run { comboHits.append(.miss) }
-                    try? await Task.sleep(for: .milliseconds(80))
-                }
+    private func beginCountdown() {
+        countdownVal = 3
+        phase = .countdown(3)
+        // Haptic on countdown start
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        Task {
+            for i in stride(from: 3, through: 1, by: -1) {
                 await MainActor.run {
-                    comboStep = dunk.comboSequence.count
-                    consecutivePerfects = 0
-                    swipeGestureEnabled = false
-                    finishCombo(dunk: dunk)
-                }
-            }
-        } else if comboStep >= dunk.comboSequence.count {
-            swipeGestureEnabled = false
-            finishCombo(dunk: dunk)
-        }
-    }
-
-    private func finishCombo(dunk: DunkType) {
-        dunkPhase = .rimMoment
-        isSlowMo = true
-
-        approachTask?.cancel()
-        approachTask = Task {
-            // At runProgress >= 0.85: speed drops to 0.25x (slow-motion)
-            // 0.85 → 1.0 over ~0.9s (0.25x speed)
-            let slowSteps = 54
-            for i in 0...slowSteps {
-                guard !Task.isCancelled else { return }
-                let p: CGFloat = 0.85 + CGFloat(i) / CGFloat(slowSteps) * 0.15
-                await MainActor.run { runProgress = p }
-                try? await Task.sleep(for: .milliseconds(16))
-            }
-            await MainActor.run { runProgress = 1.0 }
-
-            // Orange particle burst from rim (20 sparks radiating outward)
-            await MainActor.run { triggerRimSparks() }
-            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-
-            // Hold 0.9 seconds before result
-            try? await Task.sleep(for: .milliseconds(900))
-
-            await MainActor.run {
-                let score = calculateDunkScore(dunk: dunk)
-                dunkRoundScore = score
-                playerTotalScore += score
-                roundScores.append(score)
-                showJudgeReveal(score: score)
-                addScorePopup(score: score)
-
-                // Crowd energy fills with combo quality
-                // Perfect 5-combo = full bar instantly; partial = partial fill
-                let energyGain = (score / 30.0) * Double(dunk.crowdFactor) * 0.65
-                crowdEnergy = min(1.0, crowdEnergy + energyGain)
-                // When bar hits 100%: "THE ARENA ERUPTS"
-                if crowdEnergy >= 1.0 {
-                    triggerArenaErupts()
-                }
-            }
-        }
-    }
-
-    // MARK: - Scoring
-    // combo_score(0-5) + difficulty(0-3) + crowd(0-2) = max 10.0 per judge
-
-    private func calculateDunkScore(dunk: DunkType) -> Double {
-        var comboQuality: Double = 0
-        var runningPerfects = 0
-
-        for hit in comboHits {
-            // Multipliers: 1.0 / 1.3 / 1.6 / 2.0 / 2.5 for each consecutive perfect
-            let multIdx = min(runningPerfects, comboMultipliers.count - 1)
-            comboQuality += Double(hit.scoreMultiplier) * Double(comboMultipliers[multIdx])
-            if hit == .perfect { runningPerfects += 1 } else { runningPerfects = 0 }
-        }
-
-        // Normalize against max possible with all perfects
-        var maxQuality: Double = 0
-        for i in 0..<dunk.comboSequence.count {
-            maxQuality += Double(comboMultipliers[min(i, comboMultipliers.count - 1)])
-        }
-        let comboNorm = maxQuality > 0 ? min(1.0, comboQuality / maxQuality) : 0
-
-        let comboPoints = comboNorm * 5.0
-        let diffPoints  = Double(dunk.baseDifficulty) / 5.0 * 3.0
-        let crowdPoints = Double(crowdEnergy) * 2.0
-
-        return min(30.0, max(0, comboPoints + diffPoints + crowdPoints))
-    }
-
-    // MARK: - Judge Reveal
-    // After each dunk: 3 judge cards at bottom animate in
-    // Scores appear one at a time with 0.4s delay (build suspense)
-
-    private func showJudgeReveal(score: Double) {
-        let perJudge = score / 3.0
-        let j1 = max(0, min(10, perJudge + Double.random(in: -0.5...0.5)))
-        let j2 = max(0, min(10, perJudge + Double.random(in: -0.5...0.5)))
-        let j3 = max(0, min(10, score - j1 - j2 + Double.random(in: -0.3...0.3)))
-
-        judgeScores = [
-            JudgeScore(judgeIndex: 0, score: round(j1 * 10) / 10, revealed: false),
-            JudgeScore(judgeIndex: 1, score: round(j2 * 10) / 10, revealed: false),
-            JudgeScore(judgeIndex: 2, score: round(j3 * 10) / 10, revealed: false)
-        ]
-        dunkPhase = .judgeReveal
-
-        judgeRevealTask?.cancel()
-        judgeRevealTask = Task {
-            for i in 0..<3 {
-                // 0.4s delay between each reveal for suspense
-                try? await Task.sleep(for: .milliseconds(400))
-                guard !Task.isCancelled else { return }
-                await MainActor.run {
-                    judgeScores[i].revealed = true
+                    countdownVal = i
+                    phase = .countdown(i)
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 }
+                try? await Task.sleep(for: .seconds(1))
             }
+            await MainActor.run { startBattle() }
         }
     }
 
-    private func proceedAfterJudges() {
-        dunkPhase = .aiTurn
-        runAITurn()
-    }
+    private func startBattle() {
+        jumpRecords = []
+        maxHeight = 0
+        playerScore = 0
+        opponentJumps = 0
+        opponentMax = 0
+        opponentScore = 0
+        battleTime = 180
+        lastFeedback = ""
+        scorePopups = []
+        phase = .battle
 
-    // MARK: - AI Turn (3 dunks, pre-set totals 23–28/30)
+        // Haptic — battle start
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
 
-    private func runAITurn() {
-        Task {
-            try? await Task.sleep(for: .seconds(2.0))
-            guard !Task.isCancelled else { return }
-
-            let aiRoundScore: Double
-            if dunkRound == 3 {
-                let remaining = aiTargetTotal - aiTotalScore
-                aiRoundScore = max(0, min(30, remaining + Double.random(in: -1...1)))
-            } else {
-                aiRoundScore = aiTargetTotal / 3.0 + Double.random(in: -1.5...1.5)
+        // Main countdown timer
+        timerTask = Task {
+            while battleTime > 0 {
+                try? await Task.sleep(for: .seconds(1))
+                guard !Task.isCancelled else { return }
+                await MainActor.run { battleTime -= 1 }
             }
+            await MainActor.run { endBattle() }
+        }
 
-            await MainActor.run {
-                aiTotalScore += aiRoundScore
-                aiRoundScores.append(aiRoundScore)
-
-                if dunkRound < 3 {
-                    dunkRound += 1
-                    selectedDunk = nil
-                    dunkPhase = .dunkSelect
-                    crowdEnergy = max(0.1, crowdEnergy - 0.15)
-                } else {
-                    finalizeDunkContest()
+        // HealthKit real jump tracking
+        if healthKit.isAuthorized {
+            healthKit.startJumpTracking { h in
+                Task { @MainActor in
+                    guard jumpRecords.count < 5 else { return }
+                    let score = min(10.0, max(6.0, h / 4.5))
+                    let record = JumpRecord(score: score, timestamp: Date())
+                    jumpRecords.append(record)
+                    jumpCount = jumpRecords.count
+                    maxHeight = max(maxHeight, h)
+                    lastHeight = String(format: "%.1f\"", h)
+                    playerScore = computePlayerScore()
+                    triggerJumpAnimation()
+                    addScorePopup(score: score)
+                    showFeedback()
+                    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
                 }
             }
         }
-    }
 
-    // MARK: - Final Result
-
-    private func finalizeDunkContest() {
-        let won = playerTotalScore >= aiTotalScore
-
-        if won {
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-            if case .shards(let n) = selectedFee {
-                viewModel.profile.evolutionShards += n * 2
-            }
-        } else {
-            UINotificationFeedbackGenerator().notificationOccurred(.error)
-        }
-
-        GameResultService.saveResult(
-            modeId: "dunk_competition",
-            userScore: Int(playerTotalScore),
-            opponentScore: Int(aiTotalScore)
-        )
-
-        compPhase = .result
-    }
-
-    // MARK: - Rim Sparks (20 sparks radiating outward)
-
-    private func triggerRimSparks() {
-        let basketX = UIScreen.main.bounds.width * 0.82
-        let rimY    = UIScreen.main.bounds.height * 0.30
-
-        sparks = (0..<20).map { _ in
-            let angle = Double.random(in: 0...(Double.pi * 2))
-            let speed = CGFloat.random(in: 1.8...4.8)
-            return RimSpark(
-                x: basketX,
-                y: rimY,
-                vx: CGFloat(cos(angle)) * speed,
-                vy: CGFloat(sin(angle)) * speed - 2,
-                alpha: 1.0,
-                size: CGFloat.random(in: 3...8)
-            )
-        }
-        rimGlow = 1.0
-
-        sparkAnimTask?.cancel()
-        sparkAnimTask = Task {
-            for _ in 0..<48 {
-                guard !Task.isCancelled else { break }
-                try? await Task.sleep(for: .milliseconds(16))
+        // Simulated opponent
+        opponentUpdateTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(Double.random(in: 4...9)))
+                guard !Task.isCancelled else { return }
                 await MainActor.run {
-                    sparks = sparks.compactMap { s in
-                        var ns = s
-                        ns.x     += s.vx
-                        ns.y     += s.vy
-                        ns.vy    += 0.15
-                        ns.alpha -= 0.035
-                        ns.size  -= 0.07
-                        return ns.alpha > 0 ? ns : nil
-                    }
-                    rimGlow = max(0, rimGlow - 0.045)
+                    opponentJumps += 1
+                    let h = Double.random(in: 18...42)
+                    opponentMax = max(opponentMax, h)
+                    opponentScore = min(30.0, opponentScore + Double.random(in: 6.0...10.0))
+                    triggerOpponentJump()
                 }
             }
-            await MainActor.run { sparks = []; rimGlow = 0 }
         }
     }
 
-    // MARK: - Arena Erupts
-
-    private func triggerArenaErupts() {
-        showArenaErupts = true
-        Task {
-            try? await Task.sleep(for: .seconds(2.8))
-            await MainActor.run { showArenaErupts = false }
-        }
+    private func computePlayerScore() -> Double {
+        let scores = jumpRecords.map { $0.score }.sorted(by: >)
+        let best3 = Array(scores.prefix(3))
+        return best3.reduce(0, +)
     }
 
-    // MARK: - Hit Feedback Flash
-
-    private func showHitFeedback(text: String, color: Color) {
-        hitFeedbackText    = text
-        hitFeedbackColor   = color
-        hitFeedbackScale   = 0.5
-        hitFeedbackOpacity = 1.0
-        withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
-            hitFeedbackScale = 1.1
-        }
-        Task {
-            try? await Task.sleep(for: .milliseconds(600))
+    private func triggerJumpAnimation() {
+        guard !isJumping else { return }
+        isJumping = true
+        jumpAnimTask?.cancel()
+        jumpAnimTask = Task {
+            let steps = 60
+            for i in 0...steps {
+                guard !Task.isCancelled else { break }
+                let progress = Double(i) / Double(steps)
+                await MainActor.run { jumpProgress = progress }
+                try? await Task.sleep(for: .milliseconds(16))
+            }
             await MainActor.run {
-                withAnimation(.easeOut(duration: 0.3)) {
-                    hitFeedbackOpacity = 0
-                    hitFeedbackScale   = 1.3
-                }
+                jumpProgress = 0
+                isJumping = false
             }
         }
     }
 
-    // MARK: - Score Popup
+    private func triggerOpponentJump() {
+        opponentJumpTask?.cancel()
+        opponentJumpTask = Task {
+            let steps = 60
+            for i in 0...steps {
+                guard !Task.isCancelled else { break }
+                let progress = Double(i) / Double(steps)
+                await MainActor.run { opponentJumpPhase = progress }
+                try? await Task.sleep(for: .milliseconds(16))
+            }
+            await MainActor.run { opponentJumpPhase = 0 }
+        }
+    }
 
     private func addScorePopup(score: Double) {
-        let popup = ScorePopup(text: String(format: "%.1f pts", score),
-                               yOffset: 0, opacity: 1.0,
-                               xPos: CGFloat.random(in: 140...220), color: .yellow)
+        let popup = ScorePopup(score: score, yOffset: 0, opacity: 1.0, xPos: CGFloat.random(in: 180...240))
         scorePopups.append(popup)
+
+        // Animate popup upward and fade
         Task {
             for step in 0..<40 {
                 guard !Task.isCancelled else { break }
-                let progress = Double(step) / 40.0
+                let t = Double(step) / 40.0
                 await MainActor.run {
                     if let idx = scorePopups.firstIndex(where: { $0.id == popup.id }) {
                         scorePopups[idx] = ScorePopup(
-                            text: popup.text,
-                            yOffset: CGFloat(-progress * 70),
-                            opacity: 1.0 - progress,
-                            xPos: popup.xPos,
-                            color: popup.color
+                            score: popup.score,
+                            yOffset: CGFloat(-t * 60),
+                            opacity: 1.0 - t,
+                            xPos: popup.xPos
                         )
                     }
                 }
                 try? await Task.sleep(for: .milliseconds(20))
             }
-            await MainActor.run { scorePopups.removeAll { $0.id == popup.id } }
+            await MainActor.run {
+                scorePopups.removeAll { $0.id == popup.id }
+            }
         }
     }
 
-    // MARK: - Utility
+    private func showFeedback() {
+        lastFeedback = dunkFeedbacks.randomElement() ?? "NASTY!"
+        feedbackTask?.cancel()
+        feedbackTask = Task {
+            try? await Task.sleep(for: .seconds(1.8))
+            await MainActor.run { lastFeedback = "" }
+        }
+    }
 
-    private func roundScoreLabel(_ score: Double) -> String {
-        if score >= 27 { return "LEGENDARY!" }
-        if score >= 23 { return "OUTSTANDING" }
-        if score >= 18 { return "SOLID DUNK" }
-        if score >= 12 { return "DECENT" }
-        return "KEEP WORKING"
+    private func recordJump() {
+        guard !isJumping, jumpRecords.count < 5 else { return }
+
+        // Haptic — jump
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+
+        let h = Double.random(in: 20...46)
+        let score = min(10.0, max(6.0, h / 4.5))
+        let record = JumpRecord(score: score, timestamp: Date())
+        jumpRecords.append(record)
+        jumpCount = jumpRecords.count
+        maxHeight = max(maxHeight, h)
+        lastHeight = String(format: "%.1f\"", h)
+        playerScore = computePlayerScore()
+        triggerJumpAnimation()
+        addScorePopup(score: score)
+        showFeedback()
+
+        // Extra haptic feedback for high score
+        if score >= 9.5 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+            }
+        }
+    }
+
+    private func endBattle() {
+        timerTask?.cancel()
+        opponentUpdateTask?.cancel()
+        opponentJumpTask?.cancel()
+        jumpAnimTask?.cancel()
+        feedbackTask?.cancel()
+        healthKit.stopJumpTracking()
+
+        // Haptic — end
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+
+        let won = playerScore >= opponentScore
+        let payout: Int
+        switch selectedFee {
+        case .practice:          payout = 0
+        case .shards(let n):     payout = won ? n * 2 : 0
+        case .cashComingSoon:    payout = 0
+        }
+        if won && payout > 0 {
+            viewModel.profile.evolutionShards += payout
+        }
+        result = CompResult(
+            playerJumps: jumpRecords.count,
+            playerMaxHeight: maxHeight,
+            opponentJumps: opponentJumps,
+            opponentMaxHeight: opponentMax,
+            payout: payout
+        )
+        GameResultService.saveResult(modeId: "dunk_competition", userScore: Int(playerScore))
+        phase = .result
     }
 }

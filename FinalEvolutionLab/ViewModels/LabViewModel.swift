@@ -23,38 +23,21 @@ class LabViewModel {
     var globalLeaderboard = GlobalLeaderboardService()
     var critiqueRequests: [CritiqueRequest] = SaveSystem.loadCritiqueRequests()
 
-    /// Shared orchestrator — exposes boot state, pillar navigation, and session lifecycle to the UI.
-    let nexus: NexusEngine = NexusEngine.shared
-
     init() {
         self.profile = SaveSystem.loadProfile()
         self.sessions = SaveSystem.loadSessions()
 
-        if let scan = profile.systemScan {
+        if let scan = profile.systemScan, scan.commitsCompetitiveMetrics {
             self.biomechanicsAudit = BiomechanicsAudit.fromScanResult(scan)
         }
 
         globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard)
-
-        coachEconomy.autoReleaseStaleEscrow()
-        SaveSystem.saveCoachEconomy(coachEconomy)
-
-        // Pull latest profile from Firestore on launch; local UserDefaults is the fallback.
-        ProfileSyncService.shared.pullProfile { [weak self] remoteProfile in
-            guard let self else { return }
-            self.profile = remoteProfile
-            SaveSystem.saveProfile(remoteProfile)
-        }
 
         if healthKit.isAuthorized {
             Task {
                 await healthKit.fetchLatestData()
                 applyHealthKitData()
             }
-        }
-
-        Task {
-            await NexusEngine.shared.boot()
         }
     }
 
@@ -107,13 +90,6 @@ class LabViewModel {
 
         SaveSystem.saveProfile(profile)
         SaveSystem.saveSessions(sessions)
-        ProfileSyncService.shared.pushProfile(profile)
-        ProfileSyncService.shared.appendShardDelta(
-            userId: profile.id,
-            delta: rewards.reduce(0) { $0 + $1.amount },
-            source: "workout_complete",
-            balanceAfter: profile.evolutionShards
-        )
 
         isWorkoutActive = false
         workoutTimer = 0
@@ -122,8 +98,15 @@ class LabViewModel {
         globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard)
     }
 
+    /// Raw profile PRQ used for tiers, matchmaking, and leaderboards (GAME-47).
+    var competitivePRQScore: Double {
+        profile.metrics.prqScore
+    }
+
+    /// Training / arcade display only — includes Creator Card boosts when ownership is verified (GAME-41).
     var effectiveMetrics: PerformanceMetrics {
-        guard let card = profile.activeCreatorCard,
+        guard activeCreatorCardEligibleForBoosts,
+              let card = profile.activeCreatorCard,
               let catalogCard = CreatorCard.catalog.first(where: { $0.id == card.cardId }) else {
             return profile.metrics
         }
@@ -138,12 +121,19 @@ class LabViewModel {
         )
     }
 
+    /// True when the equipped card is listed in ``UserProfile/ownedCardIds`` (local tamper resistance baseline for GAME-41).
+    private var activeCreatorCardEligibleForBoosts: Bool {
+        guard let active = profile.activeCreatorCard else { return false }
+        return profile.ownsCard(active.cardId)
+    }
+
     var arcadePhysics: ArcadePhysics {
         ArcadePhysics.fromPRQ(effectiveMetrics.prqScore, neuralDrive: effectiveMetrics.neuralDrive, audit: biomechanicsAudit)
     }
 
     var activeMovementSignature: MovementSignature {
-        guard let card = profile.activeCreatorCard,
+        guard activeCreatorCardEligibleForBoosts,
+              let card = profile.activeCreatorCard,
               let catalogCard = CreatorCard.catalog.first(where: { $0.id == card.cardId }) else {
             return MovementSignature(
                 style: .standard,
@@ -158,7 +148,7 @@ class LabViewModel {
     }
 
     var userPRQTier: PRQTier {
-        PRQTier.fromPRQ(effectiveMetrics.prqScore)
+        PRQTier.fromPRQ(competitivePRQScore)
     }
 
     var totalGameWins: Int {
@@ -171,6 +161,11 @@ class LabViewModel {
     }
 
     func connectHealthKit() async {
+        do {
+            try AthleteSafetyPolicy.assertSensitiveMinorGate(profile: profile)
+        } catch {
+            return
+        }
         await healthKit.requestAuthorization()
         if healthKit.isAuthorized {
             await healthKit.fetchLatestData()
@@ -234,32 +229,81 @@ class LabViewModel {
 
     func applyScanResult(_ result: SystemScanResult) {
         profile.systemScan = result
-        profile.metrics.prqScore = PRQ.clamp(result.prqScore)
-        profile.metrics.verticalPotential = result.verticalEstimateInches
-        profile.metrics.readinessScore = max(70, profile.metrics.readinessScore)
-        profile.metrics.efficiencyScore = max(70, profile.metrics.efficiencyScore)
 
-        biomechanicsAudit = BiomechanicsAudit.fromScanResult(result)
+        if result.commitsCompetitiveMetrics {
+            profile.metrics.prqScore = PRQ.clamp(result.prqScore)
+            profile.metrics.verticalPotential = result.verticalEstimateInches
+            profile.metrics.readinessScore = max(70, profile.metrics.readinessScore)
+            profile.metrics.efficiencyScore = max(70, profile.metrics.efficiencyScore)
+            biomechanicsAudit = BiomechanicsAudit.fromScanResult(result)
+            globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard)
+        } else {
+            // Strip stale measured-scan leakage/prescriptions when user applies demo or low-confidence scan (SCAN accuracy boundary).
+            biomechanicsAudit = nil
+        }
 
         SaveSystem.saveProfile(profile)
-        globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard)
     }
 
     func applyCreatorCard(_ card: CreatorCard) {
+        profile.avatarConfig = NexusGameplayAvatarLoader.mergeCreatorCardVisuals(card, into: profile.avatarConfig)
         let alreadyOwned = profile.ownsCard(card.id)
-        if !alreadyOwned {
-            guard profile.evolutionShards >= card.costShards else { return }
-            profile.evolutionShards -= card.costShards
-            profile.ownedCardIds.append(card.id)
+        if alreadyOwned {
+            profile.activeCreatorCard = CreatorCardState(
+                cardId: card.id,
+                creatorName: card.creatorName,
+                appliedAt: Date(),
+                costShards: card.costShards,
+                metricsBoost: card.metricsBoost
+            )
+            SaveSystem.saveProfile(profile)
+            return
         }
-        profile.activeCreatorCard = CreatorCardState(
-            cardId: card.id,
-            creatorName: card.creatorName,
-            appliedAt: Date(),
-            costShards: card.costShards,
-            metricsBoost: card.metricsBoost
-        )
-        SaveSystem.saveProfile(profile)
+
+        guard profile.evolutionShards >= card.costShards else { return }
+        let spent = card.costShards
+        let cardId = card.id
+
+        // Free cards: local-only (no SQL spend / ownership row — catalog cards at 0 shards stay device-authoritative).
+        guard card.costShards > 0 else {
+            profile.ownedCardIds.append(cardId)
+            profile.activeCreatorCard = CreatorCardState(
+                cardId: card.id,
+                creatorName: card.creatorName,
+                appliedAt: Date(),
+                costShards: card.costShards,
+                metricsBoost: card.metricsBoost
+            )
+            SaveSystem.saveProfile(profile)
+            return
+        }
+
+        // Paid cards: do not subtract shards or grant ownership until Data Connect spend + claim succeed (economy authority).
+        Task { @MainActor in
+            do {
+                try await TrainingLabSocialBridge.shared.recordShardLedgerDelta(
+                    deltaShards: -spent,
+                    reason: "creator_card_purchase",
+                    referenceId: cardId
+                )
+                try await TrainingLabSocialBridge.shared.claimCreatorCardOwnership(catalogCardId: cardId)
+                profile.evolutionShards -= spent
+                profile.ownedCardIds.append(cardId)
+                profile.activeCreatorCard = CreatorCardState(
+                    cardId: card.id,
+                    creatorName: card.creatorName,
+                    appliedAt: Date(),
+                    costShards: card.costShards,
+                    metricsBoost: card.metricsBoost
+                )
+                SaveSystem.saveProfile(profile)
+            } catch {
+#if DEBUG
+                print("[LabViewModel] Creator card SQL sync failed: \(error.localizedDescription)")
+#endif
+                FelToastCenter.shared.show("Could not sync shard spend — try again online.", isError: true)
+            }
+        }
     }
 
     func clearCreatorCard() {
@@ -271,27 +315,42 @@ class LabViewModel {
     /// Platform takes 20 %; coach earns the remaining 80 %.
     static let critiqueCoachEarningShards = 400
 
-    func requestCritique(exerciseName: String, notes: String) -> Bool {
+    func requestCritique(exerciseName: String, notes: String) async -> Bool {
         let cost = Self.critiqueCostShards
         guard profile.evolutionShards >= cost else { return false }
-        profile.evolutionShards -= cost
+        guard FirebaseBootstrap.isConfigured else { return false }
+        TrainingLabSocialBridge.shared.configureConnectorIfNeeded()
 
-        let request = CritiqueRequest(
-            id: UUID().uuidString,
-            athleteId: profile.id,
-            exerciseName: exerciseName,
-            notes: notes,
-            requestDate: Date(),
-            shardsCost: cost,
-            status: .pending,
-            coachResponse: nil
-        )
-        critiqueRequests.append(request)
-        // Coach escrow is created when the coach submits their response, not here.
-
-        SaveSystem.saveProfile(profile)
-        SaveSystem.saveCritiqueRequests(critiqueRequests)
-        return true
+        let requestKey = UUID().uuidString
+        do {
+            try await TrainingLabSocialBridge.shared.createCritiqueRequestWithEscrow(
+                requestKey: requestKey,
+                exerciseName: exerciseName,
+                notes: notes.isEmpty ? nil : notes
+            )
+            profile.evolutionShards -= cost
+            let request = CritiqueRequest(
+                id: requestKey,
+                athleteId: profile.id,
+                exerciseName: exerciseName,
+                notes: notes,
+                requestDate: Date(),
+                shardsCost: cost,
+                status: .pending,
+                coachResponse: nil
+            )
+            critiqueRequests.append(request)
+            coachEconomy.completeCritique(shards: cost, critiqueId: requestKey)
+            SaveSystem.saveProfile(profile)
+            SaveSystem.saveCritiqueRequests(critiqueRequests)
+            SaveSystem.saveCoachEconomy(coachEconomy)
+            return true
+        } catch {
+#if DEBUG
+            print("[LabViewModel] Critique escrow sync failed: \(error.localizedDescription)")
+#endif
+            return false
+        }
     }
 
     func reviewCritique(requestId: String, rating: Double) {
@@ -302,7 +361,6 @@ class LabViewModel {
 
         SaveSystem.saveCritiqueRequests(critiqueRequests)
         SaveSystem.saveCoachEconomy(coachEconomy)
-        ProfileSyncService.shared.pushCoachEconomy(coachEconomy)
     }
 
     func simulateCoachResponse(requestId: String) {
@@ -316,5 +374,41 @@ class LabViewModel {
             focusAreas: ["Ankle Stiffness", "Hip Extension", "Ground Contact"]
         )
         SaveSystem.saveCritiqueRequests(critiqueRequests)
+    }
+
+    /// UE / Emergent gameplay receipt — ranked PRQ and shard credits only for ``GameSessionTrustLevel/serverVerified`` (GAME-33 / Phase 5).
+    func ingestVerifiedGameplayReceipt(fromEmergentPayload obj: [String: Any]) {
+        guard let fields = GameplaySessionReceiptCoordinator.parseReceiptFields(obj) else { return }
+        let rid = GameplaySessionReceiptCoordinator.stableReceiptId(obj: obj, parsed: fields)
+        if gameResults.contains(where: { $0.id == rid }) { return }
+
+        CrashReporter.setGameMode(id: fields.mode.rawValue)
+
+        if fields.trustLevel == .serverVerified {
+            profile.metrics.prqScore = PRQ.clamp(profile.metrics.prqScore + fields.prqBonus)
+            profile.metrics.neuralDrive = min(100, profile.metrics.neuralDrive + 3)
+            if fields.shardsEarned > 0 {
+                profile.pendingUnverifiedShardCredits += fields.shardsEarned
+            }
+        }
+
+        let result = GameSessionResult(
+            id: rid,
+            gameModeId: fields.mode.rawValue,
+            date: Date(),
+            score: fields.playerScore,
+            opponentScore: fields.opponentScore,
+            shardsEarned: fields.shardsEarned,
+            prqBonus: fields.prqBonus,
+            isMultiplayer: fields.isMultiplayer,
+            duration: fields.durationSeconds,
+            verificationSeed: fields.verificationSeed,
+            trustLevel: fields.trustLevel
+        )
+
+        SaveSystem.saveProfile(profile)
+        SaveSystem.saveGameResult(result)
+        gameResults = SaveSystem.loadGameResults()
+        globalLeaderboard.refreshRankings(userProfile: profile, sampleData: SampleData.leaderboard)
     }
 }

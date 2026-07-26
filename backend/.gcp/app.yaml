@@ -1,0 +1,32 @@
+# Cloud Run service configuration for NEXUS Engine backend
+runtime: python311
+entrypoint: gunicorn -b :$PORT main:app
+
+env_variables:
+  FLASK_ENV: production
+  MONGODB_URI: ${MONGODB_URI}
+  JWT_SECRET: ${JWT_SECRET}
+
+automatic_scaling:
+  min_instances: 0
+  max_instances: 100
+
+ingress_settings: ALLOW_ALL
+
+service_account: nexus-engine-sa@${PROJECT_ID}.iam.gserviceaccount.com
+
+env:
+  standard
+
+instance_class: F2
+
+resources:
+  cpu: 1
+  memory_gb: 512
+  disk_size_gb: 10
+
+vpc_settings:
+  connector_egress_settings: PRIVATE_RANGES_ONLY
+
+logging:
+  level: INFO

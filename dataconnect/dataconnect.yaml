@@ -23,3 +23,4 @@ schema:
         instanceId: "elijahbonds-fdc"
 connectorDirs:
   - "./social-connector"
+  - "./admin-connector"

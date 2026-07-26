@@ -1,11 +1,4 @@
 # React Native / Expo artifacts (should not exist in Swift projects)
-#
-# These were blanket rules from stripping React Native out. Three of them —
-# package.json, package-lock.json and tsconfig.json — would silently swallow
-# the Next.js app's manifest and TypeScript config the moment the web app is
-# synced into this repo, producing a checkout that cannot be installed or
-# type-checked, with no error to explain why. Scoped to the Expo leftovers
-# only.
 node_modules/
 .expo/
 .bundle/
@@ -13,10 +6,18 @@ android/
 ios/
 babel.config.js
 metro.config.js
+# Scoped: these blanket rules came from stripping React Native out, and would
+# silently swallow the Next.js app's manifest and TypeScript config the moment
+# the web app is synced in — producing a checkout that cannot be installed or
+# type-checked, with no error to explain why. See docs/ACCESS-SETUP.md.
 /app.json
 
-# Xcode
+# Xcode / NEXUS embed artifacts (never sync into app bundle)
 FinalEvolutionLab/GoogleService-Info.plist
+FinalEvolutionLab/Bridge/prebuilt/
+build-ios/
+build-ios-*/
+NexusPrebuilt/
 build/
 DerivedData/
 *.xcuserstate
@@ -115,16 +116,23 @@ rork-eslint.config.js
 scripts/emulator_seed/node_modules/
 
 # Misc tooling
-.netlify
+.vercel
 .chainlit
 .ipynb_checkpoints/
 
 # Mobile development
 android-sdk/
 
-# Build artifacts (UE + iOS)
-/artifacts/
-artifacts/
+# Build artifacts (UE + iOS) — playtest template dir is tracked (see artifacts/playtest/.gitignore)
+/artifacts/*
+!/artifacts/coord/
+/artifacts/coord/*
+!/artifacts/coord/vercel_migration_handoff.json
+!/artifacts/playtest/
+/artifacts/playtest/*
+!/artifacts/playtest/.gitkeep
+!/artifacts/playtest/latest.json.template
+!/artifacts/playtest/.gitignore
 *.ipa
 *.app
 *.dSYM
@@ -134,16 +142,28 @@ artifacts/
 Saved/
 Intermediate/
 DerivedDataCache/
-.claude/
-smoke-state.json
-smoke-shots/
-smoke-report.json
-.render-out/
-.render-work/
 
-# ── Abacus web app sync (see docs/ACCESS-SETUP.md) ───────────────────────
-# The app source is welcome; its build output, dependencies and SECRETS are
-# not. Anything matching these must never arrive in a commit.
+# Unity bridge leftovers (prototype/reference)
+FinalEvolutionLab/Services/UnityHostBridge.swift
+FinalEvolutionLab/Services/MovementSnack+UnityBridge.swift
+
+# NEXUS asset pipeline — full-res / desktop meshes (mobile LOD is committed instead)
+assets/nexus/imported/full/
+assets/nexus/imported/*_environment_model_fbx.nexusmesh.json
+!assets/nexus/imported/*_mobile.nexusmesh.json
+assets/nexus/source/*.fbx
+assets/nexus/source/*.glb
+
+.config/
+.home/
+scratch/
+*.log
+dataconnect/.dataconnect/
+
+
+
+# ── Abacus web app sync (docs/ACCESS-SETUP.md) ───────────────────────────
+# Source welcome; build output, dependencies and SECRETS are not.
 nextjs_space/node_modules/
 nextjs_space/.next/
 nextjs_space/out/

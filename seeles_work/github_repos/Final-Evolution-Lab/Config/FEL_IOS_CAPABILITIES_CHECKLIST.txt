@@ -1,0 +1,37 @@
+Final Evolution Lab — iOS capabilities (TestFlight / Gold Master)
+================================================================================
+See also: Config/FEL_CLOUD_DEPLOY_CHECKLIST.txt (CI, GitHub, env vars).
+
+Enable in Apple Developer portal + Xcode Signing & Capabilities:
+
+1) Push Notifications
+   - Required for remote coaching / leaderboard / session alerts if you add APNs later.
+   - Add capability in Xcode; upload APNs key or certificates in App Store Connect for production pushes.
+
+2) Camera (System Scan, avatar / scan flows)
+   - Declared via NSCameraUsageDescription (already in generated Info.plist).
+   - Enable “Camera” usage — no separate entitlement beyond privacy string for standard camera access.
+
+3) Background Modes (motion / biometric-adjacent tracking)
+   - For Core Motion–based features and extended session hooks, enable Background Modes and tick:
+     - “Background processing” or “Background fetch” only if you implement matching BGTaskScheduler / URLSession background APIs.
+     - “Motion & Fitness” pairs with Core Motion; for HealthKit-style data use HealthKit capability instead.
+   - Note: “biometric tracking” on iOS typically means motion sensors + HealthKit — enable HealthKit if you sync workouts/readiness (already have usage strings in project).
+
+4) Optional (already used in app)
+   - HealthKit — if shipping Health integration (usage strings present).
+   - Local Network — Multipeer / discovery (usage string present).
+   - Photo Library — hero clips / meal photos (usage strings present).
+
+5) Unreal / Simulator
+   - `UFELUnrealViewportContainer` uses a Simulator-only placeholder; embedded Unreal Metal host runs on device builds only.
+   - `FinalEvolutionLabUnrealApp` skips Unity/Unreal native registration on Simulator where flagged.
+
+Environment variables (Xcode scheme, CI, or hosting dashboard → map to process env at launch)
+-------------------------------------------------------------------------
+GEMINI_API_KEY
+FEL_SUPABASE_URL
+FEL_SUPABASE_ANON_KEY
+Optional: FEL_SOVEREIGN_LEADERBOARD_URL, FEL_SOVEREIGN_LEADERBOARD_TOKEN
+
+Resolved in code via Source/FELAppConfig.swift (env first, then Info.plist).

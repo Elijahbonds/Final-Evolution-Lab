@@ -1,0 +1,25 @@
+# Firebase Data Connect — replace placeholders using Firebase Console → Data Connect → your service → Cloud SQL instance ID.
+# MVP: single Firebase project; separate staging/prod services later if you add another Data Connect service / instance.
+# https://firebase.google.com/docs/data-connect/configuration-reference
+#
+# Verification checklist:
+# 1) Console → Data Connect → Service ID should match `serviceId` below (or update this file).
+# 2) Cloud SQL instance resource name ends with instanceId; paste the short ID here.
+# 3) Database name in Cloud SQL should match `database` (create DB if needed).
+#
+# Live service (from `firebase dataconnect:services:list` for project final-evolution-lab):
+#   serviceId: elijahbonds, location: us-east4, instance: elijahbonds-fdc, database: fdcdb
+specVersion: v1beta
+serviceId: elijahbonds
+location: us-east4
+schema:
+  source: "./schema"
+  datasource:
+    postgresql:
+      database: fdcdb
+      # STRICT: drop legacy tables not in GraphQL schema (required for deploy after Codelab prototype).
+      schemaValidation: STRICT
+      cloudSql:
+        instanceId: "elijahbonds-fdc"
+connectorDirs:
+  - "./social-connector"

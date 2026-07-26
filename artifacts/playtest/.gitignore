@@ -1,0 +1,7 @@
+# NEXUS playtest artifacts — runtime JSON is gitignored; template + .gitkeep are committed.
+
+!artifacts/
+!artifacts/playtest/
+artifacts/playtest/*
+!artifacts/playtest/.gitkeep
+!artifacts/playtest/latest.json.template

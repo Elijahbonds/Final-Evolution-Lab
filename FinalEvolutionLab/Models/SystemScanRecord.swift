@@ -11,8 +11,10 @@ struct SystemScanRecord: Codable {
     var capturedAt: Timestamp
     var vitals: VitalsSnapshot
     var readiness: ReadinessSnapshot
-    /// Denormalized avatar knobs for Unreal + latest doc at `avatar_performance/current`.
+    /// Denormalized avatar knobs for Firestore + latest doc at `avatar_performance/current`.
     var avatar: AvatarPerformanceAttributes
+    /// Optional pose / stability metrics (ARKit or future CV). When nil, bridge sends nulls — UE must not infer APT/valgus from avatar scalars alone.
+    var stability: BiomechanicsStabilitySnapshot?
 
     struct VitalsSnapshot: Codable {
         var heartRateBpm: Double?
@@ -32,7 +34,18 @@ struct SystemScanRecord: Codable {
     }
 }
 
-/// Normalized **0...1** performance vector shared by Swift UI, Firestore, and Unreal (via JSON).
+/// Pose-derived stability fields for UE `UE_AvatarScaleController` / biomechanical layering (optional until CV mesh lands).
+struct BiomechanicsStabilitySnapshot: Codable, Sendable {
+    var anteriorPelvicTiltEvidence01: Double?
+    var ribFlareEvidence01: Double?
+    var rearLegInternalRotation01: Double?
+    var poseConfidence01: Double?
+    var meshMemoryBudget01: Double?
+    /// Stores ``PressureReleaseStatus/rawValue``.
+    var pressureReleaseRaw: String?
+}
+
+/// Normalized **0...1** performance vector shared by Swift UI, Firestore, and NEXUS bridge JSON.
 struct AvatarPerformanceAttributes: Codable, Sendable {
     var schemaVersion: Int
     var updatedAt: Timestamp
@@ -41,11 +54,97 @@ struct AvatarPerformanceAttributes: Codable, Sendable {
     var recovery: Double
     var neuralFocus: Double
     var biomechanicalEfficiency: Double
+    /// Recovery / autonomic proxy (0–100). Not competitive lab PRQ (PRQ-03).
+    var readinessScore: Double
+    /// Competitive lab PRQ from verified measurement only; SQL peak & feed use this when non-nil.
+    var verifiedPerformancePRQ: Double?
+    /// Legacy UE field: competitive PRQ **only** — 0 when only readiness/vitals exist (e.g. HealthKit).
     var prqScore: Double
     var readinessGrade: String
     var speedMultiplier: Double
     var hangTimeBonus: Double
     var isRecoveryMode: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case schemaVersion, updatedAt, explosiveness, endurance, recovery, neuralFocus, biomechanicalEfficiency
+        case readinessScore, verifiedPerformancePRQ, prqScore, readinessGrade, speedMultiplier, hangTimeBonus, isRecoveryMode
+    }
+
+    init(
+        schemaVersion: Int,
+        updatedAt: Timestamp,
+        explosiveness: Double,
+        endurance: Double,
+        recovery: Double,
+        neuralFocus: Double,
+        biomechanicalEfficiency: Double,
+        readinessScore: Double,
+        verifiedPerformancePRQ: Double?,
+        prqScore: Double,
+        readinessGrade: String,
+        speedMultiplier: Double,
+        hangTimeBonus: Double,
+        isRecoveryMode: Bool
+    ) {
+        self.schemaVersion = schemaVersion
+        self.updatedAt = updatedAt
+        self.explosiveness = explosiveness
+        self.endurance = endurance
+        self.recovery = recovery
+        self.neuralFocus = neuralFocus
+        self.biomechanicalEfficiency = biomechanicalEfficiency
+        self.readinessScore = readinessScore
+        self.verifiedPerformancePRQ = verifiedPerformancePRQ
+        self.prqScore = prqScore
+        self.readinessGrade = readinessGrade
+        self.speedMultiplier = speedMultiplier
+        self.hangTimeBonus = hangTimeBonus
+        self.isRecoveryMode = isRecoveryMode
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        schemaVersion = try c.decode(Int.self, forKey: .schemaVersion)
+        updatedAt = try c.decode(Timestamp.self, forKey: .updatedAt)
+        explosiveness = try c.decode(Double.self, forKey: .explosiveness)
+        endurance = try c.decode(Double.self, forKey: .endurance)
+        recovery = try c.decode(Double.self, forKey: .recovery)
+        neuralFocus = try c.decode(Double.self, forKey: .neuralFocus)
+        biomechanicalEfficiency = try c.decode(Double.self, forKey: .biomechanicalEfficiency)
+        verifiedPerformancePRQ = try c.decodeIfPresent(Double.self, forKey: .verifiedPerformancePRQ)
+        let readinessDecoded = try c.decodeIfPresent(Double.self, forKey: .readinessScore)
+        let prqDecoded = try c.decodeIfPresent(Double.self, forKey: .prqScore)
+        if let r = readinessDecoded {
+            readinessScore = r
+        } else if verifiedPerformancePRQ == nil, let legacy = prqDecoded {
+            readinessScore = legacy
+        } else {
+            readinessScore = 50
+        }
+        prqScore = verifiedPerformancePRQ ?? ((readinessDecoded != nil) ? (prqDecoded ?? 0) : 0)
+        readinessGrade = try c.decode(String.self, forKey: .readinessGrade)
+        speedMultiplier = try c.decode(Double.self, forKey: .speedMultiplier)
+        hangTimeBonus = try c.decode(Double.self, forKey: .hangTimeBonus)
+        isRecoveryMode = try c.decode(Bool.self, forKey: .isRecoveryMode)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(schemaVersion, forKey: .schemaVersion)
+        try c.encode(updatedAt, forKey: .updatedAt)
+        try c.encode(explosiveness, forKey: .explosiveness)
+        try c.encode(endurance, forKey: .endurance)
+        try c.encode(recovery, forKey: .recovery)
+        try c.encode(neuralFocus, forKey: .neuralFocus)
+        try c.encode(biomechanicalEfficiency, forKey: .biomechanicalEfficiency)
+        try c.encode(readinessScore, forKey: .readinessScore)
+        try c.encodeIfPresent(verifiedPerformancePRQ, forKey: .verifiedPerformancePRQ)
+        try c.encode(prqScore, forKey: .prqScore)
+        try c.encode(readinessGrade, forKey: .readinessGrade)
+        try c.encode(speedMultiplier, forKey: .speedMultiplier)
+        try c.encode(hangTimeBonus, forKey: .hangTimeBonus)
+        try c.encode(isRecoveryMode, forKey: .isRecoveryMode)
+    }
 }
 
 // MARK: - HealthKit mapping
@@ -94,7 +193,8 @@ extension SystemScanRecord {
             capturedAt: Timestamp(date: Date()),
             vitals: vitals,
             readiness: readiness,
-            avatar: avatar
+            avatar: avatar,
+            stability: nil
         )
     }
 
@@ -161,7 +261,8 @@ extension SystemScanRecord {
             capturedAt: Timestamp(date: health.lastSyncDate ?? Date()),
             vitals: vitals,
             readiness: readiness,
-            avatar: avatar
+            avatar: avatar,
+            stability: nil
         )
     }
 }
@@ -231,14 +332,16 @@ extension AvatarPerformanceAttributes {
         let biomechanicalEfficiency = clamp01(0.5 * hrvLevel + 0.3 * hrvVsBaseline + 0.2 * rhrReserve)
 
         return AvatarPerformanceAttributes(
-            schemaVersion: 1,
+            schemaVersion: 2,
             updatedAt: Timestamp(date: Date()),
             explosiveness: explosiveness,
             endurance: endurance,
             recovery: recovery,
             neuralFocus: neuralFocus,
             biomechanicalEfficiency: biomechanicalEfficiency,
-            prqScore: readiness.neuralReadinessScore,
+            readinessScore: readiness.neuralReadinessScore,
+            verifiedPerformancePRQ: nil,
+            prqScore: 0,
             readinessGrade: readiness.grade,
             speedMultiplier: speedMultiplier,
             hangTimeBonus: hangTimeBonus,
@@ -281,15 +384,17 @@ extension AvatarPerformanceAttributes {
     }
 }
 
-// MARK: - Unreal JSON (stable field names for FJsonObject / bridge)
+// MARK: - FEL scan bridge JSON (stable field names for WebSocket / backend routing)
 
-/// Numeric times only — UE-friendly; keep in sync with `infra/SYSTEM_SCAN_FIRESTORE_SCHEMA.md`.
-struct UnrealSystemScanPayload: Codable, Sendable {
+/// Numeric times only; keep in sync with `infra/SYSTEM_SCAN_FIRESTORE_SCHEMA.md`.
+struct FELScanBridgePayload: Codable, Sendable {
     var schemaVersion: Int
     var capturedAtEpochMs: Int64
     var vitals: VitalsDTO
     var readiness: ReadinessDTO
     var avatar: AvatarDTO
+    /// Optional pose / stability pass-through for bridge consumers (null when not measured).
+    var stability: StabilityDTO?
 
     struct VitalsDTO: Codable, Sendable {
         var heartRateBpm: Double?
@@ -315,23 +420,44 @@ struct UnrealSystemScanPayload: Codable, Sendable {
         var recovery: Double
         var neuralFocus: Double
         var biomechanicalEfficiency: Double
+        var readinessScore: Double?
+        var verifiedPerformancePRQ: Double?
         var prqScore: Double
         var readinessGrade: String
         var speedMultiplier: Double
         var hangTimeBonus: Double
         var isRecoveryMode: Bool
     }
+
+    struct StabilityDTO: Codable, Sendable {
+        var anteriorPelvicTiltEvidence01: Double?
+        var ribFlareEvidence01: Double?
+        var rearLegInternalRotation01: Double?
+        var poseConfidence01: Double?
+        var meshMemoryBudget01: Double?
+        var pressureRelease: String?
+    }
 }
 
 extension SystemScanRecord {
-    func unrealBridgePayload() -> UnrealSystemScanPayload {
+    func felScanBridgePayload() -> FELScanBridgePayload {
         let v = vitals
         let r = readiness
         let a = avatar
-        return UnrealSystemScanPayload(
+        let stab = stability.map { s in
+            FELScanBridgePayload.StabilityDTO(
+                anteriorPelvicTiltEvidence01: s.anteriorPelvicTiltEvidence01,
+                ribFlareEvidence01: s.ribFlareEvidence01,
+                rearLegInternalRotation01: s.rearLegInternalRotation01,
+                poseConfidence01: s.poseConfidence01,
+                meshMemoryBudget01: s.meshMemoryBudget01,
+                pressureRelease: s.pressureReleaseRaw
+            )
+        }
+        return FELScanBridgePayload(
             schemaVersion: schemaVersion,
             capturedAtEpochMs: Int64(capturedAt.dateValue().timeIntervalSince1970 * 1000),
-            vitals: UnrealSystemScanPayload.VitalsDTO(
+            vitals: FELScanBridgePayload.VitalsDTO(
                 heartRateBpm: v.heartRateBpm,
                 restingHeartRateBpm: v.restingHeartRateBpm,
                 hrvSdnnMs: v.hrvSdnnMs,
@@ -339,13 +465,13 @@ extension SystemScanRecord {
                 weeklyHrvAverageMs: v.weeklyHrvAverageMs,
                 sleepHoursLastNight: v.sleepHoursLastNight
             ),
-            readiness: UnrealSystemScanPayload.ReadinessDTO(
+            readiness: FELScanBridgePayload.ReadinessDTO(
                 neuralReadinessScore: r.neuralReadinessScore,
                 grade: r.grade,
                 hrvTrend: r.hrvTrend,
                 recoveryEstimateHours: r.recoveryEstimateHours
             ),
-            avatar: UnrealSystemScanPayload.AvatarDTO(
+            avatar: FELScanBridgePayload.AvatarDTO(
                 schemaVersion: a.schemaVersion,
                 updatedAtEpochMs: Int64(a.updatedAt.dateValue().timeIntervalSince1970 * 1000),
                 explosiveness: a.explosiveness,
@@ -353,18 +479,21 @@ extension SystemScanRecord {
                 recovery: a.recovery,
                 neuralFocus: a.neuralFocus,
                 biomechanicalEfficiency: a.biomechanicalEfficiency,
+                readinessScore: a.readinessScore,
+                verifiedPerformancePRQ: a.verifiedPerformancePRQ,
                 prqScore: a.prqScore,
                 readinessGrade: a.readinessGrade,
                 speedMultiplier: a.speedMultiplier,
                 hangTimeBonus: a.hangTimeBonus,
                 isRecoveryMode: a.isRecoveryMode
-            )
+            ),
+            stability: stab
         )
     }
 
-    func unrealBridgeJSON() throws -> Data {
+    func felScanBridgeJSON() throws -> Data {
         let enc = JSONEncoder()
         enc.outputFormatting = [.sortedKeys]
-        return try enc.encode(unrealBridgePayload())
+        return try enc.encode(felScanBridgePayload())
     }
 }

@@ -9,11 +9,16 @@ struct LabView: View {
     @State private var showCourtExpanded: Bool = false
     @State private var courtLoaded: Bool = false
     @State private var showSystemScan: Bool = false
+    @State private var showMoCapStudio: Bool = false
+    @State private var showFaceScanStudio: Bool = false
     @State private var showBiomechanicsDetail: Bool = false
+    @State private var showCharacterEditor: Bool = false
     @State private var showGlobalMatchmaking: Bool = false
     @State private var showCoach: Bool = false
     @State private var showBlueprints: Bool = false
     @State private var showBodyIQLab: Bool = false
+    @State private var showBondsCoachPrescription: Bool = false
+    @State private var showCreatorHub: Bool = false
     @State private var pendingArenaMode: GameMode?
     @State private var sessionReadiness: Double = 50
     @State private var navigateToArenaGame: Bool = false
@@ -35,8 +40,11 @@ struct LabView: View {
                 headerSection
                 tierBanner
                 scanSection
+                mocapStudioEntry
+                faceScanStudioEntry
                 biomechanicsSection
                 bodyIQEducationEntry
+                creatorHubEntry
                 athleteProfileBanner
                 globalArenaCard
                 courtSection
@@ -61,6 +69,10 @@ struct LabView: View {
                 withAnimation(.spring(response: 0.4)) { courtLoaded = true }
             }
         }
+        .onDisappear {
+            freestyleDunkTimer?.cancel()
+            freestyleDunkTimer = nil
+        }
         .sheet(isPresented: $showSystemScan) {
             SystemScanView(
                 sport: viewModel.profile.sport,
@@ -68,6 +80,15 @@ struct LabView: View {
             ) { result in
                 viewModel.applyScanResult(result)
             }
+        }
+        .sheet(isPresented: $showMoCapStudio) {
+            NexusMoCapStudioView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showFaceScanStudio) {
+            NexusFaceScanView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showCharacterEditor) {
+            SystemScanCharacterEditorView(viewModel: viewModel)
         }
         .sheet(isPresented: $showBiomechanicsDetail) {
             biomechanicsDetailSheet
@@ -98,6 +119,124 @@ struct LabView: View {
         .navigationDestination(isPresented: $showBodyIQLab) {
             BodyIQEducationLabView(viewModel: viewModel)
         }
+        .navigationDestination(isPresented: $showCreatorHub) {
+            NexusCreatorHubView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showBondsCoachPrescription) {
+            NavigationStack {
+                BondsStandardCoachView()
+            }
+            .presentationBackground(Theme.deepBlack)
+        }
+        .onChange(of: viewModel.biomechanicsAudit?.auditDate) { _, _ in
+            guard let audit = viewModel.biomechanicsAudit else { return }
+            // Bonds Standard targets hip chain mechanics — do not tie this sheet to core/IAP routing inferred from PRQ-only proxies.
+            let hasHipLeakage = audit.kineticLeakageZones.contains { $0.joint == .hip }
+            guard hasHipLeakage else { return }
+            let ts = audit.auditDate.timeIntervalSince1970
+            let key = "fel_bonds_coach_prompted_\(Int(ts))"
+            guard !UserDefaults.standard.bool(forKey: key) else { return }
+            UserDefaults.standard.set(true, forKey: key)
+            showBondsCoachPrescription = true
+        }
+    }
+
+    private var mocapStudioEntry: some View {
+        Button {
+            showMoCapStudio = true
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(Theme.brandCyan.opacity(0.14))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "figure.walk.motion")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(Theme.brandCyan)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text("3D MOCAP STUDIO")
+                            .font(.system(.subheadline, weight: .black))
+                            .foregroundStyle(.white)
+                        FELPreviewLabel(text: "BETA")
+                    }
+                    Text("Markerless 3D motion capture · Real-time retargeting")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.55))
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.35))
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Theme.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [Theme.brandCyan.opacity(0.45), Theme.brandBlue.opacity(0.25)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var faceScanStudioEntry: some View {
+        Button {
+            showFaceScanStudio = true
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(Theme.brandCyan.opacity(0.14))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "faceid")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(Theme.brandCyan)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text("FACE SCAN STUDIO")
+                            .font(.system(.subheadline, weight: .black))
+                            .foregroundStyle(.white)
+                        FELPreviewLabel(text: "LIVE LINK")
+                    }
+                    Text("Markerless 3D face scan · Real-time facial expression tracking")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.55))
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.35))
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Theme.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [Theme.brandCyan.opacity(0.45), Theme.brandBlue.opacity(0.25)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    )
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private var bodyIQEducationEntry: some View {
@@ -114,9 +253,12 @@ struct LabView: View {
                         .foregroundStyle(Theme.elitePurple)
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("BODY IQ LAB")
-                        .font(.system(.subheadline, weight: .black))
-                        .foregroundStyle(.white)
+                    HStack(spacing: 6) {
+                        Text("BODY IQ LAB")
+                            .font(.system(.subheadline, weight: .black))
+                            .foregroundStyle(.white)
+                        FELPreviewLabel(text: FELPremiumCopy.Preview.education)
+                    }
                     Text("Movement Snacks · Bonds Standard prescriptions")
                         .font(.system(.caption, design: .rounded))
                         .foregroundStyle(.white.opacity(0.55))
@@ -135,6 +277,55 @@ struct LabView: View {
                             .stroke(
                                 LinearGradient(
                                     colors: [Theme.elitePurple.opacity(0.45), Theme.brandCyan.opacity(0.25)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var creatorHubEntry: some View {
+        Button {
+            showCreatorHub = true
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(Theme.brandCyan.opacity(0.14))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "video.badge.plus")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(Theme.brandCyan)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text("MOCAP CREATOR HUB")
+                            .font(.system(.subheadline, weight: .black))
+                            .foregroundStyle(.white)
+                        FELPreviewLabel(text: "MINTING")
+                    }
+                    Text("Mint custom cards · Track shard royalties")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.55))
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.35))
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Theme.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [Theme.brandCyan.opacity(0.45), Theme.elitePurple.opacity(0.25)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
@@ -184,7 +375,7 @@ struct LabView: View {
 
     private var tierBanner: some View {
         HStack(spacing: 12) {
-            PRQTierBadge(tier: viewModel.userPRQTier, prq: effectiveMetrics.prqScore)
+            PRQTierBadge(tier: viewModel.userPRQTier, prq: viewModel.competitivePRQScore)
 
             Spacer()
 
@@ -319,7 +510,8 @@ struct LabView: View {
 
     private var globalArenaCard: some View {
         Button {
-            pendingArenaMode = GameModeRegistry.all.first
+            guard let mode = GameModeRegistry.resolvedLastSelectedMode() else { return }
+            pendingArenaMode = mode
             showGlobalMatchmaking = true
         } label: {
             HStack(spacing: 14) {
@@ -339,19 +531,25 @@ struct LabView: View {
                         .font(.system(.subheadline, weight: .black))
                         .foregroundStyle(.white)
 
-                    HStack(spacing: 8) {
-                        HStack(spacing: 3) {
-                            Circle()
-                                .fill(.green)
-                                .frame(width: 5, height: 5)
-                            Text("\(viewModel.globalLeaderboard.onlinePlayerCount) online")
-                                .font(.system(size: 9, weight: .medium, design: .monospaced))
-                                .foregroundStyle(.green.opacity(0.7))
-                        }
+                    if let last = GameModeRegistry.resolvedLastSelectedMode() {
+                        HStack(spacing: 8) {
+                            HStack(spacing: 3) {
+                                Circle()
+                                    .fill(.green)
+                                    .frame(width: 5, height: 5)
+                                Text("\(viewModel.globalLeaderboard.onlinePlayerCount) online")
+                                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                                    .foregroundStyle(.green.opacity(0.7))
+                            }
 
-                        Text("PRQ-based matchmaking")
+                            Text(last.name.uppercased())
+                                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                                .foregroundStyle(Theme.brandCyan.opacity(0.6))
+                        }
+                    } else {
+                        Text("Choose a mode in Arena tab first")
                             .font(.system(size: 9, weight: .medium, design: .monospaced))
-                            .foregroundStyle(Theme.brandCyan.opacity(0.6))
+                            .foregroundStyle(.orange.opacity(0.85))
                     }
                 }
 
@@ -372,6 +570,8 @@ struct LabView: View {
             )
         }
         .buttonStyle(.plain)
+        .disabled(GameModeRegistry.resolvedLastSelectedMode() == nil)
+        .opacity(GameModeRegistry.resolvedLastSelectedMode() == nil ? 0.55 : 1)
     }
 
     private var courtSection: some View {
@@ -410,7 +610,7 @@ struct LabView: View {
 
             ZStack {
                 if courtLoaded {
-                    GameSceneHostView(gameMode: .basketballDunkContest, neuralDrive: viewModel.profile.metrics.neuralDrive)
+                    GameSceneHostView(gameMode: .basketballDunkContest3D, neuralDrive: viewModel.profile.metrics.neuralDrive)
                         .frame(height: showCourtExpanded ? 420 : 280)
                         .clipShape(.rect(cornerRadius: 20))
                         .overlay(
@@ -977,7 +1177,8 @@ struct LabView: View {
     private func executeFreestyleScoring() {
         let prq = viewModel.effectiveMetrics.prqScore
         let burst = viewModel.arcadePhysics.neuralBurstActive
-        let result = freestyleDunk.calculateDunkScore(prq: prq, neuralBurst: burst)
+        var judgeRNG = SplitMix64(seed: freestyleDunk.sessionSeed &+ UInt64(freestyleDunk.round) &+ 0x6A75647F)
+        let result = freestyleDunk.calculateDunkScore(prq: prq, neuralBurst: burst, judgeRNG: &judgeRNG)
 
         withAnimation(.spring(response: 0.3)) {
             freestyleJudgeScores = (result.j1, result.j2, result.j3)
@@ -1096,6 +1297,12 @@ struct LabView: View {
                         .foregroundStyle(Theme.brandCyan)
                         .tracking(2)
 
+                    if !scan.commitsCompetitiveMetrics {
+                        Text("Preview PRQ — not applied to ranked PRQ or Body IQ prescriptions")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+
                     Text(scan.movementGrade)
                         .font(.system(.title3, weight: .black))
                         .foregroundStyle(.white)
@@ -1103,16 +1310,33 @@ struct LabView: View {
 
                 Spacer()
 
-                Button {
-                    showSystemScan = true
-                } label: {
-                    Text("RESCAN")
+                HStack(spacing: 8) {
+                    Button {
+                        showCharacterEditor = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "person.crop.circle.badge.exclamationmark")
+                            Text("CUSTOMIZE")
+                        }
                         .font(.system(size: 9, weight: .bold, design: .monospaced))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
-                        .background(Theme.brandCyan.opacity(0.12))
-                        .foregroundStyle(Theme.brandCyan)
+                        .background(Theme.brandBlue.opacity(0.12))
+                        .foregroundStyle(Theme.brandBlue)
                         .clipShape(Capsule())
+                    }
+
+                    Button {
+                        showSystemScan = true
+                    } label: {
+                        Text("RESCAN")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Theme.brandCyan.opacity(0.12))
+                            .foregroundStyle(Theme.brandCyan)
+                            .clipShape(Capsule())
+                    }
                 }
             }
 
@@ -1529,7 +1753,7 @@ struct LabView: View {
 
     private var metricsGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-            MetricCard(title: SimpleModeLabels.prqScore(simpleMode), value: String(format: "%.1f", effectiveMetrics.prqScore), icon: "brain.head.profile.fill", color: Theme.brandBlue)
+            MetricCard(title: simpleMode ? SimpleModeLabels.prqScore(simpleMode) : "RANKED PRQ", value: String(format: "%.1f", viewModel.competitivePRQScore), icon: "brain.head.profile.fill", color: Theme.brandBlue)
             MetricCard(title: SimpleModeLabels.efficiency(simpleMode), value: String(format: "%.0f%%", effectiveMetrics.efficiencyScore), icon: "bolt.fill", color: .orange)
             MetricCard(title: SimpleModeLabels.readiness(simpleMode), value: String(format: "%.0f%%", effectiveMetrics.readinessScore), icon: "heart.fill", color: .red)
             MetricCard(title: SimpleModeLabels.evolutionShards(simpleMode), value: "\(viewModel.profile.evolutionShards)", icon: "diamond.fill", color: Theme.brandCyan)

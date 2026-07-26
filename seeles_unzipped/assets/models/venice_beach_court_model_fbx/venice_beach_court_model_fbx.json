@@ -1,0 +1,23 @@
+{
+  "id": "venice_beach_court_model_fbx",
+  "name": "Venice Beach Basketball Court Environment",
+  "category": "models",
+  "type": "venue_environment_fbx",
+  "file": "venice_beach_court_model_fbx.fbx",
+  "urls": ["https://seelemedia.s3.us-east-1.amazonaws.com/media/a10565a174954cb9915fbb8825a43cd6.fbx"],
+  "preview_url": "https://seelemedia.s3.us-east-1.amazonaws.com/media/a407350e3aa34af1813a2392094d803a.png",
+  "description": "Venice Beach outdoor half-court basketball environment with asphalt surface, painted court lines, hoop, chain-link fence, palm trees, bleachers, and graffiti wall backdrop for FEL VeniceBeach venue",
+  "tags": ["venice-beach", "basketball-court", "outdoor", "venue", "environment", "half-court", "palm-trees", "beach", "FEL"],
+  "keywords": ["basketball half-court", "venice beach", "asphalt court", "3-point arc", "outdoor court", "beach venue", "graffiti wall", "bleachers"],
+  "compat": ["unity", "unreal"],
+  "status": "ready",
+  "created_at": "2026-05-23T07:00:00Z",
+  "source_date": "2026-05-23",
+  "source_turn": 18,
+  "version": "1.0",
+  "fel_venue_id": "Venice_Beach_Court",
+  "fel_map_path": "/Game/FEL/Venues/VeniceBeach/VeniceBeach",
+  "fel_modes": ["basketball_h2h", "basketball_dunk", "basketball_3v3", "surfing", "court_carnival"],
+  "generation_method": "tripo3D",
+  "asset_design_id": "thing_eb695d16fa2e40b6"
+}

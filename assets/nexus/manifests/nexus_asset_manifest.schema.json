@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://finalevolutiongroup.com/schemas/nexus-asset-manifest-v1.json",
+  "title": "NEXUS Asset Manifest",
+  "description": "Maps FEL venues and game modes to mesh sources (Meshy, Luma, Unreal, Seele) and NEXUS import paths.",
+  "type": "object",
+  "required": ["schema", "version", "assets", "venues"],
+  "properties": {
+    "schema": { "const": "nexus-asset-manifest" },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+$" },
+    "default_mode": { "type": "string" },
+    "import_root": {
+      "type": "string",
+      "description": "Relative root for imported meshes (nexusmesh / glb / fbx)"
+    },
+    "source_root": {
+      "type": "string",
+      "description": "Drop zone for raw exports before conversion"
+    },
+    "assets": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/asset" }
+    },
+    "venues": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/venue" }
+    },
+    "environment_scans": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/environment_scan" }
+    }
+  },
+  "$defs": {
+    "asset": {
+      "type": "object",
+      "required": ["id", "source", "kind"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "source": {
+          "type": "string",
+          "enum": ["meshy", "luma", "unreal", "seele", "procedural"]
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["environment", "character", "prop", "marker"]
+        },
+        "source_url": {
+          "type": "string",
+          "description": "CDN or Meshy/Luma export URL when available"
+        },
+        "source_descriptor": {
+          "type": "string",
+          "description": "Path to Seele or Abacus asset descriptor JSON in repo"
+        },
+        "unreal_package": {
+          "type": "string",
+          "description": "UE content path e.g. /Game/FEL/Venues/VeniceBeach/VeniceBeach"
+        },
+        "imported_mesh": {
+          "type": "string",
+          "description": "Relative path under import_root (.nexusmesh, .glb, .gltf, .fbx)"
+        },
+        "imported_mesh_mobile": {
+          "type": "string",
+          "description": "Mobile LOD mesh path (iOS default, ≤50k verts)"
+        },
+        "imported_mesh_full": {
+          "type": "string",
+          "description": "Full-resolution mesh path (dev/desktop; set NEXUS_MESH_LOD=full)"
+        },
+        "vertex_count": { "type": "integer", "minimum": 0 },
+        "tri_count": { "type": "integer", "minimum": 0 },
+        "fallback": {
+          "type": "string",
+          "enum": ["arena_grid", "flat_plane", "none"],
+          "default": "arena_grid"
+        },
+        "generation_method": {
+          "type": "string",
+          "description": "Original generator: tripo3D, hunyuan3D, meshy, mixamo, etc."
+        }
+      }
+    },
+    "venue": {
+      "type": "object",
+      "required": ["venue_key", "display_name", "mode_ids", "environment_asset_id"],
+      "properties": {
+        "venue_key": { "type": "string" },
+        "display_name": { "type": "string" },
+        "fel_venue_id": { "type": "string" },
+        "mode_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "environment_asset_id": { "type": "string" },
+        "unreal_open_level": { "type": "string" }
+      }
+    },
+    "environment_scan": {
+      "type": "object",
+      "required": ["venue_id", "bounds", "chunks", "source"],
+      "properties": {
+        "venue_id": { "type": "string" },
+        "display_name": { "type": "string" },
+        "source": {
+          "type": "string",
+          "enum": ["luma", "arkit", "photogrammetry"]
+        },
+        "environment_asset_id": { "type": "string" },
+        "chunk_edge": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 32,
+          "description": "Tile size aligned with VoxelWorld::kChunkEdge"
+        },
+        "bounds": {
+          "type": "object",
+          "required": ["min", "max"],
+          "properties": {
+            "min": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "max": {
+              "type": "array",
+              "items": { "type": "number" },
+              "minItems": 3,
+              "maxItems": 3
+            }
+          }
+        },
+        "chunks": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/environment_chunk" }
+        }
+      }
+    },
+    "environment_chunk": {
+      "type": "object",
+      "required": ["coord", "mesh"],
+      "properties": {
+        "coord": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "mesh": {
+          "type": "string",
+          "description": "Absolute or import-root-relative nexusmesh path"
+        },
+        "source_format": {
+          "type": "string",
+          "enum": ["gaussian_splat", "photogrammetry_mesh", "point_cloud"]
+        }
+      }
+    }
+  }
+}

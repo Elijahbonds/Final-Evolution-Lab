@@ -1,0 +1,20 @@
+{
+  "id": "tennis_player_character_model_fbx",
+  "name": "Tennis Player Character",
+  "category": "models",
+  "type": "mixamo_avatar_fbx",
+  "file": "tennis_player_character_model_fbx.fbx",
+  "urls": ["https://static.seeles.ai/data/asset/export/6d8ab9b2-d11d-42fb-93fa-59fca0ddfdc3/1005858/source.fbx"],
+  "description": "Male tennis player humanoid character in gray athletic outfit, T-pose, Unreal-ready mixamo rig",
+  "tags": ["tennis", "character", "athlete", "male", "mixamo"],
+  "keywords": ["tennis player", "sports outfit", "athletic", "humanoid"],
+  "compat": ["unity", "unreal"],
+  "status": "ready",
+  "created_at": "2026-05-24T00:00:00Z",
+  "source_date": "2026-05-24",
+  "source_turn": 27,
+  "version": "1.0",
+  "property_id": "search_b0add2f61c7e_0",
+  "mixamo_id": 1005858,
+  "fel_modes": ["tennis"]
+}

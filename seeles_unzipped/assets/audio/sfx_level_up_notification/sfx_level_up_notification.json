@@ -1,0 +1,35 @@
+{
+  "id": "sfx_level_up_notification",
+  "name": "Level Up Notification SFX",
+  "category": "audio",
+  "type": "sfx_mp3",
+  "file": "sfx_level_up_notification.mp3",
+  "urls": [
+    "https://static.seeles.ai/data/asset/export/c8766576-8097-4d15-915c-bfd09ff16342/172604/sfx_0875d691-3d26-47ec-807b-7577384bd3cb.mp3"
+  ],
+  "description": "Level Up Notification SFX for Final Evolution Lab \u2014 modes: all",
+  "tags": [
+    "ui",
+    "sfx",
+    "level-up",
+    "achievement"
+  ],
+  "keywords": [
+    "level",
+    "up",
+    "unlock",
+    "achievement",
+    "notification"
+  ],
+  "compat": [
+    "all"
+  ],
+  "status": "ready",
+  "created_at": "2026-05-24T00:00:00Z",
+  "source_date": "2026-05-24",
+  "source_turn": 27,
+  "version": "1.0",
+  "fel_modes": [
+    "all"
+  ]
+}

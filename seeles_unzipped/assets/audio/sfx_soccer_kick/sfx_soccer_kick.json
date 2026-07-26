@@ -1,0 +1,34 @@
+{
+  "id": "sfx_soccer_kick",
+  "name": "Soccer Ball Kick SFX",
+  "category": "audio",
+  "type": "sfx_mp3",
+  "file": "sfx_soccer_kick.mp3",
+  "urls": [
+    "https://static.seeles.ai/data/asset/export/191b7c73-dd2e-4296-b596-7d6370a19602/172784/sfx_3a225c08-b894-44b2-87cb-d488cfea43e7.mp3"
+  ],
+  "description": "Soccer Ball Kick SFX for Final Evolution Lab \u2014 modes: soccer",
+  "tags": [
+    "soccer",
+    "sfx",
+    "kick",
+    "sport"
+  ],
+  "keywords": [
+    "soccer",
+    "ball",
+    "kick",
+    "impact"
+  ],
+  "compat": [
+    "all"
+  ],
+  "status": "ready",
+  "created_at": "2026-05-24T00:00:00Z",
+  "source_date": "2026-05-24",
+  "source_turn": 27,
+  "version": "1.0",
+  "fel_modes": [
+    "soccer"
+  ]
+}

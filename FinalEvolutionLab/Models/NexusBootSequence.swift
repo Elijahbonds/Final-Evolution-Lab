@@ -114,7 +114,7 @@ struct NexusBootSequence {
         )
 
         do {
-            let data = try record.unrealBridgeJSON()
+            let data = try record.felScanBridgeJSON()
             // Route through NexusBridge → NexusRenderer (replaces the old Unreal ObjC path)
             NexusBridge.shared.deliverSystemScanJSON(data)
             log.info("Avatar prime: scan JSON relayed to NexusRenderer (PRQ=\(scan.prqScore, privacy: .public)).")
