@@ -1,0 +1,116 @@
+/* game-surface.css — the canvas owns the viewport.
+ *
+ * MEASURED on the live app at 390x844 portrait: the canvas was 372x232 CSS px
+ * — 27% of viewport height. The backing buffer matched the CSS exactly and the
+ * parent box was 374x234, so the canvas was already filling its parent.
+ *
+ * That last fact is the important one: THE CONTAINER CHAIN IS THE BUG, not the
+ * canvas, which means `engine.resize()` cannot help. It is the obvious first
+ * thing to try and it wastes a cycle. A canvas can only fill a parent that has
+ * a height, and in a flex/grid column every ancestor has to agree.
+ *
+ * Apply `.fel-stage` to the element wrapping the canvas, and `.fel-canvas` to
+ * the canvas.
+ */
+
+/* Every ancestor in the chain needs a real height, or the leaf collapses. */
+html, body, #__next, #root {
+  height: 100%;
+  margin: 0;
+}
+
+.fel-stage {
+  position: relative;
+  width: 100%;
+
+  /* 100dvh, NOT 100vh. On iOS Safari `vh` is measured against the viewport
+   * with the toolbar HIDDEN, so 100vh is taller than the visible area and the
+   * bottom of the game sits under the browser chrome. `dvh` tracks the real
+   * visible height as the toolbar shows and hides. The vh line is the
+   * fallback for browsers without dvh — it must come first. */
+  height: 100vh;
+  height: 100dvh;
+
+  /* In a flex column this is what actually lets the stage take the space.
+   * `min-height: 0` looks redundant and is not: flex items default to
+   * `min-height: auto`, which refuses to shrink below content size and is the
+   * single most common cause of a collapsed canvas. */
+  flex: 1 1 auto;
+  min-height: 0;
+
+  overflow: hidden;
+  background: #000;
+  touch-action: none;          /* no pinch-zoom or pull-to-refresh mid-game */
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fel-canvas {
+  display: block;              /* an inline canvas gets baseline gap under it */
+  width: 100%;
+  height: 100%;
+  outline: none;
+  touch-action: none;
+}
+
+/* HUD overlays float ABOVE the canvas. Stacked in normal flow they steal
+ * height from it, which is how a game surface ends up at 27%. */
+.fel-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;        /* the canvas keeps input… */
+  z-index: 2;
+}
+.fel-hud button,
+.fel-hud [role='button'],
+.fel-hud input,
+.fel-hud select {
+  pointer-events: auto;        /* …except for actual controls */
+}
+
+/* Safe areas: notches and home indicators must not cover controls. */
+.fel-hud--inset {
+  padding:
+    env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* Touch targets. 44px is the documented minimum for a reliable tap and it is
+ * an accessibility requirement, not a preference. */
+.fel-hud button,
+.fel-hud [role='button'] {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* ── reduced motion ──────────────────────────────────────────────────────
+ * A player who has asked the OS for less motion has usually asked because
+ * motion makes them ill. Camera shake and full-screen flashes are vestibular
+ * triggers. This kills the UI-side animation; the 3-D camera shake has to be
+ * read from `matchMedia('(prefers-reduced-motion: reduce)')` in the camera
+ * code — CSS cannot reach inside the canvas. */
+@media (prefers-reduced-motion: reduce) {
+  .fel-hud *,
+  .fel-stage * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .fel-flash { display: none !important; }
+}
+
+/* ── landscape phones ────────────────────────────────────────────────────
+ * Short and wide: the HUD has to get out of the way rather than eat the
+ * playfield. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .fel-hud--inset { padding: 4px 12px; }
+}
+
+/* A tall thin phone in portrait is the worst case for a 3-D game — it is
+ * neither the aspect ratio the camera was framed for nor tall enough to
+ * sacrifice. Keep the canvas full-bleed and let the camera FOV adapt. */
+@media (max-width: 480px) and (orientation: portrait) {
+  .fel-stage { height: 100dvh; }
+}

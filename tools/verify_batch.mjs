@@ -31,6 +31,8 @@ const KNOWN_DEPLOYED = new Set([
   'MobSteering', 'Pickups', 'FrameGuard', 'PlayerSlot', 'gameFeel',
   'clipRegistry', 'importSanitizer', 'ballRig', 'clipBuilder', 'CharacterAnimator',
   'clipResolver', 'clipAliases', 'timing', 'authored',
+  // Live since M26 alongside ModeHarness itself.
+  'moods', 'sessionResult',
   'SoundKit', 'EffectsKit', 'VenueKit', 'LightRig', 'RenderPipeline',
   'CameraDirector', 'modeConfigs', 'boardCore', 'rideWorlds', 'aimSwingCore',
   'BasketballCore', 'DunkReplayCam', 'AudioEngine', 'StudioLibrary', 'SynthKit',
