@@ -1,5 +1,12 @@
 # AGENTS.md
 
+> **Working on the web app (Babylon/Next.js)? Start with
+> [`docs/BLUEPRINT.md`](docs/BLUEPRINT.md) and
+> [`docs/AGENT-ACCESS-AND-PROTOCOL.md`](docs/AGENT-ACCESS-AND-PROTOCOL.md),
+> then run `node tools/agent_sync.mjs <your-agent-id>`.** Those supersede the
+> NEXUS/iOS orchestration below for anything web-first. The rest of this file
+> remains accurate for the C++/Swift retail ship.
+
 ## Cursor Cloud specific instructions
 
 ### Repository overview
