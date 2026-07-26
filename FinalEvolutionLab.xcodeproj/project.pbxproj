@@ -29,9 +29,22 @@
 		105FC5932E9EAD3200EA8BCF /* FinalEvolutionLabUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FinalEvolutionLabUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		FEAA06002E9F400000EA8BCF /* Exceptions for "FinalEvolutionLab" folder in "FinalEvolutionLab" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Generated/SocialDataConnect,
+			);
+			target = 105FC5792E9EAD3100EA8BCF /* FinalEvolutionLab */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		105FC57C2E9EAD3100EA8BCF /* FinalEvolutionLab */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				FEAA06002E9F400000EA8BCF /* Exceptions for "FinalEvolutionLab" folder in "FinalEvolutionLab" target */,
+			);
 			path = FinalEvolutionLab;
 			sourceTree = "<group>";
 		};
@@ -120,6 +133,7 @@
 				FEFB00502E9EAD3100EA8BCF /* FirebaseAuth */,
 				FEAA03002E9F200000EA8BCF /* FirebaseCrashlytics */,
 				FEAA01022E9F000000EA8BCF /* SocialDataConnect */,
+				FEAA05012E9F300000EA8BCF /* FirebaseDataConnect */,
 			);
 			productName = FinalEvolutionLab;
 			productReference = 105FC57A2E9EAD3100EA8BCF /* FinalEvolutionLab.app */;
@@ -211,6 +225,7 @@
 			packageReferences = (
 				FEFB00102E9EAD3100EA8BCF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				FEAA01012E9F000000EA8BCF /* XCLocalSwiftPackageReference "SocialDataConnect" */,
+				FEAA05002E9F300000EA8BCF /* XCRemoteSwiftPackageReference "data-connect-ios-sdk" */,
 			);
 			targets = (
 				105FC5792E9EAD3100EA8BCF /* FinalEvolutionLab */,
@@ -676,6 +691,14 @@
 				version = 11.15.0;
 			};
 		};
+		FEAA05002E9F300000EA8BCF /* XCRemoteSwiftPackageReference "data-connect-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/data-connect-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.11.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -710,6 +733,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FEAA01012E9F000000EA8BCF /* XCLocalSwiftPackageReference "SocialDataConnect" */;
 			productName = SocialDataConnect;
+		};
+		FEAA05012E9F300000EA8BCF /* FirebaseDataConnect */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FEAA05002E9F300000EA8BCF /* XCRemoteSwiftPackageReference "data-connect-ios-sdk" */;
+			productName = FirebaseDataConnect;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
