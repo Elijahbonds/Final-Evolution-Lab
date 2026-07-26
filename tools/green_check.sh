@@ -131,6 +131,17 @@ if [ "$WHICH" = "--all" ] || [ "$WHICH" = "--fel" ]; then
     skip "venue render" "npm install --no-save @babylonjs/core esbuild"
   fi
 
+  head_ "FEL — route/mode registry"
+  # Reconciles route ↔ modeId ↔ module against the live app. Exists because
+  # four different names for one mode, with nothing checking them against each
+  # other, produced three separate bugs: a bad audit, duplicate tennis modes,
+  # and an art-card mesh lookup that never matched.
+  if [ -f docs/abacus-batches/m77-mode-registry/files/core/modeRegistry.ts ]; then
+    run "route registry has no drift" node tools/route_audit.mjs
+  else
+    skip "route audit" "modeRegistry.ts not present"
+  fi
+
   head_ "FEL — live smoke"
   if [ -f smoke-state.json ]; then
     run "live modes render" node tools/smoke.mjs
