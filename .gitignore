@@ -1,4 +1,11 @@
 # React Native / Expo artifacts (should not exist in Swift projects)
+#
+# These were blanket rules from stripping React Native out. Three of them —
+# package.json, package-lock.json and tsconfig.json — would silently swallow
+# the Next.js app's manifest and TypeScript config the moment the web app is
+# synced into this repo, producing a checkout that cannot be installed or
+# type-checked, with no error to explain why. Scoped to the Expo leftovers
+# only.
 node_modules/
 .expo/
 .bundle/
@@ -6,10 +13,7 @@ android/
 ios/
 babel.config.js
 metro.config.js
-package.json
-package-lock.json
-tsconfig.json
-app.json
+/app.json
 
 # Xcode
 FinalEvolutionLab/GoogleService-Info.plist
@@ -136,3 +140,18 @@ smoke-shots/
 smoke-report.json
 .render-out/
 .render-work/
+
+# ── Abacus web app sync (see docs/ACCESS-SETUP.md) ───────────────────────
+# The app source is welcome; its build output, dependencies and SECRETS are
+# not. Anything matching these must never arrive in a commit.
+nextjs_space/node_modules/
+nextjs_space/.next/
+nextjs_space/out/
+nextjs_space/.vercel/
+nextjs_space/.env
+nextjs_space/.env.*
+!nextjs_space/.env.example
+**/.env.local
+**/.env.production
+**/serviceAccount*.json
+**/firebase-adminsdk*.json
