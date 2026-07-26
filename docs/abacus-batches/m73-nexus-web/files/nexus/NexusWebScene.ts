@@ -219,8 +219,13 @@ function paintOrganic(scene: Scene, kind: 'water' | 'snow' | 'sand', base: strin
 }
 
 function buildGround(scene: Scene, g: GroundSpec, root: TransformNode): Mesh {
+  // NAME MATTERS. M64's CameraDirector occlusion probe recognises venue shell
+  // by name — /^(venue_ground|venue_box|wall_|...)/ — because VenueKit builds
+  // these without collision flags. A ground called 'nexus_ground' would be
+  // invisible to that probe, and the camera would sink through the floor
+  // exactly as it did in E26. Keep the prefix.
   const mesh = MeshBuilder.CreateGround(
-    'nexus_ground', { width: g.size[0], height: g.size[1], subdivisions: 2 }, scene);
+    'venue_ground', { width: g.size[0], height: g.size[1], subdivisions: 2 }, scene);
   mesh.parent = root;
   mesh.receiveShadows = true;
   // Named so the M64 CameraDirector occlusion probe recognises it as venue
@@ -305,7 +310,9 @@ function buildProp(scene: Scene, p: PropSpec, root: TransformNode, shadows: Shad
       break;
     }
     case 'wall': {
-      const m = MeshBuilder.CreateBox('wall', { width: 24 * s, height: 6 * s, depth: 0.4 }, scene);
+      // 'wall_' prefix so the CameraDirector occlusion probe sees it (see the
+      // note on the ground mesh above).
+      const m = MeshBuilder.CreateBox('wall_nexus', { width: 24 * s, height: 6 * s, depth: 0.4 }, scene);
       m.position.y = 3 * s;
       m.material = surface(scene, 'wallMat', p.color ?? '#12151F', 0.9);
       add(m, false);
