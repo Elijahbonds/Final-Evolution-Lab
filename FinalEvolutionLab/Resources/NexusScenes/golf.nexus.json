@@ -1,0 +1,138 @@
+{
+  "entities" : [
+    {
+      "components" : [
+        {
+          "skeleton" : {
+            "amplitude" : 1,
+            "category" : "Mobility"
+          }
+        },
+        {
+          "physics" : {
+            "mass" : 80,
+            "restitution" : 0.3
+          }
+        }
+      ],
+      "id" : "player_golf",
+      "isEnabled" : true,
+      "name" : "Player",
+      "transform" : {
+        "position" : [
+          0.15,
+          0.72
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    },
+    {
+      "components" : [
+        {
+          "sprite" : {
+            "hexColor" : "#FFFFFF",
+            "systemImage" : "golfball"
+          }
+        },
+        {
+          "physics" : {
+            "mass" : 0.046,
+            "restitution" : 0.5
+          }
+        }
+      ],
+      "id" : "ball",
+      "isEnabled" : true,
+      "name" : "Ball",
+      "transform" : {
+        "position" : [
+          0.5,
+          0.55
+        ],
+        "rotation" : 0,
+        "scale" : 0.22
+      }
+    },
+    {
+      "components" : [
+        {
+          "trigger" : {
+            "eventName" : "hole_out",
+            "radius" : 0.02
+          }
+        }
+      ],
+      "id" : "hole",
+      "isEnabled" : true,
+      "name" : "Trigger",
+      "transform" : {
+        "position" : [
+          0.88,
+          0.78
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    },
+    {
+      "components" : [
+        {
+          "surface" : {
+            "friction" : 0.4
+          }
+        }
+      ],
+      "id" : "floor_golf",
+      "isEnabled" : true,
+      "name" : "Floor",
+      "transform" : {
+        "position" : [
+          0.5,
+          0.88
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    },
+    {
+      "components" : [
+        {
+          "camera" : {
+            "fov" : 60,
+            "zoom" : 1
+          }
+        }
+      ],
+      "id" : "camera_main",
+      "isEnabled" : true,
+      "name" : "Main Camera",
+      "transform" : {
+        "position" : [
+          0.5,
+          0.5
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    }
+  ],
+  "environment" : {
+    "accentColor" : "#30D158",
+    "ambientLight" : 1,
+    "backgroundColor" : "#0D1A0A",
+    "floorY" : 0.8,
+    "fogDensity" : 0
+  },
+  "gameModeId" : "golf",
+  "id" : "golf_default",
+  "name" : "Golf",
+  "physicsConfig" : {
+    "airResistance" : 0.02,
+    "frictionCoefficient" : 0.3,
+    "gravity" : 9.8,
+    "prqJumpBonus" : 1.1,
+    "prqReactionWindow" : 0.375,
+    "prqSpeedMultiplier" : 1.275
+  }
+}

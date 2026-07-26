@@ -1,0 +1,111 @@
+{
+  "entities" : [
+    {
+      "components" : [
+        {
+          "skeleton" : {
+            "amplitude" : 1,
+            "category" : "Agility"
+          }
+        },
+        {
+          "physics" : {
+            "mass" : 80,
+            "restitution" : 0.3
+          }
+        }
+      ],
+      "id" : "player_skateboarding",
+      "isEnabled" : true,
+      "name" : "Player",
+      "transform" : {
+        "position" : [
+          0.35,
+          0.72
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    },
+    {
+      "components" : [
+        {
+          "trigger" : {
+            "eventName" : "trick_window",
+            "radius" : 0.1
+          }
+        }
+      ],
+      "id" : "trick_zone",
+      "isEnabled" : true,
+      "name" : "Trigger",
+      "transform" : {
+        "position" : [
+          0.6,
+          0.6
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    },
+    {
+      "components" : [
+        {
+          "surface" : {
+            "friction" : 0.4
+          }
+        }
+      ],
+      "id" : "floor_skateboarding",
+      "isEnabled" : true,
+      "name" : "Floor",
+      "transform" : {
+        "position" : [
+          0.5,
+          0.88
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    },
+    {
+      "components" : [
+        {
+          "camera" : {
+            "fov" : 60,
+            "zoom" : 1
+          }
+        }
+      ],
+      "id" : "camera_main",
+      "isEnabled" : true,
+      "name" : "Main Camera",
+      "transform" : {
+        "position" : [
+          0.5,
+          0.5
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    }
+  ],
+  "environment" : {
+    "accentColor" : "#FF9F0A",
+    "ambientLight" : 0.75,
+    "backgroundColor" : "#1A1A1A",
+    "floorY" : 0.86,
+    "fogDensity" : 0.03
+  },
+  "gameModeId" : "skateboarding",
+  "id" : "skateboarding_default",
+  "name" : "Skateboarding",
+  "physicsConfig" : {
+    "airResistance" : 0.02,
+    "frictionCoefficient" : 0.3,
+    "gravity" : 9.8,
+    "prqJumpBonus" : 1.1,
+    "prqReactionWindow" : 0.375,
+    "prqSpeedMultiplier" : 1.275
+  }
+}

@@ -4,16 +4,35 @@
   "projectName": "FinalEvolutionLab",
   "bundleId": "com.finalevolutionlab.app",
   "renderBackend": "canvas",
-  "targetPlatforms": ["ios", "ipados"],
-  "defaultSceneDir": "NexusStarter/BasketballGame/Scenes",
+  "targetPlatforms": [
+    "ios",
+    "ipados"
+  ],
+  "defaultSceneDir": "FinalEvolutionLab/Resources/NexusScenes",
   "physicsPreset": "arcade_prq",
   "startScene": "basketball_h2h",
-  "description": "Final Evolution Lab — Native Swift game project. Replaces UE5 embedded runtime. All scenes are JSON-defined NexusScene descriptors rendered by NexusSceneView via SwiftUI Canvas.",
+  "description": "Final Evolution Lab \u2014 Native Swift game project. Replaces UE5 embedded runtime. All 20 modes are JSON-defined NexusScene descriptors loaded by NexusSceneLoader and rendered by NexusSceneView via SwiftUI Canvas. Descriptors are generated from the Swift model (tools/nexus_scenes.sh); a missing or invalid descriptor falls back to NexusScene.default(for:) rather than failing to launch.",
   "subsystems": {
-    "firebase": { "enabled": true, "projectId": "final-evolution-lab" },
-    "healthKit": { "enabled": true, "dataTypes": ["heartRate", "hrv", "activeEnergy"] },
-    "emergentWS": { "enabled": true, "configKey": "EMERGENT_GAME_WS_URL" },
-    "nexusLoop": { "enabled": true, "targetFPS": 60 }
+    "firebase": {
+      "enabled": true,
+      "projectId": "final-evolution-lab"
+    },
+    "healthKit": {
+      "enabled": true,
+      "dataTypes": [
+        "heartRate",
+        "hrv",
+        "activeEnergy"
+      ]
+    },
+    "emergentWS": {
+      "enabled": true,
+      "configKey": "EMERGENT_GAME_WS_URL"
+    },
+    "nexusLoop": {
+      "enabled": true,
+      "targetFPS": 60
+    }
   },
   "assetPipeline": {
     "skeletonAnimations": "canvas_procedural",

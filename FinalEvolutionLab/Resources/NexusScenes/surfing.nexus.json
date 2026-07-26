@@ -1,0 +1,111 @@
+{
+  "entities" : [
+    {
+      "components" : [
+        {
+          "skeleton" : {
+            "amplitude" : 1,
+            "category" : "Agility"
+          }
+        },
+        {
+          "physics" : {
+            "mass" : 80,
+            "restitution" : 0.3
+          }
+        }
+      ],
+      "id" : "player_surfing",
+      "isEnabled" : true,
+      "name" : "Player",
+      "transform" : {
+        "position" : [
+          0.35,
+          0.72
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    },
+    {
+      "components" : [
+        {
+          "trigger" : {
+            "eventName" : "trick_window",
+            "radius" : 0.1
+          }
+        }
+      ],
+      "id" : "trick_zone",
+      "isEnabled" : true,
+      "name" : "Trigger",
+      "transform" : {
+        "position" : [
+          0.6,
+          0.6
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    },
+    {
+      "components" : [
+        {
+          "surface" : {
+            "friction" : 0.4
+          }
+        }
+      ],
+      "id" : "floor_surfing",
+      "isEnabled" : true,
+      "name" : "Floor",
+      "transform" : {
+        "position" : [
+          0.5,
+          0.88
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    },
+    {
+      "components" : [
+        {
+          "camera" : {
+            "fov" : 60,
+            "zoom" : 1
+          }
+        }
+      ],
+      "id" : "camera_main",
+      "isEnabled" : true,
+      "name" : "Main Camera",
+      "transform" : {
+        "position" : [
+          0.5,
+          0.5
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    }
+  ],
+  "environment" : {
+    "accentColor" : "#00B4D8",
+    "ambientLight" : 0.85,
+    "backgroundColor" : "#001A33",
+    "floorY" : 0.6,
+    "fogDensity" : 0.08
+  },
+  "gameModeId" : "surfing",
+  "id" : "surfing_default",
+  "name" : "Surfing",
+  "physicsConfig" : {
+    "airResistance" : 0.02,
+    "frictionCoefficient" : 0.3,
+    "gravity" : 9.8,
+    "prqJumpBonus" : 1.1,
+    "prqReactionWindow" : 0.375,
+    "prqSpeedMultiplier" : 1.275
+  }
+}

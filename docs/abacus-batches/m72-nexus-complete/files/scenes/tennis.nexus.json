@@ -1,0 +1,165 @@
+{
+  "entities" : [
+    {
+      "components" : [
+        {
+          "skeleton" : {
+            "amplitude" : 1,
+            "category" : "Strength"
+          }
+        },
+        {
+          "physics" : {
+            "mass" : 80,
+            "restitution" : 0.3
+          }
+        }
+      ],
+      "id" : "player_tennis",
+      "isEnabled" : true,
+      "name" : "Player",
+      "transform" : {
+        "position" : [
+          0.2,
+          0.72
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    },
+    {
+      "components" : [
+        {
+          "skeleton" : {
+            "amplitude" : 0.85,
+            "category" : "Strength"
+          }
+        },
+        {
+          "physics" : {
+            "mass" : 80,
+            "restitution" : 0.3
+          }
+        }
+      ],
+      "id" : "opponent_tennis",
+      "isEnabled" : true,
+      "name" : "Opponent",
+      "transform" : {
+        "position" : [
+          0.8,
+          0.72
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    },
+    {
+      "components" : [
+        {
+          "sprite" : {
+            "hexColor" : "#D4FF00",
+            "systemImage" : "tennisball.fill"
+          }
+        },
+        {
+          "physics" : {
+            "mass" : 0.058,
+            "restitution" : 0.7
+          }
+        }
+      ],
+      "id" : "ball",
+      "isEnabled" : true,
+      "name" : "Ball",
+      "transform" : {
+        "position" : [
+          0.5,
+          0.55
+        ],
+        "rotation" : 0,
+        "scale" : 0.3
+      }
+    },
+    {
+      "components" : [
+        {
+          "trigger" : {
+            "eventName" : "net_fault",
+            "radius" : 0.03
+          }
+        }
+      ],
+      "id" : "net",
+      "isEnabled" : true,
+      "name" : "Trigger",
+      "transform" : {
+        "position" : [
+          0.5,
+          0.72
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    },
+    {
+      "components" : [
+        {
+          "surface" : {
+            "friction" : 0.4
+          }
+        }
+      ],
+      "id" : "floor_tennis",
+      "isEnabled" : true,
+      "name" : "Floor",
+      "transform" : {
+        "position" : [
+          0.5,
+          0.88
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    },
+    {
+      "components" : [
+        {
+          "camera" : {
+            "fov" : 60,
+            "zoom" : 1
+          }
+        }
+      ],
+      "id" : "camera_main",
+      "isEnabled" : true,
+      "name" : "Main Camera",
+      "transform" : {
+        "position" : [
+          0.5,
+          0.5
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    }
+  ],
+  "environment" : {
+    "accentColor" : "#FFD60A",
+    "ambientLight" : 0.9,
+    "backgroundColor" : "#1A0D0D",
+    "floorY" : 0.86,
+    "fogDensity" : 0.01
+  },
+  "gameModeId" : "tennis",
+  "id" : "tennis_default",
+  "name" : "Tennis",
+  "physicsConfig" : {
+    "airResistance" : 0.02,
+    "frictionCoefficient" : 0.3,
+    "gravity" : 9.8,
+    "prqJumpBonus" : 1.1,
+    "prqReactionWindow" : 0.375,
+    "prqSpeedMultiplier" : 1.275
+  }
+}

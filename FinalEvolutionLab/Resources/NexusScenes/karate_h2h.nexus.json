@@ -1,0 +1,159 @@
+{
+  "entities" : [
+    {
+      "components" : [
+        {
+          "skeleton" : {
+            "amplitude" : 1,
+            "category" : "Agility"
+          }
+        },
+        {
+          "physics" : {
+            "mass" : 80,
+            "restitution" : 0.3
+          }
+        }
+      ],
+      "id" : "player_karate_h2h",
+      "isEnabled" : true,
+      "name" : "Player",
+      "transform" : {
+        "position" : [
+          0.35,
+          0.72
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    },
+    {
+      "components" : [
+        {
+          "skeleton" : {
+            "amplitude" : 0.85,
+            "category" : "Agility"
+          }
+        },
+        {
+          "physics" : {
+            "mass" : 80,
+            "restitution" : 0.3
+          }
+        }
+      ],
+      "id" : "opponent_karate_h2h",
+      "isEnabled" : true,
+      "name" : "Opponent",
+      "transform" : {
+        "position" : [
+          0.65,
+          0.72
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    },
+    {
+      "components" : [
+        {
+          "trigger" : {
+            "eventName" : "ring_out",
+            "radius" : 0.04
+          }
+        }
+      ],
+      "id" : "ring_out_left",
+      "isEnabled" : true,
+      "name" : "Trigger",
+      "transform" : {
+        "position" : [
+          0.05,
+          0.72
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    },
+    {
+      "components" : [
+        {
+          "trigger" : {
+            "eventName" : "ring_out",
+            "radius" : 0.04
+          }
+        }
+      ],
+      "id" : "ring_out_right",
+      "isEnabled" : true,
+      "name" : "Trigger",
+      "transform" : {
+        "position" : [
+          0.95,
+          0.72
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    },
+    {
+      "components" : [
+        {
+          "surface" : {
+            "friction" : 0.4
+          }
+        }
+      ],
+      "id" : "floor_karate_h2h",
+      "isEnabled" : true,
+      "name" : "Floor",
+      "transform" : {
+        "position" : [
+          0.5,
+          0.88
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    },
+    {
+      "components" : [
+        {
+          "camera" : {
+            "fov" : 60,
+            "zoom" : 1
+          }
+        }
+      ],
+      "id" : "camera_main",
+      "isEnabled" : true,
+      "name" : "Main Camera",
+      "transform" : {
+        "position" : [
+          0.5,
+          0.5
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    }
+  ],
+  "environment" : {
+    "accentColor" : "#FF2D55",
+    "ambientLight" : 0.7,
+    "backgroundColor" : "#0A0A0A",
+    "floorY" : 0.86,
+    "fogDensity" : 0.04
+  },
+  "gameModeId" : "karate_h2h",
+  "id" : "karate_h2h_default",
+  "name" : "Karate H2H",
+  "physicsConfig" : {
+    "airResistance" : 0.02,
+    "frictionCoefficient" : 0.3,
+    "gravity" : 9.8,
+    "prqJumpBonus" : 1.1,
+    "prqReactionWindow" : 0.375,
+    "prqSpeedMultiplier" : 1.275
+  }
+}

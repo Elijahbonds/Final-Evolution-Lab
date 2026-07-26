@@ -1,6 +1,8 @@
 import Foundation
 import CoreGraphics
-import SwiftUI
+// SwiftUI import removed: nothing in this file used it, and its presence
+// made the whole scene model — and anything referencing it — unreachable
+// to any non-Apple type-check. Same coupling-by-file-placement as GameModeId.
 
 // MARK: - NexusScene
 

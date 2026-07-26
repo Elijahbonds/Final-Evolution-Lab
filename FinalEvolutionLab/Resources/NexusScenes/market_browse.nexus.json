@@ -1,0 +1,43 @@
+{
+  "entities" : [
+    {
+      "components" : [
+        {
+          "camera" : {
+            "fov" : 60,
+            "zoom" : 1
+          }
+        }
+      ],
+      "id" : "camera_main",
+      "isEnabled" : true,
+      "name" : "Main Camera",
+      "transform" : {
+        "position" : [
+          0.5,
+          0.5
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    }
+  ],
+  "environment" : {
+    "accentColor" : "#0A84FF",
+    "ambientLight" : 0.75,
+    "backgroundColor" : "#0A0A12",
+    "floorY" : 0.86,
+    "fogDensity" : 0.02
+  },
+  "gameModeId" : "market_browse",
+  "id" : "market_browse_default",
+  "name" : "Market Browse",
+  "physicsConfig" : {
+    "airResistance" : 0.02,
+    "frictionCoefficient" : 0.3,
+    "gravity" : 9.8,
+    "prqJumpBonus" : 1.1,
+    "prqReactionWindow" : 0.375,
+    "prqSpeedMultiplier" : 1.275
+  }
+}

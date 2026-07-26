@@ -1,0 +1,138 @@
+{
+  "entities" : [
+    {
+      "components" : [
+        {
+          "skeleton" : {
+            "amplitude" : 1,
+            "category" : "Plyometric"
+          }
+        },
+        {
+          "physics" : {
+            "mass" : 80,
+            "restitution" : 0.3
+          }
+        }
+      ],
+      "id" : "player_basketball_dunk",
+      "isEnabled" : true,
+      "name" : "Player",
+      "transform" : {
+        "position" : [
+          0.5,
+          0.72
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    },
+    {
+      "components" : [
+        {
+          "sprite" : {
+            "hexColor" : "#FF6B00",
+            "systemImage" : "basketball.fill"
+          }
+        },
+        {
+          "physics" : {
+            "mass" : 0.6,
+            "restitution" : 0.8
+          }
+        }
+      ],
+      "id" : "ball",
+      "isEnabled" : true,
+      "name" : "Ball",
+      "transform" : {
+        "position" : [
+          0.5,
+          0.55
+        ],
+        "rotation" : 0,
+        "scale" : 0.6
+      }
+    },
+    {
+      "components" : [
+        {
+          "trigger" : {
+            "eventName" : "dunk_scored",
+            "radius" : 0.05
+          }
+        }
+      ],
+      "id" : "rim",
+      "isEnabled" : true,
+      "name" : "Trigger",
+      "transform" : {
+        "position" : [
+          0.5,
+          0.28
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    },
+    {
+      "components" : [
+        {
+          "surface" : {
+            "friction" : 0.4
+          }
+        }
+      ],
+      "id" : "floor_basketball_dunk",
+      "isEnabled" : true,
+      "name" : "Floor",
+      "transform" : {
+        "position" : [
+          0.5,
+          0.88
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    },
+    {
+      "components" : [
+        {
+          "camera" : {
+            "fov" : 60,
+            "zoom" : 1
+          }
+        }
+      ],
+      "id" : "camera_main",
+      "isEnabled" : true,
+      "name" : "Main Camera",
+      "transform" : {
+        "position" : [
+          0.5,
+          0.5
+        ],
+        "rotation" : 0,
+        "scale" : 1
+      }
+    }
+  ],
+  "environment" : {
+    "accentColor" : "#FF6B00",
+    "ambientLight" : 0.85,
+    "backgroundColor" : "#0A0F1E",
+    "floorY" : 0.86,
+    "fogDensity" : 0.02
+  },
+  "gameModeId" : "basketball_dunk",
+  "id" : "basketball_dunk_default",
+  "name" : "Basketball Dunk",
+  "physicsConfig" : {
+    "airResistance" : 0.02,
+    "frictionCoefficient" : 0.3,
+    "gravity" : 9.8,
+    "prqJumpBonus" : 1.1,
+    "prqReactionWindow" : 0.375,
+    "prqSpeedMultiplier" : 1.275
+  }
+}
