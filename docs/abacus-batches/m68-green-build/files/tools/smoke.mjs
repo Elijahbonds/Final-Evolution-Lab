@@ -1,0 +1,165 @@
+#!/usr/bin/env node
+// smoke.mjs — POST-DEPLOY verification against the LIVE link.
+//
+//     node tools/smoke.mjs                       # default: the live app
+//     node tools/smoke.mjs --url https://... --modes dunk,onevone,karate
+//
+// WHY POST-DEPLOY AND NOT PRE-DEPLOY: the Babylon game is built by Abacus
+// from dropped files — this repo cannot build it, so there is no local
+// preview server to test against (the pipeline doc's `localhost:4173` step
+// assumes a Vite build this project doesn't have). What IS possible, and is
+// what has actually caught every live bug so far, is driving the deployed
+// app with a real browser right after a drop.
+//
+// Checks per mode: page loads, canvas renders, no page errors, no
+// `MISSING CLIP` / `SKINNING STALL` / watchdog trips, and the scene reports
+// a healthy spawn. Exit 1 on any failure.
+//
+// v2 — AUTH. The first live run of v1 reported all six modes broken with
+// "no <canvas>". They were fine: FEL is behind a sign-in wall, and a fresh
+// browser context lands on the login screen. An unauthenticated smoke test
+// reports a false failure on every gated route, which is the worst thing a
+// gate can do. v2 loads a saved session (--state), and if it still lands on
+// a login wall it says AUTH WALL explicitly instead of blaming the game.
+//
+// Capture a session once:
+//   node tools/smoke.mjs --login   → opens a browser, you sign in, it saves
+//                                     state.json for every later run
+
+import { chromium } from 'playwright';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+
+const args = process.argv.slice(2);
+const argOf = (flag, fallback) => {
+  const i = args.indexOf(flag);
+  return i >= 0 && args[i + 1] ? args[i + 1] : fallback;
+};
+
+const BASE = argOf('--url', 'https://finalevolution.abacusai.app');
+const STATE = argOf('--state', 'smoke-state.json');
+const LOGIN = args.includes('--login');
+const MODES = argOf('--modes', 'dunk,onevone,threevthree,karate').split(',');
+const SHOTS = argOf('--shots', 'smoke-shots');
+const LOAD_MS = Number(argOf('--wait', '9000'));
+
+// Console patterns that mean something is actually wrong. `sanitized` and
+// `authored clips registered` are healthy startup chatter — not failures.
+const FATAL = [
+  /MISSING CLIP/i,
+  /SKINNING STALL/i,
+  /WATCHDOG/i,
+  /sceneFilename/i,
+  /\[FEL-FRAME\]/i,
+  /\[FEL-SPAWN\].*(?:only|fail)/i,
+];
+
+async function checkMode(context, mode) {
+  const page = await context.newPage();
+  const problems = [];
+  page.on('pageerror', (e) => problems.push(`pageerror: ${e.message.slice(0, 160)}`));
+  page.on('console', (m) => {
+    if (m.type() !== 'error' && m.type() !== 'warning') return;
+    const text = m.text();
+    if (FATAL.some((re) => re.test(text))) problems.push(`console: ${text.slice(0, 160)}`);
+  });
+
+  let status = 0;
+  try {
+    const res = await page.goto(`${BASE}/play/${mode}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    status = res?.status() ?? 0;
+    if (status >= 400) problems.push(`HTTP ${status}`);
+
+    await page.waitForTimeout(LOAD_MS);
+
+    // the game must actually be rendering something
+    const probe = await page.evaluate(() => {
+      const c = document.querySelector('canvas');
+      return {
+        canvas: c ? { w: c.clientWidth, h: c.clientHeight } : null,
+        text: (document.body.innerText || '').slice(0, 400),
+        hasPasswordField: !!document.querySelector('input[type=password]'),
+      };
+    });
+
+    // An auth wall is NOT a broken game. Report it as its own state so a
+    // missing session can never masquerade as six broken modes.
+    const looksLikeAuth = probe.hasPasswordField
+      || (!probe.canvas && AUTH_MARKERS.some((re) => re.test(probe.text)));
+    if (looksLikeAuth) {
+      await mkdir(SHOTS, { recursive: true });
+      await page.screenshot({ path: `${SHOTS}/${mode}.png` });
+      await page.close();
+      return { mode, status, problems: [], authWall: true };
+    }
+
+    if (!probe.canvas) problems.push('no <canvas> on the page — the 3D scene never mounted');
+    else if (probe.canvas.w < 100 || probe.canvas.h < 100) {
+      problems.push(`canvas is ${probe.canvas.w}x${probe.canvas.h} — collapsed layout`);
+    }
+
+    // start the session and let it run a beat
+    await page.keyboard.press('j');
+    await page.waitForTimeout(3500);
+
+    await mkdir(SHOTS, { recursive: true });
+    await page.screenshot({ path: `${SHOTS}/${mode}.png` });
+  } catch (e) {
+    problems.push(`navigation failed: ${String(e).slice(0, 160)}`);
+  }
+  await page.close();
+  return { mode, status, problems, authWall: false };
+}
+
+// Signals that we are looking at a sign-in wall rather than the game.
+const AUTH_MARKERS = [/sign in/i, /log ?in/i, /create account/i, /enter the lab/i, /password/i];
+
+async function captureLogin() {
+  const b = await chromium.launch({ headless: false });
+  const c = await b.newContext({ viewport: { width: 1280, height: 900 } });
+  const p = await c.newPage();
+  await p.goto(BASE, { waitUntil: 'domcontentloaded' });
+  console.log('[SMOKE] sign in in the browser window, then press Enter here…');
+  await new Promise((r) => process.stdin.once('data', r));
+  await c.storageState({ path: STATE });
+  console.log(`[SMOKE] session saved → ${STATE}`);
+  await b.close();
+}
+
+if (LOGIN) { await captureLogin(); process.exit(0); }
+
+const browser = await chromium.launch();
+if (!existsSync(STATE)) {
+  console.log(`[SMOKE] WARNING: no session at ${STATE}. FEL is behind a sign-in wall, so`);
+  console.log('        gated routes will report AUTH WALL, not real failures.');
+  console.log('        Run:  node tools/smoke.mjs --login');
+}
+const context = await browser.newContext({
+  storageState: existsSync(STATE) ? STATE : undefined,
+  viewport: { width: 1280, height: 720 },
+});
+
+console.log(`[SMOKE] ${BASE} — ${MODES.length} mode(s)\n`);
+const results = [];
+for (const mode of MODES) {
+  const r = await checkMode(context, mode);
+  results.push(r);
+  const tag = r.authWall ? 'AUTH' : r.problems.length ? 'FAIL' : 'PASS';
+  console.log(`[SMOKE] ${tag} /play/${r.mode} (HTTP ${r.status})`
+    + (r.authWall ? '  — sign-in wall, not a game failure' : ''));
+  for (const p of r.problems) console.log(`        ${p}`);
+}
+await browser.close();
+
+const walls = results.filter((r) => r.authWall);
+const failed = results.filter((r) => r.problems.length);
+if (walls.length) {
+  console.log(`\n[SMOKE] ${walls.length} route(s) behind a sign-in wall — capture a session with --login`);
+}
+await writeFile('smoke-report.json', JSON.stringify({ base: BASE, results }, null, 2));
+console.log(`\n[SMOKE] ${results.length - failed.length}/${results.length} passed · screenshots in ${SHOTS}/`);
+
+if (failed.length) {
+  console.log('[SMOKE] FAILING — the live build has problems in: ' + failed.map((f) => f.mode).join(', '));
+  process.exit(1);
+}

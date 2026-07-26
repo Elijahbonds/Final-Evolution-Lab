@@ -131,3 +131,6 @@ Saved/
 Intermediate/
 DerivedDataCache/
 .claude/
+smoke-state.json
+smoke-shots/
+smoke-report.json
