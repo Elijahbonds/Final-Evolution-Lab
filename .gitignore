@@ -134,3 +134,5 @@ DerivedDataCache/
 smoke-state.json
 smoke-shots/
 smoke-report.json
+.render-out/
+.render-work/

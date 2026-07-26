@@ -121,6 +121,16 @@ if [ "$WHICH" = "--all" ] || [ "$WHICH" = "--fel" ]; then
     skip "asset gate" "no assets/ready directory yet"
   fi
 
+  head_ "FEL — Nexus Web venues"
+  # Renders every venue headlessly in Chromium and inspects the frame. This is
+  # the check the Swift engine could never have: a Babylon scene can be BUILT,
+  # RENDERED and MEASURED in CI on Linux.
+  if [ -d node_modules/@babylonjs ]; then
+    run "20 venues render" node tools/render_check.mjs
+  else
+    skip "venue render" "npm install --no-save @babylonjs/core esbuild"
+  fi
+
   head_ "FEL — live smoke"
   if [ -f smoke-state.json ]; then
     run "live modes render" node tools/smoke.mjs
