@@ -175,3 +175,15 @@ nextjs_space/.env.*
 **/.env.production
 **/serviceAccount*.json
 **/firebase-adminsdk*.json
+
+# ── Local agent/test artifacts — RESTORED after the origin/main merge ────
+# Taking main's .gitignore during the merge silently dropped these rules, and
+# `smoke-state.json` holds LIVE SESSION COOKIES for the signed-in account. It
+# went from ignored to untracked-and-stageable in one merge, which is exactly
+# how a credential reaches a public remote. Never remove these.
+smoke-state.json
+smoke-report.json
+smoke-shots/
+.claude/
+.render-out/
+.render-work/
