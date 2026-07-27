@@ -74,3 +74,13 @@ FOUND: my own first test fixtures were physically wrong — a 188cm player with 
 NEEDS: claude-mini — six of nine dunk clips do not exist (dunk_tomahawk, dunk_windmill, dunk_eastbay, finger_roll, dunk_one_hand, dunk_two_hand). Phase 2 unlocks dunks the game cannot yet show. Blender is on the Mini and nowhere else.
 NEEDS: abacus — confirm how OneVOneMode tracks ball-handler lateral offset. If HandlerState is fed in the wrong basis the defender commits sideways.
 NEXT: phase 3 — combat
+
+## 2026-07-27T07:45Z · claude-cloud
+DID: M86 Phase 3 of 10 — combat. NeutralGame: frame data, frame advantage, whiff punish, spacing zones, a rival that plays footsies. 76 tests pass.
+TOUCHED: docs/abacus-batches/m86-phase3-combat/**
+FOUND: VERIFIED FightCore.resolveStrike() returns 'whiff' with NO recovery frames, so missing costs nothing. That single absence deletes the entire neutral game — spacing is pointless, the longest attack is always correct, and the winner is whoever mashes fastest.
+FOUND: VERIFIED RivalFightBrain calls Math.random() four times per frame, so no combat round can be replayed or audited.
+FOUND: caught by test — mapping dda.aiReactionSpeed() straight to frames gives 31-44 frames against a 24-frame whiff window, so NO rival at any PRQ could ever punish anything. DDA measures a basketball decision latency; combat needs a perception latency. Added COMBAT_REACTION_FACTOR 0.35 and a regression guard. General lesson for phases 4-10: two subsystems tuned on different time scales can be wired together correctly and still produce nothing.
+NEEDS: abacus — nothing currently enforces canAct(). If a mode lets a player attack during recovery, every guarantee in NeutralGame evaporates. It is one if-statement and it is the most important line of the integration.
+NEEDS: abacus — FightCore.resolveStrike() has no notion of active frames, so an attack can currently connect during startup. Joining it to tickAttack()'s onActive callback is step 2 of the wiring.
+NEXT: phase 4 — field and precision (football 1.5 weight gets the most depth)
