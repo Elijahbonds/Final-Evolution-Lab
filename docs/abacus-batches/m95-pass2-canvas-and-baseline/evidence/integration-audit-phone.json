@@ -1,0 +1,158 @@
+{
+  "base": "https://finalevolution.abacusai.app",
+  "at": "2026-07-27T04:32:44.456Z",
+  "viewport": {
+    "name": "desktop",
+    "width": 1280,
+    "height": 720,
+    "dpr": 1,
+    "touch": false
+  },
+  "modes": [
+    {
+      "mode": "dunk",
+      "authWall": false,
+      "engines": null,
+      "found": [
+        "restPose (arms-down idle)",
+        "groundSnap"
+      ],
+      "boot": {
+        "domMs": 1197,
+        "canvasMs": 2544,
+        "playingMs": null
+      },
+      "trail": [
+        "loading",
+        "loaded",
+        "playing"
+      ],
+      "metrics": {
+        "canvas": {
+          "cssW": 1166,
+          "cssH": 728,
+          "bufW": 1166,
+          "bufH": 728
+        },
+        "viewport": {
+          "w": 1280,
+          "h": 720,
+          "dpr": 1
+        },
+        "coverage": 92.1,
+        "pixelRatio": 1,
+        "chain": [
+          {
+            "tag": "canvas",
+            "cls": "absolute inset-0 h-full w-full touch-none",
+            "w": 1166,
+            "h": 728,
+            "aspectRatio": "auto 1166 / 728"
+          },
+          {
+            "tag": "div",
+            "cls": "relative aspect-[16/10] w-full overflow-hidden rounded-xl border border-white/10",
+            "w": 1168,
+            "h": 730,
+            "aspectRatio": "16 / 10"
+          },
+          {
+            "tag": "div",
+            "cls": "relative mx-auto w-full max-w-[1200px] flex-1 px-2 py-3 sm:px-4",
+            "w": 1200,
+            "h": 754,
+            "aspectRatio": null
+          },
+          {
+            "tag": "div",
+            "cls": "flex min-h-screen flex-col bg-[#050505]",
+            "w": 1280,
+            "h": 810,
+            "aspectRatio": null
+          },
+          {
+            "tag": "body",
+            "cls": "__variable_df07ce __variable_c8daab __variable_3c557b font-sans min-h-screen bg-",
+            "w": 1280,
+            "h": 810,
+            "aspectRatio": null
+          },
+          {
+            "tag": "html",
+            "cls": "dark",
+            "w": 1280,
+            "h": 810,
+            "aspectRatio": null
+          }
+        ],
+        "fps": 3.7
+      }
+    }
+  ],
+  "subsystems": [
+    {
+      "batch": "M64",
+      "name": "restPose (arms-down idle)",
+      "seen": true,
+      "modes": [
+        "dunk"
+      ]
+    },
+    {
+      "batch": "M69",
+      "name": "groundSnap",
+      "seen": true,
+      "modes": [
+        "dunk"
+      ]
+    },
+    {
+      "batch": "M69",
+      "name": "CameraStandoff",
+      "seen": false,
+      "modes": []
+    },
+    {
+      "batch": "M80",
+      "name": "external animation loader",
+      "seen": false,
+      "modes": []
+    },
+    {
+      "batch": "M80",
+      "name": "PoseProbe",
+      "seen": false,
+      "modes": []
+    },
+    {
+      "batch": "M81",
+      "name": "engine lifecycle (ModeHarness v3)",
+      "seen": false,
+      "modes": []
+    },
+    {
+      "batch": "M81",
+      "name": "DDA / PRQ as an input",
+      "seen": false,
+      "modes": []
+    },
+    {
+      "batch": "M82",
+      "name": "PRQ weight table",
+      "seen": false,
+      "modes": []
+    },
+    {
+      "batch": "M83",
+      "name": "seeded RNG",
+      "seen": false,
+      "modes": []
+    },
+    {
+      "batch": "M83",
+      "name": "deterministic SimLoop",
+      "seen": false,
+      "modes": []
+    }
+  ]
+}

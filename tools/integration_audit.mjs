@@ -39,6 +39,19 @@ const MODES = argOf('--modes', 'dunk,karate,onevone,skateboard').split(',');
 const PLAY_MS = Number(argOf('--play', '12000'));
 
 /**
+ * The two viewports that matter, and they disagree.
+ *
+ * Added 2026-07-27 after the first real run of this tool: `dunk` fills 92% of a
+ * 1280×720 desktop and 33% of an iPhone 13. Auditing one viewport would have
+ * reported the canvas criterion as healthy. The founder plays on a phone.
+ */
+const VIEWPORTS = {
+  desktop: { width: 1280, height: 720, dpr: 1, touch: false },
+  phone: { width: 390, height: 844, dpr: 3, touch: true },
+};
+const VIEWPORT = argOf('--viewport', 'desktop');
+
+/**
  * What each shipped subsystem says when it runs.
  *
  * `signal` is proof it is present. `absence` explains what it means when the
@@ -99,6 +112,49 @@ const SUBSYSTEMS = [
   },
 ];
 
+/**
+ * Measure the page rather than read its logs.
+ *
+ * `boot` and `canvas` cannot be self-reported — a subsystem can log that it
+ * resized and still be 33% of the screen. These are the criteria M93 listed as
+ * UNKNOWN and SPECIFIED, and they are the two this function exists to move.
+ */
+async function measure(page) {
+  return page.evaluate(async () => {
+    const c = document.querySelector('canvas');
+    const r = c?.getBoundingClientRect() ?? null;
+    // Walk up from the canvas recording each box, so a starved canvas can be
+    // blamed on the specific ancestor that constrains it instead of on
+    // "the container chain" in general.
+    const chain = [];
+    for (let el = c; el && chain.length < 8; el = el.parentElement) {
+      const b = el.getBoundingClientRect();
+      const cs = getComputedStyle(el);
+      chain.push({
+        tag: el.tagName.toLowerCase(),
+        cls: String(el.className ?? '').slice(0, 80),
+        w: Math.round(b.width), h: Math.round(b.height),
+        aspectRatio: cs.aspectRatio === 'auto' ? null : cs.aspectRatio,
+      });
+    }
+    const fps = await new Promise((res) => {
+      let n = 0; const s = performance.now();
+      const t = () => { n++; if (performance.now() - s < 2000) requestAnimationFrame(t); else res(n / ((performance.now() - s) / 1000)); };
+      requestAnimationFrame(t);
+    });
+    return {
+      canvas: r && c ? { cssW: Math.round(r.width), cssH: Math.round(r.height), bufW: c.width, bufH: c.height } : null,
+      viewport: { w: innerWidth, h: innerHeight, dpr: devicePixelRatio },
+      coverage: r ? +((r.width * r.height) / (innerWidth * innerHeight) * 100).toFixed(1) : null,
+      // Backing pixels per CSS pixel. Above 4 (i.e. DPR > 2) is pure cost: it
+      // is invisible on a phone and it is quadratic in the fill rate.
+      pixelRatio: r && c && r.width ? +((c.width * c.height) / (r.width * r.height)).toFixed(2) : null,
+      chain,
+      fps: Math.round(fps * 10) / 10,
+    };
+  }).catch(() => null);
+}
+
 async function auditMode(context, mode) {
   const page = await context.newPage();
   const logs = [];
@@ -108,11 +164,17 @@ async function auditMode(context, mode) {
   const found = new Set();
   let engines = null;
   let authWall = false;
+  let metrics = null;
+  const boot = { domMs: null, canvasMs: null, playingMs: null };
 
   try {
     // ?probe=1 turns on the dev-gated reporters (PoseProbe, and anything else
     // that self-disables in normal play).
+    const t0 = Date.now();
     await page.goto(`${BASE}/play/${mode}?probe=1`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    boot.domMs = Date.now() - t0;
+    await page.waitForSelector('canvas', { timeout: 25000 })
+      .then(() => { boot.canvasMs = Date.now() - t0; }).catch(() => {});
     await page.waitForTimeout(6000);
 
     authWall = await page.evaluate(
@@ -120,6 +182,15 @@ async function auditMode(context, mode) {
     ).catch(() => false);
 
     if (!authWall) {
+      // On a touch viewport the start gate needs a REAL tap. A synthetic
+      // click() leaves the mode stuck at "loaded", which on the first run of
+      // this tool looked exactly like a mobile start-gate bug and was not one.
+      // Reporting that would have sent someone chasing a Playwright artifact.
+      if (VIEWPORTS[VIEWPORT]?.touch) {
+        const gate = page.getByText(/TAP TO START|START|BEGIN|PLAY/i).first();
+        const box = await gate.boundingBox().catch(() => null);
+        if (box) await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2).catch(() => {});
+      }
       // Clear the start gate — most subsystems only speak once play begins.
       await page.evaluate(() => {
         const nav = /^(hub|back|menu|settings|←|→)/i;
@@ -144,6 +215,7 @@ async function auditMode(context, mode) {
       engines = await page.evaluate(
         () => (window).__FEL_ENGINES__ ?? null,
       ).catch(() => null);
+      metrics = await measure(page);
     }
   } catch (e) {
     logs.push(`NAV FAILED ${String(e).slice(0, 120)}`);
@@ -155,8 +227,10 @@ async function auditMode(context, mode) {
   }
   if (engines) found.add('engine lifecycle (ModeHarness v3)');
 
+  // The phase trail is the mode's own account of whether it got there.
+  const trail = logs.filter((l) => l.includes('[FEL-READY]')).map((l) => l.split('→').pop().trim());
   await page.close();
-  return { mode, found, engines, authWall, logLines: logs.length };
+  return { mode, found, engines, authWall, metrics, boot, trail, logLines: logs.length };
 }
 
 const browser = await chromium.launch({
@@ -171,9 +245,13 @@ if (!existsSync(STATE)) {
   console.log('        Capture one first:  node tools/smoke.mjs --login\n');
 }
 
+const vp = VIEWPORTS[VIEWPORT] ?? VIEWPORTS.desktop;
 const context = await browser.newContext({
   storageState: existsSync(STATE) ? STATE : undefined,
-  viewport: { width: 1280, height: 720 },
+  viewport: { width: vp.width, height: vp.height },
+  deviceScaleFactor: vp.dpr,
+  hasTouch: vp.touch,
+  isMobile: vp.touch,
 });
 
 console.log(`[AUDIT] ${BASE} — probing ${MODES.length} mode(s) for ${SUBSYSTEMS.length} subsystems\n`);
@@ -207,6 +285,38 @@ for (const s of SUBSYSTEMS) {
 }
 console.log('└─────────────────────────────────────────────────────────────');
 
+// ── measured criteria ────────────────────────────────────────────────────
+//
+// These are judged, not just printed. A number nobody compares to a threshold
+// is a number nobody acts on, and `boot` and `canvas` sat at UNKNOWN and
+// SPECIFIED through ten phases for exactly that reason.
+const MIN_COVERAGE = 55;      // below this the game is a window in a page
+const MAX_PIXEL_RATIO = 4;    // DPR 2. Above it is invisible and quadratic.
+const MAX_CANVAS_MS = 4000;
+
+console.log('\n┌─ MEASURED ─────────────────────────────────────────────────');
+console.log(`│ viewport: ${VIEWPORT} ${vp.width}×${vp.height} @${vp.dpr}x${vp.touch ? ' touch' : ''}`);
+for (const r of measured) {
+  const m = r.metrics;
+  if (!m || !m.canvas) { console.log(`│ ${r.mode.padEnd(12)} no canvas — reached: ${r.trail.join(' → ') || 'nothing'}`); continue; }
+  const cov = m.coverage < MIN_COVERAGE ? `${m.coverage}% FAIL` : `${m.coverage}% ok`;
+  const px = m.pixelRatio > MAX_PIXEL_RATIO ? `${m.pixelRatio}× FAIL` : `${m.pixelRatio}× ok`;
+  const bt = r.boot.canvasMs === null ? 'never' : r.boot.canvasMs > MAX_CANVAS_MS ? `${r.boot.canvasMs}ms SLOW` : `${r.boot.canvasMs}ms`;
+  console.log(`│ ${r.mode.padEnd(12)} canvas ${m.canvas.cssW}×${m.canvas.cssH}  cover ${cov}  buffer ${px}  boot ${bt}`);
+  console.log(`│              reached: ${r.trail.join(' → ') || 'nothing'}`);
+  if (m.coverage < MIN_COVERAGE) {
+    // Name the ancestor responsible instead of blaming "the container chain".
+    // Skip the canvas itself: `getComputedStyle(canvas).aspectRatio` reports
+    // the INTRINSIC ratio from its width/height attributes, so the first run
+    // of this check accused the canvas of constraining itself.
+    const culprit = m.chain.slice(1).find((c) => c.aspectRatio && c.tag !== 'canvas');
+    console.log(`│              → starved by ${culprit ? `aspect-ratio ${culprit.aspectRatio} on <${culprit.tag} class="${culprit.cls}">` : 'an ancestor with no aspect-ratio set — inspect the chain in the JSON'}`);
+  }
+}
+console.log('└─────────────────────────────────────────────────────────────');
+console.log('[AUDIT] fps here is SOFTWARE-RENDERED (SwiftShader) and means nothing');
+console.log('        about a real device. Only the geometry above is transferable.');
+
 for (const r of measured) {
   if (r.engines) {
     const warn = r.engines.live > 2 ? '  ← LEAKING' : '';
@@ -223,8 +333,11 @@ if (walls.length) {
 
 await mkdir('artifacts', { recursive: true }).catch(() => {});
 await writeFile('artifacts/integration-audit.json', JSON.stringify({
-  base: BASE, at: new Date().toISOString(),
-  modes: results.map((r) => ({ mode: r.mode, authWall: r.authWall, engines: r.engines, found: [...r.found] })),
+  base: BASE, at: new Date().toISOString(), viewport: { name: VIEWPORT, ...vp },
+  modes: results.map((r) => ({
+    mode: r.mode, authWall: r.authWall, engines: r.engines, found: [...r.found],
+    boot: r.boot, trail: r.trail, metrics: r.metrics,
+  })),
   subsystems: rows,
 }, null, 2));
 

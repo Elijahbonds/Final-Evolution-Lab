@@ -30,6 +30,11 @@ integrating all fourteen into none.
 | 13 | `m92-phase9-presentation.zip` | the tell registry, adaptive quality, a11y juice gate | no |
 | 14 | `m93-phase10-certification.zip` | the honest scorecard | no |
 | 15 | `m94-pass2-dunk-migration.zip` | **`dunk` actually on the kit** — replaces `modes/DunkMode.ts` | **YES** |
+| 16 | `m95-pass2-canvas-and-baseline.zip` | **the phone canvas fix, measured live: 33% → 80%** | no |
+
+**M95 depends on nothing and can ship first.** It is the only batch here whose
+effect has been observed in the deployed product — see
+`docs/BASELINE-2026-07-27.md`.
 
 ---
 

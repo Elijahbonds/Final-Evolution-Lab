@@ -101,16 +101,21 @@ const suitesOk = results.filter((r) => r.ok).length;
 const UNPROVEN = [
   ['response', 'Input-to-response has never been measured in the real app'],
   ['framerate', 'No session has been profiled on a real device'],
-  ['boot', 'No cold 4G load has been timed'],
-  ['canvas', 'The container chain fix has never been verified in a browser'],
-  ['no_tpose', 'PoseProbe has never run; the T-pose cause is still unknown'],
+  // Pass 2 Phase 2 measured these against the deployed app. See
+  // docs/BASELINE-2026-07-27.md. Two left UNKNOWN; one left BUILT for FAIL,
+  // which is worse news and better information.
+  ['boot', 'measured 1.2-2.5s to canvas on a data-centre link; no 4G run yet'],
+  ['canvas', 'root-caused (aspect-[16/10]) and fixed 33%→80% in a browser; NOT DEPLOYED'],
+  ['no_tpose', 'MEASURED FAIL — restPose runs and the characters are still T-posed'],
   // M94 moved these three from "no mode" to "one mode, in the repo". They stay
   // in this panel because this panel is about the DEPLOYED app, and none of it
   // has been observed running. Promoting them on source alone is precisely the
   // wishful BUILT→PASS move M93 wrote a test against.
   ['a11y_audio', 'dunk captions every cue in source; nothing has been heard in the app'],
   ['prq', 'dunk reads PRQ into judge strictness in source; not observed in the app'],
-  ['lifecycle', 'ModeHarness v3 is not integrated; the WebGL leak is unconfirmed'],
+  // Measured: 1 context per route, 0 lost, because every route change is a
+  // full page load. The leak this targets is not reproducible in this build.
+  ['lifecycle', 'ModeHarness v3 not integrated; the leak it targets does NOT reproduce here'],
   ['legibility', 'Zero of eleven load-bearing tells are drawn'],
   ['simulatable', 'dunk implements it and proves deterministic here; no DEPLOYED mode does'],
   ['mocap', 'fel_conform.py has never been run; every character clip is procedural'],
