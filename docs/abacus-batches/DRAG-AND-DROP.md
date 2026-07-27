@@ -4,10 +4,10 @@
 Every zip is in this folder. **Integration order is strict** — later batches
 replace files from earlier ones.
 
-Before anything else, read **`docs/GAP-AND-PASS-2.md`**. The short version:
-this is a large amount of tested logic and **zero of it has been observed
-running in the deployed app.** Integrating M84 into one mode is worth more than
-integrating all fourteen into none.
+Read **`docs/BASELINE-2026-07-27.md`** first — the deployed app has now been
+measured, and M95/M96 fix things it was actually caught doing. Then
+`docs/GAP-AND-PASS-2.md` for why batches 1–14 are still worth nothing until
+one of them reaches a player.
 
 ---
 
@@ -33,9 +33,10 @@ integrating all fourteen into none.
 | 16 | `m95-pass2-canvas-and-baseline.zip` | **the phone canvas fix, measured live: 33% → 80%** | no |
 | 17 | `m96-pass2-grounding-and-lifecycle.zip` | **skateboard/snowboard/surf stop losing the rider** | no |
 
-**M95 and M96 depend on nothing and can ship first.** It is the only batch here whose
-effect has been observed in the deployed product — see
-`docs/BASELINE-2026-07-27.md`.
+**M95 and M96 depend on nothing and should ship first.** They are the only two
+batches here that fix a defect someone has actually watched the deployed
+product commit — a game rendering into a third of a phone screen, and three
+modes losing the player through the floor unattended.
 
 ---
 
@@ -85,14 +86,15 @@ Each of these is one line, and without it the batch does nothing:
 ## Verify before and after
 
 ```bash
-node tools/certify.mjs             # 22/22 suites, 1353 assertions, gate clean
+node tools/certify.mjs             # 25/25 suites, 1494 assertions, gate clean
 node tools/verify_batch.mjs --all  # 0 errors
-node tools/integration_audit.mjs   # what is ACTUALLY running in the live build
+node tools/integration_audit.mjs --viewport phone   # measures the LIVE build
 ```
 
-The third one is the one that matters and it needs a session cookie
-(`node tools/smoke.mjs --login`). It is the only tool here that measures the
-product rather than the repo.
+The third is the one that matters. It needs a session cookie
+(`node tools/smoke.mjs --login`) and it is the only tool here that measures the
+product rather than the repo. It now reports canvas coverage, boot time,
+backing-pixel ratio, and which modes break themselves with no player input.
 
 ---
 
