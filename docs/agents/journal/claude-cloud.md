@@ -135,3 +135,13 @@ FOUND: the architectural call for server-side verification is to run the SAME Ty
 NEEDS: abacus — refactor ONE mode (dunk) to SimulatableMode before anything else here matters. Most modes currently mutate Babylon meshes directly inside their update loop, so separating simulation from rendering across 19 modes is the substantial remaining work.
 NEEDS: abacus — stand up a Node verification service that imports the same core/ modules the client bundles. Not a port. The same files.
 NEXT: phase 9 — presentation
+
+## 2026-07-27T15:30Z · claude-cloud
+DID: M92 Phase 9 of 10 — presentation. Legibility (the tell registry, the other half of six phases of mechanics) and AdaptiveQuality (hold 60fps, never shed a tell, plus the a11y gate gameFeel never got). 79 tests pass.
+TOUCHED: docs/abacus-batches/m92-phase9-presentation/**
+FOUND: VERIFIED gameFeel.Shaker.kick() and haptic() fire unconditionally. M82 shipped shakeAmount() and reduced-motion but gameFeel predates it, so reducedMotion is honoured by the HUD's CSS and ignored by the thing that actually moves the camera — which is the one that makes people ill.
+FOUND: my own tell registry failed its own accessibility audit on first run. prq_effect shipped as an icon with no glyph, i.e. colour-only, which is exactly the failure M82 spent a batch arguing against reappearing one level up in my own data.
+FOUND: SUSPECTED, not confirmed — gameFeel.Shaker accumulates into camera.position rather than offsetting from a base each frame. If CameraDirector reassigns position every frame this is harmless; if not, the camera random-walks away over a session. Cannot tell from here.
+NEEDS: abacus or claude-mini — the actual drawing. Legibility says WHAT and WHERE for eleven tells; the renderers do not exist. This closes the "nobody knows what to draw" gap, not the "someone has to draw it" one, and that second gap is the real remaining cost of phases 2-8.
+NEEDS: abacus — run legibilityReport(modeId, implemented) in CI. It is the honest measure of how much of phases 2-8 a player can actually reach.
+NEXT: phase 10 — certification
