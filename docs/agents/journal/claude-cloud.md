@@ -269,3 +269,15 @@ FOUND: re-simulating a full 40-second contest costs under 2ms, and an over-long 
 NEEDS: abacus — client sends `replay` alongside `score` (one more field on the existing POST). Server runs verifySession on Node importing the SAME files the client bundles, not a port. Gate the wallet on cashPayable and progress on progressPayable.
 NEEDS: whoever integrated M94 — apply captureHashes: true or its replays are worthless.
 NEXT: pass 2 phase 10 — re-certify. The honest scorecard against everything measured in phases 2-9.
+
+## 2026-07-28T13:00Z · claude-cloud
+DID: M103 Pass 2 Phase 10 — re-certified against measurement instead of judgement. core/CertificationPass2.ts, 30 tests, and docs/PASS-2-RESULTS.md as the closing assessment.
+TOUCHED: docs/abacus-batches/m103-pass2-recertification/**, docs/PASS-2-RESULTS.md, docs/abacus-batches/DRAG-AND-DROP.md
+FOUND: THE SCORECARD. 2 demonstrated criteria became 4 (boot and lifecycle, both measured in the product). SIX measure FAIL: canvas, no_tpose, prq, a11y_audio, legibility, simulatable. Three remain unmeasurable from here — response and framerate need real hardware, fun needs the founder.
+FOUND: BUILT WAS NOISE IN BOTH DIRECTIONS, which is the useful part. Four BUILT criteria are FAIL. But two things with batches built for them are FINE — the WebGL context leak does not reproduce (every route change is a full page load), and boot was never a problem. Wrong in both directions means the register was noise, not a correctable optimism. The fix is not "discount BUILT", it is stop scoring what you have not measured.
+FOUND: pass 2 found as many defects in pass 1's OUTPUT as in the product — all three in M94, all the same shape (runs, tests clean, does nothing), and the worst of them only findable by building the other end and running a real match through it.
+FOUND: the instrument was the whole difference. Four lines hooking Function.prototype.bind gave access to scenes, skeletons, bone matrices, vertex buffers and the camera. Every finding in phases 4-9 came from that or from watching the network. Four batches of diagnosis were wrong because a screenshot was the only instrument available — the lesson is not "measure more", it is build the instrument first.
+NEEDS: claude-mini — blocker 1 and it gates the most. Re-export the character with correct skin weights. Nothing about how the game looks improves until the mesh is bound to its skeleton: not the camera, not the tells, not mocap.
+NEEDS: abacus — M95 and M96 have no prerequisites and fix things the product was caught doing. Then M99's four camera radii, CaptionRegion, the four AI call sites, and replay-alongside-score.
+NEEDS: elijah — the nexus flag server-side, and playing all 25 modes. `fun` is the one criterion nobody else can score and it is the one that decides whether any of this was worth building.
+NEXT: pass 3 is neither of the previous shapes. Fix the six measured failures, ship them, re-measure. Everything on the blocker list is small, specified, and has an acceptance test anyone can run.

@@ -1,13 +1,17 @@
 # Drag-and-drop index — everything built in this session
 
-**23 batches, 33 new core modules, 1,670 passing assertions.**
+**24 batches, 34 new core modules, 1,700 passing assertions.**
 Every zip is in this folder. **Integration order is strict** — later batches
 replace files from earlier ones.
 
-Read **`docs/BASELINE-2026-07-27.md`** first — the deployed app has now been
-measured, and M95/M96 fix things it was actually caught doing. Then
-`docs/GAP-AND-PASS-2.md` for why batches 1–14 are still worth nothing until
-one of them reaches a player.
+Read **`docs/PASS-2-RESULTS.md`** first — the closing assessment of what
+measuring the deployed product actually found, and the ranked list of who can
+clear what. `docs/BASELINE-2026-07-27.md` has the first measurements;
+`docs/GAP-AND-PASS-2.md` has why batches 1–14 are worth nothing until one
+reaches a player.
+
+**If you ship nothing else, ship M95 and M96.** Neither has a prerequisite and
+both fix something the product was caught doing.
 
 ---
 
@@ -38,6 +42,7 @@ one of them reaches a player.
 | 21 | `m100-pass2-prq-input-and-captions.zip` | **PRQ is fed an arbitrary number; nothing is captioned** | no |
 | 22 | `m101-pass2-verifiability.zip` | **which modes could carry prize money — dunk is clean, 4 are not** | no |
 | 23 | `m102-pass2-server-verification.zip` | **a real match re-simulated and matched — plus a one-line fix to M94** | no |
+| 24 | `m103-pass2-recertification.zip` | **the honest scorecard: 4 of 13 demonstrated, 6 measured broken** | no |
 
 **M95, M96 and M97 depend on nothing and should ship first.** They are the only two
 batches here that fix a defect someone has actually watched the deployed
@@ -92,7 +97,7 @@ Each of these is one line, and without it the batch does nothing:
 ## Verify before and after
 
 ```bash
-node tools/certify.mjs             # 31/31 suites, 1670 assertions, gate clean
+node tools/certify.mjs             # 32/32 suites, 1700 assertions, gate clean
 node tools/determinism_probe.mjs   # can a match be verified for money
 node --experimental-strip-types tools/skin_audit.mjs   # can the characters animate AT ALL
 node tools/pose_probe.mjs          # character size + pose INSIDE the running game
