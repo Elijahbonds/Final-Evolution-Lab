@@ -28,38 +28,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate JSON registries
-        run: |
-          python3 -m json.tool backend/FEL_ModeManager.production.json > /dev/null
-          python3 -m json.tool backend/ue_mode_maps.json > /dev/null
-          python3 -m json.tool backend/FEL_VenueRegistry.production.json > /dev/null
-          python3 -m json.tool UnrealStarter/BasketballGame/Content/FEL/Config/ArenaSettings.json > /dev/null
-          echo "All 4 registry JSON files valid"
-
-      - name: Verify render modes
-        run: |
-          python3 - <<'EOF'
-          import json, sys
-          data = json.load(open('backend/FEL_ModeManager.production.json'))
-          modes = data['mode_manager']['modes']
-          errors = []
-          for m in modes:
-              rm = m.get('render_mode', 'MISSING')
-              if rm == 'MISSING':
-                  errors.append(f"{m['id']}: render_mode field missing")
-              print(f"  {m['id']:35} render_mode={rm:8} irl={m.get('irl_mode',False)}")
-          h2h  = next(m for m in modes if m['id'] == 'basketball_h2h')
-          bb   = next(m for m in modes if m['id'] == 'brain_brawl')
-          dunk = next(m for m in modes if m['id'] == 'basketball_dunk')
-          assert h2h['render_mode']  == '3D_UE5',  f"basketball_h2h must be 3D_UE5"
-          assert h2h['irl_mode']     == False,      "basketball_h2h must have irl_mode=false"
-          assert bb['render_mode']   == '2D',       f"brain_brawl must be 2D"
-          assert dunk['render_mode'] == '3D_UE5',   f"basketball_dunk must be 3D_UE5"
-          assert 'Venice' in dunk.get('venue_display', ''), "basketball_dunk venue must mention Venice Beach"
-          if errors:
-              [print(f"ERROR: {e}") for e in errors]; sys.exit(1)
-          print("All render mode assertions passed")
-          EOF
+      # One script, runnable locally with the identical command, so a failure
+      # here can always be reproduced without pushing:
+      #
+      #     python3 scripts/validate_registries.py
+      #
+      # It replaces an inline heredoc that read `mode_manager.modes` from
+      # FEL_ModeManager.production.json. That key has never existed in this
+      # repo — the file uses `mode_manager.mode_registry`, an object keyed by
+      # mode id — so the step failed with a bare `KeyError: 'modes'` naming
+      # neither the file nor what was actually there. The render-mode data it
+      # was looking for lives in FEL_VenueRegistry.production.json, in
+      # camelCase (`renderMode`, `displayVenue`), and there is no `irl_mode`
+      # field anywhere in the repo.
+      - name: Validate mode + venue registries
+        run: python3 scripts/validate_registries.py
 
       - name: Run smoke tests
         run: |
