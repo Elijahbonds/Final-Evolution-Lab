@@ -223,7 +223,12 @@ export const DunkMode: ModeDefinition = (() => {
     camPreset: 'sport',
 
     async load(ctx: ModeContext): Promise<void> {
-      kit = await ModeKit.create({ modeId: 'dunk', record: true });      // [kit 7]
+      // `captureHashes` is NOT optional for a mode that wants to be verified.
+      // Without it `SimLoop.finish()` returns a replay with no final hash, and
+      // `verifyMatch` refuses it outright — every recorded dunk would be
+      // unverifiable while looking perfectly well-formed. Found by M102
+      // building the server side and running a real match through it.
+      kit = await ModeKit.create({ modeId: 'dunk', record: true, captureHashes: true }); // [kit 7]
       if (ctx.cancelled()) { kit.dispose(); return; }
 
       // PRQ becomes two numbers the sim can use. Nothing else in the mode

@@ -1,6 +1,6 @@
 # Drag-and-drop index — everything built in this session
 
-**22 batches, 32 new core modules, 1,641 passing assertions.**
+**23 batches, 33 new core modules, 1,670 passing assertions.**
 Every zip is in this folder. **Integration order is strict** — later batches
 replace files from earlier ones.
 
@@ -37,6 +37,7 @@ one of them reaches a player.
 | 20 | `m99-pass2-camera-presets.zip` | **measured camera distances — 4 modes are a one-number fix** | no |
 | 21 | `m100-pass2-prq-input-and-captions.zip` | **PRQ is fed an arbitrary number; nothing is captioned** | no |
 | 22 | `m101-pass2-verifiability.zip` | **which modes could carry prize money — dunk is clean, 4 are not** | no |
+| 23 | `m102-pass2-server-verification.zip` | **a real match re-simulated and matched — plus a one-line fix to M94** | no |
 
 **M95, M96 and M97 depend on nothing and should ship first.** They are the only two
 batches here that fix a defect someone has actually watched the deployed
@@ -91,7 +92,7 @@ Each of these is one line, and without it the batch does nothing:
 ## Verify before and after
 
 ```bash
-node tools/certify.mjs             # 30/30 suites, 1641 assertions, gate clean
+node tools/certify.mjs             # 31/31 suites, 1670 assertions, gate clean
 node tools/determinism_probe.mjs   # can a match be verified for money
 node --experimental-strip-types tools/skin_audit.mjs   # can the characters animate AT ALL
 node tools/pose_probe.mjs          # character size + pose INSIDE the running game

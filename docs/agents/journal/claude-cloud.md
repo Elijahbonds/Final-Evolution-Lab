@@ -257,3 +257,15 @@ FOUND: three ways the probe was wrong before it was right. (1) Counting calls: t
 NEEDS: abacus — four named call sites to route through the session Rng (M83). Then re-run the probe; cosmetic-only on a COMPLETE capture is the gate.
 NEEDS: source maps would turn `<chunk>:8:149097` into a line someone can open.
 NEXT: pass 2 phase 9 — server verification. dunk is the only mode that clears the client-side bar, and it is still not deployed against a verifier.
+
+## 2026-07-28T11:00Z · claude-cloud
+DID: M102 Pass 2 Phase 9 — met the gate: a REAL dunk match recorded, serialised, parsed, re-simulated and matched, plus tamper cases. server/verifySession.ts, 29 tests. Also fixed a one-line bug in my own M94.
+TOUCHED: docs/abacus-batches/m102-pass2-server-verification/**, docs/abacus-batches/m94-pass2-dunk-migration/files/modes/dunk/DunkMode.ts
+FOUND: A BUG IN MY OWN M94, caught by building the other end. M94's DunkMode called ModeKit.create({ modeId: 'dunk', record: true }) WITHOUT captureHashes: true. SimLoop.finish() then returns a replay with no final hash and verifyMatch refuses it outright. Every dunk replay recorded in production would have been unverifiable while looking perfectly well-formed — it parses, it re-simulates, and it is refused. Third bug of this exact shape in pass 2 and the second in my own work, and only findable by running a real match through both ends.
+FOUND: the server has nothing to verify against. The captured payload is {"mode":"dunkContest","score":25,...} with no replay, no seed, no hash. It is not failing to verify; there is no verification path at all.
+FOUND: the design that matters is THREE outcomes, not two. verified pays cash and progress; unverified pays progress only; rejected pays nothing. A submission with no replay is not evidence of cheating — most are an old client or an unmigrated mode — so treating them as fraud bans the player base and treating them as verified is what happens now. Unverified keeps XP, shards and season tier, which is what lets verification roll out one mode at a time without taking anything away from anyone.
+FOUND: the ceiling is not redundant even though it looks it. An unverified session still earns XP, shards and season tier — real money in this economy — so the claim is checked against M100's scoreScale BEFORE re-simulation, because that is the only guard that applies to the unverified majority. score:999999 is rejected with no replay to check.
+FOUND: re-simulating a full 40-second contest costs under 2ms, and an over-long replay is refused before any simulation runs in under 50ms. Verification is affordable per session in a queue worker.
+NEEDS: abacus — client sends `replay` alongside `score` (one more field on the existing POST). Server runs verifySession on Node importing the SAME files the client bundles, not a port. Gate the wallet on cashPayable and progress on progressPayable.
+NEEDS: whoever integrated M94 — apply captureHashes: true or its replays are worthless.
+NEXT: pass 2 phase 10 — re-certify. The honest scorecard against everything measured in phases 2-9.
