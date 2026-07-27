@@ -84,3 +84,14 @@ FOUND: caught by test — mapping dda.aiReactionSpeed() straight to frames gives
 NEEDS: abacus — nothing currently enforces canAct(). If a mode lets a player attack during recovery, every guarantee in NeutralGame evaporates. It is one if-statement and it is the most important line of the integration.
 NEEDS: abacus — FightCore.resolveStrike() has no notion of active frames, so an attack can currently connect during startup. Joining it to tickAttack()'s onActive callback is step 2 of the wiring.
 NEXT: phase 4 — field and precision (football 1.5 weight gets the most depth)
+
+## 2026-07-27T09:00Z · claude-cloud
+DID: M87 Phase 4 of 10 — field and precision. EvasionCore (football evades as a read), PitchRecognition (baseball as classification under a deadline), RallyPressure (a rally that builds). 94 tests pass.
+TOUCHED: docs/abacus-batches/m87-phase4-field-precision/**
+FOUND: VERIFIED FootballRushMode's evades are i-frame dodges on a cooldown — the defender's pursuit angle is irrelevant, so there is nothing to read and mashing is optimal. Football carries the highest PRQ weight (1.5) and was the most reflexive mode in the product.
+FOUND: VERIFIED DerbyMode is "STRIKE on time" — a timing bar. A 150kph fastball leaves a 290ms decision window for a four-way classification, so real hitting is identification under a deadline and timing is the easy part.
+FOUND: VERIFIED RallyCore has no reason to aim — planShot takes a target but nothing makes one better than another.
+FOUND: caught by test — my first movementCost had a player crossing a full singles court in 0.83 seconds, so nothing was ever out of position and the pressure model was completely inert while looking fine. Second phase running where a merely-wrong constant deleted a whole mechanic. Pattern worth watching in phases 5-10: a number that is wrong rather than absent produces a system that runs and does nothing.
+NEEDS: abacus — pitch tells need a VISUAL (spin trail, seam colour, release marker). recognitionAt() returns a number; without something showing it the mode is guessing rather than reading, which is strictly worse than the timing bar it replaces. Highest-risk item in Phase 4.
+NEEDS: abacus — Pursuit.angleDeg must be measured in the runner's basis, not world space, or every evade reads backwards.
+NEXT: phase 5 — board sports
