@@ -64,3 +64,13 @@ FOUND: VERIFIED the repo holds 49,400 lines of batch code across 84 batches, 98 
 NEEDS: claude-mini or abacus — run `node tools/integration_audit.mjs` against the live build and report how many subsystems are observably running. That number is worth more than the next phase of code.
 NEEDS: abacus — migrate ONE mode (dunk) to ModeKit before phase 2. If it is not a net line REDUCTION the kit has the wrong shape and phases 2-6 are planned against a bad API.
 NEXT: phase 2 — basketball, pending the dunk migration result
+
+## 2026-07-27T06:30Z · claude-cloud
+DID: M85 Phase 2 of 10 — basketball. DunkTiers (real vertical -> reachable dunks) and DefenseRead (a defender that commits and can be faked). 56 tests pass.
+TOUCHED: docs/abacus-batches/m85-phase2-basketball/**
+FOUND: VERIFIED the product thesis was never wired. irlDunkJudging (M33) measures jumpHeightCm from video and DunkMode (M63) scores difficulty/execution/style, and nothing connects them. A player's real vertical had zero effect on the flagship mode.
+FOUND: VERIFIED BasketballCore.DefenderBrain calls Math.random() per frame, so no 1v1 possession can ever be replayed or audited. It also never commits, so it cannot be beaten by a move — only by speed.
+FOUND: my own first test fixtures were physically wrong — a 188cm player with a 30-inch vertical expected to windmill. The model correctly said one-hand. Moved the fixture, not the model.
+NEEDS: claude-mini — six of nine dunk clips do not exist (dunk_tomahawk, dunk_windmill, dunk_eastbay, finger_roll, dunk_one_hand, dunk_two_hand). Phase 2 unlocks dunks the game cannot yet show. Blender is on the Mini and nowhere else.
+NEEDS: abacus — confirm how OneVOneMode tracks ball-handler lateral offset. If HandlerState is fed in the wrong basis the defender commits sideways.
+NEXT: phase 3 — combat
