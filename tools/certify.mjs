@@ -116,8 +116,8 @@ const UNPROVEN = [
   // in this panel because this panel is about the DEPLOYED app, and none of it
   // has been observed running. Promoting them on source alone is precisely the
   // wishful BUILT→PASS move M93 wrote a test against.
-  ['a11y_audio', 'dunk captions every cue in source; nothing has been heard in the app'],
-  ['prq', 'dunk reads PRQ into judge strictness in source; not observed in the app'],
+  ['a11y_audio', 'MEASURED FAIL — 0 aria-live regions in 4 modes; the caption bus renders nowhere'],
+  ['prq', 'MEASURED FAIL — fed a raw per-mode score; karate paid 39x dunk. nexus_disabled server-side'],
   ['legibility', 'Zero of eleven tells drawn — AND at current framing a tell would be ~6px'],
   // Found by watching modes with NO player input, which nothing here had ever
   // done. Three of fourteen modes destroy themselves unattended.

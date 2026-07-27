@@ -1,0 +1,62 @@
+[
+  {
+    "dir": "out",
+    "method": "GET",
+    "url": "/api/auth/session",
+    "body": null
+  },
+  {
+    "dir": "out",
+    "method": "GET",
+    "url": "/api/profile",
+    "body": null
+  },
+  {
+    "dir": "in",
+    "status": 200,
+    "url": "/api/auth/session",
+    "body": "{\"user\":{\"name\":\"[redacted]\",\"email\":\"[redacted]\",\"id\":\"[redacted]\",\"profileId\":\"[redacted]\"},\"expires\":\"2026-08-26T06:23:41.112Z\"}"
+  },
+  {
+    "dir": "in",
+    "status": 200,
+    "url": "/api/profile",
+    "body": "{\"profile\":{\"id\":\"[redacted]\",\"userId\":\"[redacted]\",\"strength\":51.55,\"speed\":48.75,\"endurance\":62.55,\"agility\":43.7,\"power\":46.4,\"flexibility\":40,\"recovery\":41.6,\"mental\":59.78,\"labCredits\":535,\"xp\":2285,\"shards\":75,\"streakDays\":2,\"avatarKey\":\"male-athletic\",\"cosmeticAssetId\":null,\"lastStreakAt\":\"2026-07-27T06:15:06.682Z\",\"lastActiveAt\":\"2026-07-27T06:15:06.682Z\",\"lastDecayAt\":\"2026-07-27T04:20:30.363Z\",\"updatedAt\":\"2026-07-27T06:15:06.682Z\"},\"prq\":49.3,\"grade\":{\"key\":\"READY\",\"label\":\"READY\",\"color\":\"#00FF9D\",\"speedMult\":1,\"hangBonus\":0},\"role\":\"user\"}"
+  },
+  {
+    "dir": "out",
+    "method": "POST",
+    "url": "/api/sessions",
+    "body": "{\"mode\":\"dunkContest\",\"score\":25,\"opponentScore\":0,\"won\":false,\"duration\":40}"
+  },
+  {
+    "dir": "out",
+    "method": "POST",
+    "url": "/api/v1/wallet/earn",
+    "body": "{\"idempotency_key\":\"sess:[redacted]:complete\",\"event_type\":\"mode_session_completed\",\"payload\":{\"mode\":\"dunkContest\",\"run_id\":\"[redacted]\",\"score\":25}}"
+  },
+  {
+    "dir": "out",
+    "method": "POST",
+    "url": "/api/nexus/session-result",
+    "body": "{\"sessionId\":\"[redacted]\",\"mode\":\"dunkContest\",\"score\":25,\"won\":false,\"duration\":40,\"prqAfter\":49.3}"
+  },
+  {
+    "dir": "in",
+    "status": 200,
+    "url": "/api/sessions",
+    "body": "{\"ok\":true,\"sessionId\":\"[redacted]\",\"xp\":48,\"shards\":1,\"credits\":0,\"streakDays\":2,\"streakBonus\":0,\"prqDelta\":0,\"prqBefore\":49.3,\"prqAfter\":49.3,\"grade\":{\"key\":\"READY\",\"label\":\"READY\",\"color\":\"#00FF9D\",\"speedMult\":1,\"hangBonus\":0},\"labCredits\":535,\"season\":{\"name\":\"[redacted]\",\"gained\":243,\"tier\":2,\"into\":122,\"need\":1040,\"hasPro\":false,\"tierUps\":[{\"tier\":2,\"rewards\":{\"free\":[],\"pro\":[]}}]},\"mastery\":{\"mode\":\"dunkContest\",\"tier\":\"Unranked\",\"tierIndex\":0,\"ups\":[]}}"
+  },
+  {
+    "dir": "in",
+    "status": 200,
+    "url": "/api/v1/wallet/earn",
+    "body": "{\"granted\":{\"coins\":53,\"shards\":0},\"balances\":{\"coins\":866,\"shards\":2},\"entry_id\":\"[redacted]\",\"capped\":false,\"rejected\":null}"
+  },
+  {
+    "dir": "in",
+    "status": 200,
+    "url": "/api/nexus/session-result",
+    "body": "{\"ok\":false,\"reason\":\"nexus_disabled\"}"
+  }
+]
