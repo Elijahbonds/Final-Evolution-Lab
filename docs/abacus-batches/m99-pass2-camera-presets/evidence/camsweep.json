@@ -1,0 +1,309 @@
+[
+  {
+    "mode": "dunk",
+    "error": null,
+    "applied": {
+      "radius": 2.981
+    },
+    "camName": "nexus_cam_basketball_dunk",
+    "camType": "ArcRotateCamera",
+    "fov": 0.9,
+    "radiusBefore": 14,
+    "radiusAfter": 3,
+    "fracBefore": 0.0826,
+    "fracAfter": 0.212,
+    "charPxBefore": 60,
+    "charPxAfter": 154,
+    "steps": [
+      0.0824,
+      0.1344,
+      0.1794,
+      0.1991,
+      0.2077,
+      0.2115
+    ]
+  },
+  {
+    "mode": "onevone",
+    "error": null,
+    "applied": {
+      "radius": 4.522
+    },
+    "camName": "nexus_cam_basketball_h2h",
+    "camType": "ArcRotateCamera",
+    "fov": 0.86,
+    "radiusBefore": 17,
+    "radiusAfter": 4.52,
+    "fracBefore": 0.0849,
+    "fracAfter": 0.2146,
+    "charPxBefore": 62,
+    "charPxAfter": 156,
+    "steps": [
+      0.0849,
+      0.144,
+      0.1894,
+      0.2076,
+      0.215
+    ]
+  },
+  {
+    "mode": "threevthree",
+    "error": null,
+    "applied": {
+      "radius": 3.409
+    },
+    "camName": "nexus_cam_basketball_3v3",
+    "camType": "ArcRotateCamera",
+    "fov": 0.88,
+    "radiusBefore": 24,
+    "radiusAfter": 3.41,
+    "fracBefore": 0.0572,
+    "fracAfter": 0.2103,
+    "charPxBefore": 42,
+    "charPxAfter": 153,
+    "steps": [
+      0.057,
+      0.0986,
+      0.1579,
+      0.1885,
+      0.2032,
+      0.2109
+    ]
+  },
+  {
+    "mode": "karate",
+    "error": null,
+    "applied": {
+      "radius": 3.714
+    },
+    "camName": "nexus_cam_karate_endless",
+    "camType": "ArcRotateCamera",
+    "fov": 0.88,
+    "radiusBefore": 13,
+    "radiusAfter": 3.71,
+    "fracBefore": 0.0835,
+    "fracAfter": 0.2113,
+    "charPxBefore": 61,
+    "charPxAfter": 154,
+    "steps": [
+      0.095,
+      0.143,
+      0.2754,
+      0.1545,
+      0.2117
+    ]
+  },
+  {
+    "mode": "karate-vs",
+    "error": null,
+    "applied": {
+      "position": {
+        "x": -10.66,
+        "y": 2.81,
+        "z": 7.57
+      }
+    },
+    "camName": "cam",
+    "camType": "TargetCamera",
+    "fov": 0.8,
+    "radiusBefore": null,
+    "radiusAfter": null,
+    "fracBefore": 0.3573,
+    "fracAfter": 0.8495,
+    "charPxBefore": 260,
+    "charPxAfter": 618,
+    "steps": [
+      0.4396,
+      0.6473,
+      0.3116,
+      0.616,
+      0.5416,
+      0.447
+    ]
+  },
+  {
+    "mode": "football",
+    "error": null,
+    "applied": {
+      "position": {
+        "x": 0.08,
+        "y": 2.25,
+        "z": 1.42
+      }
+    },
+    "camName": "cam",
+    "camType": "TargetCamera",
+    "fov": 0.8,
+    "radiusBefore": null,
+    "radiusAfter": null,
+    "fracBefore": 0.0752,
+    "fracAfter": 0.0802,
+    "charPxBefore": 55,
+    "charPxAfter": 58,
+    "steps": [
+      0.0758,
+      0.0994,
+      0.0633,
+      0.1065,
+      0.0741,
+      0.1198
+    ]
+  },
+  {
+    "mode": "baseball",
+    "error": null,
+    "applied": {
+      "position": {
+        "x": -2.32,
+        "y": 4.67,
+        "z": -6.64
+      }
+    },
+    "camName": "cam",
+    "camType": "TargetCamera",
+    "fov": 0.8,
+    "radiusBefore": null,
+    "radiusAfter": null,
+    "fracBefore": 0.8478,
+    "fracAfter": 0.1084,
+    "charPxBefore": 617,
+    "charPxAfter": 79,
+    "steps": [
+      1.4899,
+      0.4494,
+      0.0276,
+      0.5442,
+      0.1646,
+      0.3176
+    ]
+  },
+  {
+    "mode": "tennis",
+    "error": null,
+    "applied": {
+      "radius": 2.566
+    },
+    "camName": "nexus_cam_tennis",
+    "camType": "ArcRotateCamera",
+    "fov": 0.88,
+    "radiusBefore": 26,
+    "radiusAfter": 3,
+    "fracBefore": 0.0496,
+    "fracAfter": 0.1836,
+    "charPxBefore": 36,
+    "charPxAfter": 134,
+    "steps": [
+      0.0495,
+      0.0854,
+      0.133,
+      0.1698,
+      0.1874,
+      0.1882
+    ]
+  },
+  {
+    "mode": "volleyball",
+    "error": null,
+    "applied": {
+      "radius": 2.498
+    },
+    "camName": "nexus_cam_volleyball",
+    "camType": "ArcRotateCamera",
+    "fov": 0.9,
+    "radiusBefore": 22,
+    "radiusAfter": 3,
+    "fracBefore": 0.0578,
+    "fracAfter": 0.1838,
+    "charPxBefore": 42,
+    "charPxAfter": 134,
+    "steps": [
+      0.0578,
+      0.0937,
+      0.1382,
+      0.169,
+      0.183,
+      0.1832
+    ]
+  },
+  {
+    "mode": "skateboard",
+    "error": null,
+    "applied": {
+      "position": {
+        "x": 0.04,
+        "y": 1.88,
+        "z": 25.42
+      }
+    },
+    "camName": "cam",
+    "camType": "TargetCamera",
+    "fov": 0.8,
+    "radiusBefore": null,
+    "radiusAfter": null,
+    "fracBefore": 0.0663,
+    "fracAfter": 0.2627,
+    "charPxBefore": 48,
+    "charPxAfter": 191,
+    "steps": [
+      0.0815,
+      0.1189,
+      0.2126
+    ]
+  },
+  {
+    "mode": "snowboard",
+    "error": null,
+    "applied": {
+      "position": {
+        "x": 0.08,
+        "y": -0.57,
+        "z": 170.03
+      }
+    },
+    "camName": "cam",
+    "camType": "TargetCamera",
+    "fov": 0.8,
+    "radiusBefore": null,
+    "radiusAfter": null,
+    "fracBefore": 0.0581,
+    "fracAfter": 0.1612,
+    "charPxBefore": 42,
+    "charPxAfter": 117,
+    "steps": [
+      0.0596,
+      0.0464,
+      0.0643,
+      0.0321,
+      0.0401,
+      0.1023
+    ]
+  },
+  {
+    "mode": "surf",
+    "error": null,
+    "applied": {
+      "position": {
+        "x": 0.04,
+        "y": 6,
+        "z": 186.29
+      }
+    },
+    "camName": "cam",
+    "camType": "TargetCamera",
+    "fov": 0.8,
+    "radiusBefore": null,
+    "radiusAfter": null,
+    "fracBefore": 0.0667,
+    "fracAfter": 0.0123,
+    "charPxBefore": 49,
+    "charPxAfter": 9,
+    "steps": [
+      0.0518,
+      0.0562,
+      0.0748,
+      0.0526,
+      0.0157,
+      0.0109
+    ]
+  }
+]
