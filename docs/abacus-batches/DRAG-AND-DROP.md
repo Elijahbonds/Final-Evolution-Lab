@@ -1,6 +1,6 @@
 # Drag-and-drop index — everything built in this session
 
-**17 batches, 26 new core modules, 1,494 passing assertions.**
+**18 batches, 27 new core modules, 1,525 passing assertions.**
 Every zip is in this folder. **Integration order is strict** — later batches
 replace files from earlier ones.
 
@@ -32,8 +32,9 @@ one of them reaches a player.
 | 15 | `m94-pass2-dunk-migration.zip` | **`dunk` actually on the kit** — replaces `modes/DunkMode.ts` | **YES** |
 | 16 | `m95-pass2-canvas-and-baseline.zip` | **the phone canvas fix, measured live: 33% → 80%** | no |
 | 17 | `m96-pass2-grounding-and-lifecycle.zip` | **skateboard/snowboard/surf stop losing the rider** | no |
+| 18 | `m97-pass2-framing-and-pose.zip` | **the camera: 6 of 8 modes show the player at 5-9% of screen** | no |
 
-**M95 and M96 depend on nothing and should ship first.** They are the only two
+**M95, M96 and M97 depend on nothing and should ship first.** They are the only two
 batches here that fix a defect someone has actually watched the deployed
 product commit — a game rendering into a third of a phone screen, and three
 modes losing the player through the floor unattended.
@@ -86,7 +87,8 @@ Each of these is one line, and without it the batch does nothing:
 ## Verify before and after
 
 ```bash
-node tools/certify.mjs             # 25/25 suites, 1494 assertions, gate clean
+node tools/certify.mjs             # 26/26 suites, 1525 assertions, gate clean
+node tools/pose_probe.mjs          # character size + pose INSIDE the running game
 node tools/verify_batch.mjs --all  # 0 errors
 node tools/integration_audit.mjs --viewport phone   # measures the LIVE build
 ```

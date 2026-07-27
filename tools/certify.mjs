@@ -106,14 +106,18 @@ const UNPROVEN = [
   // which is worse news and better information.
   ['boot', 'measured 1.2-2.5s to canvas on a data-centre link; no 4G run yet'],
   ['canvas', 'root-caused (aspect-[16/10]) and fixed 33%→80% in a browser; NOT DEPLOYED'],
-  ['no_tpose', 'MEASURED FAIL — restPose runs and the characters are still T-posed'],
+  // CORRECTED in M97 by measuring inside the running scene rather than reading
+  // screenshots. idle_stand plays, the rest pose applies, the arm sits at 20
+  // degrees from vertical and bind on this rig is 90. It was never a T-pose.
+  ['no_tpose', 'NOT a T-pose — arms at 20° from vertical; it looked like one at 60px'],
+  ['framing', 'six of eight modes render the player at 5-9% of screen; fix in M97, NOT APPLIED'],
   // M94 moved these three from "no mode" to "one mode, in the repo". They stay
   // in this panel because this panel is about the DEPLOYED app, and none of it
   // has been observed running. Promoting them on source alone is precisely the
   // wishful BUILT→PASS move M93 wrote a test against.
   ['a11y_audio', 'dunk captions every cue in source; nothing has been heard in the app'],
   ['prq', 'dunk reads PRQ into judge strictness in source; not observed in the app'],
-  ['legibility', 'Zero of eleven load-bearing tells are drawn'],
+  ['legibility', 'Zero of eleven tells drawn — AND at current framing a tell would be ~6px'],
   // Found by watching modes with NO player input, which nothing here had ever
   // done. Three of fourteen modes destroy themselves unattended.
   ['grounding', 'skateboard/snowboard/surf lose the rider through the floor; fix in M96, NOT DEPLOYED'],

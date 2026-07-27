@@ -1,0 +1,64 @@
+{
+  "base": "https://finalevolution.abacusai.app",
+  "at": "2026-07-27T05:34:12.912Z",
+  "viewport": "desktop 1280x800",
+  "modes": [
+    {
+      "mode": "dunk",
+      "charPx": 60,
+      "canvasPx": 728,
+      "charCssPx": 60,
+      "frameFraction": 0.0827,
+      "heightMetres": 1.719,
+      "fovRad": 0.9,
+      "cameraDistance": 18.44,
+      "arm": {
+        "angleFromVertical": 20,
+        "handOutFromHips": 0.401,
+        "handRelativeToHipsY": 0.031
+      },
+      "playing": [
+        "idle_stand",
+        "idle_stand"
+      ]
+    },
+    {
+      "mode": "karate-vs",
+      "charPx": 250,
+      "canvasPx": 728,
+      "charCssPx": 250,
+      "frameFraction": 0.3437,
+      "heightMetres": 1.226,
+      "fovRad": 0.8,
+      "cameraDistance": 3.93,
+      "arm": {
+        "angleFromVertical": 50,
+        "handOutFromHips": 0.357,
+        "handRelativeToHipsY": 0.272
+      },
+      "playing": [
+        "guard",
+        "run"
+      ]
+    },
+    {
+      "mode": "tennis",
+      "charPx": 36,
+      "canvasPx": 728,
+      "charCssPx": 36,
+      "frameFraction": 0.0497,
+      "heightMetres": 1.722,
+      "fovRad": 0.88,
+      "cameraDistance": 33.47,
+      "arm": {
+        "angleFromVertical": 16,
+        "handOutFromHips": 0.411,
+        "handRelativeToHipsY": 0.006
+      },
+      "playing": [
+        "idle_stand",
+        "jumpshot"
+      ]
+    }
+  ]
+}
