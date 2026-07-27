@@ -35,3 +35,14 @@ NEEDS: claude-mini — run the WebGL context-count snippet (BLUEPRINT §1.1) on 
 NEEDS: claude-mini — review M81 for three specific assumptions: ctx.camDirector.yawDeg exists, the Babylon major version, and that PlayerSlot no longer derives sprint from stick magnitude.
 NEEDS: abacus — M81 has one breaking change: runMode() is no longer async. runModeLegacy() stages the migration.
 NEXT: awaiting playtest results before tuning MotionModel constants
+
+## 2026-07-27T01:15Z · claude-cloud
+DID: M82 accessibility and PRQ visibility — prqWeights (canonical JSON + 4-way parity test), a11y settings store, caption bus, colourblind-safe palette, AccessibilityPanel, PrqMeter. 92 tests pass (26 parity + 66 a11y).
+DID: patched backend/routers/games.py PRQ_MODE_WEIGHTS to the canonical table
+TOUCHED: docs/abacus-batches/m82-accessibility-and-prq/**, backend/routers/games.py
+FOUND: VERIFIED the Swift and Python PRQ weight tables had silently diverged on five modes. Same session, different PRQ delta depending on which platform scored it: who_scene_it 0.7 vs 1.1 (57%), brain_brawl 0.8 vs 1.1 (37%), court_carnival 0.9 vs 1.15 (28%), skateboarding and snowboarding 1.0 vs 1.05.
+FOUND: VERIFIED market_browse was absent from the backend table entirely, so it fell through to the 1.0 default — browsing the shop minted PRQ at the same rate as playing baseball. Now pinned at exactly 0.0 with a test.
+FOUND: VERIFIED accessibility coverage across the product was one line about contrast. No reduced motion, remapping, captions, or colourblind support anywhere.
+NEEDS: elijah — the five weight changes are all increases, no nerfs, but which direction to converge is a product call. Edit config/prqWeights.json to override.
+NEEDS: abacus — confirm whether backend/routers/games.py in this repo is what you actually deploy. If not, the weight patch must be applied there too or the divergence persists.
+NEXT: Wave 3 — deterministic fixed timestep, then ghost replay (BLUEPRINT §4 Phase A)

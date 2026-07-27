@@ -36,14 +36,34 @@ UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 # ── PRQ Mode Weights & Economy Constants ───────────────────────────────────
+# MIRROR OF config/prqWeights.json. Do not edit these numbers here.
+#
+# This table and FinalEvolutionLab/Utilities/PRQScoring.swift silently diverged
+# on five modes, so the same session earned a different PRQ delta depending on
+# which platform scored it — who_scene_it by 57%. Nothing could catch it: there
+# were two tables and no third thing to check either against.
+#
+# The canonical table is now config/prqWeights.json, and
+# tests/prq_weights_test.ts parses THIS FILE and the Swift one and fails if
+# either drifts from it. Edit the JSON, then update the mirrors it names.
+#
+# Adopted from Swift (2026-07-27). Every change is an increase; nothing was
+# nerfed: skateboarding/snowboarding 1.0 -> 1.05, court_carnival 0.9 -> 1.15,
+# brain_brawl 0.8 -> 1.1, who_scene_it 0.7 -> 1.1. The cognitive modes carry
+# the Mental Resiliency thesis and the 0.8/0.7 read as placeholders.
 PRQ_MODE_WEIGHTS = {
     "basketball_h2h": 1.2, "basketball_dunk": 1.0, "basketball_3v3": 1.3,
+    "venice_pickup": 1.2, "court_carnival": 1.15,
     "karate_h2h": 1.4, "karate_endless": 1.4,
     "baseball": 1.0, "football": 1.5, "soccer": 1.1,
     "golf": 0.9, "tennis": 1.1, "volleyball": 1.2,
-    "surfing": 1.05, "skateboarding": 1.0, "snowboarding": 1.0,
-    "gymnastics": 1.0, "brain_brawl": 0.8,
-    "who_scene_it": 0.7, "court_carnival": 0.9,
+    "surfing": 1.05, "skateboarding": 1.05, "snowboarding": 1.05,
+    "gymnastics": 1.0, "brain_brawl": 1.1,
+    "who_scene_it": 1.1,
+    # Exactly 0.0, and deliberately so: the Module Library is a shop, not a
+    # scoring mode. It was ABSENT from this table, which meant it fell through
+    # to the 1.0 default and browsing the store scored like playing a match.
+    "market_browse": 0.0,
 }
 SHARD_WIN, SHARD_DRAW, SHARD_LOSS = 50, 25, 15
 SHARD_COMBO_MULTIPLIER, SHARD_CRITICAL_BONUS = 5, 10
