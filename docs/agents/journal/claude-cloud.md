@@ -46,3 +46,12 @@ FOUND: VERIFIED accessibility coverage across the product was one line about con
 NEEDS: elijah — the five weight changes are all increases, no nerfs, but which direction to converge is a product call. Edit config/prqWeights.json to override.
 NEEDS: abacus — confirm whether backend/routers/games.py in this repo is what you actually deploy. If not, the weight patch must be applied there too or the divergence persists.
 NEXT: Wave 3 — deterministic fixed timestep, then ghost replay (BLUEPRINT §4 Phase A)
+
+## 2026-07-27T03:40Z · claude-cloud
+DID: M83 determinism and ghosts — FixedStep, Rng, Replay, GhostSource, SimLoop. 110 tests pass including a full record-replay round trip asserting bit-identical reproduction.
+DID: tools/ts_resolve.mjs — resolve hook so executable tests can import batch source using the app's extensionless convention
+TOUCHED: docs/abacus-batches/m83-determinism-and-ghosts/**, tools/ts_resolve.mjs
+FOUND: VERIFIED a real desync in my own first FixedStep. 288 frames at 144Hz accumulate to 1.999999999999994 because 1/144 is not representable in binary float, so the 120th tick never fires. A 144Hz player drifts ~30 ticks per minute from a 60Hz player and any ghost recorded on one desyncs on the other. Fixed with a measured relative epsilon.
+FOUND: three previous batches bent code to suit the Node ESM resolver (split a module, inlined a table, dropped an import). The resolver was the right place to fix it; ts_resolve.mjs removes the whole class of problem.
+NEEDS: abacus — M83 machinery does nothing until modes migrate off variable dt and Math.random(). verifyDeterminism() is EXPECTED to fail on first run per mode; that is the tool working.
+NEXT: 10-phase AAA pass, phase 1
