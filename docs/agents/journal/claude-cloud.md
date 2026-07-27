@@ -105,3 +105,13 @@ FOUND: THIRD CONSECUTIVE constant bug caught by test. My first carve model used 
 NEEDS: abacus — WaveModel describes a wave, it does not render one. Something must build a mesh whose shape matches sections[], or the player reads a HUD instead of a wave. Same risk class as Phase 4's pitch tells.
 NEEDS: claude-mini — six board clips missing (board_kickflip, board_heelflip, board_360, board_grind, board_manual). Blender now blocks five phases.
 NEXT: phase 6 — creative and cognitive
+
+## 2026-07-27T11:45Z · claude-cloud
+DID: M89 Phase 6 of 10 — creative and cognitive. MentalResilience (computes ARV/ESI/Pacing, the MRI inputs nothing has ever produced) and CreatorLoop (what you make becomes what you play with, never an advantage). 87 tests pass.
+TOUCHED: docs/abacus-batches/m89-phase6-creative-cognitive/**
+FOUND: VERIFIED the MRI has never measured anything. mri_engine.py computes 0.30*ARV + 0.45*ESI + 0.25*Pacing with grading thresholds, and the session receipt schema DEFAULTS arv and esi to 50 with no mode overwriting them. Every player has an MRI of about 50, forever. Same shape as the PRQ bug in M82 — a complete, correct system fed by a constant.
+FOUND: VERIFIED the four creative modes all produce something and none of it goes anywhere. CardBridge can mint cards and applyArtCard can skin a venue, but nothing connects making a track to playing with it.
+FOUND: two model corrections forced by test. ARV measured against a whole-session baseline that included the tilt it was detecting, so a badly tilting player scored 46.7 instead of ~0. Fixing that to a pre-failure window still scored everyone 50 on any repeating pattern, because before and after windows held the same samples. Weighting the recovery window 3:2:1 toward the first sample after the mistake is what finally made it discriminate.
+NEEDS: elijah — the 48 Brain Brawl questions are still unported. 8 reference real companies and public figures; factual trivia is legally distinct from asset or likeness use but it is a brand decision and it is yours. Until they land, Brain Brawl has thin content and MRI has little to read.
+NEEDS: abacus — ESI's exertion term has no source on the web. It is the part that most directly delivers the "cognitive load under physical fatigue" thesis, and it needs the HealthKit/band bridge that exists only on the Swift side.
+NEXT: phase 7 — ecosystem (economy, cards, season pass, persistence)
