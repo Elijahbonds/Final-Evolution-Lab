@@ -23,9 +23,17 @@ const BATCHES = path.join(ROOT, 'docs/abacus-batches');
 
 // Newest batch wins, matching integration order: a later batch REPLACES an
 // earlier file of the same name (InputBus and ModeHarness both do this).
-const SEARCH = ['m84-phase1-integration-kit', 'm83-determinism-and-ghosts',
-  'm82-accessibility-and-prq', 'm81-feel-foundation', 'm80-external-animation']
-  .map((b) => path.join(BATCHES, b, 'files'));
+const SEARCH = [
+  'm94-pass2-dunk-migration',
+  'm93-phase10-certification', 'm92-phase9-presentation', 'm91-phase8-multiplayer',
+  'm90-phase7-ecosystem', 'm89-phase6-creative-cognitive', 'm88-phase5-board',
+  'm87-phase4-field-precision', 'm86-phase3-combat', 'm85-phase2-basketball',
+  'm84-phase1-integration-kit', 'm83-determinism-and-ghosts',
+  'm82-accessibility-and-prq', 'm81-feel-foundation', 'm80-external-animation',
+  // Already deployed, but not in this repo as source — a pass-2 mode migration
+  // imports them (`PlayerSlot`), so the resolver has to reach them too.
+  'm50-karate-agent-waves', 'm48-basketball-simulator',
+].map((b) => path.join(BATCHES, b, 'files'));
 
 registerHooks({
   resolve(specifier, context, nextResolve) {

@@ -1,6 +1,6 @@
 # Drag-and-drop index — everything built in this session
 
-**14 batches, 24 new core modules, 1,353 passing assertions.**
+**15 batches, 24 new core modules, 1,445 passing assertions.**
 Every zip is in this folder. **Integration order is strict** — later batches
 replace files from earlier ones.
 
@@ -29,6 +29,7 @@ integrating all fourteen into none.
 | 12 | `m91-phase8-multiplayer.zip` | server-side verification, rollback netcode | no |
 | 13 | `m92-phase9-presentation.zip` | the tell registry, adaptive quality, a11y juice gate | no |
 | 14 | `m93-phase10-certification.zip` | the honest scorecard | no |
+| 15 | `m94-pass2-dunk-migration.zip` | **`dunk` actually on the kit** — replaces `modes/DunkMode.ts` | **YES** |
 
 ---
 
@@ -91,10 +92,16 @@ product rather than the repo.
 
 ## If you integrate only one thing
 
-**M84 into `dunk`.** One mode, five subsystems, twenty lines. If it isn't a net
-*reduction* in lines, the kit has the wrong shape and I want to know at the
-cost of one mode instead of twenty-five.
+**M94.** It is M84 already integrated into `dunk`, so the answer to "is the kit
+the right shape" no longer costs you the experiment — it costs you a routing
+change and a deleted file.
 
-That single integration moves nine criteria from BUILT toward PASS on the
-flagship mode, and it tells us whether the other thirteen batches are worth
-anything.
+The line-count gate came back a **wash**: 427 code lines became 428. The kit
+does not pay for itself in lines. It pays in what those lines now do —
+deterministic ticks, a seeded rival, ghost recording, server-side verification,
+PRQ-scaled judging, an accessible QTE window and two tells, none of which
+existed in the 427. Adoption cost 18 lines against M84's promised ~20.
+
+Route `dunk` to `modes/dunk/DunkMode.ts`, **delete `modes/DunkMode.ts`**, then
+run `node tools/integration_audit.mjs`. That audit is the artifact everything
+after this depends on.

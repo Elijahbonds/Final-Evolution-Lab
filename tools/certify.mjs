@@ -104,11 +104,15 @@ const UNPROVEN = [
   ['boot', 'No cold 4G load has been timed'],
   ['canvas', 'The container chain fix has never been verified in a browser'],
   ['no_tpose', 'PoseProbe has never run; the T-pose cause is still unknown'],
-  ['a11y_audio', 'No mode calls playCued(), so the caption bus is empty'],
-  ['prq', 'No mode reads PRQ before starting'],
+  // M94 moved these three from "no mode" to "one mode, in the repo". They stay
+  // in this panel because this panel is about the DEPLOYED app, and none of it
+  // has been observed running. Promoting them on source alone is precisely the
+  // wishful BUILT→PASS move M93 wrote a test against.
+  ['a11y_audio', 'dunk captions every cue in source; nothing has been heard in the app'],
+  ['prq', 'dunk reads PRQ into judge strictness in source; not observed in the app'],
   ['lifecycle', 'ModeHarness v3 is not integrated; the WebGL leak is unconfirmed'],
   ['legibility', 'Zero of eleven load-bearing tells are drawn'],
-  ['simulatable', 'No mode implements SimulatableMode, so nothing can be verified for cash'],
+  ['simulatable', 'dunk implements it and proves deterministic here; no DEPLOYED mode does'],
   ['mocap', 'fel_conform.py has never been run; every character clip is procedural'],
   ['fun', 'Only the founder can score this'],
 ];
