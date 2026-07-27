@@ -126,3 +126,12 @@ FOUND: caught by test — my first level curve made level 50 cost 50x level 1, t
 NEEDS: abacus — the server cannot re-simulate anything yet. Until FEL's deterministic sim runs on the backend, no receipt reaches 'resimulated' and Cash Arena cannot pay out. Largest remaining piece of the product.
 NEEDS: elijah — MODE_BOUNDS are my estimates. They should be re-derived from a week of real telemetry rather than from me.
 NEXT: phase 8 — multiplayer and arena
+
+## 2026-07-27T14:15Z · claude-cloud
+DID: M91 Phase 8 of 10 — multiplayer and arena. HeadlessSim (server-side re-simulation, closing the gate M90 left open) and Rollback (transport-agnostic netcode). 64 tests pass.
+TOUCHED: docs/abacus-batches/m91-phase8-multiplayer/**
+FOUND: caught by test on its first run — ReplayRecorder quantises analog inputs to 1/127, so a client that SIMULATES with raw floats and RECORDS the quantised ones produces a replay that can never verify. It looks exactly like cheating, it hits every honest player, and it would surface as "Cash Arena rejects everyone". Fixed with asRecorded(). Fifth constant-shaped bug in eight phases and the first that would have cost money rather than fun.
+FOUND: the architectural call for server-side verification is to run the SAME TypeScript headless on Node, not to port the sim to Python. This project has already paid for that lesson four times — PRQ tables drifting Swift vs Python by up to 57%, MRI existing in Python with no producer, DDA stranded in Swift. A ported simulation would be that same failure with money attached.
+NEEDS: abacus — refactor ONE mode (dunk) to SimulatableMode before anything else here matters. Most modes currently mutate Babylon meshes directly inside their update loop, so separating simulation from rendering across 19 modes is the substantial remaining work.
+NEEDS: abacus — stand up a Node verification service that imports the same core/ modules the client bundles. Not a port. The same files.
+NEXT: phase 9 — presentation
