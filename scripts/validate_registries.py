@@ -51,11 +51,25 @@ ALL_JSON = [MODE_MANAGER, VENUE_REGISTRY, UE_MODE_MAPS, ARENA_SETTINGS]
 # The assertions the CI job was trying to make, expressed against the schema
 # the data actually uses. `basketball_dunk` is not a mode id in the venue
 # registry — it is split into a 3D and an IRL variant — so the check names both.
+#
+# `brain_brawl: "2D"` was DROPPED, and it was the assertion that was wrong
+# rather than the data:
+#
+#   - "2D" appears nowhere in any of the four registries. The vocabulary in use
+#     is 3D_UE5 (3 modes), IRL (1) and null (16).
+#   - renderMode is an optional DISAMBIGUATOR — it exists to separate the dunk
+#     variants and h2h. It is not a field with full coverage, and treating a
+#     null as a defect would condemn 16 of 20 modes.
+#   - brain_brawl has a UE map token (Neuro_Arena), a venue (neuro_arena /
+#     "Neuro Arena") AND an ArenaSettings entry with an unrealOpenLevelPackage.
+#     It is a 3D mode by every other record in this repo.
+#
+# Asserting "2D" contradicted four other sources. Setting the field to "2D" to
+# satisfy it would have made the data agree with the one record that is wrong.
 REQUIRED_RENDER_MODES = {
     "basketball_h2h": "3D_UE5",
     "basketball_dunk_3d": "3D_UE5",
     "basketball_dunk_irl": "IRL",
-    "brain_brawl": "2D",
 }
 
 VENICE_MUST_MENTION = {"basketball_dunk_3d": "Venice"}
@@ -229,6 +243,28 @@ def main() -> int:
                 f"mode_to_unreal_map.{hint}")
         for mode_id in sorted(set(mapping) - set(registry)):
             warn(f"{rel}: mode {mode_id!r} is mapped to Unreal but not in mode_registry")
+
+    # ArenaSettings is the FOURTH place a mode's venue is recorded, and CI has
+    # only ever checked that it parses. It holds the actual UE level package,
+    # so a mode missing from it has no level to open.
+    arena_doc = docs[ARENA_SETTINGS]
+    if arena_doc is not None and registry:
+        rel = str(ARENA_SETTINGS.relative_to(ROOT))
+        arena = dig(arena_doc, "modes", rel) or {}
+        if isinstance(arena, dict):
+            # The dunk variants inherit basketball_dunk's settings via
+            # nexus_runtime_mode_id, so their absence is by design.
+            derived = {k for k, v in registry.items()
+                       if v.get("nexus_runtime_mode_id") in arena}
+            # And an IRL mode has no UE level for the same reason it has no
+            # venue: it is played in the real world.
+            derived |= {k for k, v in registry.items() if v.get("render_mode") == "IRL"}
+            for mode_id in sorted(set(registry) - set(arena) - derived):
+                warn(f"{rel}: mode {mode_id!r} has no entry in modes[] — no "
+                     f"unrealOpenLevelPackage, so there is no level to open")
+            for m_id, cfg in arena.items():
+                if isinstance(cfg, dict) and not cfg.get("unrealOpenLevelPackage"):
+                    err(f"{rel}: modes[{m_id}] has no unrealOpenLevelPackage")
 
     if registry and modes:
         ids = {m.get("id") for m in modes}
