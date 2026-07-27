@@ -122,7 +122,7 @@ const UNPROVEN = [
   // Found by watching modes with NO player input, which nothing here had ever
   // done. Three of fourteen modes destroy themselves unattended.
   ['grounding', 'skateboard/snowboard/surf lose the rider through the floor; fix in M96, NOT DEPLOYED'],
-  ['simulatable', 'dunk implements it and proves deterministic here; no DEPLOYED mode does'],
+  ['simulatable', 'DEPLOYED dunk makes no gameplay random calls; onevone/3v3/tennis/karate-vs do'],
   ['mocap', 'never run — AND it would change nothing until skin weights are fixed (M98)'],
   ['fun', 'Only the founder can score this'],
 ];

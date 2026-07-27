@@ -1,0 +1,212 @@
+{
+  "base": "https://finalevolution.abacusai.app",
+  "at": "2026-07-27T06:59:40.041Z",
+  "rows": [
+    {
+      "mode": "dunk",
+      "random": 2412,
+      "dateNow": 0,
+      "perfNow": 373,
+      "sites": {
+        "s < m0._update < m0.animate": 1206,
+        "s < mS.startPositionFunction < m0._update": 1206
+      },
+      "armed": true,
+      "sampledAfter": 60000,
+      "sitesSorted": [
+        [
+          "s < m0._update < m0.animate",
+          1206
+        ],
+        [
+          "s < mS.startPositionFunction < m0._update",
+          1206
+        ]
+      ],
+      "suspectSites": [],
+      "verdict": "VERIFIABLE (cosmetic only)"
+    },
+    {
+      "mode": "onevone",
+      "random": 2246,
+      "dateNow": 0,
+      "perfNow": 341,
+      "sites": {
+        "e4.decide < er.poll < es.poll": 20,
+        "s < m0._update < m0.animate": 1113,
+        "s < mS.startPositionFunction < m0._update": 1113
+      },
+      "armed": true,
+      "sampledAfter": 60000,
+      "sitesSorted": [
+        [
+          "s < m0._update < m0.animate",
+          1113
+        ],
+        [
+          "s < mS.startPositionFunction < m0._update",
+          1113
+        ],
+        [
+          "e4.decide < er.poll < es.poll",
+          20
+        ]
+      ],
+      "suspectSites": [
+        [
+          "e4.decide < er.poll < es.poll",
+          20
+        ]
+      ],
+      "verdict": "UNVERIFIABLE"
+    },
+    {
+      "mode": "tennis",
+      "random": 467,
+      "dateNow": 1,
+      "perfNow": 208,
+      "sites": {
+        "s < m0._update < m0.animate": 212,
+        "s < mS.startPositionFunction < m0._update": 192,
+        "https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:149097 < Object.update < https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:51110": 1,
+        "https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:149494 < Object.update < https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:51110": 1,
+        "s < mS.startDirectionFunction < m0._update": 60,
+        "https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:148764 < Object.update < https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:51110": 1
+      },
+      "armed": true,
+      "sampledAfter": 60000,
+      "sitesSorted": [
+        [
+          "s < m0._update < m0.animate",
+          212
+        ],
+        [
+          "s < mS.startPositionFunction < m0._update",
+          192
+        ],
+        [
+          "s < mS.startDirectionFunction < m0._update",
+          60
+        ],
+        [
+          "https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:149097 < Object.update < https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:51110",
+          1
+        ],
+        [
+          "https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:149494 < Object.update < https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:51110",
+          1
+        ],
+        [
+          "https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:148764 < Object.update < https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:51110",
+          1
+        ]
+      ],
+      "suspectSites": [
+        [
+          "https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:149097 < Object.update < https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:51110",
+          1
+        ],
+        [
+          "https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:149494 < Object.update < https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:51110",
+          1
+        ],
+        [
+          "https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:148764 < Object.update < https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:51110",
+          1
+        ]
+      ],
+      "verdict": "UNVERIFIABLE"
+    },
+    {
+      "mode": "threevthree",
+      "random": 3028,
+      "dateNow": 0,
+      "perfNow": 269,
+      "sites": {
+        "e4.decide < er.poll < es.poll": 16,
+        "s < m0._update < m0.animate": 1506,
+        "s < mS.startPositionFunction < m0._update": 1506
+      },
+      "armed": true,
+      "sampledAfter": 60000,
+      "sitesSorted": [
+        [
+          "s < m0._update < m0.animate",
+          1506
+        ],
+        [
+          "s < mS.startPositionFunction < m0._update",
+          1506
+        ],
+        [
+          "e4.decide < er.poll < es.poll",
+          16
+        ]
+      ],
+      "suspectSites": [
+        [
+          "e4.decide < er.poll < es.poll",
+          16
+        ]
+      ],
+      "verdict": "UNVERIFIABLE"
+    },
+    {
+      "mode": "karate-vs",
+      "random": 81200,
+      "dateNow": 4,
+      "perfNow": 218,
+      "sites": {
+        "s.callback < n.notifyObservers < k.render": 36,
+        "s < m0._update < m0.animate": 192,
+        "s < mS.startPositionFunction < m0._update": 143,
+        "a.noiseBuffer < a.play < M": 49523,
+        "tm.decide < Object.update < https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:51110": 13,
+        "a.noiseBuffer < a.play < https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:190137": 2646,
+        "a.noiseBuffer < a.play < https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:190755": 4827,
+        "a.noiseBuffer < a.play < Object.impact": 2700,
+        "s < mS.startDirectionFunction < m0._update": 139
+      },
+      "armed": true,
+      "sampledAfter": 60000,
+      "degraded": true,
+      "sitesSorted": [
+        [
+          "a.noiseBuffer < a.play < M",
+          49523
+        ],
+        [
+          "a.noiseBuffer < a.play < https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:190755",
+          4827
+        ],
+        [
+          "a.noiseBuffer < a.play < Object.impact",
+          2700
+        ],
+        [
+          "a.noiseBuffer < a.play < https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:190137",
+          2646
+        ],
+        [
+          "s < m0._update < m0.animate",
+          192
+        ],
+        [
+          "s < mS.startPositionFunction < m0._update",
+          143
+        ]
+      ],
+      "suspectSites": [
+        [
+          "s.callback < n.notifyObservers < k.render",
+          36
+        ],
+        [
+          "tm.decide < Object.update < https://finalevolution.abacusai.app/_next/static/chunks/a5335adfbe8e3eae.js:8:51110",
+          13
+        ]
+      ],
+      "verdict": "UNVERIFIABLE"
+    }
+  ]
+}
