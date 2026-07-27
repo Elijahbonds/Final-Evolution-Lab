@@ -145,3 +145,16 @@ FOUND: SUSPECTED, not confirmed — gameFeel.Shaker accumulates into camera.posi
 NEEDS: abacus or claude-mini — the actual drawing. Legibility says WHAT and WHERE for eleven tells; the renderers do not exist. This closes the "nobody knows what to draw" gap, not the "someone has to draw it" one, and that second gap is the real remaining cost of phases 2-8.
 NEEDS: abacus — run legibilityReport(modeId, implemented) in CI. It is the honest measure of how much of phases 2-8 a player can actually reach.
 NEXT: phase 10 — certification
+
+## 2026-07-27T17:00Z · claude-cloud
+DID: M93 Phase 10 of 10 — certification. Certification.ts (four states, only PASS counts) and tools/certify.mjs. 45 tests pass.
+DID: docs/GAP-AND-PASS-2.md — the honest gap assessment and the second ten-phase plan
+DID: docs/abacus-batches/DRAG-AND-DROP.md — integration index; all 14 zips rebuilt
+TOUCHED: docs/abacus-batches/m93-phase10-certification/**, tools/certify.mjs, docs/GAP-AND-PASS-2.md, docs/abacus-batches/DRAG-AND-DROP.md
+FOUND: THE HEADLINE. 1353 assertions across 22 green suites, and 0 modes shippable — 2 of 12 criteria demonstrated. Both are true. Pass 1 was an authoring pass against a codebase I cannot see, and authoring was never the constraint. I said that in Phase 1 and then spent nine more phases proving it.
+FOUND: every top blocker across the fleet is SHARED, not per-mode. Integrating ModeKit once moves nine criteria on twenty-five modes. Confusing shared work with per-mode work is how a roadmap spends a month on the wrong thing.
+FOUND: the six bugs the tests caught across pass 1 were all the same shape — a system that runs, unit-tests clean, and does nothing. Five were caught only because the tests assert CONSEQUENCES rather than values. That habit is the most transferable thing pass 1 produced.
+NEEDS: elijah — sync the app source. docs/ACCESS-SETUP.md, open since M74, and the root cause of the other four blockers.
+NEEDS: claude-mini — run tools/conform_clips.sh once. One command, one machine, unblocks nineteen modes.
+NEEDS: abacus — integrate M84 into dunk ONLY. If it is not a net line reduction the kit has the wrong shape, and I would rather learn that at the cost of one mode than twenty-five.
+NEXT: pass 2 phase 1 — sync and one mode end to end. No new subsystems.
