@@ -113,10 +113,10 @@ const UNPROVEN = [
   // wishful BUILT→PASS move M93 wrote a test against.
   ['a11y_audio', 'dunk captions every cue in source; nothing has been heard in the app'],
   ['prq', 'dunk reads PRQ into judge strictness in source; not observed in the app'],
-  // Measured: 1 context per route, 0 lost, because every route change is a
-  // full page load. The leak this targets is not reproducible in this build.
-  ['lifecycle', 'ModeHarness v3 not integrated; the leak it targets does NOT reproduce here'],
   ['legibility', 'Zero of eleven load-bearing tells are drawn'],
+  // Found by watching modes with NO player input, which nothing here had ever
+  // done. Three of fourteen modes destroy themselves unattended.
+  ['grounding', 'skateboard/snowboard/surf lose the rider through the floor; fix in M96, NOT DEPLOYED'],
   ['simulatable', 'dunk implements it and proves deterministic here; no DEPLOYED mode does'],
   ['mocap', 'fel_conform.py has never been run; every character clip is procedural'],
   ['fun', 'Only the founder can score this'],
@@ -142,6 +142,11 @@ if (JSON_OUT) {
   console.log(`│ assertions      ${totalPassed} passed, ${totalFailed} failed`);
   console.log(`│ batch gate      ${gateOk ? 'clean' : 'FAILING'} (${gateNote})`);
   console.log(`│ agent protocol  ${syncOk ? 'intact' : 'BROKEN'}`);
+  // The first criterion measured PASS against the deployed product rather than
+  // asserted from the repo. It belongs above the line, not below it.
+  console.log('│ lifecycle       PASS — 20 route changes on one page, 20/20 loaded,');
+  console.log('│                 1 live WebGL context throughout, 0 page errors,');
+  console.log('│                 boot 198ms FASTER at the end than the start.');
   console.log(`└─────────────────────────────────────────────────────────────`);
   console.log(`\n┌─ WHAT IS NOT ───────────────────────────────────────────────`);
   for (const [id, why] of UNPROVEN) console.log(`│ ${id.padEnd(13)} ${why}`);

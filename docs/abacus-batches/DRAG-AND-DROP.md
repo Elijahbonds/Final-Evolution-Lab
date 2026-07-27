@@ -1,6 +1,6 @@
 # Drag-and-drop index — everything built in this session
 
-**15 batches, 24 new core modules, 1,445 passing assertions.**
+**17 batches, 26 new core modules, 1,494 passing assertions.**
 Every zip is in this folder. **Integration order is strict** — later batches
 replace files from earlier ones.
 
@@ -31,8 +31,9 @@ integrating all fourteen into none.
 | 14 | `m93-phase10-certification.zip` | the honest scorecard | no |
 | 15 | `m94-pass2-dunk-migration.zip` | **`dunk` actually on the kit** — replaces `modes/DunkMode.ts` | **YES** |
 | 16 | `m95-pass2-canvas-and-baseline.zip` | **the phone canvas fix, measured live: 33% → 80%** | no |
+| 17 | `m96-pass2-grounding-and-lifecycle.zip` | **skateboard/snowboard/surf stop losing the rider** | no |
 
-**M95 depends on nothing and can ship first.** It is the only batch here whose
+**M95 and M96 depend on nothing and can ship first.** It is the only batch here whose
 effect has been observed in the deployed product — see
 `docs/BASELINE-2026-07-27.md`.
 

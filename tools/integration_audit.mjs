@@ -166,6 +166,8 @@ async function auditMode(context, mode) {
   let authWall = false;
   let metrics = null;
   const boot = { domMs: null, canvasMs: null, playingMs: null };
+  const pageErrors = [];
+  page.on('pageerror', (e) => pageErrors.push(String(e).slice(0, 100)));
 
   try {
     // ?probe=1 turns on the dev-gated reporters (PoseProbe, and anything else
@@ -187,7 +189,11 @@ async function auditMode(context, mode) {
       // this tool looked exactly like a mobile start-gate bug and was not one.
       // Reporting that would have sent someone chasing a Playwright artifact.
       if (VIEWPORTS[VIEWPORT]?.touch) {
-        const gate = page.getByText(/TAP TO START|START|BEGIN|PLAY/i).first();
+        // ANCHORED. A loose /START|PLAY/ matched "MATCH PLAY" in the tennis
+        // title before it matched the button, so tennis reported as never
+        // reaching `playing` — a tooling artifact I nearly wrote up as a mode
+        // that would not start.
+        const gate = page.getByText(/^\s*(TAP TO START|START|BEGIN)\s*$/i).first();
         const box = await gate.boundingBox().catch(() => null);
         if (box) await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2).catch(() => {});
       }
@@ -229,8 +235,25 @@ async function auditMode(context, mode) {
 
   // The phase trail is the mode's own account of whether it got there.
   const trail = logs.filter((l) => l.includes('[FEL-READY]')).map((l) => l.split('→').pop().trim());
+
+  /**
+   * Health while the player does NOTHING.
+   *
+   * Added after the fleet scan that found skateboard, snowboard and surf
+   * losing the rider through the floor with zero input. That class of bug —
+   * the mode destroying itself unattended — was invisible to every check this
+   * project had, because every check drove the game.
+   */
+  const grounding = logs.filter((l) => /missed raycasts|hard-clamping/i.test(l));
+  const depths = grounding.map((l) => parseFloat((l.match(/y=(-?[\d.]+)/) || [])[1])).filter(Number.isFinite);
+  const idle = {
+    groundingFaults: grounding.length,
+    worstDepth: depths.length ? Math.min(...depths) : null,
+    pageErrors: [...new Set(pageErrors)],
+  };
+
   await page.close();
-  return { mode, found, engines, authWall, metrics, boot, trail, logLines: logs.length };
+  return { mode, found, engines, authWall, metrics, boot, trail, idle, logLines: logs.length };
 }
 
 const browser = await chromium.launch({
@@ -317,6 +340,24 @@ console.log('└─────────────────────�
 console.log('[AUDIT] fps here is SOFTWARE-RENDERED (SwiftShader) and means nothing');
 console.log('        about a real device. Only the geometry above is transferable.');
 
+// ── health with no player input ──────────────────────────────────────────
+const sick = measured.filter((r) => r.idle && (r.idle.groundingFaults > 0 || r.idle.pageErrors.length));
+console.log('\n┌─ UNATTENDED ───────────────────────────────────────────────');
+if (!sick.length) {
+  console.log(`│ ${measured.length}/${measured.length} modes survive with no player input.`);
+} else {
+  for (const r of sick) {
+    if (r.idle.groundingFaults) {
+      console.log(`│ ${r.mode.padEnd(12)} ${String(r.idle.groundingFaults).padStart(4)} grounding faults, `
+        + `worst y ${r.idle.worstDepth}`);
+      console.log('│              → the actor is leaving the world unattended. A clamp that');
+      console.log('│                keeps firing is not holding — see M96.');
+    }
+    for (const e of r.idle.pageErrors) console.log(`│ ${r.mode.padEnd(12)} ERROR ${e}`);
+  }
+}
+console.log('└─────────────────────────────────────────────────────────────');
+
 for (const r of measured) {
   if (r.engines) {
     const warn = r.engines.live > 2 ? '  ← LEAKING' : '';
@@ -336,7 +377,7 @@ await writeFile('artifacts/integration-audit.json', JSON.stringify({
   base: BASE, at: new Date().toISOString(), viewport: { name: VIEWPORT, ...vp },
   modes: results.map((r) => ({
     mode: r.mode, authWall: r.authWall, engines: r.engines, found: [...r.found],
-    boot: r.boot, trail: r.trail, metrics: r.metrics,
+    boot: r.boot, trail: r.trail, metrics: r.metrics, idle: r.idle,
   })),
   subsystems: rows,
 }, null, 2));

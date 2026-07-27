@@ -1,0 +1,156 @@
+[
+  {
+    "mode": "dunk",
+    "reached": "playing",
+    "clamps": 0,
+    "errs": 0,
+    "warns": 1,
+    "firstClamp": null,
+    "worstY": null,
+    "notes": "[FEL-LIGHT] liftBlackMaterials fixed 2 materials",
+    "errSamples": []
+  },
+  {
+    "mode": "onevone",
+    "reached": "playing",
+    "clamps": 0,
+    "errs": 0,
+    "warns": 1,
+    "firstClamp": null,
+    "worstY": null,
+    "notes": "[FEL-LIGHT] liftBlackMaterials fixed 2 materials",
+    "errSamples": []
+  },
+  {
+    "mode": "threevthree",
+    "reached": "playing",
+    "clamps": 0,
+    "errs": 0,
+    "warns": 1,
+    "firstClamp": null,
+    "worstY": null,
+    "notes": "[FEL-LIGHT] liftBlackMaterials fixed 2 materials",
+    "errSamples": []
+  },
+  {
+    "mode": "karate",
+    "reached": "playing",
+    "clamps": 0,
+    "errs": 0,
+    "warns": 1,
+    "firstClamp": null,
+    "worstY": null,
+    "notes": "[FEL-LIGHT] liftBlackMaterials fixed 2 materials",
+    "errSamples": []
+  },
+  {
+    "mode": "karate-vs",
+    "reached": "playing",
+    "clamps": 0,
+    "errs": 0,
+    "warns": 1,
+    "firstClamp": null,
+    "worstY": null,
+    "notes": "[FEL-LIGHT] liftBlackMaterials fixed 2 materials",
+    "errSamples": []
+  },
+  {
+    "mode": "mixedcombat",
+    "reached": "playing",
+    "clamps": 0,
+    "errs": 0,
+    "warns": 1,
+    "firstClamp": null,
+    "worstY": null,
+    "notes": "[FEL-LIGHT] liftBlackMaterials fixed 2 materials",
+    "errSamples": []
+  },
+  {
+    "mode": "skateboard",
+    "reached": "playing",
+    "clamps": 24,
+    "errs": 0,
+    "warns": 25,
+    "firstClamp": 12201,
+    "worstY": -2.02,
+    "notes": "[FEL-LIGHT] liftBlackMaterials fixed 2 materials | [FEL-SPAWN] Rider: 1 missed raycasts (y=-1.81) — hard-clampi",
+    "errSamples": []
+  },
+  {
+    "mode": "snowboard",
+    "reached": "playing",
+    "clamps": 25,
+    "errs": 0,
+    "warns": 26,
+    "firstClamp": 12117,
+    "worstY": -2.29,
+    "notes": "[FEL-LIGHT] liftBlackMaterials fixed 2 materials | [FEL-SPAWN] Rider: 0 missed raycasts (y=-0.63) — hard-clampi",
+    "errSamples": []
+  },
+  {
+    "mode": "surf",
+    "reached": "playing",
+    "clamps": 23,
+    "errs": 0,
+    "warns": 24,
+    "firstClamp": 12229,
+    "worstY": -2.41,
+    "notes": "[FEL-LIGHT] liftBlackMaterials fixed 2 materials | [FEL-SPAWN] Rider: 1 missed raycasts (y=-1.75) — hard-clampi",
+    "errSamples": []
+  },
+  {
+    "mode": "tennis",
+    "reached": "loaded",
+    "clamps": 0,
+    "errs": 0,
+    "warns": 1,
+    "firstClamp": null,
+    "worstY": null,
+    "notes": "[FEL-LIGHT] liftBlackMaterials fixed 2 materials",
+    "errSamples": []
+  },
+  {
+    "mode": "volleyball",
+    "reached": "playing",
+    "clamps": 0,
+    "errs": 0,
+    "warns": 1,
+    "firstClamp": null,
+    "worstY": null,
+    "notes": "[FEL-LIGHT] liftBlackMaterials fixed 2 materials",
+    "errSamples": []
+  },
+  {
+    "mode": "football",
+    "reached": "playing",
+    "clamps": 0,
+    "errs": 0,
+    "warns": 4,
+    "firstClamp": null,
+    "worstY": null,
+    "notes": "[FEL-LIGHT] liftBlackMaterials fixed 2 materials | [FEL-SPAWN] groundSnap: computed -92.70m correction — beyond",
+    "errSamples": []
+  },
+  {
+    "mode": "baseball",
+    "reached": "playing",
+    "clamps": 0,
+    "errs": 0,
+    "warns": 1,
+    "firstClamp": null,
+    "worstY": null,
+    "notes": "[FEL-LIGHT] liftBlackMaterials fixed 2 materials",
+    "errSamples": []
+  },
+  {
+    "mode": "soccer",
+    "reached": "playing",
+    "clamps": 0,
+    "errs": 0,
+    "warns": 1,
+    "firstClamp": null,
+    "worstY": null,
+    "notes": "[FEL-LIGHT] liftBlackMaterials fixed 2 materials",
+    "errSamples": []
+  }
+]
