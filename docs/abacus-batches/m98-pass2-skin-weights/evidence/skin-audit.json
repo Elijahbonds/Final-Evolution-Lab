@@ -1,0 +1,131 @@
+{
+  "base": "https://finalevolution.abacusai.app",
+  "at": "2026-07-27T05:55:01.801Z",
+  "report": [
+    {
+      "mode": "dunk",
+      "mesh": "Body_c5",
+      "checked": 2630,
+      "mismatched": 2104,
+      "mismatchRate": 0.8,
+      "dominantBone": "Head",
+      "dominantShare": 0.7673003802281368,
+      "regionOwners": {
+        "leg": "RightShoulder",
+        "torso": "Head",
+        "foot": "RightUpLeg",
+        "arm": "Head",
+        "hand": "Head",
+        "head": "Head"
+      },
+      "verdict": "broken",
+      "reasons": [
+        "77% of the mesh is welded to \"Head\" — a correctly weighted humanoid spreads across ~20 bones",
+        "80% of vertices are bound to a bone that cannot anatomically own them",
+        "the hand region is driven by \"Head\" — it will not animate",
+        "the arm region is driven by \"Head\" — it will not animate",
+        "the foot region is driven by \"RightUpLeg\" — it will not animate"
+      ]
+    },
+    {
+      "mode": "dunk",
+      "mesh": "Body_c71",
+      "checked": 2630,
+      "mismatched": 2104,
+      "mismatchRate": 0.8,
+      "dominantBone": "Head",
+      "dominantShare": 0.7673003802281368,
+      "regionOwners": {
+        "leg": "RightShoulder",
+        "torso": "Head",
+        "foot": "RightUpLeg",
+        "arm": "Head",
+        "hand": "Head",
+        "head": "Head"
+      },
+      "verdict": "broken",
+      "reasons": [
+        "77% of the mesh is welded to \"Head\" — a correctly weighted humanoid spreads across ~20 bones",
+        "80% of vertices are bound to a bone that cannot anatomically own them",
+        "the hand region is driven by \"Head\" — it will not animate",
+        "the arm region is driven by \"Head\" — it will not animate",
+        "the foot region is driven by \"RightUpLeg\" — it will not animate"
+      ]
+    },
+    {
+      "mode": "karate",
+      "mesh": "Body_c5",
+      "checked": 2630,
+      "mismatched": 2104,
+      "mismatchRate": 0.8,
+      "dominantBone": "Head",
+      "dominantShare": 0.7673003802281368,
+      "regionOwners": {
+        "leg": "RightShoulder",
+        "torso": "Head",
+        "foot": "RightUpLeg",
+        "arm": "Head",
+        "hand": "Head",
+        "head": "Head"
+      },
+      "verdict": "broken",
+      "reasons": [
+        "77% of the mesh is welded to \"Head\" — a correctly weighted humanoid spreads across ~20 bones",
+        "80% of vertices are bound to a bone that cannot anatomically own them",
+        "the hand region is driven by \"Head\" — it will not animate",
+        "the arm region is driven by \"Head\" — it will not animate",
+        "the foot region is driven by \"RightUpLeg\" — it will not animate"
+      ]
+    },
+    {
+      "mode": "karate",
+      "mesh": "Body_c71",
+      "checked": 2630,
+      "mismatched": 2104,
+      "mismatchRate": 0.8,
+      "dominantBone": "Head",
+      "dominantShare": 0.7673003802281368,
+      "regionOwners": {
+        "leg": "RightShoulder",
+        "torso": "Head",
+        "foot": "RightUpLeg",
+        "arm": "Head",
+        "hand": "Head",
+        "head": "Head"
+      },
+      "verdict": "broken",
+      "reasons": [
+        "77% of the mesh is welded to \"Head\" — a correctly weighted humanoid spreads across ~20 bones",
+        "80% of vertices are bound to a bone that cannot anatomically own them",
+        "the hand region is driven by \"Head\" — it will not animate",
+        "the arm region is driven by \"Head\" — it will not animate",
+        "the foot region is driven by \"RightUpLeg\" — it will not animate"
+      ]
+    },
+    {
+      "mode": "skateboard",
+      "mesh": "Body_c5",
+      "checked": 2630,
+      "mismatched": 2104,
+      "mismatchRate": 0.8,
+      "dominantBone": "Head",
+      "dominantShare": 0.7673003802281368,
+      "regionOwners": {
+        "leg": "RightShoulder",
+        "torso": "Head",
+        "foot": "RightUpLeg",
+        "arm": "Head",
+        "hand": "Head",
+        "head": "Head"
+      },
+      "verdict": "broken",
+      "reasons": [
+        "77% of the mesh is welded to \"Head\" — a correctly weighted humanoid spreads across ~20 bones",
+        "80% of vertices are bound to a bone that cannot anatomically own them",
+        "the hand region is driven by \"Head\" — it will not animate",
+        "the arm region is driven by \"Head\" — it will not animate",
+        "the foot region is driven by \"RightUpLeg\" — it will not animate"
+      ]
+    }
+  ]
+}

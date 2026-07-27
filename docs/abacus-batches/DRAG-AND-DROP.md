@@ -1,6 +1,6 @@
 # Drag-and-drop index — everything built in this session
 
-**18 batches, 27 new core modules, 1,525 passing assertions.**
+**19 batches, 28 new core modules, 1,548 passing assertions.**
 Every zip is in this folder. **Integration order is strict** — later batches
 replace files from earlier ones.
 
@@ -33,6 +33,7 @@ one of them reaches a player.
 | 16 | `m95-pass2-canvas-and-baseline.zip` | **the phone canvas fix, measured live: 33% → 80%** | no |
 | 17 | `m96-pass2-grounding-and-lifecycle.zip` | **skateboard/snowboard/surf stop losing the rider** | no |
 | 18 | `m97-pass2-framing-and-pose.zip` | **the camera: 6 of 8 modes show the player at 5-9% of screen** | no |
+| 19 | `m98-pass2-skin-weights.zip` | **THE T-POSE, SOLVED: 77% of the mesh is welded to the Head bone** | no |
 
 **M95, M96 and M97 depend on nothing and should ship first.** They are the only two
 batches here that fix a defect someone has actually watched the deployed
@@ -87,7 +88,8 @@ Each of these is one line, and without it the batch does nothing:
 ## Verify before and after
 
 ```bash
-node tools/certify.mjs             # 26/26 suites, 1525 assertions, gate clean
+node tools/certify.mjs             # 27/27 suites, 1548 assertions, gate clean
+node --experimental-strip-types tools/skin_audit.mjs   # can the characters animate AT ALL
 node tools/pose_probe.mjs          # character size + pose INSIDE the running game
 node tools/verify_batch.mjs --all  # 0 errors
 node tools/integration_audit.mjs --viewport phone   # measures the LIVE build

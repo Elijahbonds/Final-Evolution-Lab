@@ -109,7 +109,8 @@ const UNPROVEN = [
   // CORRECTED in M97 by measuring inside the running scene rather than reading
   // screenshots. idle_stand plays, the rest pose applies, the arm sits at 20
   // degrees from vertical and bind on this rig is 90. It was never a T-pose.
-  ['no_tpose', 'NOT a T-pose — arms at 20° from vertical; it looked like one at 60px'],
+  // M98 found the real cause three levels below where anyone had looked.
+  ['no_tpose', 'ROOT CAUSE: 77% of the mesh is welded to the Head bone — 5/5 rigs BROKEN'],
   ['framing', 'six of eight modes render the player at 5-9% of screen; fix in M97, NOT APPLIED'],
   // M94 moved these three from "no mode" to "one mode, in the repo". They stay
   // in this panel because this panel is about the DEPLOYED app, and none of it
@@ -122,7 +123,7 @@ const UNPROVEN = [
   // done. Three of fourteen modes destroy themselves unattended.
   ['grounding', 'skateboard/snowboard/surf lose the rider through the floor; fix in M96, NOT DEPLOYED'],
   ['simulatable', 'dunk implements it and proves deterministic here; no DEPLOYED mode does'],
-  ['mocap', 'fel_conform.py has never been run; every character clip is procedural'],
+  ['mocap', 'never run — AND it would change nothing until skin weights are fixed (M98)'],
   ['fun', 'Only the founder can score this'],
 ];
 
