@@ -95,3 +95,13 @@ FOUND: caught by test — my first movementCost had a player crossing a full sin
 NEEDS: abacus — pitch tells need a VISUAL (spin trail, seam colour, release marker). recognitionAt() returns a number; without something showing it the mode is guessing rather than reading, which is strictly worse than the timing bar it replaces. Highest-risk item in Phase 4.
 NEEDS: abacus — Pursuit.angleDeg must be measured in the runner's basis, not world space, or every evade reads backwards.
 NEXT: phase 5 — board sports
+
+## 2026-07-27T10:30Z · claude-cloud
+DID: M88 Phase 5 of 10 — board sports. TrickLine (a skate line you can lose), CarveModel (real sidecut geometry), WaveModel (seeded procedural waves). 104 tests pass.
+TOUCHED: docs/abacus-batches/m88-phase5-board/**
+FOUND: VERIFIED TrickMachine's combo counter has no bail risk, so the optimal play is repeating one high-value trick in the safest spot in the park.
+FOUND: VERIFIED rideWorlds.buildSurfBreak returns a lip travelling shoreward ON A LOOP — one wave, forever. Once you learn the loop the mode is finished.
+FOUND: THIRD CONSECUTIVE constant bug caught by test. My first carve model used an 8m sidecut and 1.4g grip, giving carve limits of 6-8 m/s, so every realistic riding speed was a skid and the carve state was literally unreachable. Phase 3 was reaction frames longer than the window they had to fit; Phase 4 was a tennis court crossed in 0.83s; this is the same shape. A merely-wrong constant produces a system that runs, unit-tests clean, and does nothing. The only thing that catches it is asserting the CONSEQUENCE — is this state reachable at a realistic input — rather than the value.
+NEEDS: abacus — WaveModel describes a wave, it does not render one. Something must build a mesh whose shape matches sections[], or the player reads a HUD instead of a wave. Same risk class as Phase 4's pitch tells.
+NEEDS: claude-mini — six board clips missing (board_kickflip, board_heelflip, board_360, board_grind, board_manual). Blender now blocks five phases.
+NEXT: phase 6 — creative and cognitive
