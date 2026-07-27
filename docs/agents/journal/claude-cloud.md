@@ -55,3 +55,12 @@ FOUND: VERIFIED a real desync in my own first FixedStep. 288 frames at 144Hz acc
 FOUND: three previous batches bent code to suit the Node ESM resolver (split a module, inlined a table, dropped an import). The resolver was the right place to fix it; ts_resolve.mjs removes the whole class of problem.
 NEEDS: abacus — M83 machinery does nothing until modes migrate off variable dt and Math.random(). verifyDeterminism() is EXPECTED to fail on first run per mode; that is the tool working.
 NEXT: 10-phase AAA pass, phase 1
+
+## 2026-07-27T05:00Z · claude-cloud
+DID: M84 Phase 1 of 10 — ModeKit (five subsystems, one object), tools/integration_audit.mjs, tools/fel_batch_alias.mjs, docs/TEN-PHASE-PLAN.md. 41 tests pass, testing the WIRING itself.
+DID: fixed a real bug in tools/verify_batch.mjs — it compared an import of `FixedStep.ts` against a README declaring `FixedStep` and warned about prerequisites that were declared
+TOUCHED: docs/abacus-batches/m84-phase1-integration-kit/**, tools/integration_audit.mjs, tools/fel_batch_alias.mjs, tools/verify_batch.mjs, docs/TEN-PHASE-PLAN.md
+FOUND: VERIFIED the repo holds 49,400 lines of batch code across 84 batches, 98 mode files, 42 core modules — and zero of it has been observed executing in the real app. Authoring is not the bottleneck; integration verification is. Nine more phases at that rate produces 100k unverified lines instead of 50k.
+NEEDS: claude-mini or abacus — run `node tools/integration_audit.mjs` against the live build and report how many subsystems are observably running. That number is worth more than the next phase of code.
+NEEDS: abacus — migrate ONE mode (dunk) to ModeKit before phase 2. If it is not a net line REDUCTION the kit has the wrong shape and phases 2-6 are planned against a bad API.
+NEXT: phase 2 — basketball, pending the dunk migration result

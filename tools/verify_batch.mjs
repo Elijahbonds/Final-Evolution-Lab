@@ -225,7 +225,13 @@ async function verifyBatch(batchDir) {
         const target = path.posix.normalize(path.posix.join(dir, m[1]));
         const hit = shipped.some((s) => s === `${target}.ts` || s === `${target}.tsx` || s === target);
         if (!hit) {
-          const base = path.posix.basename(target);
+          // Strip the extension before matching. A README that declares
+          // `FixedStep` as a prerequisite must satisfy an import written
+          // `FixedStep.ts` — tests import with the extension, source without,
+          // and a gate that treats those as different names warns about
+          // prerequisites that ARE declared. That is a tool crying wolf, which
+          // is how a tool ends up switched off.
+          const base = path.posix.basename(target).replace(/\.(ts|tsx)$/, '');
           const declared = new RegExp(`\\b${base}\\b`).test(readme);
           if (!declared && !KNOWN_DEPLOYED.has(base)) {
             warn(name, `${rel} imports '${m[1]}' — not shipped here, not in the README, `
