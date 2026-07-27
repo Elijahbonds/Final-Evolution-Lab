@@ -115,3 +115,14 @@ FOUND: two model corrections forced by test. ARV measured against a whole-sessio
 NEEDS: elijah — the 48 Brain Brawl questions are still unported. 8 reference real companies and public figures; factual trivia is legally distinct from asset or likeness use but it is a brand decision and it is yours. Until they land, Brain Brawl has thin content and MRI has little to read.
 NEEDS: abacus — ESI's exertion term has no source on the web. It is the part that most directly delivers the "cognitive load under physical fatigue" thesis, and it needs the HealthKit/band bridge that exists only on the Swift side.
 NEXT: phase 7 — ecosystem (economy, cards, season pass, persistence)
+
+## 2026-07-27T13:00Z · claude-cloud
+DID: M90 Phase 7 of 10 — ecosystem. ReceiptIntegrity (trust earned by evidence, cash requires server re-simulation) and Progression (level curve, season track, objectives). 98 tests pass.
+TOUCHED: docs/abacus-batches/m90-phase7-ecosystem/**
+FOUND: VERIFIED the session receipt docstring is accurate and still insufficient. The client never supplies XP or shards, but it DOES supply score, outcome, combo_count and duration. POST {"score": 999999, "outcome": "win"} is a fully authenticated, server-computed reward and nothing asks whether that score was possible. For XP that is a leaderboard problem; for Cash Dunk Arena it is the whole product.
+FOUND: VERIFIED XP has nowhere to go. economy_engine computes it per session and nothing consumes it — no level curve, no season, no objectives — while FEL-VISION describes a Season Pass ticking in the background with no implementation on either side.
+FOUND: firebase_verify.py decodes without verifying signatures when environment != "production". I checked the production path and it verifies properly against Google's certs, so this is a legitimate emulator affordance and NOT a vulnerability. Worth knowing how it fails: the gate is a string comparison, so an unset or typo'd environment silently accepts unsigned tokens. Fail-open on the most security-critical check in the system. A startup check that refuses to boot on an unrecognised environment would close it.
+FOUND: caught by test — my first level curve made level 50 cost 50x level 1, turning the back half into a wall. Now ~11x, with tests asserting both bounds.
+NEEDS: abacus — the server cannot re-simulate anything yet. Until FEL's deterministic sim runs on the backend, no receipt reaches 'resimulated' and Cash Arena cannot pay out. Largest remaining piece of the product.
+NEEDS: elijah — MODE_BOUNDS are my estimates. They should be re-derived from a week of real telemetry rather than from me.
+NEXT: phase 8 — multiplayer and arena
