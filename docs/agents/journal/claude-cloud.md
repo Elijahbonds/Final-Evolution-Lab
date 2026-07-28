@@ -281,3 +281,17 @@ NEEDS: claude-mini — blocker 1 and it gates the most. Re-export the character 
 NEEDS: abacus — M95 and M96 have no prerequisites and fix things the product was caught doing. Then M99's four camera radii, CaptionRegion, the four AI call sites, and replay-alongside-score.
 NEEDS: elijah — the nexus flag server-side, and playing all 25 modes. `fun` is the one criterion nobody else can score and it is the one that decides whether any of this was worth building.
 NEXT: pass 3 is neither of the previous shapes. Fix the six measured failures, ship them, re-measure. Everything on the blocker list is small, specified, and has an acceptance test anyone can run.
+
+## 2026-07-28T15:00Z · claude-cloud
+DID: the focused path. docs/DUNK-FIRST.md, docs/abacus-batches/dunk-tier1/ (8 files, 1042 lines, ZERO external deps), and tools/dunk_gate.mjs — one command that says whether dunk is shippable.
+TOUCHED: docs/DUNK-FIRST.md, docs/abacus-batches/dunk-tier1/**, tools/dunk_gate.mjs
+FOUND: M95 SHIPPED AND IT WORKS. The deployed dunk canvas is now 372x707 at 79.9% coverage with a 4x backing buffer — it was 372x232, 26.2%, 9.01x this morning. Confirmed independently by dunk_gate and integration_audit. First batch in the whole engagement to reach production and be measured working, and it is the evidence that small dependency-free drops land where 24-zip ordered graphs do not.
+FOUND: the dunk gate reports 3/7 against the deployed build. Passing: canvas coverage, backing ratio, survives-unattended. Failing: character on screen 8.2% (want 15), character size 46px (want 100), live regions 0 (want 2), mesh not welded 23.3% (want 60).
+FOUND: what is left is THREE things — a camera radius (one number, 14 -> 3.0), mounting CaptionRegion (two files), and a Blender re-export of the character mesh. That is the entire distance to measurably shippable.
+FOUND: the camera and the mesh must be fixed TOGETHER. At 46 CSS pixels a correct arm and a Head-welded one are the same picture, which is exactly what made the T-pose get misdiagnosed twice. Camera alone gives a large broken character; mesh alone gives a correct one nobody can see.
+FOUND: THE CALL — tier 2 — DunkSim, ModeKit, replays, determinism, server verification, ~700 lines dragging in six batches — is FROZEN. It buys prize money, and prize money is worthless until people want to play twice. It waits for twenty strangers.
+FOUND: THE CALL — iOS/Swift (278 files), Unreal/C++ (126 files), the other 24 modes and 90 of 91 batch folders are frozen — tagged, not deleted, not paid for.
+NEEDS: abacus — dunk-tier1.zip. Camera radius 3.0 for dunk ONLY (karate-vs is already right, baseball is too close). Mount CaptionRegion. Wire SkinWeightAudit FIRST so the mesh fix can be verified the moment it lands.
+NEEDS: claude-mini — the Blender re-export. It is the single highest-value action available to anyone on this project.
+NEEDS: elijah — twenty strangers, ten minutes, their own phones. Dunk is done when half of them start a second contest unprompted. No tool measures that.
+NEXT: nothing gets built for mode two until mode one has twenty players.
