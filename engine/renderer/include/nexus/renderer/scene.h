@@ -70,8 +70,29 @@ public:
     DrawStats stats{};
   };
 
+  /// One instanced draw: a mesh plus every visible per-instance model matrix.
+  /// Backends submit this as a single draw with instanceCount = transforms.size()
+  /// (Metal: drawIndexedPrimitives(...instanceCount:), Vulkan: vkCmdDrawIndexed).
+  struct InstancedDraw {
+    std::size_t meshIndex{0};
+    std::vector<std::array<float, 16>> instanceTransforms;
+  };
+
+  struct InstancedDrawBatch {
+    std::vector<InstancedDraw> draws;  // ordered by ascending meshIndex
+    DrawStats stats{};                 // same stats as the flat batch
+
+    /// GPU submissions needed after batching (vs stats.visibleDraws before).
+    [[nodiscard]] auto instancedDrawCount() const -> std::size_t { return draws.size(); }
+  };
+
   [[nodiscard]] auto collectDrawCommands(bool frustumCull = true) const -> std::vector<DrawCommand>;
   [[nodiscard]] auto collectDrawCommandBatch(bool frustumCull = true) const -> DrawCommandBatch;
+
+  /// Groups the visible draw commands by mesh so backends can render each
+  /// unique mesh once with per-instance transforms (draw-call batching).
+  [[nodiscard]] auto collectInstancedDrawBatch(bool frustumCull = true) const
+      -> InstancedDrawBatch;
 
   static auto createDefaultArena() -> RenderScene;
   static auto createProceduralArena(ProceduralFallback fallback) -> RenderScene;

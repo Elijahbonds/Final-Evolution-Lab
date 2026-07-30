@@ -279,6 +279,33 @@ auto RenderScene::collectDrawCommands(bool frustumCull) const -> std::vector<Dra
   return collectDrawCommandBatch(frustumCull).commands;
 }
 
+auto RenderScene::collectInstancedDrawBatch(bool frustumCull) const -> InstancedDrawBatch {
+  DrawCommandBatch flat = collectDrawCommandBatch(frustumCull);
+
+  InstancedDrawBatch batch{};
+  batch.stats = flat.stats;
+  if (flat.commands.empty()) {
+    return batch;
+  }
+
+  // Stable sort keeps submission order deterministic for equal mesh indices.
+  std::stable_sort(flat.commands.begin(),
+                   flat.commands.end(),
+                   [](const DrawCommand& left, const DrawCommand& right) {
+                     return left.meshIndex < right.meshIndex;
+                   });
+
+  for (const DrawCommand& command : flat.commands) {
+    if (batch.draws.empty() || batch.draws.back().meshIndex != command.meshIndex) {
+      InstancedDraw draw{};
+      draw.meshIndex = command.meshIndex;
+      batch.draws.push_back(std::move(draw));
+    }
+    batch.draws.back().instanceTransforms.push_back(command.modelMatrix);
+  }
+  return batch;
+}
+
 auto RenderScene::createProceduralArena(ProceduralFallback fallback) -> RenderScene {
   if (fallback == ProceduralFallback::kNone) {
     RenderScene scene;
