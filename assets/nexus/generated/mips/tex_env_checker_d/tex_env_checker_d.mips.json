@@ -1,0 +1,58 @@
+{
+  "source": "tex_env_checker_d.png",
+  "original_size": [
+    128,
+    128
+  ],
+  "pot_resized": false,
+  "levels": [
+    {
+      "level": 0,
+      "width": 128,
+      "height": 128,
+      "file": "mip0.png"
+    },
+    {
+      "level": 1,
+      "width": 64,
+      "height": 64,
+      "file": "mip1.png"
+    },
+    {
+      "level": 2,
+      "width": 32,
+      "height": 32,
+      "file": "mip2.png"
+    },
+    {
+      "level": 3,
+      "width": 16,
+      "height": 16,
+      "file": "mip3.png"
+    },
+    {
+      "level": 4,
+      "width": 8,
+      "height": 8,
+      "file": "mip4.png"
+    },
+    {
+      "level": 5,
+      "width": 4,
+      "height": 4,
+      "file": "mip5.png"
+    },
+    {
+      "level": 6,
+      "width": 2,
+      "height": 2,
+      "file": "mip6.png"
+    },
+    {
+      "level": 7,
+      "width": 1,
+      "height": 1,
+      "file": "mip7.png"
+    }
+  ]
+}
