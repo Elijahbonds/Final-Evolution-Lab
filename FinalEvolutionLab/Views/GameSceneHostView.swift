@@ -549,6 +549,17 @@ struct GameSceneHostView: UIViewRepresentable {
             }
 
             NotificationCenter.default.addObserver(
+                forName: .felGameplayJudgeReveal,
+                object: nil,
+                queue: .main
+            ) { [weak self] notification in
+                guard let self, let scene = self.scnView?.scene else { return }
+                let scores = notification.userInfo?["scores"] as? [Int] ?? []
+                self.triggerTemporaryCameraCut(to: .broadcast, duration: 3.5)
+                FELVFXTemplates.playDunkScoredSequence(in: scene, judgeScores: scores)
+            }
+
+            NotificationCenter.default.addObserver(
                 forName: NSNotification.Name("FELPerformanceTierChanged"),
                 object: nil,
                 queue: .main
