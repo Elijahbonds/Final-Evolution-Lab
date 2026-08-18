@@ -296,6 +296,34 @@ struct GameLogicTests {
         #expect(GameModeRegistry.playableMode(forRegistryId: "basketball_dunk")?.id == .basketballDunkContest3D)
     }
 
+    @Test func irlDunkEconomyRequiresServerVerifiedReceipt() {
+        #expect(GameModeId(rawValue: "basketball_irl") == nil)
+        #expect(GameModeId.basketballDunkContestIRL.rawValue == "basketball_dunk_irl")
+        #expect(NexusEconomyAuthority.usesServerAuthoritativeEconomy(modeId: .basketballDunkContestIRL))
+        #expect(!NexusEconomyAuthority.allowsLocalEconomyGrant(modeId: .basketballDunkContestIRL, trustLevel: .sessionBound))
+        #expect(!NexusEconomyAuthority.allowsLocalEconomyGrant(modeId: .basketballDunkContestIRL, trustLevel: .localPractice))
+        #expect(NexusEconomyAuthority.allowsLocalEconomyGrant(modeId: .basketballDunkContestIRL, trustLevel: .serverVerified))
+    }
+
+    @Test @MainActor func irlDunkReceiptParsingKeepsRewardsLockedUntilVerified() {
+        let payload: [String: Any] = [
+            "game_mode_id": GameModeId.basketballDunkContestIRL.rawValue,
+            "player_score": 470,
+            "opponent_score": 430,
+            "duration_seconds": 75,
+            "shards_earned": 50,
+            "prq_bonus": 3.0,
+            "fel_trust_level": "session_bound",
+        ]
+        guard let fields = GameplaySessionReceiptCoordinator.parseReceiptFields(payload) else {
+            Issue.record("IRL receipt payload failed to parse")
+            return
+        }
+        #expect(fields.mode == .basketballDunkContestIRL)
+        #expect(fields.trustLevel == .sessionBound)
+        #expect(!NexusEconomyAuthority.allowsLocalEconomyGrant(modeId: fields.mode, trustLevel: fields.trustLevel))
+    }
+
     @Test func basketballClusterWinTargetsAlignWithNexusSimulators() {
         #expect(GameModeRules.forMode(.basketballHeadToHead).targetScore == 21)
         #expect(GameModeRules.forMode(.basketball3v3).targetScore == 21)

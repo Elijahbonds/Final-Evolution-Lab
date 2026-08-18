@@ -20,16 +20,37 @@ for arg in "$@"; do
   esac
 done
 
+CC="${CC:-gcc}"
+CXX="${CXX:-g++}"
+export CC CXX
+
 mkdir -p "${ARTIFACT_DIR}"
 cd "${ROOT}"
 
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
   echo "==> Configure + build headless gameplay tests"
+  REQUESTED_CXX="$(command -v "${CXX}" 2>/dev/null || printf "%s" "${CXX}")"
+  if [[ -f "${HEADLESS_DIR}/CMakeCache.txt" ]]; then
+    CACHED_CXX=""
+    while IFS='=' read -r key value; do
+      if [[ "${key}" == "CMAKE_CXX_COMPILER:FILEPATH" ]]; then
+        CACHED_CXX="${value}"
+        break
+      fi
+    done < "${HEADLESS_DIR}/CMakeCache.txt"
+    if [[ -n "${CACHED_CXX}" && "${CACHED_CXX}" != "${REQUESTED_CXX}" ]]; then
+      echo "==> Resetting stale headless CMake compiler cache (${CACHED_CXX} -> ${REQUESTED_CXX})"
+      rm -f "${HEADLESS_DIR}/CMakeCache.txt"
+      rm -rf "${HEADLESS_DIR}/CMakeFiles"
+    fi
+  fi
   cmake -S . -B "${HEADLESS_DIR}" \
+    -DCMAKE_C_COMPILER="${CC}" \
+    -DCMAKE_CXX_COMPILER="${CXX}" \
     -DNEXUS_ENABLE_RENDERER=OFF \
     -DNEXUS_BUILD_RUNTIME=OFF \
     -DNEXUS_BUILD_TESTS=ON
-  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)" --target nexus_gameplay_test
+  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 fi
 
 GAMEPLAY_TEST="${HEADLESS_DIR}/nexus_gameplay_test"

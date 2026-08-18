@@ -30,8 +30,8 @@ final class GameplaySessionReceiptCoordinator {
         vm.ingestVerifiedGameplayReceipt(fromEmergentPayload: obj)
     }
 
-    #if DEBUG
-    /// POST Swift fallback session to ``Config/gameplaySessionReceiptURL``; on 200 ingests response as ``serverVerified``.
+    /// POST Swift fallback session to ``Config/gameplaySessionReceiptURL``; on 2xx ingests response as ``serverVerified``.
+    @discardableResult
     func submitNativeSessionReceipt(
         matchSessionId: UUID,
         gameModeId: String,
@@ -40,9 +40,12 @@ final class GameplaySessionReceiptCoordinator {
         durationSeconds: Int,
         comboCount: Int,
         criticalCount: Int,
-        pacingScore: Int
-    ) async {
-        guard Config.submitNativeGameplayReceiptsInDebug else { return }
+        pacingScore: Int,
+        isMultiplayer: Bool = false
+    ) async -> Bool {
+        #if DEBUG
+        guard Config.submitNativeGameplayReceiptsInDebug else { return false }
+        #endif
 
         let outcome: String = {
             switch VersusMatchOutcome.winnerSide(playerScore: playerScore, opponentScore: opponentScore) {
@@ -64,10 +67,12 @@ final class GameplaySessionReceiptCoordinator {
             "pacing_score": pacingScore,
             "mri_score": 72.0,
             "game_session_id": matchSessionId.uuidString,
+            "is_multiplayer": isMultiplayer,
         ]
 
-        guard let payload = await Self.postSessionReceipt(body: body) else { return }
+        guard let payload = await Self.postSessionReceipt(body: body) else { return false }
         applyVerifiedPayload(payload)
+        return true
     }
 
     private static func postSessionReceipt(body: [String: Any]) async -> [String: Any]? {
@@ -115,7 +120,6 @@ final class GameplaySessionReceiptCoordinator {
             "verificationSeed": sessionId,
         ]
     }
-    #endif
 
     private static func persistReceiptWithoutViewModel(_ obj: [String: Any]) {
         guard let parsed = parseReceiptFields(obj) else { return }
