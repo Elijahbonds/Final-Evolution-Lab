@@ -329,6 +329,20 @@ struct GameLogicTests {
         #expect(scene.rootNode.childNode(withName: "fighter2", recursively: true) != nil)
     }
 
+    @Test func brainBrawlTierMatchesNexusProductionRegistry() {
+        let mode = GameModeRegistry.mode(for: .brainBrawl)
+        #expect(GameModeRegistry.productionModeIds.contains(GameModeId.brainBrawl.rawValue))
+        #expect(mode.releaseState == .production)
+        #expect(mode.id.nexusCapabilityTier == .prod)
+        #expect(mode.felHonestTierLabel == nil)
+    }
+
+    @Test @MainActor func triumphTournamentSelectionsUseCanonicalRegistryIds() {
+        #expect(TriumphTournamentEngine.canonicalGameModeId(forTournamentSelection: "2D Brain Brawl") == GameModeId.brainBrawl.rawValue)
+        #expect(TriumphTournamentEngine.canonicalGameModeId(forTournamentSelection: "Court Carnival") == GameModeId.courtCarnival.rawValue)
+        #expect(TriumphTournamentEngine.canonicalGameModeId(forTournamentSelection: "WDA Dunk Contest") == GameModeId.basketballDunkContestIRL.rawValue)
+    }
+
     @Test func phase6SportsOutcomeHudStatusLines() {
         let baseballHud = NexusHUDSnapshot(
             modeId: "baseball",

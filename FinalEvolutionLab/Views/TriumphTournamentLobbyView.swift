@@ -982,12 +982,7 @@ struct TriumphTournamentLobbyView: View {
         didPlayerWin = playerWon
         
         // Complete tournament and distribute payout
-        let gameModeId: String
-        switch selectedGameMode {
-        case "2D Brain Brawl": gameModeId = "brainBrawl"
-        case "Court Carnival": gameModeId = "courtCarnival"
-        default: gameModeId = GameModeId.basketballDunkContestIRL.rawValue
-        }
+        let gameModeId = TriumphTournamentEngine.canonicalGameModeId(forTournamentSelection: selectedGameMode)
         
         TriumphTournamentEngine.shared.completeTournament(
             didWin: playerWon,
@@ -1003,7 +998,7 @@ struct TriumphTournamentLobbyView: View {
         matchState = .completed
         
         if playerWon {
-            showToast(message: String(format: "Won H2H! Payout of $%.2f credited.", selectedTier.prizePool), isError: false)
+            showToast(message: String(format: "%@ · demo payout of $%.2f recorded.", FELPremiumCopy.Preview.triumphCashEntry, selectedTier.prizePool), isError: false)
         } else {
             showToast(message: "Tournament completed. Better luck next time!", isError: false)
         }
@@ -1023,7 +1018,7 @@ struct TriumphTournamentLobbyView: View {
         let success = TriumphTournamentEngine.shared.deposit(amount: amount, cardDetails: cardNumber)
         if success {
             isDepositSheetPresented = false
-            showToast(message: String(format: "Successfully deposited $%.2f USD!", amount), isError: false)
+            showToast(message: String(format: "%@ · demo deposit of $%.2f recorded.", FELPremiumCopy.Preview.triumphCashEntry, amount), isError: false)
             // Reset fields
             cardNumber = ""
             cardExpiry = ""
@@ -1053,7 +1048,7 @@ struct TriumphTournamentLobbyView: View {
         let success = TriumphTournamentEngine.shared.withdraw(amount: amount, paypalEmail: paypalEmail)
         if success {
             isWithdrawSheetPresented = false
-            showToast(message: String(format: "Successfully withdrew $%.2f USD!", amount), isError: false)
+            showToast(message: String(format: "%@ · demo withdrawal of $%.2f recorded.", FELPremiumCopy.Preview.triumphCashEntry, amount), isError: false)
             // Reset fields
             paypalEmail = ""
         } else {

@@ -38,7 +38,10 @@ struct GameModeSelectionView: View {
         .scrollIndicators(.hidden)
         .background(Theme.deepBlack)
         .navigationDestination(item: $gameplayRoute) { modeId in
-            if modeId == .brainBrawl {
+            if modeId == .marketBrowse {
+                MarketBrowseView(viewModel: viewModel)
+                    .id(gameplayLaunchId)
+            } else if modeId == .brainBrawl {
                 BrainBrawl2DView(
                     viewModel: viewModel,
                     gameMode: GameModeRegistry.mode(for: .brainBrawl),
@@ -247,9 +250,12 @@ struct GameModeSelectionView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("GLOBAL ARENA")
-                        .font(.system(.subheadline, weight: .black))
-                        .foregroundStyle(.white)
+                    HStack(spacing: 6) {
+                        Text("GLOBAL ARENA")
+                            .font(.system(.subheadline, weight: .black))
+                            .foregroundStyle(.white)
+                        FELPreviewLabel(text: FELPremiumCopy.Preview.matchmakingStub)
+                    }
 
                     if let last = GameModeRegistry.resolvedLastSelectedMode() {
                         Text("Matchmaking · \(last.name)")
