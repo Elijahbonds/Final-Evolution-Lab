@@ -11,10 +11,12 @@ persist via ``session_processor`` to Postgres (or SQLite when USE_SQLITE_DEV=tru
 """
 from __future__ import annotations
 
+import json
 import random
 import time
 import uuid
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, File, Query, UploadFile
@@ -23,6 +25,7 @@ from pydantic import BaseModel, Field
 router = APIRouter(tags=["mechanics"])
 
 NUTRI_SHARDS_PER_SCAN = 12
+MODE_MANAGER_PATH = Path(__file__).resolve().parents[2] / "FEL_ModeManager.production.json"
 
 _SERVER_STARTED_AT = time.monotonic()
 
@@ -35,9 +38,9 @@ _workout_logs: list[dict[str, Any]] = []
 
 ARENA_MODES = [
     ("basketball_h2h", "Street · 1v1", "Basketball", "VeniceBeach", "1v1", "3 min"),
-    ("basketball_dunk", "Dunk Contest", "Basketball", "VeniceBeach", "Solo", "5 min"),
+    ("basketball_dunk_3d", "3D H2H Dunk Contest", "Basketball", "VeniceBeach", "1v1", "5 min"),
+    ("basketball_dunk_irl", "IRL H2H Dunk Contest", "Basketball", "RegulationCourtIRL", "1v1", "5 min"),
     ("basketball_3v3", "Street · 3v3", "Basketball", "VeniceBeach", "3v3", "8 min"),
-    ("karate", "Karate · Dojo", "Combat", "Dojo", "Solo", "3 min"),
     ("karate_h2h", "Karate · 1v1", "Combat", "Dojo", "1v1", "3 min"),
     ("karate_endless", "Karate · Endless", "Combat", "Dojo", "Solo", "Endless"),
     ("baseball", "Baseball · Ballpark", "Field", "BaseballPark", "Solo", "5 min"),
@@ -51,8 +54,9 @@ ARENA_MODES = [
     ("surfing", "Surf · Line", "Board", "VeniceBeach", "Solo", "3 min"),
     ("skateboarding", "Skate · Dojo", "Board", "Dojo", "Solo", "3 min"),
     ("snowboarding", "Snow · Line", "Board", "TrainingFloor", "Solo", "3 min"),
+    ("who_scene_it", "Who Scene It", "Academy", "NeuroArena", "2-8", "15 min"),
+    ("court_carnival", "Court Carnival", "Party", "VeniceBeach", "2-4", "30 min"),
     ("market_browse", "Sovereign Shop", "Academy", "Luma_Venice_Shop", "Browse", "Open"),
-    ("trivia_arena", "Trivia Arena", "Academy", "NeuroArena", "Solo", "2 min"),
 ]
 
 INTENTS = {
@@ -153,7 +157,7 @@ def _mode(row: tuple[str, str, str, str, str, str]) -> dict[str, Any]:
         "player_count": players,
         "duration": duration,
         "difficulty": "Cognitive" if category == "Academy" else "Adaptive",
-        "game_type": "quiz" if mode_id in {"brain_brawl", "trivia_arena"} else "reflex",
+        "game_type": "quiz" if mode_id in {"brain_brawl", "who_scene_it"} else "reflex",
         "playable": mode_id != "market_browse",
         "image_url": "/images/ue5_basketball.png" if category == "Basketball" else "/images/ue5_board.png",
         "description": f"{display_name} is wired through the FEL shell economy and HUD pipeline.",
@@ -171,6 +175,15 @@ def _today_totals() -> dict[str, int]:
 
 def _target() -> dict[str, int]:
     return {"calories": 2400, "protein_g": 160, "carbs_g": 280, "fats_g": 75, "hydration_ml": 3200}
+
+
+def _production_mode_count() -> int:
+    try:
+        manager = json.loads(MODE_MANAGER_PATH.read_text())
+        registry = manager.get("mode_manager", {}).get("mode_registry", {})
+        return sum(1 for mode in registry.values() if mode.get("status") == "production")
+    except (OSError, json.JSONDecodeError):
+        return sum(1 for row in ARENA_MODES if row[0] != "market_browse")
 
 
 @router.get("/games/modes")
@@ -637,7 +650,7 @@ async def hub_status() -> dict[str, Any]:
 
 @router.get("/production/health")
 async def production_health() -> dict[str, Any]:
-    return {"status": "HEALTHY", "checks": {"mode_manager": {"production_modes": 19}}}
+    return {"status": "HEALTHY", "checks": {"mode_manager": {"production_modes": _production_mode_count()}}}
 
 
 @router.get("/production/handshake-log")
