@@ -1,8 +1,8 @@
 {
-  "cooked_runtime_note": "FEL_ModeManager — 20 total modes (19 game + 1 education). Gate 1 fix applied: who_scene_it + court_carnival promoted to production. production_modes=14. movement_lab added as preview/non-scoring education module.",
+  "cooked_runtime_note": "FEL_ModeManager — 22 registry entries: 20 production runtime entries including the legacy basketball_dunk alias and split IRL/3D dunk modes, plus market_browse as a non-game module and movement_lab as an education preview. Full visible gameplay lineup is production; preview labels remain for non-game/education surfaces.",
   "mode_manager": {
-    "total_modes": 20,
-    "production_modes": 12,
+    "total_modes": 22,
+    "production_modes": 20,
     "mode_registry": {
       "basketball_h2h": {
         "status": "production",
@@ -82,35 +82,41 @@
         "prq_weight": 1.05
       },
       "gymnastics": {
-        "status": "staging",
+        "status": "production",
         "venue_id": "Training_Floor",
-        "prq_weight": 1.0
+        "prq_weight": 1.0,
+        "release_state": "production"
       },
       "brain_brawl": {
-        "status": "staging",
+        "status": "production",
         "venue_id": "Neuro_Arena",
-        "prq_weight": 1.0
+        "prq_weight": 1.0,
+        "release_state": "production"
       },
       "who_scene_it": {
-        "status": "preview",
+        "status": "production",
         "venue_id": "Neuro_Arena",
-        "prq_weight": 1.1
+        "prq_weight": 1.1,
+        "release_state": "production"
       },
       "court_carnival": {
         "status": "production",
         "venue_id": "VeniceBeach",
         "prq_weight": 1.0,
-        "scoring_enabled": true
+        "scoring_enabled": true,
+        "release_state": "production"
       },
       "skateboarding": {
-        "status": "staging",
+        "status": "production",
         "venue_id": "Skate_Park",
-        "prq_weight": 0.9
+        "prq_weight": 0.9,
+        "release_state": "production"
       },
       "snowboarding": {
-        "status": "staging",
+        "status": "production",
         "venue_id": "Mountain_Slope",
-        "prq_weight": 0.9
+        "prq_weight": 0.9,
+        "release_state": "production"
       },
       "market_browse": {
         "status": "non-game-module",
