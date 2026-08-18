@@ -1,8 +1,8 @@
 {
-  "cooked_runtime_note": "FEL_ModeManager — 20 total modes (19 game + 1 education). Gate 1 fix applied: who_scene_it + court_carnival promoted to production. production_modes=14. movement_lab added as preview/non-scoring education module.",
+  "cooked_runtime_note": "FEL_ModeManager — 22 registry entries: 19 app-facing production game ids, the legacy basketball_dunk runtime alias, market_browse, and movement_lab. NEXUS C++ production runtime uses 18 modes; split dunk IRL/3D is resolved by app/backend aliases.",
   "mode_manager": {
-    "total_modes": 20,
-    "production_modes": 12,
+    "total_modes": 22,
+    "production_modes": 20,
     "mode_registry": {
       "basketball_h2h": {
         "status": "production",
@@ -26,7 +26,7 @@
       "basketball_dunk_irl": {
         "status": "production",
         "render_mode": "IRL",
-        "venue_id": null,
+        "venue_id": "Regulation_Court_IRL",
         "healthkit_tracked": true,
         "prq_weight": 1.5,
         "note": "Reconciled from claude branch basketball_irl — no UE map"
@@ -82,17 +82,17 @@
         "prq_weight": 1.05
       },
       "gymnastics": {
-        "status": "staging",
+        "status": "production",
         "venue_id": "Training_Floor",
         "prq_weight": 1.0
       },
       "brain_brawl": {
-        "status": "staging",
+        "status": "production",
         "venue_id": "Neuro_Arena",
         "prq_weight": 1.0
       },
       "who_scene_it": {
-        "status": "preview",
+        "status": "production",
         "venue_id": "Neuro_Arena",
         "prq_weight": 1.1
       },
@@ -103,12 +103,12 @@
         "scoring_enabled": true
       },
       "skateboarding": {
-        "status": "staging",
+        "status": "production",
         "venue_id": "Skate_Park",
         "prq_weight": 0.9
       },
       "snowboarding": {
-        "status": "staging",
+        "status": "production",
         "venue_id": "Mountain_Slope",
         "prq_weight": 0.9
       },
