@@ -109,7 +109,9 @@ auto SessionReceiptClient::flush() -> SessionReceiptDispatchResult {
     const auto delivery = deliverReceipt(receipt);
     if (delivery.isOk()) {
       ++result.delivered;
-      ++result.queued_on_disk;
+      if (m_config.persistToDisk) {
+        ++result.queued_on_disk;
+      }
       continue;
     }
 
@@ -158,6 +160,10 @@ auto SessionReceiptClient::postedRequests() const -> std::span<const nexus::core
 
 auto SessionReceiptClient::queueDirectory() const -> const std::string& {
   return m_config.queueDirectory;
+}
+
+auto SessionReceiptClient::config() const -> const SessionReceiptClientConfig& {
+  return m_config;
 }
 
 void SessionReceiptClient::clearPending() {
@@ -212,9 +218,14 @@ auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Resu
     if (postResult.isErr()) {
       return postResult;
     }
+    const int statusCode = postResult.value();
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                    "Session receipt POST mode=" + modeId + " score=" + std::to_string(score) +
-                       " status=" + std::to_string(postResult.value()));
+                       " status=" + std::to_string(statusCode));
+    if (statusCode < 200 || statusCode > 299) {
+      return Result<int>::err("session POST returned HTTP " + std::to_string(statusCode));
+    }
+    return Result<int>::ok(statusCode);
   } else {
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                    "Session receipt flush (HTTP disabled) mode=" + modeId +
