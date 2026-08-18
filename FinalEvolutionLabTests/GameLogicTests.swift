@@ -292,6 +292,7 @@ struct GameLogicTests {
         #expect(irl.hint?.contains("Vision") == true)
         // Hint must describe real mechanics (Metal renderer is stubbed; do not overclaim tech).
         #expect(threeD.hint?.contains("swipe timing") == true)
+        #expect(irl.id.nexusRuntimeModeId == "basketball_dunk")
         #expect(threeD.id.nexusRuntimeModeId == "basketball_dunk")
         #expect(GameModeRegistry.playableMode(forRegistryId: "basketball_dunk")?.id == .basketballDunkContest3D)
     }

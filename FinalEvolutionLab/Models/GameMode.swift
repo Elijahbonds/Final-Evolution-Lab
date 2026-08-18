@@ -100,7 +100,7 @@ extension GameModeId {
     var nexusRuntimeModeId: String {
         switch self {
         case .venicePickup: return GameModeId.basketballHeadToHead.rawValue
-        case .basketballDunkContest3D: return "basketball_dunk"
+        case .basketballDunkContestIRL, .basketballDunkContest3D: return "basketball_dunk"
         default: return rawValue
         }
     }
