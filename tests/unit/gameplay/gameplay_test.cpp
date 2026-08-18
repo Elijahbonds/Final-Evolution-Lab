@@ -422,6 +422,10 @@ void arena_mode_registry_production_modes_match_validate_script() {
     require(mode.has_value(), std::string("production mode registered: ") + std::string(expectedId));
     require(mode->releaseState == nexus::gameplay::ArenaReleaseState::kProduction,
             std::string("production release state: ") + std::string(expectedId));
+    require(mode->scoringEnabled,
+            std::string("production mode dispatches receipts: ") + std::string(expectedId));
+    require(mode->modeWeight > 0.0F,
+            std::string("production mode has PRQ weight: ") + std::string(expectedId));
   }
 }
 
@@ -2459,9 +2463,9 @@ void flagship_modes_emit_post_ready_receipts() {
   nexus::physics::PhysicsWorld physics;
   require(physics.init({}).isOk(), "physics init");
 
-  const std::array<std::string, 5> modes = {
+  const std::array<std::string, 7> modes = {
       "basketball_dunk", "karate_endless", "basketball_h2h", "basketball_3v3",
-      "court_carnival"};
+      "court_carnival", "brain_brawl", "who_scene_it"};
   for (const auto& modeId : modes) {
     require(gameplay.handleGameplayCommand(
                 "fel.arena.start_session",
