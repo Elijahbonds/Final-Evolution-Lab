@@ -43,6 +43,7 @@ public:
   [[nodiscard]] auto pendingReceipts() const -> std::span<const nlohmann::json>;
   [[nodiscard]] auto postedRequests() const -> std::span<const nexus::core::HttpPostRecord>;
   [[nodiscard]] auto queueDirectory() const -> const std::string&;
+  [[nodiscard]] auto config() const -> const SessionReceiptClientConfig&;
   void clearPending();
 
 private:

@@ -1069,7 +1069,26 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
     if (params.contains("auth_token")) {
       config.authToken = params.value("auth_token", config.authToken);
     }
-    config.persistToDisk = params.value("persist_to_disk", true);
+    if (params.contains("persist_to_disk")) {
+      config.persistToDisk = params.value("persist_to_disk", config.persistToDisk);
+    }
+    if (params.contains("http_enabled")) {
+      config.httpEnabled = params.value("http_enabled", config.httpEnabled);
+    }
+    if (params.contains("use_stub_http_transport")) {
+      config.useStubHttpTransport =
+          params.value("use_stub_http_transport", config.useStubHttpTransport);
+    }
+    if (params.contains("use_stub_transport")) {
+      config.useStubHttpTransport = params.value("use_stub_transport", config.useStubHttpTransport);
+    }
+    if (params.contains("flush_interval_seconds")) {
+      config.flushIntervalSeconds =
+          params.value("flush_interval_seconds", config.flushIntervalSeconds);
+    }
+    if (params.contains("max_retries")) {
+      config.maxRetries = params.value("max_retries", config.maxRetries);
+    }
     m_gameplayManager.setReceiptClientConfig(std::move(config));
     const auto flushResult = m_gameplayManager.flushPendingReceipts();
     return response(id, "ok",
@@ -1079,6 +1098,9 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
                         {"requeued", flushResult.requeued},
                         {"queued_on_disk", flushResult.queued_on_disk},
                         {"queue_directory", m_gameplayManager.receiptQueueDirectory()},
+                        {"http_enabled", m_gameplayManager.receiptClientConfig().httpEnabled},
+                        {"use_stub_http_transport",
+                         m_gameplayManager.receiptClientConfig().useStubHttpTransport},
                     });
   }
 
