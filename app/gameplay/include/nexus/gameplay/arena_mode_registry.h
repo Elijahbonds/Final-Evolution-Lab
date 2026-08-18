@@ -4,6 +4,9 @@
 #pragma once
 
 #include <nlohmann/json.hpp>
+
+#include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <span>
 #include <string>
