@@ -772,6 +772,51 @@ void session_receipt_flush_keeps_queue_when_http_disabled() {
   require(receipts.payload["receipts"].size() == 0, "receipt cleared after successful flush");
 }
 
+void session_receipt_flush_preserves_transport_config_across_retries() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk"}, {"user_id", "flush_retry_user"}},
+              "flush_retry_start")
+              .status == "ok",
+          "retry session starts");
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.end_session",
+              {{"player_score", 21.0F}, {"opponent_score", 10.0F}},
+              "flush_retry_end")
+              .status == "ok",
+          "retry session ends");
+
+  const auto firstFlush = gameplay.handleGameplayCommand(
+      "fel.arena.flush_receipts",
+      {{"persist_to_disk", false},
+       {"http_enabled", true},
+       {"use_stub_http_transport", true},
+       {"stub_http_status_code", 503},
+       {"max_retries", 2}},
+      "flush_retry_first");
+  require(firstFlush.status == "ok", "first retry flush command ok");
+  require(firstFlush.payload["attempted"].get<std::size_t>() == 1, "first retry attempted");
+  require(firstFlush.payload["delivered"].get<std::size_t>() == 0, "503 is not delivered");
+  require(firstFlush.payload["requeued"].get<std::size_t>() == 1, "503 is requeued");
+  require(firstFlush.payload["queued_on_disk"].get<std::size_t>() == 0,
+          "HTTP-only failure does not claim disk queue");
+
+  const auto secondFlush = gameplay.handleGameplayCommand(
+      "fel.arena.flush_receipts", {{"persist_to_disk", false}}, "flush_retry_second");
+  require(secondFlush.status == "ok", "second retry flush command ok");
+  require(secondFlush.payload["attempted"].get<std::size_t>() == 1, "second retry attempted");
+  require(secondFlush.payload["delivered"].get<std::size_t>() == 0,
+          "transport config stayed non-2xx on second flush");
+  require(secondFlush.payload["requeued"].get<std::size_t>() == 0,
+          "second retry reaches max retry drop");
+  require(secondFlush.payload["queued_on_disk"].get<std::size_t>() == 0,
+          "HTTP-only retry drop does not claim disk queue");
+}
+
 void session_receipt_disk_keyed_by_session_id() {
   const auto tempDir = std::filesystem::temp_directory_path() /
                        ("fel_receipt_dedup_test_" + std::to_string(getpid()));
@@ -1921,12 +1966,46 @@ void session_receipt_http_stub_posts_localhost_contract() {
   client.enqueue(receipt);
   const auto flush = client.flush();
   require(flush.delivered == 1, "stub HTTP flush delivers receipt");
+  require(flush.queued_on_disk == 0, "HTTP-only stub success does not claim disk queue");
   require(client.pendingCount() == 0, "receipt cleared after stub POST");
   require(client.postedRequests().size() == 1, "one stub POST recorded");
   require(client.postedRequests().front().url.find("/api/games/session") != std::string::npos,
           "POST targets session contract path");
   require(client.postedRequests().front().body.find("karate_endless") != std::string::npos,
           "POST body includes mode_id");
+}
+
+void session_receipt_http_stub_requeues_non_success_status() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_http_503_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = "http://127.0.0.1:8000/api/games/session",
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = true,
+      .stubHttpStatusCode = 503,
+  });
+
+  nlohmann::json receipt = {
+      {"mode_id", "basketball_dunk"},
+      {"score", 21},
+      {"outcome", "win"},
+      {"completed", true},
+      {"telemetry", {{"session_id", "http_503_session"}, {"user_id", "test_user"}}},
+  };
+
+  client.enqueue(receipt);
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "503 flush attempted receipt");
+  require(flush.delivered == 0, "503 flush not delivered");
+  require(flush.requeued == 1, "503 flush requeues receipt");
+  require(flush.queued_on_disk == 0, "HTTP-only 503 does not claim disk queue");
+  require(client.pendingCount() == 1, "503 receipt remains pending");
+  require(client.postedRequests().size() == 1, "503 POST recorded");
+  require(client.postedRequests().front().statusCode == 503, "503 status recorded");
 }
 
 struct TextGenTempWorkspace {
@@ -2742,11 +2821,13 @@ auto main() -> int {
   dunk_contest_lifecycle_generates_win_receipt();
   arena_pause_resume_preserves_session();
   session_receipt_flush_keeps_queue_when_http_disabled();
+  session_receipt_flush_preserves_transport_config_across_retries();
   session_receipt_disk_keyed_by_session_id();
   hud_poll_returns_tick_frame_payload();
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_http_stub_requeues_non_success_status();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();

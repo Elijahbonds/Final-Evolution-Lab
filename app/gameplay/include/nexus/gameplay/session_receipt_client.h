@@ -6,6 +6,7 @@
 
 #include <nlohmann/json.hpp>
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
@@ -20,6 +21,7 @@ struct SessionReceiptClientConfig {
   bool persistToDisk{true};
   bool httpEnabled{true};
   bool useStubHttpTransport{true};
+  int stubHttpStatusCode{200};
   float flushIntervalSeconds{5.0F};
   std::size_t maxRetries{5};
 };
@@ -43,6 +45,7 @@ public:
   [[nodiscard]] auto pendingReceipts() const -> std::span<const nlohmann::json>;
   [[nodiscard]] auto postedRequests() const -> std::span<const nexus::core::HttpPostRecord>;
   [[nodiscard]] auto queueDirectory() const -> const std::string&;
+  [[nodiscard]] auto config() const -> const SessionReceiptClientConfig&;
   void clearPending();
 
 private:
