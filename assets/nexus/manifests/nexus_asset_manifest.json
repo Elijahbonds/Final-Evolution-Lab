@@ -295,6 +295,7 @@
       "mode_ids": [
         "basketball_h2h",
         "basketball_dunk",
+        "basketball_dunk_3d",
         "basketball_3v3",
         "court_carnival"
       ],

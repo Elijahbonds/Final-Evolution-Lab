@@ -6,7 +6,9 @@ enum FELNativeSwiftBridge {
     /// Venue tokens aligned with ``backend/FEL_ModeManager.production.json`` map registry (Emergent deep link).
     private static let modeToVenueToken: [String: String] = [
         "basketball_h2h": "Venice_Beach_Court",
+        "venice_pickup": "Venice_Beach_Court",
         "basketball_dunk": "Venice_Beach_Court",
+        "basketball_dunk_3d": "Venice_Beach_Court",
         "basketball_3v3": "Venice_Beach_Court",
         "karate_h2h": "Zen_Dojo",
         "karate_endless": "Zen_Dojo",
@@ -24,6 +26,7 @@ enum FELNativeSwiftBridge {
         // Matches ``backend/FEL_ModeManager.production.json`` / Emergent bridge venue tokens.
         "who_scene_it": "Neuro_Arena",
         "court_carnival": "Venice_Beach_Court",
+        "market_browse": "Vault_Shop",
     ]
 
     /// Builds an optional custom-scheme URL used only for **legacy / tooling** deep links into an external arena client.

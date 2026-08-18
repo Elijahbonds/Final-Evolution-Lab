@@ -178,15 +178,15 @@ fi
 echo "CHECK 7: Seele's Registry & Architecture Validation Gates"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# Gate 1: mode count == 20 (19 game modes + 1 education), prod == 14
+# Gate 1: mode count == 22 (20 production game/runtime entries + market + movement education)
 MODE_JSON="$REPO_ROOT/backend/FEL_ModeManager.production.json"
 if [[ -f "$MODE_JSON" ]]; then
     MC=$(python3 -c "import json; d=json.load(open('$MODE_JSON')); print(len(d['mode_manager']['mode_registry']))" 2>/dev/null || echo 0)
     PC=$(python3 -c "import json; d=json.load(open('$MODE_JSON')); r=d['mode_manager']['mode_registry']; print(sum(1 for v in r.values() if v.get('status')=='production'))" 2>/dev/null || echo 0)
-    if [[ "$MC" -eq 20 && "$PC" -eq 14 ]]; then
+    if [[ "$MC" -eq 22 && "$PC" -eq 20 ]]; then
         pass "Gate 1 (modes=$MC, prod=$PC)"
     else
-        fail "Gate 1 (modes=$MC, prod=$PC; expected modes=20, prod=14)"
+        fail "Gate 1 (modes=$MC, prod=$PC; expected modes=22, prod=20)"
     fi
 else
     fail "Gate 1: FEL_ModeManager.production.json not found"
@@ -208,14 +208,22 @@ else
     fail "Gate 3: staging modes skateboarding/snowboarding are routing to VeniceBeach in DefaultGame.ini"
 fi
 
-# Gate 4: GameMode.swift >= 19 cases (including marketBrowse)
+# Gate 4: GameModeId enum >= 21 cases (including aliases and marketBrowse)
 SWIFT_MODES="$REPO_ROOT/FinalEvolutionLab/Models/GameMode.swift"
 if [[ -f "$SWIFT_MODES" ]]; then
-    CC=$(grep -c "case " "$SWIFT_MODES" 2>/dev/null || echo 0)
-    if [[ "$CC" -ge 19 ]]; then
-        pass "Gate 4 (GameMode.swift cases=$CC >= 19)"
+    CC=$(python3 - "$SWIFT_MODES" <<'PY' 2>/dev/null || echo 0
+import re
+import sys
+text = open(sys.argv[1]).read()
+match = re.search(r"enum\s+GameModeId\b.*?\{(?P<body>.*?)\n\}", text, re.S)
+body = match.group("body") if match else ""
+print(len(re.findall(r"^\s*case\s+\w+", body, re.M)))
+PY
+)
+    if [[ "$CC" -ge 21 ]]; then
+        pass "Gate 4 (GameModeId cases=$CC >= 21)"
     else
-        fail "Gate 4 (GameMode.swift cases=$CC < 19)"
+        fail "Gate 4 (GameModeId cases=$CC < 21)"
     fi
 else
     fail "Gate 4: GameMode.swift not found"
