@@ -10,6 +10,22 @@ REGRESSION_JSON="${ARTIFACT_DIR}/gameplay_regression.json"
 REGRESSION_LOG="${ARTIFACT_DIR}/gameplay_regression_run.log"
 SKIP_BUILD=0
 
+if [[ -z "${CC:-}" ]] && command -v gcc >/dev/null 2>&1; then
+  export CC="$(command -v gcc)"
+fi
+if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
+  export CXX="$(command -v g++)"
+fi
+
+JOBS="$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)"
+CMAKE_COMPILER_ARGS=()
+if [[ -n "${CC:-}" ]]; then
+  CMAKE_COMPILER_ARGS+=("-DCMAKE_C_COMPILER=${CC}")
+fi
+if [[ -n "${CXX:-}" ]]; then
+  CMAKE_COMPILER_ARGS+=("-DCMAKE_CXX_COMPILER=${CXX}")
+fi
+
 for arg in "$@"; do
   case "$arg" in
     --skip-build) SKIP_BUILD=1 ;;
@@ -24,12 +40,21 @@ mkdir -p "${ARTIFACT_DIR}"
 cd "${ROOT}"
 
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
-  echo "==> Configure + build headless gameplay tests"
+  echo "==> Configure + build full headless test matrix"
+  if [[ -f "${HEADLESS_DIR}/CMakeCache.txt" && -n "${CXX:-}" ]]; then
+    CACHED_CXX="$(awk -F= '/^CMAKE_CXX_COMPILER:FILEPATH=/{print $2; exit}' "${HEADLESS_DIR}/CMakeCache.txt")"
+    if [[ -n "${CACHED_CXX}" && "${CACHED_CXX}" != "${CXX}" ]]; then
+      echo "==> Reset stale headless CMake compiler cache (${CACHED_CXX} -> ${CXX})"
+      rm -f "${HEADLESS_DIR}/CMakeCache.txt"
+      rm -rf "${HEADLESS_DIR}/CMakeFiles"
+    fi
+  fi
   cmake -S . -B "${HEADLESS_DIR}" \
     -DNEXUS_ENABLE_RENDERER=OFF \
     -DNEXUS_BUILD_RUNTIME=OFF \
-    -DNEXUS_BUILD_TESTS=ON
-  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)" --target nexus_gameplay_test
+    -DNEXUS_BUILD_TESTS=ON \
+    "${CMAKE_COMPILER_ARGS[@]}"
+  cmake --build "${HEADLESS_DIR}" -j"${JOBS}"
 fi
 
 GAMEPLAY_TEST="${HEADLESS_DIR}/nexus_gameplay_test"
