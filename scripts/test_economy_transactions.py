@@ -41,7 +41,9 @@ def assert_approx(actual, expected, label, tol=0.01):
 # (since server.py has async dependencies that prevent direct import)
 
 PRQ_MODE_WEIGHTS = {
-    "basketball_h2h": 1.2, "basketball_dunk": 1.0, "basketball_3v3": 1.3,
+    "basketball_h2h": 1.2, "basketball_dunk": 1.0,
+    "basketball_dunk_3d": 1.0, "basketball_dunk_irl": 1.5,
+    "basketball_3v3": 1.3,
     "karate_h2h": 1.4, "karate_endless": 1.4,
     "baseball": 1.0, "football": 1.5, "soccer": 1.1,
     "golf": 0.9, "tennis": 1.1, "volleyball": 1.2,
@@ -157,10 +159,13 @@ def test_xp_cap():
 def test_prq_weight_coverage():
     print("\n── PRQ Weight Coverage ──")
     expected_modes = [
-        "basketball_h2h", "basketball_dunk", "basketball_3v3",
+        "basketball_h2h", "basketball_dunk", "basketball_dunk_3d", "basketball_dunk_irl",
+        "basketball_3v3",
         "karate_h2h", "karate_endless",
         "baseball", "football", "soccer", "golf",
         "tennis", "volleyball", "surfing",
+        "gymnastics", "skateboarding", "snowboarding",
+        "brain_brawl", "who_scene_it", "court_carnival",
     ]
     for mode in expected_modes:
         if mode in PRQ_MODE_WEIGHTS:

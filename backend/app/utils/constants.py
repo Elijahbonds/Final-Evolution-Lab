@@ -19,6 +19,8 @@ SHARD_PACING_THRESHOLD = 75
 PRQ_MODE_WEIGHTS = {
     "basketball_h2h": 1.2,
     "basketball_dunk": 1.0,
+    "basketball_dunk_3d": 1.0,
+    "basketball_dunk_irl": 1.5,
     "basketball_3v3": 1.3,
     "karate": 1.4,
     "karate_h2h": 1.4,
@@ -34,6 +36,8 @@ PRQ_MODE_WEIGHTS = {
     "surfing": 1.05,
     "skateboarding": 1.0,
     "snowboarding": 1.0,
+    "who_scene_it": 0.7,
+    "court_carnival": 0.9,
     "market_browse": 0.0,
 }
 # PRQ v2.0 outcome bases (Architecture §6.1 — mirrors server.py)
