@@ -24,12 +24,32 @@ mkdir -p "${ARTIFACT_DIR}"
 cd "${ROOT}"
 
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
+  if [[ "$(uname -s)" == "Linux" ]]; then
+    export CC="${CC:-gcc}"
+    export CXX="${CXX:-g++}"
+  fi
+  REQUESTED_CC="$(command -v "${CC}" 2>/dev/null || printf '%s' "${CC}")"
+  REQUESTED_CXX="$(command -v "${CXX}" 2>/dev/null || printf '%s' "${CXX}")"
+  if [[ ! -f "${HEADLESS_DIR}/CMakeCache.txt" && -d "${HEADLESS_DIR}/CMakeFiles" ]]; then
+    echo "==> Clearing incomplete headless CMake configure state"
+    rm -rf "${HEADLESS_DIR}/CMakeFiles"
+  elif [[ -f "${HEADLESS_DIR}/CMakeCache.txt" ]]; then
+    CACHE_CONTENT="$(<"${HEADLESS_DIR}/CMakeCache.txt")"
+    if [[ "${CACHE_CONTENT}" == *"CMAKE_CXX_COMPILER:FILEPATH="* &&
+          "${CACHE_CONTENT}" != *"CMAKE_CXX_COMPILER:FILEPATH=${REQUESTED_CXX}"* ]]; then
+      echo "==> Clearing stale headless CMake compiler cache (requested ${REQUESTED_CXX})"
+      rm -f "${HEADLESS_DIR}/CMakeCache.txt"
+      rm -rf "${HEADLESS_DIR}/CMakeFiles"
+    fi
+  fi
   echo "==> Configure + build headless gameplay tests"
   cmake -S . -B "${HEADLESS_DIR}" \
+    -DCMAKE_C_COMPILER="${REQUESTED_CC}" \
+    -DCMAKE_CXX_COMPILER="${REQUESTED_CXX}" \
     -DNEXUS_ENABLE_RENDERER=OFF \
     -DNEXUS_BUILD_RUNTIME=OFF \
     -DNEXUS_BUILD_TESTS=ON
-  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)" --target nexus_gameplay_test
+  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 fi
 
 GAMEPLAY_TEST="${HEADLESS_DIR}/nexus_gameplay_test"

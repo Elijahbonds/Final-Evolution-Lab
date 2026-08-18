@@ -483,7 +483,7 @@ struct GamePlayView: View {
         }
         .onDisappear {
             sceneViewportReady = false
-            nexusEngine.stop()
+            stopNexusSessionWithCurrentScores()
             FELSoundscapeEngine.shared.stop()
             matchLobbyComplete = false
             multipeerService.stop()
@@ -4449,6 +4449,10 @@ struct GamePlayView: View {
 #endif
 
         finalizedMatchSessionId = matchSessionId
+    }
+
+    private func stopNexusSessionWithCurrentScores() {
+        nexusEngine.stop(playerScore: score, opponentScore: opponentScore)
     }
 
     private func handleLiveLeakage(joint: JointType, severity: Double) {

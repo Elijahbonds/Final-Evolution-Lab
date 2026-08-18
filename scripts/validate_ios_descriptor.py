@@ -77,7 +77,10 @@ def validate_fel_play_map():
     ue_maps_path = REPO_ROOT / "backend" / "ue_mode_maps.json"
     if ue_maps_path.exists():
         ue_maps = json.loads(ue_maps_path.read_text()).get("mode_to_unreal_map", {})
-        for mode_id in ue_maps:
+        for mode_id, unreal_map in ue_maps.items():
+            if unreal_map is None:
+                print(f"  • {mode_id} has no UE map (IRL/non-rendered mode) — skipped")
+                continue
             if mode_id not in play_map_section:
                 err(f"FELPlayMap missing mode: {mode_id}")
     print("  ✓ FELPlayMap cross-reference validated")
@@ -118,9 +121,11 @@ def validate_arena_settings():
         mgr = json.loads(mgr_path.read_text())
         registry = mgr.get("mode_manager", {}).get("mode_registry", {})
         for mode_id, info in registry.items():
-            if mode_id not in modes:
-                if info.get("status") in ("production", "staging"):
-                    warn(f"ArenaSettings missing config for {info['status']} mode: {mode_id}")
+            if mode_id == "basketball_dunk_irl":
+                continue
+            arena_mode_id = "basketball_dunk" if mode_id == "basketball_dunk_3d" else mode_id
+            if arena_mode_id not in modes and info.get("status") in ("production", "staging"):
+                warn(f"ArenaSettings missing config for {info['status']} mode: {mode_id}")
 
     print("  ✓ ArenaSettings cross-check completed")
 

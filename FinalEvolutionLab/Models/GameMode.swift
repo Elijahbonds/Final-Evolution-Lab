@@ -79,7 +79,7 @@ extension GameModeId {
         case .gymnastics, .skateboarding, .snowboarding, .surfing:
             return .prod
         case .brainBrawl:
-            return .staging
+            return .prod
         case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
             return .sim
         case .marketBrowse:
@@ -100,7 +100,7 @@ extension GameModeId {
     var nexusRuntimeModeId: String {
         switch self {
         case .venicePickup: return GameModeId.basketballHeadToHead.rawValue
-        case .basketballDunkContest3D: return "basketball_dunk"
+        case .basketballDunkContestIRL, .basketballDunkContest3D: return "basketball_dunk"
         default: return rawValue
         }
     }
