@@ -139,6 +139,12 @@
       "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
     },
     {
+      "venueKey": "regulation_court_irl",
+      "analyticsPolicyName": "Regulation Court — IRL camera / HealthKit",
+      "renderMode": "IRL",
+      "healthKitTracked": true
+    },
+    {
       "venueKey": "venice_beach_surf",
       "analyticsPolicyName": "Venice Beach — Surf + Luma shop backdrop",
       "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
