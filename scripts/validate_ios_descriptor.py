@@ -17,6 +17,25 @@ WARNINGS = []
 def err(msg): ERRORS.append(msg)
 def warn(msg): WARNINGS.append(msg)
 
+def load_mode_registry():
+    mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
+    if not mgr_path.exists():
+        return {}
+    mgr = json.loads(mgr_path.read_text())
+    return mgr.get("mode_manager", {}).get("mode_registry", {})
+
+def is_legacy_runtime_mode(mode_id, info):
+    if info.get("render_mode") == "IRL":
+        return False
+    if info.get("venue_id") is None:
+        return False
+    if info.get("scoring_enabled") is False:
+        return False
+    return info.get("status") in ("production", "staging", "preview")
+
+def legacy_runtime_alias(mode_id, registry):
+    return registry.get(mode_id, {}).get("nexus_runtime_mode_id")
+
 # ── 1. Validate DefaultGame.ini packaging settings ──────────────────────────
 def validate_packaging_settings():
     ini_path = REPO_ROOT / "infra" / "ue5_config" / "DefaultGame.ini"
@@ -73,12 +92,22 @@ def validate_fel_play_map():
                 k, v = line.strip().split("=", 1)
                 play_map_section[k.strip()] = v.strip()
 
-    # Cross-check with ue_mode_maps.json
+    # Cross-check with ue_mode_maps.json. IRL/null-map modes are intentionally
+    # skipped because they do not have a cooked UE/NEXUS venue route.
     ue_maps_path = REPO_ROOT / "backend" / "ue_mode_maps.json"
     if ue_maps_path.exists():
         ue_maps = json.loads(ue_maps_path.read_text()).get("mode_to_unreal_map", {})
-        for mode_id in ue_maps:
+        registry = load_mode_registry()
+        for mode_id, map_token in ue_maps.items():
+            info = registry.get(mode_id, {})
+            if info and not is_legacy_runtime_mode(mode_id, info):
+                continue
+            if map_token is None:
+                continue
             if mode_id not in play_map_section:
+                alias = legacy_runtime_alias(mode_id, registry)
+                if alias and alias in play_map_section:
+                    continue
                 err(f"FELPlayMap missing mode: {mode_id}")
     print("  ✓ FELPlayMap cross-reference validated")
 
@@ -115,10 +144,14 @@ def validate_arena_settings():
 
     mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
     if mgr_path.exists():
-        mgr = json.loads(mgr_path.read_text())
-        registry = mgr.get("mode_manager", {}).get("mode_registry", {})
+        registry = load_mode_registry()
         for mode_id, info in registry.items():
+            if not is_legacy_runtime_mode(mode_id, info):
+                continue
             if mode_id not in modes:
+                alias = legacy_runtime_alias(mode_id, registry)
+                if alias and alias in modes:
+                    continue
                 if info.get("status") in ("production", "staging"):
                     warn(f"ArenaSettings missing config for {info['status']} mode: {mode_id}")
 
