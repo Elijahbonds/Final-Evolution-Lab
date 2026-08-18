@@ -79,11 +79,11 @@ extension GameModeId {
         case .gymnastics, .skateboarding, .snowboarding, .surfing:
             return .prod
         case .brainBrawl:
-            return .staging
+            return .prod
         case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
             return .sim
         case .marketBrowse:
-            return .preview
+            return .nonGame
         }
     }
 
@@ -290,7 +290,8 @@ extension GameMode {
 }
 
 struct GameModeRegistry {
-    /// Canonical production mode ids — keep in sync with `arena_mode_registry.h` and `scripts/nexus_validate_production_modes.sh`.
+    /// App-facing production mode ids. The NEXUS C++ runtime keeps the legacy
+    /// `basketball_dunk` id; iOS intentionally exposes split 3D / IRL dunk modes.
     static let productionModeIds: [String] = [
         "basketball_h2h", "basketball_dunk_irl", "basketball_dunk_3d", "basketball_3v3", "court_carnival",
         "karate_h2h", "karate_endless",
@@ -303,7 +304,7 @@ struct GameModeRegistry {
     /// badges (prod/sim/staging) stay honest via ``GameModeId/nexusCapabilityTier``.
     static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases).subtracting([.marketBrowse])
 
-    /// All 20 mode IDs from `arena_mode_registry.cpp` — keep in sync when adding modes.
+    /// All app-facing mode IDs; `basketball_dunk_3d` maps to C++ `basketball_dunk`.
     static let arenaRegistryModeIds: [GameModeId] = [
         .basketballHeadToHead, .basketballDunkContestIRL, .basketballDunkContest3D, .basketball3v3,
         .karate, .karateEndless,
