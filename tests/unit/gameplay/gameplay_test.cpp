@@ -30,11 +30,16 @@
 #include <cstdlib>
 #include <array>
 #include <chrono>
+#include <cstdint>
+#include <cstring>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <fstream>
+#include <netinet/in.h>
+#include <sstream>
 #include <string>
+#include <sys/socket.h>
 #include <thread>
 #include <vector>
 
@@ -63,6 +68,87 @@ void removeTreeBestEffort(const std::filesystem::path& root) {
     std::this_thread::sleep_for(std::chrono::milliseconds(10 * (attempt + 1)));
   }
 }
+
+class LoopbackHttpStatusServer {
+public:
+  explicit LoopbackHttpStatusServer(int statusCode) : m_statusCode(statusCode) {
+    m_serverFd = ::socket(AF_INET, SOCK_STREAM, 0);
+    require(m_serverFd >= 0, "loopback socket created");
+
+    int reuse = 1;
+    (void)::setsockopt(m_serverFd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+
+    sockaddr_in address{};
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    address.sin_port = 0;
+    require(::bind(m_serverFd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == 0,
+            "loopback socket bound");
+    require(::listen(m_serverFd, 1) == 0, "loopback socket listening");
+
+    socklen_t addressLength = sizeof(address);
+    require(::getsockname(m_serverFd, reinterpret_cast<sockaddr*>(&address), &addressLength) == 0,
+            "loopback socket port resolved");
+    m_port = ntohs(address.sin_port);
+    m_thread = std::thread([this]() { serveOnce(); });
+  }
+
+  ~LoopbackHttpStatusServer() {
+    if (m_serverFd >= 0) {
+      (void)::shutdown(m_serverFd, SHUT_RDWR);
+      (void)::close(m_serverFd);
+      m_serverFd = -1;
+    }
+    if (m_thread.joinable()) {
+      m_thread.join();
+    }
+  }
+
+  [[nodiscard]] auto url() const -> std::string {
+    return "http://127.0.0.1:" + std::to_string(m_port) + "/api/games/session";
+  }
+
+private:
+  [[nodiscard]] auto reasonPhrase() const -> const char* {
+    if (m_statusCode == 204) {
+      return "No Content";
+    }
+    if (m_statusCode == 503) {
+      return "Service Unavailable";
+    }
+    return "OK";
+  }
+
+  void serveOnce() {
+    sockaddr_in clientAddress{};
+    socklen_t clientLength = sizeof(clientAddress);
+    const int clientFd =
+        ::accept(m_serverFd, reinterpret_cast<sockaddr*>(&clientAddress), &clientLength);
+    if (clientFd < 0) {
+      return;
+    }
+
+    char buffer[4096];
+    (void)::recv(clientFd, buffer, sizeof(buffer), 0);
+
+    const std::string body = (m_statusCode == 204) ? "" : R"json({"detail":"retry"})json";
+    std::ostringstream response;
+    response << "HTTP/1.1 " << m_statusCode << ' ' << reasonPhrase() << "\r\n"
+             << "Content-Type: application/json\r\n"
+             << "Content-Length: " << body.size() << "\r\n"
+             << "Connection: close\r\n\r\n"
+             << body;
+    const std::string responseText = response.str();
+    (void)::send(clientFd, responseText.data(), responseText.size(), 0);
+    (void)::shutdown(clientFd, SHUT_RDWR);
+    (void)::close(clientFd);
+  }
+
+  int m_statusCode{200};
+  int m_serverFd{-1};
+  std::uint16_t m_port{0};
+  std::thread m_thread;
+};
 
 void fitness_data_snapshots_are_thread_safe() {
   nexus::gameplay::ThreadSafeFitnessData fitness;
@@ -955,9 +1041,48 @@ void physics_intent_queue_is_consumed_on_step() {
 }
 
 void prq_stub_returns_sprint_defaults() {
+  nexus::gameplay::PRQEngine::resetToSprintDefaults();
   require(nexus::gameplay::PRQEngine::getScore() == 75.0F, "prq sprint default");
+  require(nexus::gameplay::PRQEngine::getNeuralDrive() == 60.0F, "neural drive sprint default");
   require(nexus::gameplay::PRQEngine::getGrade() == nexus::gameplay::PRQGrade::kPrimed,
           "prq grade primed");
+
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  const auto defaultModeState =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "prq_default_mode_state");
+  const float defaultHangTime =
+      defaultModeState.payload["arcade_physics"]["hang_time_multiplier"].get<float>();
+
+  const auto response = gameplay.handleGameplayCommand(
+      "fel.fitness.update",
+      {{"frc_mobility", 0.8F},
+       {"frc_active_range", 0.85F},
+       {"frc_control", 0.92F},
+       {"iap_engagement", 0.87F},
+       {"iap_confidence", 0.8F},
+       {"breath_phase", 1}},
+      "prq_sync");
+  require(response.status == "ok", "fitness update for prq sync ok");
+  require(nexus::gameplay::PRQEngine::getScore() > 91.9F &&
+              nexus::gameplay::PRQEngine::getScore() < 92.1F,
+          "prq syncs from frc control");
+  require(nexus::gameplay::PRQEngine::getNeuralDrive() > 86.9F &&
+              nexus::gameplay::PRQEngine::getNeuralDrive() < 87.1F,
+          "neural drive syncs from iap engagement");
+  require(nexus::gameplay::PRQEngine::getGrade() == nexus::gameplay::PRQGrade::kElite,
+          "synced prq grade elite");
+
+  const auto syncedModeState =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "prq_synced_mode_state");
+  const auto& syncedPhysics = syncedModeState.payload["arcade_physics"];
+  require(syncedPhysics["hang_time_multiplier"].get<float>() > defaultHangTime,
+          "mode runtime physics consumes synced prq");
+  require(syncedPhysics["critical_hit_chance"].get<float>() > 0.3F,
+          "mode runtime physics consumes synced neural drive");
+
+  nexus::gameplay::PRQEngine::resetToSprintDefaults();
 }
 
 void arcade_physics_maps_prq_75() {
@@ -1921,12 +2046,86 @@ void session_receipt_http_stub_posts_localhost_contract() {
   client.enqueue(receipt);
   const auto flush = client.flush();
   require(flush.delivered == 1, "stub HTTP flush delivers receipt");
+  require(flush.queued_on_disk == 0, "HTTP-only stub success does not count disk queue");
   require(client.pendingCount() == 0, "receipt cleared after stub POST");
   require(client.postedRequests().size() == 1, "one stub POST recorded");
   require(client.postedRequests().front().url.find("/api/games/session") != std::string::npos,
           "POST targets session contract path");
   require(client.postedRequests().front().body.find("karate_endless") != std::string::npos,
           "POST body includes mode_id");
+}
+
+void session_receipt_live_http_204_clears_without_disk_queue() {
+  LoopbackHttpStatusServer server(204);
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_http_204_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+      .maxRetries = 2,
+  });
+
+  client.enqueue({
+      {"mode_id", "basketball_dunk"},
+      {"score", 21},
+      {"outcome", "win"},
+      {"duration_seconds", 60},
+      {"completed", true},
+      {"telemetry", {{"session_id", "http_204_session"}}},
+  });
+
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "live 204 flush attempted");
+  require(flush.delivered == 1, "live 204 flush delivers receipt");
+  require(flush.requeued == 0, "live 204 flush does not requeue");
+  require(flush.queued_on_disk == 0, "live 204 HTTP-only success does not queue to disk");
+  require(client.pendingCount() == 0, "live 204 receipt cleared");
+  require(client.postedRequests().size() == 1, "live 204 POST recorded");
+  require(client.postedRequests().front().statusCode == 204, "live 204 status captured");
+
+  removeTreeBestEffort(tempDir);
+}
+
+void session_receipt_live_http_503_requeues_without_disk_fallback() {
+  LoopbackHttpStatusServer server(503);
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_http_503_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+      .maxRetries = 2,
+  });
+
+  client.enqueue({
+      {"mode_id", "karate_endless"},
+      {"score", 15},
+      {"outcome", "win"},
+      {"duration_seconds", 90},
+      {"completed", true},
+      {"telemetry", {{"session_id", "http_503_session"}}},
+  });
+
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "live 503 flush attempted");
+  require(flush.delivered == 0, "live 503 flush does not deliver receipt");
+  require(flush.requeued == 1, "live 503 receipt requeued for retry");
+  require(flush.queued_on_disk == 0, "live 503 HTTP-only failure does not fake disk queue");
+  require(client.pendingCount() == 1, "live 503 receipt remains pending");
+  require(client.postedRequests().size() == 1, "live 503 POST recorded");
+  require(client.postedRequests().front().statusCode == 503, "live 503 status captured");
+  require(!std::filesystem::exists(tempDir), "live 503 does not create disk queue when disabled");
+
+  removeTreeBestEffort(tempDir);
 }
 
 struct TextGenTempWorkspace {
@@ -2747,6 +2946,8 @@ auto main() -> int {
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_live_http_204_clears_without_disk_queue();
+  session_receipt_live_http_503_requeues_without_disk_fallback();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();

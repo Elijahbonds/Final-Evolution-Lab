@@ -6,11 +6,13 @@
 #include "nexus/creative/voxel_world.h"
 #include "nexus/core/log.h"
 #include "nexus/gameplay/arena_mode_registry.h"
+#include "nexus/gameplay/prq_engine.h"
 #include "nexus/gameplay/scan_envelope_mapper.h"
 #include "nexus/generative/generative_pipeline.h"
 #include "nexus/generative/generative_types.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <optional>
 #include <span>
 #include <string>
@@ -556,6 +558,7 @@ auto GameplayApplication::applyFitnessCommand(std::string_view command,
   }
 
   const auto snapshot = m_fitnessData.snapshot();
+  PRQEngine::syncFromSnapshot(snapshot);
   NEXUS_LOG_INFO(LogChannel::kAI, "Fitness metrics updated from agent command");
   nlohmann::json payload = fitnessSnapshotToJson(snapshot);
   payload["hud"] = {
@@ -601,6 +604,7 @@ auto GameplayApplication::applyScanGenerateCommand(std::string_view command,
   }
 
   const auto fitnessSnapshot = m_fitnessData.snapshot();
+  PRQEngine::syncFromSnapshot(fitnessSnapshot);
   nlohmann::json commandsApplied = nlohmann::json::array({
       "fel.fitness.update",
       "fel.creative.fill_region",
@@ -1069,7 +1073,16 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
     if (params.contains("auth_token")) {
       config.authToken = params.value("auth_token", config.authToken);
     }
-    config.persistToDisk = params.value("persist_to_disk", true);
+    config.persistToDisk = params.value("persist_to_disk", config.persistToDisk);
+    config.httpEnabled = params.value("http_enabled", config.httpEnabled);
+    config.useStubHttpTransport =
+        params.value("use_stub_http_transport", config.useStubHttpTransport);
+    config.flushIntervalSeconds =
+        params.value("flush_interval_seconds", config.flushIntervalSeconds);
+    if (params.contains("max_retries")) {
+      const auto retries = params.value("max_retries", static_cast<std::uint64_t>(config.maxRetries));
+      config.maxRetries = static_cast<std::size_t>(std::max<std::uint64_t>(1, retries));
+    }
     m_gameplayManager.setReceiptClientConfig(std::move(config));
     const auto flushResult = m_gameplayManager.flushPendingReceipts();
     return response(id, "ok",
