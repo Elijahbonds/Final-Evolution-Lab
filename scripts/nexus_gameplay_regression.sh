@@ -25,11 +25,25 @@ cd "${ROOT}"
 
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
   echo "==> Configure + build headless gameplay tests"
+  : "${CXX:=g++}"
+  export CXX
+  CXX_PATH="$(command -v "${CXX}" || true)"
+  if [[ -z "${CXX_PATH}" ]]; then
+    echo "error: CXX=${CXX} not found" >&2
+    exit 1
+  fi
+  if [[ -f "${HEADLESS_DIR}/CMakeCache.txt" ]] && \
+     ! grep -Eq "^CMAKE_CXX_COMPILER(:[^=]+)?=${CXX_PATH}$" "${HEADLESS_DIR}/CMakeCache.txt"; then
+    echo "==> Reset headless CMake cache for compiler ${CXX_PATH}"
+    rm -f "${HEADLESS_DIR}/CMakeCache.txt"
+    rm -rf "${HEADLESS_DIR}/CMakeFiles"
+  fi
   cmake -S . -B "${HEADLESS_DIR}" \
+    -DCMAKE_CXX_COMPILER="${CXX_PATH}" \
     -DNEXUS_ENABLE_RENDERER=OFF \
     -DNEXUS_BUILD_RUNTIME=OFF \
     -DNEXUS_BUILD_TESTS=ON
-  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)" --target nexus_gameplay_test
+  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 fi
 
 GAMEPLAY_TEST="${HEADLESS_DIR}/nexus_gameplay_test"

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-FEL Smoke Test Suite — 12 Production Mode Acceptance Tests
-Tests each production mode's registration, configuration, and deep link routing.
+FEL Smoke Test Suite — production mode acceptance tests.
+Tests each runtime mode's registration, configuration, and deep link routing.
 Run against a live or mock FEL backend.
 """
 import json
@@ -33,17 +33,24 @@ def skip(msg):
 # Production modes expected to pass all gates
 # ═══════════════════════════════════════════════════════════════════════════════
 PRODUCTION_MODES = [
-    "basketball_h2h", "basketball_dunk", "basketball_3v3",
+    "basketball_h2h", "basketball_dunk", "basketball_3v3", "court_carnival",
     "karate_h2h", "karate_endless",
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
     "gymnastics", "skateboarding", "snowboarding",
+    "brain_brawl", "who_scene_it",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = []
+PREVIEW_EDUCATION_MODULES = ["movement_lab"]
+RUNTIME_MODE_ALIASES = {
+    # Public app mode split: Swift/venue registry use basketball_dunk_3d; C++ runtime keeps
+    # basketball_dunk as the simulator id consumed by NexusGameplayBridge.
+    "basketball_dunk": "basketball_dunk_3d",
+}
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -52,6 +59,20 @@ def test_mode_manager_registry():
     print("\n── Test 1: ModeManager Registry ──")
     mgr = json.loads((REPO_ROOT / "backend" / "FEL_ModeManager.production.json").read_text())
     registry = mgr["mode_manager"]["mode_registry"]
+
+    expected_total = len(registry)
+    actual_total = mgr["mode_manager"]["total_modes"]
+    if actual_total == expected_total:
+        ok(f"ModeManager total_modes={actual_total}")
+    else:
+        fail(f"ModeManager total_modes={actual_total}, expected {expected_total}")
+
+    expected_production = sum(1 for info in registry.values() if info["status"] == "production")
+    actual_production = mgr["mode_manager"]["production_modes"]
+    if actual_production == expected_production:
+        ok(f"ModeManager production_modes={actual_production}")
+    else:
+        fail(f"ModeManager production_modes={actual_production}, expected {expected_production}")
 
     for mode in PRODUCTION_MODES:
         if mode in registry:
@@ -82,6 +103,14 @@ def test_mode_manager_registry():
             ok(f"{mode} → non-game-module (expected)")
         elif mode in registry:
             fail(f"{mode} status={registry[mode]['status']}, expected non-game-module")
+        else:
+            fail(f"{mode} missing from registry")
+
+    for mode in PREVIEW_EDUCATION_MODULES:
+        if mode in registry and registry[mode]["status"] == "preview":
+            ok(f"{mode} → preview education module (expected)")
+        elif mode in registry:
+            fail(f"{mode} status={registry[mode]['status']}, expected preview")
         else:
             fail(f"{mode} missing from registry")
 
@@ -136,10 +165,17 @@ def test_venue_registry():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
-        if mode in mode_ids:
-            entry = next(m for m in vr["modes"] if m["id"] == mode)
+        entry = next(
+            (
+                m for m in vr["modes"]
+                if m["id"] == mode or m.get("nexusRuntimeModeId") == mode
+            ),
+            None,
+        )
+        if entry:
             if entry["venueKey"] in venue_keys:
-                ok(f"{mode} → venue={entry['venueKey']}")
+                alias_note = "" if entry["id"] == mode else f" via {entry['id']}"
+                ok(f"{mode}{alias_note} → venue={entry['venueKey']}")
             else:
                 fail(f"{mode} references unknown venue: {entry['venueKey']}")
         else:
@@ -197,6 +233,8 @@ def test_swift_enum():
         # Search for rawValue
         if f'= "{mode}"' in content:
             ok(f'{mode} has Swift enum case')
+        elif mode in RUNTIME_MODE_ALIASES and f'= "{RUNTIME_MODE_ALIASES[mode]}"' in content and f'return "{mode}"' in content:
+            ok(f'{mode} maps to Swift app mode {RUNTIME_MODE_ALIASES[mode]}')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
 
@@ -256,7 +294,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print("  18 runtime game modes · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()
