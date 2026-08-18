@@ -260,6 +260,12 @@ if(NEXUS_BUILD_TESTS)
   endif()
   add_test(NAME nexus_gameplay_test COMMAND nexus_gameplay_test)
 
+  add_executable(nexus_gameplay_header_self_containment_test
+    tests/unit/gameplay/header_self_containment_test.cpp)
+  target_link_libraries(nexus_gameplay_header_self_containment_test PRIVATE nexus_gameplay)
+  add_test(NAME nexus_gameplay_header_self_containment_test
+    COMMAND nexus_gameplay_header_self_containment_test)
+
   add_executable(nexus_scan_envelope_test tests/unit/gameplay/scan_envelope_test.cpp)
   target_link_libraries(nexus_scan_envelope_test PRIVATE nexus_gameplay)
   if(APPLE)

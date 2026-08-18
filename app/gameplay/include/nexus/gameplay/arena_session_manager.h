@@ -7,8 +7,11 @@
 #include "nexus/gameplay/gameplay_manager.h"
 
 #include <nlohmann/json.hpp>
+
+#include <cstdint>
 #include <optional>
 #include <string>
+#include <string_view>
 
 namespace nexus::gameplay {
 

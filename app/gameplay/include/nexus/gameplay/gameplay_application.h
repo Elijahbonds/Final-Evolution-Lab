@@ -19,8 +19,10 @@
 #include "nexus/gameplay/voxel_command_parser.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <nlohmann/json.hpp>
 #include <optional>
+#include <string_view>
 #include <vector>
 
 namespace nexus::generative {

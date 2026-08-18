@@ -48,6 +48,15 @@
       }
     },
     {
+      "id": "basketball_dunk",
+      "analyticsMode": "dunk_contest",
+      "venueKey": "venice_beach_court",
+      "displayVenue": "Venice Beach Blue Court",
+      "renderMode": "3D_UE5",
+      "nexusRuntimeModeId": "basketball_dunk",
+      "modeNote": "Runtime alias for basketball_dunk_3d."
+    },
+    {
       "id": "basketball_dunk_irl",
       "analyticsMode": "dunk_contest_irl",
       "venueKey": "regulation_court_irl",
@@ -156,6 +165,12 @@
       "nexusEnvironmentAssetId": "luma_venice_shop_environment_model_fbx"
     },
     { "venueKey": "beach_court", "analyticsPolicyName": "Beach Court — Volleyball" },
+    {
+      "venueKey": "regulation_court_irl",
+      "analyticsPolicyName": "Regulation Court — IRL dunk capture",
+      "captureMode": "VisionPose",
+      "isIRLVenue": true
+    },
     { "venueKey": "dojo_arena", "analyticsPolicyName": "Zen / Dojo Arena", "nexusEnvironmentAssetId": "zen_dojo_environment_model_fbx" },
     { "venueKey": "neuro_arena", "analyticsPolicyName": "Neuro Arena", "nexusEnvironmentAssetId": "neuro_arena_environment_model_fbx" },
     { "venueKey": "skate_park", "analyticsPolicyName": "Skate Park" },
