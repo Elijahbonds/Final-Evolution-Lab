@@ -28,13 +28,19 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <algorithm>
 #include <array>
+#include <cctype>
 #include <chrono>
+#include <cstdint>
+#include <cstring>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <fstream>
+#include <netinet/in.h>
 #include <string>
+#include <sys/socket.h>
 #include <thread>
 #include <vector>
 
@@ -63,6 +69,124 @@ void removeTreeBestEffort(const std::filesystem::path& root) {
     std::this_thread::sleep_for(std::chrono::milliseconds(10 * (attempt + 1)));
   }
 }
+
+[[nodiscard]] auto httpStatusText(int statusCode) -> const char* {
+  switch (statusCode) {
+  case 204:
+    return "No Content";
+  case 503:
+    return "Service Unavailable";
+  default:
+    return "OK";
+  }
+}
+
+[[nodiscard]] auto parseContentLength(const std::string& headers) -> std::size_t {
+  std::string lowered = headers;
+  std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](unsigned char ch) {
+    return static_cast<char>(std::tolower(ch));
+  });
+  const std::string key = "content-length:";
+  const auto keyPos = lowered.find(key);
+  if (keyPos == std::string::npos) {
+    return 0;
+  }
+  std::size_t valueStart = keyPos + key.size();
+  while (valueStart < lowered.size() && std::isspace(static_cast<unsigned char>(lowered[valueStart]))) {
+    ++valueStart;
+  }
+  std::size_t valueEnd = valueStart;
+  while (valueEnd < lowered.size() && std::isdigit(static_cast<unsigned char>(lowered[valueEnd]))) {
+    ++valueEnd;
+  }
+  return static_cast<std::size_t>(std::stoul(lowered.substr(valueStart, valueEnd - valueStart)));
+}
+
+class SingleResponseHttpServer {
+public:
+  explicit SingleResponseHttpServer(int statusCode) : m_statusCode(statusCode) {
+    m_socketFd = ::socket(AF_INET, SOCK_STREAM, 0);
+    require(m_socketFd >= 0, "loopback server socket");
+
+    int enabled = 1;
+    (void)::setsockopt(m_socketFd, SOL_SOCKET, SO_REUSEADDR, &enabled, sizeof(enabled));
+
+    sockaddr_in address{};
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    address.sin_port = 0;
+    require(::bind(m_socketFd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == 0,
+            "loopback server bind");
+
+    socklen_t length = sizeof(address);
+    require(::getsockname(m_socketFd, reinterpret_cast<sockaddr*>(&address), &length) == 0,
+            "loopback server port");
+    m_port = ntohs(address.sin_port);
+
+    require(::listen(m_socketFd, 1) == 0, "loopback server listen");
+    m_thread = std::thread([this] { serveOnce(); });
+  }
+
+  ~SingleResponseHttpServer() {
+    wait();
+    if (m_socketFd >= 0) {
+      ::close(m_socketFd);
+      m_socketFd = -1;
+    }
+  }
+
+  [[nodiscard]] auto url() const -> std::string {
+    return "http://127.0.0.1:" + std::to_string(m_port) + "/api/games/session";
+  }
+
+  void wait() {
+    if (m_thread.joinable()) {
+      m_thread.join();
+    }
+  }
+
+  [[nodiscard]] auto requestBody() const -> const std::string& { return m_requestBody; }
+
+private:
+  void serveOnce() {
+    const int clientFd = ::accept(m_socketFd, nullptr, nullptr);
+    if (clientFd < 0) {
+      return;
+    }
+
+    std::string request;
+    char buffer[512];
+    std::size_t expectedBodyLength = 0;
+    while (true) {
+      const ssize_t received = ::recv(clientFd, buffer, sizeof(buffer), 0);
+      if (received <= 0) {
+        break;
+      }
+      request.append(buffer, static_cast<std::size_t>(received));
+      const auto headerEnd = request.find("\r\n\r\n");
+      if (headerEnd != std::string::npos) {
+        expectedBodyLength = parseContentLength(request.substr(0, headerEnd));
+        const std::size_t bodyLength = request.size() - (headerEnd + 4);
+        if (bodyLength >= expectedBodyLength) {
+          m_requestBody = request.substr(headerEnd + 4, expectedBodyLength);
+          break;
+        }
+      }
+    }
+
+    const std::string response = "HTTP/1.1 " + std::to_string(m_statusCode) + " " +
+                                 httpStatusText(m_statusCode) +
+                                 "\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+    (void)::send(clientFd, response.data(), response.size(), 0);
+    ::close(clientFd);
+  }
+
+  int m_statusCode{204};
+  int m_socketFd{-1};
+  std::uint16_t m_port{0};
+  std::thread m_thread;
+  std::string m_requestBody;
+};
 
 void fitness_data_snapshots_are_thread_safe() {
   nexus::gameplay::ThreadSafeFitnessData fitness;
@@ -1929,6 +2053,133 @@ void session_receipt_http_stub_posts_localhost_contract() {
           "POST body includes mode_id");
 }
 
+void session_receipt_live_http_204_clears_without_disk_queue() {
+  SingleResponseHttpServer server(204);
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_live_204_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+      .maxRetries = 2,
+  });
+
+  nlohmann::json receipt = {
+      {"mode_id", "basketball_dunk"},
+      {"score", 88},
+      {"outcome", "win"},
+      {"duration_seconds", 45},
+      {"completed", true},
+      {"telemetry", {{"session_id", "live_204_session"}, {"user_id", "live_user"}}},
+  };
+
+  client.enqueue(receipt);
+  const auto flush = client.flush();
+  server.wait();
+
+  require(flush.attempted == 1, "live 204 attempted once");
+  require(flush.delivered == 1, "live 204 delivered");
+  require(flush.requeued == 0, "live 204 not requeued");
+  require(flush.queued_on_disk == 0, "live 204 HTTP-only flush does not count disk queue");
+  require(client.pendingCount() == 0, "live 204 clears pending receipt");
+  require(client.postedRequests().size() == 1, "live 204 recorded POST");
+  require(client.postedRequests().front().statusCode == 204, "live 204 records server status");
+  require(server.requestBody().find("basketball_dunk") != std::string::npos,
+          "live server received receipt body");
+  require(!std::filesystem::exists(tempDir / "live_204_session.json"),
+          "live 204 HTTP-only flush writes no disk receipt");
+}
+
+void session_receipt_live_http_503_requeues_without_disk_queue() {
+  SingleResponseHttpServer server(503);
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_live_503_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+      .maxRetries = 2,
+  });
+
+  nlohmann::json receipt = {
+      {"mode_id", "karate_endless"},
+      {"score", 12},
+      {"outcome", "loss"},
+      {"duration_seconds", 30},
+      {"completed", true},
+      {"telemetry", {{"session_id", "live_503_session"}, {"user_id", "live_user"}}},
+  };
+
+  client.enqueue(receipt);
+  const auto flush = client.flush();
+  server.wait();
+
+  require(flush.attempted == 1, "live 503 attempted once");
+  require(flush.delivered == 0, "live 503 not delivered");
+  require(flush.requeued == 1, "live 503 requeued");
+  require(flush.queued_on_disk == 0, "live 503 HTTP-only flush does not count disk queue");
+  require(client.pendingCount() == 1, "live 503 keeps pending receipt");
+  require(client.postedRequests().size() == 1, "live 503 recorded POST");
+  require(client.postedRequests().front().statusCode == 503, "live 503 records server status");
+  require(server.requestBody().find("karate_endless") != std::string::npos,
+          "live 503 server received receipt body");
+  require(!std::filesystem::exists(tempDir / "live_503_session.json"),
+          "live 503 HTTP-only retry writes no disk receipt");
+}
+
+void arena_flush_receipts_accepts_live_http_config() {
+  SingleResponseHttpServer server(204);
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_arena_live_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk"}, {"user_id", "arena_live_user"}},
+              "arena_live_start")
+              .status == "ok",
+          "arena live session starts");
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.end_session",
+              {{"player_score", 30.0F}, {"opponent_score", 20.0F}},
+              "arena_live_end")
+              .status == "ok",
+          "arena live session ends");
+
+  const auto flush = gameplay.handleGameplayCommand(
+      "fel.arena.flush_receipts",
+      {{"queue_directory", tempDir.string()},
+       {"base_url", server.url()},
+       {"persist_to_disk", false},
+       {"http_enabled", true},
+       {"use_stub_http_transport", false},
+       {"max_retries", 2}},
+      "arena_live_flush");
+  server.wait();
+
+  require(flush.status == "ok", "arena live flush command ok");
+  require(flush.payload["attempted"].get<std::size_t>() == 1, "arena live flush attempted");
+  require(flush.payload["delivered"].get<std::size_t>() == 1, "arena live flush delivered");
+  require(flush.payload["queued_on_disk"].get<std::size_t>() == 0,
+          "arena live flush has no disk queue");
+  require(!flush.payload["use_stub_http_transport"].get<bool>(),
+          "arena live flush preserved non-stub transport");
+  require(server.requestBody().find("basketball_dunk") != std::string::npos,
+          "arena live server received receipt body");
+}
+
 struct TextGenTempWorkspace {
   std::filesystem::path root;
   std::string manifestPath;
@@ -2747,6 +2998,9 @@ auto main() -> int {
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_live_http_204_clears_without_disk_queue();
+  session_receipt_live_http_503_requeues_without_disk_queue();
+  arena_flush_receipts_accepts_live_http_config();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
