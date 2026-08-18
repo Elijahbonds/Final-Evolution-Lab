@@ -13,6 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 PASS = 0
 FAIL = 0
 SKIP = 0
+_DUPLICATE_JSON_KEYS = {}
 
 def ok(msg):
     global PASS
@@ -29,29 +30,76 @@ def skip(msg):
     SKIP += 1
     print(f"  ⏭  {msg}")
 
+def _strict_object_pairs(path):
+    def hook(pairs):
+        obj = {}
+        seen = set()
+        duplicates = []
+        for key, value in pairs:
+            if key in seen:
+                duplicates.append(key)
+            seen.add(key)
+            obj[key] = value
+        if duplicates:
+            _DUPLICATE_JSON_KEYS.setdefault(str(path), []).extend(duplicates)
+        return obj
+    return hook
+
+def load_json(path):
+    _DUPLICATE_JSON_KEYS.pop(str(path), None)
+    return json.loads(path.read_text(), object_pairs_hook=_strict_object_pairs(path))
+
 # ═══════════════════════════════════════════════════════════════════════════════
-# Production modes expected to pass all gates
+# Production registry entries expected to pass all gates. `basketball_dunk` is the
+# C++ runtime alias; iOS surfaces split `basketball_dunk_3d` / `basketball_dunk_irl`.
 # ═══════════════════════════════════════════════════════════════════════════════
 PRODUCTION_MODES = [
-    "basketball_h2h", "basketball_dunk", "basketball_3v3",
+    "basketball_h2h", "basketball_dunk", "basketball_dunk_3d", "basketball_dunk_irl",
+    "basketball_3v3",
     "karate_h2h", "karate_endless",
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
     "gymnastics", "skateboarding", "snowboarding",
+    "brain_brawl", "who_scene_it", "court_carnival",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
+PREVIEW_MODES = ["movement_lab"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+RUNTIME_PRODUCTION_MODES = [
+    mode for mode in PRODUCTION_MODES
+    if mode not in ("basketball_dunk_3d", "basketball_dunk_irl")
+]
+SWIFT_PRODUCTION_MODES = [
+    mode for mode in PRODUCTION_MODES if mode != "basketball_dunk"
+]
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
 # ═══════════════════════════════════════════════════════════════════════════════
 def test_mode_manager_registry():
     print("\n── Test 1: ModeManager Registry ──")
-    mgr = json.loads((REPO_ROOT / "backend" / "FEL_ModeManager.production.json").read_text())
+    mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
+    mgr = load_json(mgr_path)
+    manager = mgr["mode_manager"]
     registry = mgr["mode_manager"]["mode_registry"]
+
+    declared_total = manager.get("total_modes")
+    declared_production = manager.get("production_modes")
+    actual_total = len(registry)
+    actual_production = sum(1 for info in registry.values() if info.get("status") == "production")
+    if declared_total == actual_total:
+        ok(f"declared total_modes={declared_total} matches registry")
+    else:
+        fail(f"declared total_modes={declared_total}, actual={actual_total}")
+    if declared_production == actual_production == len(PRODUCTION_MODES):
+        ok(f"declared production_modes={declared_production} matches canonical production set")
+    else:
+        fail(
+            f"production count drift: declared={declared_production}, "
+            f"actual={actual_production}, expected={len(PRODUCTION_MODES)}"
+        )
 
     for mode in PRODUCTION_MODES:
         if mode in registry:
@@ -85,56 +133,74 @@ def test_mode_manager_registry():
         else:
             fail(f"{mode} missing from registry")
 
+    duplicates = _DUPLICATE_JSON_KEYS.get(str(mgr_path))
+    if duplicates:
+        fail(f"Duplicate keys in {mgr_path}: {duplicates}")
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 2: UE Mode Maps Coverage
 # ═══════════════════════════════════════════════════════════════════════════════
 def test_ue_mode_maps():
     print("\n── Test 2: UE Mode Maps ──")
-    ue_maps = json.loads((REPO_ROOT / "backend" / "ue_mode_maps.json").read_text())
+    ue_path = REPO_ROOT / "backend" / "ue_mode_maps.json"
+    ue_maps = load_json(ue_path)
     mode_map = ue_maps["mode_to_unreal_map"]
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = PRODUCTION_MODES + NON_GAME_MODULES
     for mode in all_modes:
         if mode in mode_map:
-            ok(f"{mode} → {mode_map[mode]}")
-        else:
-            if mode == "market_browse":
-                # market_browse may not have a UE map (it's a shop module)
-                ok(f"{mode} → present in ue_mode_maps")
+            if mode == "basketball_dunk_irl" and mode_map[mode] is None:
+                ok(f"{mode} → no UE map (IRL mode)")
+            elif mode_map[mode]:
+                ok(f"{mode} → {mode_map[mode]}")
             else:
-                fail(f"{mode} missing from ue_mode_maps.json")
+                fail(f"{mode} has an empty UE map")
+        else:
+            fail(f"{mode} missing from ue_mode_maps.json")
+
+    duplicates = _DUPLICATE_JSON_KEYS.get(str(ue_path))
+    if duplicates:
+        fail(f"Duplicate keys in {ue_path}: {duplicates}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 3: ArenaSettings Coverage
 # ═══════════════════════════════════════════════════════════════════════════════
 def test_arena_settings():
     print("\n── Test 3: ArenaSettings Config ──")
-    arena = json.loads((REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Content" / "FEL" / "Config" / "ArenaSettings.json").read_text())
+    arena_path = REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Content" / "FEL" / "Config" / "ArenaSettings.json"
+    arena = load_json(arena_path)
     modes = arena["modes"]
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = [mode for mode in PRODUCTION_MODES + NON_GAME_MODULES if mode != "basketball_dunk_irl"]
     for mode in all_modes:
-        if mode in modes:
-            cfg = modes[mode]
-            has_level = "unrealOpenLevelPackage" in cfg
-            has_display = "modeDisplayName" in cfg
-            if has_level and has_display:
-                ok(f"{mode} → {cfg['modeDisplayName']}")
-            else:
-                fail(f"{mode} missing unrealOpenLevelPackage or modeDisplayName")
+        arena_mode = "basketball_dunk" if mode == "basketball_dunk_3d" else mode
+        if arena_mode in modes:
+            cfg = modes[arena_mode]
         else:
             fail(f"{mode} missing from ArenaSettings.json")
+            continue
+        has_level = "unrealOpenLevelPackage" in cfg
+        has_display = "modeDisplayName" in cfg
+        if has_level and has_display:
+            ok(f"{mode} → {cfg['modeDisplayName']}")
+        else:
+            fail(f"{mode} missing unrealOpenLevelPackage or modeDisplayName")
+
+    duplicates = _DUPLICATE_JSON_KEYS.get(str(arena_path))
+    if duplicates:
+        fail(f"Duplicate keys in {arena_path}: {duplicates}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 4: VenueRegistry Coverage
 # ═══════════════════════════════════════════════════════════════════════════════
 def test_venue_registry():
     print("\n── Test 4: VenueRegistry Coverage ──")
-    vr = json.loads((REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Config" / "FEL_VenueRegistry.production.json").read_text())
+    vr_path = REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Config" / "FEL_VenueRegistry.production.json"
+    vr = load_json(vr_path)
     mode_ids = {m["id"] for m in vr["modes"]}
     venue_keys = {v["venueKey"] for v in vr["venues"]}
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = [mode for mode in PRODUCTION_MODES + NON_GAME_MODULES if mode != "basketball_dunk_irl"]
     for mode in all_modes:
         if mode in mode_ids:
             entry = next(m for m in vr["modes"] if m["id"] == mode)
@@ -144,6 +210,10 @@ def test_venue_registry():
                 fail(f"{mode} references unknown venue: {entry['venueKey']}")
         else:
             fail(f"{mode} missing from VenueRegistry")
+
+    duplicates = _DUPLICATE_JSON_KEYS.get(str(vr_path))
+    if duplicates:
+        fail(f"Duplicate keys in {vr_path}: {duplicates}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 5: DefaultGame.ini FELPlayMap
@@ -165,7 +235,7 @@ def test_fel_play_map():
                 k, v = line.strip().split("=", 1)
                 play_map[k.strip()] = v.strip()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = [mode for mode in PRODUCTION_MODES + NON_GAME_MODULES if mode != "basketball_dunk_irl"]
     for mode in all_modes:
         if mode in play_map:
             path = play_map[mode]
@@ -175,14 +245,7 @@ def test_fel_play_map():
             else:
                 fail(f"{mode} deep link path doesn't use /Venues/ convention: {path}")
         else:
-            if mode in ("market_browse",):
-                # market_browse has its own path format
-                if mode in play_map:
-                    ok(f"{mode} → {play_map[mode]}")
-                else:
-                    fail(f"{mode} missing from FELPlayMap")
-            else:
-                fail(f"{mode} missing from FELPlayMap")
+            fail(f"{mode} missing from FELPlayMap")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 6: Swift GameMode Enum
@@ -192,7 +255,7 @@ def test_swift_enum():
     swift_path = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
     content = swift_path.read_text()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = SWIFT_PRODUCTION_MODES + NON_GAME_MODULES
     for mode in all_modes:
         # Search for rawValue
         if f'= "{mode}"' in content:
@@ -208,7 +271,7 @@ def test_server_seeded_modes():
     server_path = REPO_ROOT / "backend" / "server.py"
     content = server_path.read_text()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = RUNTIME_PRODUCTION_MODES + NON_GAME_MODULES
     for mode in all_modes:
         if f'"id":"{mode}"' in content or f'"id": "{mode}"' in content:
             ok(f"{mode} in server seeded modes")
@@ -245,7 +308,7 @@ def test_economy_integration():
             fail(f"{label} missing")
 
     # Verify PRQ weights cover all scoring modes
-    scoring_modes = PRODUCTION_MODES  # all production modes are scoring modes
+    scoring_modes = RUNTIME_PRODUCTION_MODES  # server economy scores runtime ids, not split iOS aliases
     for mode in scoring_modes:
         if f'"{mode}"' in content.split("PRQ_MODE_WEIGHTS")[1].split("}")[0]:
             ok(f"PRQ weight defined for {mode}")
@@ -256,7 +319,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print(f"  {len(PRODUCTION_MODES)} production registry entries · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()
