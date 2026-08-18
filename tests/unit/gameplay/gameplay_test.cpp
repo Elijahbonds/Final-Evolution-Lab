@@ -1041,9 +1041,48 @@ void physics_intent_queue_is_consumed_on_step() {
 }
 
 void prq_stub_returns_sprint_defaults() {
+  nexus::gameplay::PRQEngine::resetToSprintDefaults();
   require(nexus::gameplay::PRQEngine::getScore() == 75.0F, "prq sprint default");
+  require(nexus::gameplay::PRQEngine::getNeuralDrive() == 60.0F, "neural drive sprint default");
   require(nexus::gameplay::PRQEngine::getGrade() == nexus::gameplay::PRQGrade::kPrimed,
           "prq grade primed");
+
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  const auto defaultModeState =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "prq_default_mode_state");
+  const float defaultHangTime =
+      defaultModeState.payload["arcade_physics"]["hang_time_multiplier"].get<float>();
+
+  const auto response = gameplay.handleGameplayCommand(
+      "fel.fitness.update",
+      {{"frc_mobility", 0.8F},
+       {"frc_active_range", 0.85F},
+       {"frc_control", 0.92F},
+       {"iap_engagement", 0.87F},
+       {"iap_confidence", 0.8F},
+       {"breath_phase", 1}},
+      "prq_sync");
+  require(response.status == "ok", "fitness update for prq sync ok");
+  require(nexus::gameplay::PRQEngine::getScore() > 91.9F &&
+              nexus::gameplay::PRQEngine::getScore() < 92.1F,
+          "prq syncs from frc control");
+  require(nexus::gameplay::PRQEngine::getNeuralDrive() > 86.9F &&
+              nexus::gameplay::PRQEngine::getNeuralDrive() < 87.1F,
+          "neural drive syncs from iap engagement");
+  require(nexus::gameplay::PRQEngine::getGrade() == nexus::gameplay::PRQGrade::kElite,
+          "synced prq grade elite");
+
+  const auto syncedModeState =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "prq_synced_mode_state");
+  const auto& syncedPhysics = syncedModeState.payload["arcade_physics"];
+  require(syncedPhysics["hang_time_multiplier"].get<float>() > defaultHangTime,
+          "mode runtime physics consumes synced prq");
+  require(syncedPhysics["critical_hit_chance"].get<float>() > 0.3F,
+          "mode runtime physics consumes synced neural drive");
+
+  nexus::gameplay::PRQEngine::resetToSprintDefaults();
 }
 
 void arcade_physics_maps_prq_75() {

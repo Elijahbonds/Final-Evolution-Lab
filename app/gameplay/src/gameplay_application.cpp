@@ -6,6 +6,7 @@
 #include "nexus/creative/voxel_world.h"
 #include "nexus/core/log.h"
 #include "nexus/gameplay/arena_mode_registry.h"
+#include "nexus/gameplay/prq_engine.h"
 #include "nexus/gameplay/scan_envelope_mapper.h"
 #include "nexus/generative/generative_pipeline.h"
 #include "nexus/generative/generative_types.h"
@@ -557,6 +558,7 @@ auto GameplayApplication::applyFitnessCommand(std::string_view command,
   }
 
   const auto snapshot = m_fitnessData.snapshot();
+  PRQEngine::syncFromSnapshot(snapshot);
   NEXUS_LOG_INFO(LogChannel::kAI, "Fitness metrics updated from agent command");
   nlohmann::json payload = fitnessSnapshotToJson(snapshot);
   payload["hud"] = {
@@ -602,6 +604,7 @@ auto GameplayApplication::applyScanGenerateCommand(std::string_view command,
   }
 
   const auto fitnessSnapshot = m_fitnessData.snapshot();
+  PRQEngine::syncFromSnapshot(fitnessSnapshot);
   nlohmann::json commandsApplied = nlohmann::json::array({
       "fel.fitness.update",
       "fel.creative.fill_region",

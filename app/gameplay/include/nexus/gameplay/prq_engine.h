@@ -6,6 +6,8 @@
 
 namespace nexus::gameplay {
 
+struct FitnessSnapshot;
+
 enum class PRQGrade : std::uint8_t {
   kRecovering = 0,
   kReady = 1,
@@ -17,6 +19,8 @@ class PRQEngine {
 public:
   [[nodiscard]] static auto getScore() -> float;
   [[nodiscard]] static auto getNeuralDrive() -> float;
+  static void syncFromSnapshot(const FitnessSnapshot& snapshot);
+  static void resetToSprintDefaults();
   [[nodiscard]] static auto getGrade() -> PRQGrade;
   [[nodiscard]] static auto gradeLabel(PRQGrade grade) -> std::string_view;
 };
