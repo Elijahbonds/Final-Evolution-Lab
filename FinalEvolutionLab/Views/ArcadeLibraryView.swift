@@ -66,7 +66,10 @@ struct ArcadeLibraryView: View {
         }
         .background(Theme.deepBlack)
         .navigationDestination(item: $gameplayRoute) { modeId in
-            if modeId == .brainBrawl {
+            if modeId == .marketBrowse {
+                MarketBrowseView(viewModel: viewModel)
+                    .id(gameplayLaunchId)
+            } else if modeId == .brainBrawl {
                 BrainBrawl2DView(
                     viewModel: viewModel,
                     gameMode: GameModeRegistry.mode(for: .brainBrawl),

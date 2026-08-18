@@ -29,6 +29,17 @@ struct TriumphLedgerEntry: Identifiable, Codable, Sendable {
 @MainActor
 final class TriumphTournamentEngine {
     static let shared = TriumphTournamentEngine()
+
+    static func canonicalGameModeId(forTournamentSelection selection: String) -> String {
+        switch selection {
+        case "2D Brain Brawl":
+            return GameModeId.brainBrawl.rawValue
+        case "Court Carnival":
+            return GameModeId.courtCarnival.rawValue
+        default:
+            return GameModeId.basketballDunkContestIRL.rawValue
+        }
+    }
     
     private let cashBalanceKey = "triumph_cash_balance"
     private let ledgerKey = "triumph_ledger_entries"
@@ -83,7 +94,7 @@ final class TriumphTournamentEngine {
             type: "deposit",
             amount: amount,
             date: Date(),
-            description: "Deposit via Card (...\(String(cardDetails.suffix(min(4, cardDetails.count)))))"
+            description: "\(FELPremiumCopy.Preview.triumphCashEntry): demo deposit via card (...\(String(cardDetails.suffix(min(4, cardDetails.count)))))"
         )
         ledgerEntries.insert(entry, at: 0)
         saveLedger()
@@ -100,7 +111,7 @@ final class TriumphTournamentEngine {
             type: "withdrawal",
             amount: amount,
             date: Date(),
-            description: "Withdrawal to \(paypalEmail)"
+            description: "\(FELPremiumCopy.Preview.triumphCashEntry): demo withdrawal to \(paypalEmail)"
         )
         ledgerEntries.insert(entry, at: 0)
         saveLedger()
@@ -161,7 +172,7 @@ final class TriumphTournamentEngine {
                 type: "payout",
                 amount: payoutAmount,
                 date: Date(),
-                description: "triumph_cash_payout: Won \(tier.name) H2H"
+                description: "\(FELPremiumCopy.Preview.triumphCashEntry): demo payout for \(tier.name) H2H"
             )
             ledgerEntries.insert(entry, at: 0)
         } else {

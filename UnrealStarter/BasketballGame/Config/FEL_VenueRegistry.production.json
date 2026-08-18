@@ -156,6 +156,7 @@
       "nexusEnvironmentAssetId": "luma_venice_shop_environment_model_fbx"
     },
     { "venueKey": "beach_court", "analyticsPolicyName": "Beach Court — Volleyball" },
+    { "venueKey": "regulation_court_irl", "analyticsPolicyName": "Regulation Court — IRL phone camera mode" },
     { "venueKey": "dojo_arena", "analyticsPolicyName": "Zen / Dojo Arena", "nexusEnvironmentAssetId": "zen_dojo_environment_model_fbx" },
     { "venueKey": "neuro_arena", "analyticsPolicyName": "Neuro Arena", "nexusEnvironmentAssetId": "neuro_arena_environment_model_fbx" },
     { "venueKey": "skate_park", "analyticsPolicyName": "Skate Park" },

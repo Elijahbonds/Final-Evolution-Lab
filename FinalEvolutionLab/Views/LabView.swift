@@ -527,9 +527,12 @@ struct LabView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("GLOBAL ARENA")
-                        .font(.system(.subheadline, weight: .black))
-                        .foregroundStyle(.white)
+                    HStack(spacing: 6) {
+                        Text("GLOBAL ARENA")
+                            .font(.system(.subheadline, weight: .black))
+                            .foregroundStyle(.white)
+                        FELPreviewLabel(text: FELPremiumCopy.Preview.matchmakingStub)
+                    }
 
                     if let last = GameModeRegistry.resolvedLastSelectedMode() {
                         HStack(spacing: 8) {
