@@ -90,6 +90,18 @@ void http_stub_post_records_session_contract() {
           "http stub session path");
 }
 
+void http_stub_post_rejects_non_success_status() {
+  nexus::core::HttpClient client({
+      .url = "http://127.0.0.1:8000/api/games/session",
+      .useStubTransport = true,
+      .stubStatusCode = 503,
+  });
+  const auto result = client.post(R"({"mode_id":"basketball_dunk","score":10})");
+  require(result.isErr(), "http stub non-2xx rejected");
+  require(client.postedRequests().size() == 1, "http stub failure recorded post");
+  require(client.postedRequests().front().statusCode == 503, "http stub recorded status 503");
+}
+
 } // namespace
 
 auto main() -> int {
@@ -100,6 +112,7 @@ auto main() -> int {
   stub_reconnect_after_disconnect();
   auto_reconnect_on_send_when_disconnected();
   http_stub_post_records_session_contract();
+  http_stub_post_rejects_non_success_status();
   std::fprintf(stderr, "PASS: nexus_realtime_test\n");
   return 0;
 }
