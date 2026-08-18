@@ -52,6 +52,8 @@ struct DunkMatchmakingView: View {
     @State private var isPlayerWinner = false
     @State private var showWinnerBanner = false
     @State private var hasClaimedRewards = false
+    @State private var isSubmittingRewardReceipt = false
+    @State private var rewardReceiptMessage: String? = nil
     
     @State private var selectedSignatureAnimation: NexusAnimationAsset? = nil
     @State private var showSignatureSelector = false
@@ -972,8 +974,8 @@ struct DunkMatchmakingView: View {
                 } else if !hasClaimedRewards {
                     Button(action: claimRewardsAndSave) {
                         HStack(spacing: 8) {
-                            Image(systemName: "diamond.fill")
-                            Text("CLAIM MULTIPLAYER REWARDS (+50 SHARDS)")
+                            Image(systemName: isSubmittingRewardReceipt ? "arrow.triangle.2.circlepath" : "checkmark.seal.fill")
+                            Text(isSubmittingRewardReceipt ? "VERIFYING SERVER RECEIPT..." : "SUBMIT VERIFIED REWARD RECEIPT")
                                 .font(.system(.subheadline, design: .monospaced, weight: .black))
                         }
                         .frame(maxWidth: .infinity)
@@ -983,6 +985,7 @@ struct DunkMatchmakingView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                         .shadow(color: Theme.brandCyan.opacity(0.3), radius: 8)
                     }
+                    .disabled(isSubmittingRewardReceipt)
                 } else {
                     Button(action: { dismiss() }) {
                         Text("DISMISS LOBBY")
@@ -993,6 +996,12 @@ struct DunkMatchmakingView: View {
                             .foregroundStyle(.white)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
+                }
+                if let rewardReceiptMessage {
+                    Text(rewardReceiptMessage)
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.white.opacity(0.72))
                 }
             }
         }
@@ -1151,32 +1160,44 @@ struct DunkMatchmakingView: View {
     }
     
     private func claimRewardsAndSave() {
-        guard let result = playerDunkResult, !hasClaimedRewards else { return }
-        
-        // Award Shards
-        viewModel.profile.evolutionShards += 50
-        
-        // Calculate new PRQ rating using PRQ.rankingSessionPRQ
+        guard let result = playerDunkResult, !hasClaimedRewards, !isSubmittingRewardReceipt else { return }
+
+        isSubmittingRewardReceipt = true
+        rewardReceiptMessage = "Submitting dunk receipt to server authority. Local rewards stay locked until verified."
+
         let activeBoost = viewModel.profile.activeCreatorCard != nil
-        let deltaPRQ = PRQ.rankingSessionPRQ(
-            mode: .basketballDunkContestIRL,
-            won: isPlayerWinner,
-            tied: false,
-            combo: isPlayerWinner ? 3 : 1,
-            criticals: activeBoost ? 2 : 0,
-            scoreDifferential: max(0, Int(result.totalScore - (matchedOpponent?.totalScore ?? 40.0))),
-            participationEligible: true,
-            sessionReadiness: viewModel.profile.metrics.neuralDrive
-        )
-        
-        let newPrq = min(100.0, max(0.0, viewModel.competitivePRQScore + deltaPRQ))
-        FELScoreManager.shared.applyClampedPrq(Int(newPrq))
-        
-        // Save profile
-        SaveSystem.saveProfile(viewModel.profile)
-        
-        hasClaimedRewards = true
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        let playerScore = Int((result.totalScore * 10.0).rounded(.toNearestOrAwayFromZero))
+        let opponentScore = Int(((matchedOpponent?.totalScore ?? 0.0) * 10.0).rounded(.toNearestOrAwayFromZero))
+        let matchSessionId = UUID()
+
+        Task {
+            let verified = await GameplaySessionReceiptCoordinator.shared.submitNativeSessionReceipt(
+                matchSessionId: matchSessionId,
+                gameModeId: GameModeId.basketballDunkContestIRL.rawValue,
+                playerScore: playerScore,
+                opponentScore: opponentScore,
+                durationSeconds: 75,
+                comboCount: isPlayerWinner ? 3 : 1,
+                criticalCount: activeBoost ? 2 : 0,
+                pacingScore: Int(result.metrics.fluidMotionScore.rounded(.toNearestOrAwayFromZero)),
+                isMultiplayer: true
+            )
+
+            await MainActor.run {
+                isSubmittingRewardReceipt = false
+                if verified && NexusEconomyAuthority.allowsLocalEconomyGrant(
+                    modeId: .basketballDunkContestIRL,
+                    trustLevel: .serverVerified
+                ) {
+                    hasClaimedRewards = true
+                    rewardReceiptMessage = "Server receipt verified. Ranked PRQ and rewards will sync through the receipt ledger."
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                } else {
+                    rewardReceiptMessage = "Server verification unavailable. No local shards or ranked PRQ were granted; retry when connected."
+                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                }
+            }
+        }
     }
 
     private var activeCreatorCard: CreatorCard? {
