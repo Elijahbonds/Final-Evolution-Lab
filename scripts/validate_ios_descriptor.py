@@ -16,6 +16,10 @@ WARNINGS = []
 
 def err(msg): ERRORS.append(msg)
 def warn(msg): WARNINGS.append(msg)
+def counts_as_production_mode(info):
+    return info.get("status") == "production" and info.get("counts_as_production_mode", True)
+def fel_play_map_key(mode_id):
+    return {"basketball_dunk_3d": "basketball_dunk"}.get(mode_id, mode_id)
 
 # ── 1. Validate DefaultGame.ini packaging settings ──────────────────────────
 def validate_packaging_settings():
@@ -77,8 +81,11 @@ def validate_fel_play_map():
     ue_maps_path = REPO_ROOT / "backend" / "ue_mode_maps.json"
     if ue_maps_path.exists():
         ue_maps = json.loads(ue_maps_path.read_text()).get("mode_to_unreal_map", {})
-        for mode_id in ue_maps:
-            if mode_id not in play_map_section:
+        for mode_id, map_token in ue_maps.items():
+            if map_token is None:
+                continue
+            play_key = fel_play_map_key(mode_id)
+            if play_key not in play_map_section:
                 err(f"FELPlayMap missing mode: {mode_id}")
     print("  ✓ FELPlayMap cross-reference validated")
 
@@ -97,7 +104,7 @@ def validate_mode_counts():
     if actual_total != declared_total:
         err(f"Mode count mismatch: declared={declared_total}, actual={actual_total}")
 
-    prod_count = sum(1 for v in registry.values() if v.get("status") == "production")
+    prod_count = sum(1 for v in registry.values() if counts_as_production_mode(v))
     declared_prod = mm.get("production_modes", 0)
     if prod_count != declared_prod:
         err(f"Production mode count mismatch: declared={declared_prod}, actual={prod_count}")
@@ -118,7 +125,10 @@ def validate_arena_settings():
         mgr = json.loads(mgr_path.read_text())
         registry = mgr.get("mode_manager", {}).get("mode_registry", {})
         for mode_id, info in registry.items():
-            if mode_id not in modes:
+            if info.get("render_mode") == "IRL" or info.get("venue_id") is None:
+                continue
+            arena_key = fel_play_map_key(mode_id)
+            if arena_key not in modes:
                 if info.get("status") in ("production", "staging"):
                     warn(f"ArenaSettings missing config for {info['status']} mode: {mode_id}")
 

@@ -3,6 +3,7 @@
 // Spec: 01 Gameplay Loop Protocol, 06 NEXUS Integration Map, 10 Phase 0/4
 #pragma once
 
+#include <cstdint>
 #include "nexus/ai/command_router.h"
 #include "nexus/ai/game_prompt_adapter.h"
 #include "nexus/ai/text_prompt_adapter.h"

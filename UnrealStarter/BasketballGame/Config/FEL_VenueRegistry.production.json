@@ -7,8 +7,12 @@
     "export_format": "GLTF_USD",
     "ue5_import_path_root": "Content/FEL/Venues/",
     "scan_subfolder": "LumaScans/",
-    "workflow": "Luma AI capture → export GLTF/USD → import UE5 Static Mesh → place in .umap as base geometry → fill gaps with Meshy/Seele generated assets",
-    "confirmed_scans": ["venice_beach", "luma_venice_shop", "dojo"],
+    "workflow": "Luma AI capture \u2192 export GLTF/USD \u2192 import UE5 Static Mesh \u2192 place in .umap as base geometry \u2192 fill gaps with Meshy/Seele generated assets",
+    "confirmed_scans": [
+      "venice_beach",
+      "luma_venice_shop",
+      "dojo"
+    ],
     "extension_strategy": "Venice Beach scan is the primary world anchor. Modes without a dedicated scan use Meshy/Seele generated venues. Scan-based venues include a lumaAssets block.",
     "venice_beach_notes": "Single Venice Beach scan covers basketball court (h2h / dunk / 3v3), surf break (surfing), carnival area (court_carnival). NEXUS mobile ships Seele FBX court mesh + Luma shop backdrop composite.",
     "luma_asset_naming": "T_LumaScan_{venue_key}_Albedo, SM_LumaScan_{venue_key}_Mesh"
@@ -56,7 +60,7 @@
       "isIRLMode": true,
       "healthKitTracked": true,
       "rimHeightInches": 120,
-      "modeNote": "IRL H2H dunk contest — phone camera, Vision pose, WDA/FIBA judges. No UE5 venue map; reconciled from claude branch basketball_irl.",
+      "modeNote": "IRL H2H dunk contest \u2014 phone camera, Vision pose, WDA/FIBA judges. No UE5 venue map; reconciled from claude branch basketball_irl.",
       "meshyAssets": {
         "uiHUD": "MESHY_hud_irl_basketball",
         "avatarSlot": "MESHY_athlete_basketball_dunk_irl"
@@ -77,12 +81,48 @@
         "importPath": "Content/FEL/Venues/VeniceBeach/LumaScans/"
       }
     },
-    { "id": "karate_h2h", "analyticsMode": "karate_point_sparring", "venueKey": "dojo_arena", "displayVenue": "Zen Dojo", "nexusEnvironmentAssetId": "zen_dojo_environment_model_fbx" },
-    { "id": "karate_endless", "analyticsMode": "karate_endless", "venueKey": "dojo_arena", "displayVenue": "Zen Dojo", "nexusEnvironmentAssetId": "zen_dojo_environment_model_fbx" },
-    { "id": "baseball", "analyticsMode": "home_run_derby", "venueKey": "stadium_diamond", "displayVenue": "Stadium Diamond", "nexusEnvironmentAssetId": "baseball_park_environment_model_fbx" },
-    { "id": "football", "analyticsMode": "kick_return", "venueKey": "stadium_field", "displayVenue": "Stadium Field", "nexusEnvironmentAssetId": "gridiron_stadium_environment_model_fbx" },
-    { "id": "soccer", "analyticsMode": "penalty_shootout", "venueKey": "stadium_pitch", "displayVenue": "Stadium Pitch", "nexusEnvironmentAssetId": "soccer_stadium_environment_model_fbx" },
-    { "id": "golf", "analyticsMode": "closest_to_pin", "venueKey": "golf_green", "displayVenue": "Golf Green", "nexusEnvironmentAssetId": "golf_course_environment_model_fbx" },
+    {
+      "id": "karate_h2h",
+      "analyticsMode": "karate_point_sparring",
+      "venueKey": "dojo_arena",
+      "displayVenue": "Zen Dojo",
+      "nexusEnvironmentAssetId": "zen_dojo_environment_model_fbx"
+    },
+    {
+      "id": "karate_endless",
+      "analyticsMode": "karate_endless",
+      "venueKey": "dojo_arena",
+      "displayVenue": "Zen Dojo",
+      "nexusEnvironmentAssetId": "zen_dojo_environment_model_fbx"
+    },
+    {
+      "id": "baseball",
+      "analyticsMode": "home_run_derby",
+      "venueKey": "stadium_diamond",
+      "displayVenue": "Stadium Diamond",
+      "nexusEnvironmentAssetId": "baseball_park_environment_model_fbx"
+    },
+    {
+      "id": "football",
+      "analyticsMode": "kick_return",
+      "venueKey": "stadium_field",
+      "displayVenue": "Stadium Field",
+      "nexusEnvironmentAssetId": "gridiron_stadium_environment_model_fbx"
+    },
+    {
+      "id": "soccer",
+      "analyticsMode": "penalty_shootout",
+      "venueKey": "stadium_pitch",
+      "displayVenue": "Stadium Pitch",
+      "nexusEnvironmentAssetId": "soccer_stadium_environment_model_fbx"
+    },
+    {
+      "id": "golf",
+      "analyticsMode": "closest_to_pin",
+      "venueKey": "golf_green",
+      "displayVenue": "Golf Green",
+      "nexusEnvironmentAssetId": "golf_course_environment_model_fbx"
+    },
     {
       "id": "tennis",
       "analyticsMode": "rally_ace_tennis",
@@ -91,7 +131,13 @@
       "nexusEnvironmentAssetId": "tennis_court_environment_model_fbx",
       "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
     },
-    { "id": "volleyball", "analyticsMode": "rally_ace_volleyball", "venueKey": "beach_court", "displayVenue": "Beach Court", "nexusEnvironmentAssetId": "volleyball_sand_court_environment_model_fbx" },
+    {
+      "id": "volleyball",
+      "analyticsMode": "rally_ace_volleyball",
+      "venueKey": "beach_court",
+      "displayVenue": "Beach Court",
+      "nexusEnvironmentAssetId": "volleyball_sand_court_environment_model_fbx"
+    },
     {
       "id": "surfing",
       "analyticsMode": "surf_line",
@@ -101,10 +147,38 @@
       "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
       "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
     },
-    { "id": "skateboarding", "analyticsMode": "skate_line", "venueKey": "skate_park", "displayVenue": "Skate Park", "optional": true, "nexusEnvironmentAssetId": "skate_park_environment_model_fbx" },
-    { "id": "snowboarding", "analyticsMode": "snow_line", "venueKey": "mountain_slope", "displayVenue": "Mountain Slope", "optional": true, "nexusEnvironmentAssetId": "mountain_slope_environment_model_fbx" },
-    { "id": "gymnastics", "analyticsMode": "gymnastics_routine", "venueKey": "arena_floor", "displayVenue": "Arena", "optional": true, "nexusEnvironmentAssetId": "gymnastics_floor_environment_model_fbx" },
-    { "id": "brain_brawl", "analyticsMode": "brain_brawl", "venueKey": "neuro_arena", "displayVenue": "Neuro Arena", "optional": true, "nexusEnvironmentAssetId": "neuro_arena_environment_model_fbx" },
+    {
+      "id": "skateboarding",
+      "analyticsMode": "skate_line",
+      "venueKey": "skate_park",
+      "displayVenue": "Skate Park",
+      "optional": true,
+      "nexusEnvironmentAssetId": "skate_park_environment_model_fbx"
+    },
+    {
+      "id": "snowboarding",
+      "analyticsMode": "snow_line",
+      "venueKey": "mountain_slope",
+      "displayVenue": "Mountain Slope",
+      "optional": true,
+      "nexusEnvironmentAssetId": "mountain_slope_environment_model_fbx"
+    },
+    {
+      "id": "gymnastics",
+      "analyticsMode": "gymnastics_routine",
+      "venueKey": "arena_floor",
+      "displayVenue": "Arena",
+      "optional": true,
+      "nexusEnvironmentAssetId": "gymnastics_floor_environment_model_fbx"
+    },
+    {
+      "id": "brain_brawl",
+      "analyticsMode": "brain_brawl",
+      "venueKey": "neuro_arena",
+      "displayVenue": "Neuro Arena",
+      "optional": true,
+      "nexusEnvironmentAssetId": "neuro_arena_environment_model_fbx"
+    },
     {
       "id": "market_browse",
       "analyticsMode": "market_browse",
@@ -119,7 +193,14 @@
         "importPath": "Content/FEL/Venues/Luma_Venice_Shop/LumaScans/"
       }
     },
-    { "id": "who_scene_it", "analyticsMode": "who_scene_it", "venueKey": "neuro_arena", "displayVenue": "Neuro Arena", "optional": true, "nexusEnvironmentAssetId": "neuro_arena_environment_model_fbx" },
+    {
+      "id": "who_scene_it",
+      "analyticsMode": "who_scene_it",
+      "venueKey": "neuro_arena",
+      "displayVenue": "Neuro Arena",
+      "optional": true,
+      "nexusEnvironmentAssetId": "neuro_arena_environment_model_fbx"
+    },
     {
       "id": "court_carnival",
       "analyticsMode": "court_carnival",
@@ -134,19 +215,19 @@
   "venues": [
     {
       "venueKey": "venice_beach_court",
-      "analyticsPolicyName": "Venice Beach — Court + Luma shop backdrop",
+      "analyticsPolicyName": "Venice Beach \u2014 Court + Luma shop backdrop",
       "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
       "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
     },
     {
       "venueKey": "venice_beach_surf",
-      "analyticsPolicyName": "Venice Beach — Surf + Luma shop backdrop",
+      "analyticsPolicyName": "Venice Beach \u2014 Surf + Luma shop backdrop",
       "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
       "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
     },
     {
       "venueKey": "venice_beach_court_tennis",
-      "analyticsPolicyName": "Venice Beach — Tennis + Luma shop backdrop",
+      "analyticsPolicyName": "Venice Beach \u2014 Tennis + Luma shop backdrop",
       "nexusEnvironmentAssetId": "tennis_court_environment_model_fbx",
       "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
     },
@@ -155,16 +236,57 @@
       "analyticsPolicyName": "Luma Venice Shop (primary scan)",
       "nexusEnvironmentAssetId": "luma_venice_shop_environment_model_fbx"
     },
-    { "venueKey": "beach_court", "analyticsPolicyName": "Beach Court — Volleyball" },
-    { "venueKey": "dojo_arena", "analyticsPolicyName": "Zen / Dojo Arena", "nexusEnvironmentAssetId": "zen_dojo_environment_model_fbx" },
-    { "venueKey": "neuro_arena", "analyticsPolicyName": "Neuro Arena", "nexusEnvironmentAssetId": "neuro_arena_environment_model_fbx" },
-    { "venueKey": "skate_park", "analyticsPolicyName": "Skate Park" },
-    { "venueKey": "mountain_slope", "analyticsPolicyName": "Mountain Slope" },
-    { "venueKey": "stadium_diamond", "analyticsPolicyName": "Stadium Diamond" },
-    { "venueKey": "stadium_field", "analyticsPolicyName": "Stadium Field" },
-    { "venueKey": "stadium_pitch", "analyticsPolicyName": "Stadium Pitch" },
-    { "venueKey": "golf_green", "analyticsPolicyName": "Golf Green" },
-    { "venueKey": "arena_floor", "analyticsPolicyName": "Arena — Gymnastics" },
-    { "venueKey": "e3ds_stadium_lobby", "analyticsPolicyName": "E3DS Stadium / Lobby shell" }
+    {
+      "venueKey": "beach_court",
+      "analyticsPolicyName": "Beach Court \u2014 Volleyball"
+    },
+    {
+      "venueKey": "dojo_arena",
+      "analyticsPolicyName": "Zen / Dojo Arena",
+      "nexusEnvironmentAssetId": "zen_dojo_environment_model_fbx"
+    },
+    {
+      "venueKey": "neuro_arena",
+      "analyticsPolicyName": "Neuro Arena",
+      "nexusEnvironmentAssetId": "neuro_arena_environment_model_fbx"
+    },
+    {
+      "venueKey": "skate_park",
+      "analyticsPolicyName": "Skate Park"
+    },
+    {
+      "venueKey": "mountain_slope",
+      "analyticsPolicyName": "Mountain Slope"
+    },
+    {
+      "venueKey": "stadium_diamond",
+      "analyticsPolicyName": "Stadium Diamond"
+    },
+    {
+      "venueKey": "stadium_field",
+      "analyticsPolicyName": "Stadium Field"
+    },
+    {
+      "venueKey": "stadium_pitch",
+      "analyticsPolicyName": "Stadium Pitch"
+    },
+    {
+      "venueKey": "golf_green",
+      "analyticsPolicyName": "Golf Green"
+    },
+    {
+      "venueKey": "arena_floor",
+      "analyticsPolicyName": "Arena \u2014 Gymnastics"
+    },
+    {
+      "venueKey": "e3ds_stadium_lobby",
+      "analyticsPolicyName": "E3DS Stadium / Lobby shell"
+    },
+    {
+      "venueKey": "regulation_court_irl",
+      "analyticsPolicyName": "Regulation Court (IRL camera)",
+      "renderMode": "IRL",
+      "modeNote": "Camera-native dunk contest venue; no UE map required."
+    }
   ]
 }
