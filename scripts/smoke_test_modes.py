@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-FEL Smoke Test Suite — 12 Production Mode Acceptance Tests
-Tests each production mode's registration, configuration, and deep link routing.
+FEL Smoke Test Suite — NEXUS production mode acceptance tests.
+Tests each NEXUS runtime mode's registration, configuration, and deep link routing.
 Run against a live or mock FEL backend.
 """
 import json
@@ -38,12 +38,18 @@ PRODUCTION_MODES = [
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
     "gymnastics", "skateboarding", "snowboarding",
+    "brain_brawl", "who_scene_it", "court_carnival",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
+EDUCATION_PREVIEW_MODULES = ["movement_lab"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = []
+SWIFT_MODE_ALIASES = {
+    # iOS exposes split dunk lanes; the NEXUS C++ runtime id remains basketball_dunk.
+    "basketball_dunk": ["basketball_dunk_3d"],
+}
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -82,6 +88,14 @@ def test_mode_manager_registry():
             ok(f"{mode} → non-game-module (expected)")
         elif mode in registry:
             fail(f"{mode} status={registry[mode]['status']}, expected non-game-module")
+        else:
+            fail(f"{mode} missing from registry")
+
+    for mode in EDUCATION_PREVIEW_MODULES:
+        if mode in registry and registry[mode]["status"] == "preview":
+            ok(f"{mode} → preview education module (expected)")
+        elif mode in registry:
+            fail(f"{mode} status={registry[mode]['status']}, expected preview")
         else:
             fail(f"{mode} missing from registry")
 
@@ -132,18 +146,30 @@ def test_venue_registry():
     print("\n── Test 4: VenueRegistry Coverage ──")
     vr = json.loads((REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Config" / "FEL_VenueRegistry.production.json").read_text())
     mode_ids = {m["id"] for m in vr["modes"]}
+    runtime_aliases = {
+        m.get("nexusRuntimeModeId"): m
+        for m in vr["modes"]
+        if m.get("nexusRuntimeModeId")
+    }
     venue_keys = {v["venueKey"] for v in vr["venues"]}
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
         if mode in mode_ids:
             entry = next(m for m in vr["modes"] if m["id"] == mode)
-            if entry["venueKey"] in venue_keys:
-                ok(f"{mode} → venue={entry['venueKey']}")
-            else:
-                fail(f"{mode} references unknown venue: {entry['venueKey']}")
+        elif mode in runtime_aliases:
+            entry = runtime_aliases[mode]
         else:
             fail(f"{mode} missing from VenueRegistry")
+            continue
+
+        if entry["venueKey"] in venue_keys:
+            if entry["id"] == mode:
+                ok(f"{mode} → venue={entry['venueKey']}")
+            else:
+                ok(f"{mode} → venue={entry['venueKey']} via {entry['id']}")
+        else:
+            fail(f"{mode} references unknown venue: {entry['venueKey']}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 5: DefaultGame.ini FELPlayMap
@@ -194,8 +220,8 @@ def test_swift_enum():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
-        # Search for rawValue
-        if f'= "{mode}"' in content:
+        raw_values = [mode, *SWIFT_MODE_ALIASES.get(mode, [])]
+        if any(f'= "{raw_value}"' in content for raw_value in raw_values):
             ok(f'{mode} has Swift enum case')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
@@ -256,7 +282,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print("  18 NEXUS runtime modes · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()

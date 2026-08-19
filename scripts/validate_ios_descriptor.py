@@ -77,8 +77,19 @@ def validate_fel_play_map():
     ue_maps_path = REPO_ROOT / "backend" / "ue_mode_maps.json"
     if ue_maps_path.exists():
         ue_maps = json.loads(ue_maps_path.read_text()).get("mode_to_unreal_map", {})
-        for mode_id in ue_maps:
+        registry = {}
+        mode_mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
+        if mode_mgr_path.exists():
+            mode_mgr = json.loads(mode_mgr_path.read_text())
+            registry = mode_mgr.get("mode_manager", {}).get("mode_registry", {})
+        for mode_id, map_token in ue_maps.items():
+            if map_token is None:
+                # IRL / non-UE modes are intentionally mapless.
+                continue
             if mode_id not in play_map_section:
+                runtime_id = registry.get(mode_id, {}).get("nexus_runtime_mode_id")
+                if runtime_id and runtime_id in play_map_section:
+                    continue
                 err(f"FELPlayMap missing mode: {mode_id}")
     print("  ✓ FELPlayMap cross-reference validated")
 
@@ -120,6 +131,11 @@ def validate_arena_settings():
         for mode_id, info in registry.items():
             if mode_id not in modes:
                 if info.get("status") in ("production", "staging"):
+                    if info.get("render_mode") == "IRL" or info.get("venue_id") is None:
+                        continue
+                    runtime_id = info.get("nexus_runtime_mode_id")
+                    if runtime_id and runtime_id in modes:
+                        continue
                     warn(f"ArenaSettings missing config for {info['status']} mode: {mode_id}")
 
     print("  ✓ ArenaSettings cross-check completed")
