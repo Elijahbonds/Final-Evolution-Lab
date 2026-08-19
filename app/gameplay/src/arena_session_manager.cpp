@@ -69,7 +69,7 @@ auto ArenaSessionManager::endSession(const MatchScoreInput& scoreInput,
   }
 
   if (const auto config = ArenaModeRegistry::find(m_state.modeId)) {
-    if (config->scoringEnabled && config->modeWeight > 0.0F) {
+    if (config->releaseState == ArenaReleaseState::kProduction && config->modeWeight > 0.0F) {
       gameplayManager.dispatchSessionReceipt(result);
     }
   }

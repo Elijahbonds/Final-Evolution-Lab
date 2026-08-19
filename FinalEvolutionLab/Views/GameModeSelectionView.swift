@@ -127,9 +127,7 @@ struct GameModeSelectionView: View {
                             FELHaptics.modeSelect()
                             SaveSystem.saveLastSelectedArenaModeId(mode.id.rawValue)
                             pendingMode = mode
-                            Task { @MainActor in
-                                await launchSelectedMode()
-                            }
+                            routeSelectedMode(mode)
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(mode.nexusSprintPriorityLabel)
@@ -364,15 +362,7 @@ struct GameModeSelectionView: View {
                         FELHaptics.modeSelect()
                         SaveSystem.saveLastSelectedArenaModeId(mode.id.rawValue)
                         pendingMode = mode
-                        if mode.id.isIRLDunkContest {
-                            showDunkPlatform = true
-                        } else if mode.id == .karateEndless {
-                            showKarateCoopLobby = true
-                        } else {
-                            Task { @MainActor in
-                                await launchSelectedMode()
-                            }
-                        }
+                        routeSelectedMode(mode)
                     }
                     .opacity(appeared ? 1 : 0)
                     .offset(y: appeared ? 0 : 20)
@@ -381,6 +371,19 @@ struct GameModeSelectionView: View {
                         value: appeared
                     )
                 }
+            }
+        }
+    }
+
+    @MainActor
+    private func routeSelectedMode(_ mode: GameMode) {
+        if mode.id.isIRLDunkContest {
+            showDunkPlatform = true
+        } else if mode.id == .karateEndless {
+            showKarateCoopLobby = true
+        } else {
+            Task { @MainActor in
+                await launchSelectedMode()
             }
         }
     }

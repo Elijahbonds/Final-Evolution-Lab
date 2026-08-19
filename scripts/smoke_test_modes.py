@@ -38,12 +38,18 @@ PRODUCTION_MODES = [
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
     "gymnastics", "skateboarding", "snowboarding",
+    "brain_brawl", "who_scene_it", "court_carnival",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = []
+
+MODE_ALIASES = {
+    # NEXUS C++ runtime id; iOS/venue metadata ship split 3D + IRL dunk entries.
+    "basketball_dunk": ["basketball_dunk_3d"],
+}
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -136,10 +142,15 @@ def test_venue_registry():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
-        if mode in mode_ids:
-            entry = next(m for m in vr["modes"] if m["id"] == mode)
+        mode_entry_id = mode if mode in mode_ids else next(
+            (alias for alias in MODE_ALIASES.get(mode, []) if alias in mode_ids),
+            None,
+        )
+        if mode_entry_id:
+            entry = next(m for m in vr["modes"] if m["id"] == mode_entry_id)
             if entry["venueKey"] in venue_keys:
-                ok(f"{mode} → venue={entry['venueKey']}")
+                alias_note = f" via {mode_entry_id}" if mode_entry_id != mode else ""
+                ok(f"{mode}{alias_note} → venue={entry['venueKey']}")
             else:
                 fail(f"{mode} references unknown venue: {entry['venueKey']}")
         else:
@@ -194,8 +205,8 @@ def test_swift_enum():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
-        # Search for rawValue
-        if f'= "{mode}"' in content:
+        raw_values = [mode, *MODE_ALIASES.get(mode, [])]
+        if any(f'= "{raw_value}"' in content for raw_value in raw_values):
             ok(f'{mode} has Swift enum case')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
@@ -256,7 +267,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print(f"  {len(PRODUCTION_MODES)} production runtime modes · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()
