@@ -193,7 +193,9 @@ final class GameplaySessionReceiptCoordinator {
             ?? (obj["game_mode_id"] as? String)
             ?? (obj["mode"] as? String)
             ?? "basketball_h2h"
-        guard let mode = GameModeId(rawValue: modeStr) else { return nil }
+        guard let mode = GameModeId(rawValue: modeStr)
+            ?? GameModeRegistry.playableMode(forRegistryId: modeStr)?.id
+        else { return nil }
 
         let playerScore = firstInt(obj, keys: "playerScore", "player_score", "score", "trainingScore") ?? 0
         let opponentScore = firstInt(obj, keys: "opponentScore", "opponent_score", "aiScore", "ai_score") ?? 0
