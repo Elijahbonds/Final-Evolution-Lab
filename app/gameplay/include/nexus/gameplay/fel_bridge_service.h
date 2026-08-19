@@ -1,6 +1,7 @@
 // NEXUS port of archived FEL bridge routing (fel_bridge_service)
 #pragma once
 
+#include <cstdint>
 #include "nexus/core/http_client.h"
 #include "nexus/core/result.h"
 #include "nexus/core/websocket_client.h"
