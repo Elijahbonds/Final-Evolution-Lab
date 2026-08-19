@@ -2459,10 +2459,8 @@ void flagship_modes_emit_post_ready_receipts() {
   nexus::physics::PhysicsWorld physics;
   require(physics.init({}).isOk(), "physics init");
 
-  const std::array<std::string, 5> modes = {
-      "basketball_dunk", "karate_endless", "basketball_h2h", "basketball_3v3",
-      "court_carnival"};
-  for (const auto& modeId : modes) {
+  for (const std::string_view expectedModeId : nexus::gameplay::kProductionModeIds) {
+    const std::string modeId{expectedModeId};
     require(gameplay.handleGameplayCommand(
                 "fel.arena.start_session",
                 {{"mode_id", modeId}, {"user_id", "receipt_chain"}},
@@ -2485,7 +2483,7 @@ void flagship_modes_emit_post_ready_receipts() {
     require(receipt.contains("telemetry"), "receipt telemetry for " + modeId);
     require(receipt.contains("score"), "receipt score for " + modeId);
 
-    gameplay.handleGameplayCommand("fel.arena.flush_receipts", {{"persist_to_disk", true}}, "chain_flush");
+    gameplay.handleGameplayCommand("fel.arena.flush_receipts", {{"persist_to_disk", false}}, "chain_flush");
   }
 
   physics.shutdown();
