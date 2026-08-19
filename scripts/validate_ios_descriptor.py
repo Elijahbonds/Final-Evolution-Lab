@@ -8,6 +8,7 @@ import json
 import os
 import sys
 import re
+import plistlib
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -77,7 +78,9 @@ def validate_fel_play_map():
     ue_maps_path = REPO_ROOT / "backend" / "ue_mode_maps.json"
     if ue_maps_path.exists():
         ue_maps = json.loads(ue_maps_path.read_text()).get("mode_to_unreal_map", {})
-        for mode_id in ue_maps:
+        for mode_id, ue_map in ue_maps.items():
+            if ue_map is None:
+                continue
             if mode_id not in play_map_section:
                 err(f"FELPlayMap missing mode: {mode_id}")
     print("  ✓ FELPlayMap cross-reference validated")
@@ -118,6 +121,8 @@ def validate_arena_settings():
         mgr = json.loads(mgr_path.read_text())
         registry = mgr.get("mode_manager", {}).get("mode_registry", {})
         for mode_id, info in registry.items():
+            if info.get("render_mode") == "IRL" or info.get("venue_id") is None:
+                continue
             if mode_id not in modes:
                 if info.get("status") in ("production", "staging"):
                     warn(f"ArenaSettings missing config for {info['status']} mode: {mode_id}")
@@ -142,6 +147,55 @@ def validate_venue_registry():
     print("  ✓ VenueRegistry validated")
 
 
+# ── 6. Validate iOS export plists ─────────────────────────────────────────────
+def validate_export_options():
+    required = {
+        "ExportOptions.testflight.plist": "app-store",
+        "ExportOptions.ad-hoc.plist": "ad-hoc",
+        "ExportOptions.development.plist": "development",
+    }
+    ios_dir = REPO_ROOT / "infra" / "ios"
+    for filename, method in required.items():
+        path = ios_dir / filename
+        if not path.exists():
+            err(f"Missing iOS export options plist: infra/ios/{filename}")
+            continue
+        try:
+            payload = plistlib.loads(path.read_bytes())
+        except Exception as exc:
+            err(f"Invalid iOS export options plist {filename}: {exc}")
+            continue
+        if payload.get("method") != method:
+            err(f"{filename} method={payload.get('method')!r}, expected {method!r}")
+        if payload.get("destination") != "export":
+            err(f"{filename} destination={payload.get('destination')!r}, expected 'export'")
+        if payload.get("teamID") != "7KJ6G7HLL4":
+            err(f"{filename} teamID={payload.get('teamID')!r}, expected '7KJ6G7HLL4'")
+        if "REPLACE_WITH" in path.read_text(errors="replace"):
+            err(f"{filename} contains unresolved REPLACE_WITH placeholder")
+
+    print("  ✓ iOS export options validated")
+
+
+# ── 7. Validate app entitlements ──────────────────────────────────────────────
+def validate_entitlements():
+    entitlements_path = REPO_ROOT / "FinalEvolutionLab" / "FinalEvolutionLab.entitlements"
+    if not entitlements_path.exists():
+        err("FinalEvolutionLab.entitlements not found")
+        return
+    try:
+        payload = plistlib.loads(entitlements_path.read_bytes())
+    except Exception as exc:
+        err(f"Invalid FinalEvolutionLab.entitlements: {exc}")
+        return
+    if payload.get("com.apple.developer.healthkit") is not True:
+        err("HealthKit entitlement missing or disabled")
+    if payload.get("com.apple.developer.healthkit.background-delivery") is not True:
+        err("HealthKit background-delivery entitlement missing or disabled")
+
+    print("  ✓ iOS entitlements validated")
+
+
 def main():
     print("═══ FEL iOS Build Descriptor Validation ═══\n")
     validate_packaging_settings()
@@ -149,6 +203,8 @@ def main():
     validate_mode_counts()
     validate_arena_settings()
     validate_venue_registry()
+    validate_export_options()
+    validate_entitlements()
 
     print()
     if WARNINGS:

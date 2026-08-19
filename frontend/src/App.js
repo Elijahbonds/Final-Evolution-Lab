@@ -91,20 +91,24 @@ function normalizeServerReward(data) {
 
 // Initialize Firebase SDK
 const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyFakeKey-ForLocalTestingOnly",
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
   authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "final-evolution-lab.firebaseapp.com",
   projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "final-evolution-lab",
   storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "final-evolution-lab.appspot.com",
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "1234567890",
-  appId: process.env.REACT_APP_FIREBASE_APP_ID || "1:1234567890:web:fakeappid"
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID
 };
 
 let firebaseApp, firebaseAuth;
-try {
-  firebaseApp = initializeApp(firebaseConfig);
-  firebaseAuth = getAuth(firebaseApp);
-} catch (e) {
-  console.error("Firebase initialization failed:", e);
+if (firebaseConfig.apiKey && firebaseConfig.appId && firebaseConfig.messagingSenderId) {
+  try {
+    firebaseApp = initializeApp(firebaseConfig);
+    firebaseAuth = getAuth(firebaseApp);
+  } catch (e) {
+    console.error("Firebase initialization failed:", e);
+  }
+} else {
+  console.warn("Firebase Auth disabled: missing REACT_APP_FIREBASE_* web config.");
 }
 
 // ── Mobile-WebView Bearer fallback ─────────────────────────────

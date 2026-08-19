@@ -13,9 +13,7 @@
  *   - Handles match_start, score_event, match_end messages
  */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-
-const API_BASE = process.env.REACT_APP_BACKEND_URL || '';
-const WS_BASE = API_BASE.replace(/^http/, 'ws');
+import { API_URL, toWebSocketUrl } from "@/lib/apiClient";
 
 const styles = {
   container: {
@@ -159,7 +157,7 @@ export default function GameView({ matchId: initialMatchId, userId, onExit }) {
   // ── WebSocket connection ────────────────────────────────────────────────
   const connectWs = useCallback((mid) => {
     if (wsRef.current) wsRef.current.close();
-    const url = `${WS_BASE}/ws/match/${mid}`;
+    const url = toWebSocketUrl(`/ws/match/${mid}`);
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
@@ -206,7 +204,7 @@ export default function GameView({ matchId: initialMatchId, userId, onExit }) {
   const createMatch = async () => {
     setError(null);
     try {
-      const r = await fetch(`${API_BASE}/api/matches/create`, {
+      const r = await fetch(`${API_URL}/matches/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -225,7 +223,7 @@ export default function GameView({ matchId: initialMatchId, userId, onExit }) {
   const joinMatch = async (mid) => {
     setError(null);
     try {
-      const r = await fetch(`${API_BASE}/api/matches/join`, {
+      const r = await fetch(`${API_URL}/matches/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -244,7 +242,7 @@ export default function GameView({ matchId: initialMatchId, userId, onExit }) {
   useEffect(() => {
     if (matchId) {
       connectWs(matchId);
-      fetch(`${API_BASE}/api/matches/${matchId}`, { credentials: 'include' })
+      fetch(`${API_URL}/matches/${matchId}`, { credentials: 'include' })
         .then((r) => r.ok ? r.json() : null)
         .then((data) => {
           if (!data) return;

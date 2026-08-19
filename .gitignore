@@ -4,10 +4,13 @@ node_modules/
 .bundle/
 android/
 ios/
+!infra/ios/
+!infra/ios/*.plist
 babel.config.js
 metro.config.js
 package.json
 package-lock.json
+!frontend/package-lock.json
 tsconfig.json
 app.json
 
