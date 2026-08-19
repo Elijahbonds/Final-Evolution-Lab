@@ -37,13 +37,18 @@ PRODUCTION_MODES = [
     "karate_h2h", "karate_endless",
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
-    "gymnastics", "skateboarding", "snowboarding",
+    "gymnastics", "brain_brawl", "who_scene_it",
+    "court_carnival", "skateboarding", "snowboarding",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = ["movement_lab"]
+SWIFT_MODE_ALIASES = {
+    # Backend/NEXUS runtime id; iOS exposes split 3D/IRL dunk choices.
+    "basketball_dunk": "basketball_dunk_3d",
+}
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -97,6 +102,8 @@ def test_ue_mode_maps():
     for mode in all_modes:
         if mode in mode_map:
             ok(f"{mode} → {mode_map[mode]}")
+        elif mode in PREVIEW_MODES:
+            skip(f"{mode} has no UE map (preview education module)")
         else:
             if mode == "market_browse":
                 # market_browse may not have a UE map (it's a shop module)
@@ -114,6 +121,9 @@ def test_arena_settings():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
+        if mode in PREVIEW_MODES:
+            skip(f"{mode} preview module has no ArenaSettings requirement")
+            continue
         if mode in modes:
             cfg = modes[mode]
             has_level = "unrealOpenLevelPackage" in cfg
@@ -136,6 +146,9 @@ def test_venue_registry():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
+        if mode in PREVIEW_MODES:
+            skip(f"{mode} preview module has no VenueRegistry requirement")
+            continue
         if mode in mode_ids:
             entry = next(m for m in vr["modes"] if m["id"] == mode)
             if entry["venueKey"] in venue_keys:
@@ -167,6 +180,9 @@ def test_fel_play_map():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
+        if mode in PREVIEW_MODES:
+            skip(f"{mode} preview module has no FELPlayMap requirement")
+            continue
         if mode in play_map:
             path = play_map[mode]
             # Verify path uses /Venues/ convention
@@ -195,7 +211,8 @@ def test_swift_enum():
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
         # Search for rawValue
-        if f'= "{mode}"' in content:
+        swift_raw_value = SWIFT_MODE_ALIASES.get(mode, mode)
+        if f'= "{swift_raw_value}"' in content:
             ok(f'{mode} has Swift enum case')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
@@ -210,6 +227,9 @@ def test_server_seeded_modes():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
+        if mode in PREVIEW_MODES:
+            skip(f"{mode} preview module is not server-seeded")
+            continue
         if f'"id":"{mode}"' in content or f'"id": "{mode}"' in content:
             ok(f"{mode} in server seeded modes")
         else:
@@ -256,7 +276,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print("  18 production runtime modes · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()
