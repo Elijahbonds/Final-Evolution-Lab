@@ -1,8 +1,8 @@
 {
-  "cooked_runtime_note": "FEL_ModeManager — 22 total modes (21 game + 1 education). Split dunk production modes are basketball_dunk_3d (NEXUS C++ runtime alias basketball_dunk) and basketball_dunk_irl (IRL/no UE map). movement_lab remains preview/non-scoring education.",
+  "cooked_runtime_note": "FEL_ModeManager — 22 total modes (21 game + 1 education). Production count includes the legacy basketball_dunk runtime alias, split dunk UI modes, and all C++ production arena modes. movement_lab remains preview/non-scoring education.",
   "mode_manager": {
     "total_modes": 22,
-    "production_modes": 15,
+    "production_modes": 20,
     "mode_registry": {
       "basketball_h2h": {
         "status": "production",
@@ -82,17 +82,17 @@
         "prq_weight": 1.05
       },
       "gymnastics": {
-        "status": "staging",
+        "status": "production",
         "venue_id": "Training_Floor",
         "prq_weight": 1.0
       },
       "brain_brawl": {
-        "status": "staging",
+        "status": "production",
         "venue_id": "Neuro_Arena",
         "prq_weight": 1.0
       },
       "who_scene_it": {
-        "status": "preview",
+        "status": "production",
         "venue_id": "Neuro_Arena",
         "prq_weight": 1.1
       },
@@ -103,12 +103,12 @@
         "scoring_enabled": true
       },
       "skateboarding": {
-        "status": "staging",
+        "status": "production",
         "venue_id": "Skate_Park",
         "prq_weight": 0.9
       },
       "snowboarding": {
-        "status": "staging",
+        "status": "production",
         "venue_id": "Mountain_Slope",
         "prq_weight": 0.9
       },

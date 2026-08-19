@@ -37,12 +37,13 @@ PRODUCTION_MODES = [
     "karate_h2h", "karate_endless",
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing", "court_carnival",
+    "gymnastics", "brain_brawl", "skateboarding", "snowboarding", "who_scene_it",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["gymnastics", "brain_brawl", "skateboarding", "snowboarding"]
-PREVIEW_MODES = ["who_scene_it"]
+STAGING_MODES = []
+PREVIEW_MODES = []
 REGISTRY_ONLY_PREVIEW_MODES = ["movement_lab"]
 LEGACY_RUNTIME_ALIASES = {"basketball_dunk"}
 IRL_MODES = {"basketball_dunk_irl"}
