@@ -902,6 +902,29 @@ void mode_runtime_tracks_dunk_combo_metrics() {
   require(runtime.modeSpecificPayload().contains("dunk_details"), "dunk details payload");
 }
 
+void mode_runtime_state_uses_measured_prq_snapshot() {
+  nexus::gameplay::ModeRuntime runtime;
+  require(runtime.setMode("basketball_dunk").isOk(), "dunk mode set for measured prq");
+
+  auto defaultState = runtime.stateJson();
+  require(defaultState["prq"].get<float>() == 75.0F, "runtime defaults to sprint prq");
+  require(defaultState["prq_source"].get<std::string>() == "sprint_default",
+          "runtime reports default prq source");
+
+  nexus::gameplay::ThreadSafeFitnessData fitness;
+  fitness.update({1.0F, 1.0F, 1.0F}, {1.0F, 1.0F, 1});
+  runtime.updateFitnessSnapshot(fitness.snapshot());
+
+  const auto measuredState = runtime.stateJson();
+  require(measuredState["prq"].get<float>() == 100.0F, "runtime exposes measured prq");
+  require(measuredState["neural_drive"].get<float>() == 100.0F,
+          "runtime exposes measured neural drive");
+  require(measuredState["prq_grade"].get<std::string>() == "ELITE",
+          "runtime grades measured prq");
+  require(measuredState["prq_source"].get<std::string>() == "fitness_snapshot",
+          "runtime reports measured prq source");
+}
+
 void venue_volume_overlap_triggers_travel() {
   nexus::creative::VoxelWorld world;
   nexus::creative::WorldManipulator manipulator(world);
@@ -954,10 +977,29 @@ void physics_intent_queue_is_consumed_on_step() {
   physics.shutdown();
 }
 
-void prq_stub_returns_sprint_defaults() {
+void prq_engine_uses_fitness_snapshot_with_sprint_default() {
   require(nexus::gameplay::PRQEngine::getScore() == 75.0F, "prq sprint default");
   require(nexus::gameplay::PRQEngine::getGrade() == nexus::gameplay::PRQGrade::kPrimed,
           "prq grade primed");
+
+  nexus::gameplay::ThreadSafeFitnessData fitness;
+  fitness.update({1.0F, 1.0F, 1.0F}, {1.0F, 1.0F, 1});
+  const auto eliteSnapshot = fitness.snapshot();
+  require(nexus::gameplay::PRQEngine::getScore(eliteSnapshot) == 100.0F,
+          "elite fitness snapshot reaches prq cap");
+  require(nexus::gameplay::PRQEngine::getNeuralDrive(eliteSnapshot) == 100.0F,
+          "elite fitness snapshot reaches neural cap");
+  require(nexus::gameplay::PRQEngine::getGrade(eliteSnapshot) ==
+              nexus::gameplay::PRQGrade::kElite,
+          "elite snapshot grade");
+
+  fitness.update({0.05F, 0.10F, 0.05F}, {0.05F, 0.10F, -1});
+  const auto recoverySnapshot = fitness.snapshot();
+  require(nexus::gameplay::PRQEngine::getScore(recoverySnapshot) < 40.0F,
+          "low fitness snapshot maps to recovery band");
+  require(nexus::gameplay::PRQEngine::getGrade(recoverySnapshot) ==
+              nexus::gameplay::PRQGrade::kRecovering,
+          "recovery snapshot grade");
 }
 
 void arcade_physics_maps_prq_75() {
@@ -2749,12 +2791,13 @@ auto main() -> int {
   session_receipt_http_stub_posts_localhost_contract();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
+  mode_runtime_state_uses_measured_prq_snapshot();
   venue_volume_overlap_triggers_travel();
   exercise_demo_pipeline_maps_production_modes();
   physics_intent_queue_is_consumed_on_step();
   engine_tick_runs_physics_before_gameplay_update();
   gameplay_update_drains_agent_commands_before_throw_catch();
-  prq_stub_returns_sprint_defaults();
+  prq_engine_uses_fitness_snapshot_with_sprint_default();
   arcade_physics_maps_prq_75();
   dunk_contest_charge_release_scores();
   karate_endless_wave_spawns();
