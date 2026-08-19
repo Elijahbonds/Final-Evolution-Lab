@@ -38,12 +38,21 @@ PRODUCTION_MODES = [
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
     "gymnastics", "skateboarding", "snowboarding",
+    "brain_brawl", "who_scene_it", "court_carnival",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = []
+
+# C++ runtime keeps `basketball_dunk`; iOS/VenueRegistry split it into 3D + IRL app entries.
+MODE_ALIASES = {
+    "basketball_dunk": ["basketball_dunk", "basketball_dunk_3d"],
+}
+
+def ids_for(mode):
+    return MODE_ALIASES.get(mode, [mode])
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -136,8 +145,9 @@ def test_venue_registry():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
-        if mode in mode_ids:
-            entry = next(m for m in vr["modes"] if m["id"] == mode)
+        matched_id = next((candidate for candidate in ids_for(mode) if candidate in mode_ids), None)
+        if matched_id is not None:
+            entry = next(m for m in vr["modes"] if m["id"] == matched_id)
             if entry["venueKey"] in venue_keys:
                 ok(f"{mode} → venue={entry['venueKey']}")
             else:
@@ -194,8 +204,12 @@ def test_swift_enum():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
-        # Search for rawValue
-        if f'= "{mode}"' in content:
+        # Search for rawValue, allowing C++ runtime aliases resolved by `playableMode(forRegistryId:)`.
+        if f'= "{mode}"' in content or (
+            mode == "basketball_dunk"
+            and 'case "basketball_dunk":' in content
+            and ".basketballDunkContest3D" in content
+        ):
             ok(f'{mode} has Swift enum case')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
@@ -256,7 +270,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print("  18 production runtime modes · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()
