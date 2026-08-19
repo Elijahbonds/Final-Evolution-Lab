@@ -37,7 +37,9 @@ async def unified_system_scan(user: User = Depends(get_current_user)) -> Dict[st
     prq_doc = await db.prq_metrics.find_one({"user_id": user.user_id}, {"_id": 0}) or {}
     health_doc = await db.health_metrics.find_one({"user_id": user.user_id}, {"_id": 0}) or {}
     vj_doc = await db.vertical_jump_log.find({"user_id": user.user_id}, {"_id": 0}).sort("recorded_at", -1).limit(1).to_list(1)
-    last_vj = vj_doc[0] if vj_doc else None
+    last_vj = vj_doc[0] if vj_doc else {}
+    prq_metric_keys = ("strength", "speed", "endurance", "agility", "power", "flexibility", "recovery", "mental")
+    health_metric_keys = ("resting_hr", "hrv", "sleep_hours", "vo2_max")
 
     scan = {
         "prq_score": user.prq_score,
@@ -45,8 +47,8 @@ async def unified_system_scan(user: User = Depends(get_current_user)) -> Dict[st
         "xp": user.xp,
         "streak_days": user.streak_days,
         "coins": user.coins,
-        "metrics": {k: prq_doc.get(k) for k in ("strength", "speed", "endurance", "agility", "power", "flexibility", "recovery", "mental")},
-        "health": {k: health_doc.get(k) for k in ("resting_hr", "hrv", "sleep_hours", "vo2_max")} if health_doc else None,
+        "metrics": {k: float(prq_doc.get(k, 0.0) or 0.0) for k in prq_metric_keys},
+        "health": {k: float(health_doc.get(k, 0.0) or 0.0) for k in health_metric_keys},
         "last_vertical_jump": last_vj,
     }
 
@@ -62,10 +64,18 @@ async def unified_system_scan(user: User = Depends(get_current_user)) -> Dict[st
     # ---- 3. ARENA ----
     game_count = await db.game_sessions.count_documents({"user_id": user.user_id})
     last_game = await db.game_sessions.find({"user_id": user.user_id}, {"_id": 0}).sort("created_at", -1).limit(1).to_list(1)
+    mode_docs = await db.game_sessions.find({"user_id": user.user_id}, {"_id": 0, "mode": 1, "mode_id": 1}).to_list(50)
+    modes_unlocked = []
+    for doc in mode_docs:
+        mode_id = doc.get("mode_id") or doc.get("mode")
+        if mode_id and mode_id not in modes_unlocked:
+            modes_unlocked.append(mode_id)
     sov_count = await db.vault_sessions.count_documents({"user_id": user.user_id}) if "vault_sessions" in await db.list_collection_names() else 0
     arena = {
         "modes_played": game_count,
-        "last_session": last_game[0] if last_game else None,
+        "last_game": last_game[0] if last_game else {},
+        "last_session": last_game[0] if last_game else {},
+        "modes_unlocked": modes_unlocked,
         "vault_sessions": sov_count,
         "ue5_bridge": "ready",  # native iOS deep-link bridge present
     }
@@ -99,6 +109,15 @@ async def unified_system_scan(user: User = Depends(get_current_user)) -> Dict[st
         "lessons_completed": total_done,
         "lessons_total": total_lessons,
         "tracks": academy_tracks,
+        "certificates": [
+            {
+                "track_id": t["track_id"],
+                "certificate_id": t.get("certificate_id"),
+                "issued": t["certificate_issued"],
+            }
+            for t in academy_tracks
+            if t["is_certificate"]
+        ],
         "kinesiology_certificate": {
             "eligibility": kin_elig,
             "issued": any(t["certificate_issued"] for t in academy_tracks if t["track_id"] == "kinesiology"),

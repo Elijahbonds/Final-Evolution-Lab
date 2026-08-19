@@ -27,6 +27,7 @@ from routers import education_tracks as education_tracks_router
 from routers import system_scan as system_scan_router
 from routers import pass_image as pass_image_router
 from routers import biofuel as biofuel_router
+from routers import matches as matches_router
 
 # PayPal config
 paypalrestsdk.configure({
@@ -4036,6 +4037,7 @@ app.include_router(education_tracks_router.router)
 app.include_router(system_scan_router.router)
 app.include_router(pass_image_router.router)
 app.include_router(biofuel_router.router)
+app.include_router(matches_router.router)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
