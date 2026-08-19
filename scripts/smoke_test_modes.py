@@ -33,17 +33,19 @@ def skip(msg):
 # Production modes expected to pass all gates
 # ═══════════════════════════════════════════════════════════════════════════════
 PRODUCTION_MODES = [
-    "basketball_h2h", "basketball_dunk", "basketball_3v3",
+    "basketball_h2h", "basketball_dunk_3d", "basketball_dunk_irl", "basketball_3v3",
     "karate_h2h", "karate_endless",
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
     "gymnastics", "skateboarding", "snowboarding",
+    "brain_brawl", "who_scene_it", "court_carnival",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = []
+IRL_MODES = {"basketball_dunk_irl"}
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -96,7 +98,12 @@ def test_ue_mode_maps():
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
         if mode in mode_map:
-            ok(f"{mode} → {mode_map[mode]}")
+            if mode_map[mode] is None and mode in IRL_MODES:
+                ok(f"{mode} → IRL camera flow (no UE map)")
+            elif mode_map[mode] is None:
+                fail(f"{mode} has null UE map but is not marked IRL")
+            else:
+                ok(f"{mode} → {mode_map[mode]}")
         else:
             if mode == "market_browse":
                 # market_browse may not have a UE map (it's a shop module)
@@ -114,6 +121,9 @@ def test_arena_settings():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
+        if mode in IRL_MODES:
+            ok(f"{mode} → IRL camera flow (no ArenaSettings)")
+            continue
         if mode in modes:
             cfg = modes[mode]
             has_level = "unrealOpenLevelPackage" in cfg
@@ -167,6 +177,9 @@ def test_fel_play_map():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
+        if mode in IRL_MODES:
+            ok(f"{mode} → IRL camera flow (no FELPlayMap)")
+            continue
         if mode in play_map:
             path = play_map[mode]
             # Verify path uses /Venues/ convention
