@@ -30,6 +30,16 @@
       }
     },
     {
+      "id": "basketball_dunk",
+      "analyticsMode": "dunk_contest",
+      "venueKey": "venice_beach_court",
+      "displayVenue": "Venice Beach Court",
+      "renderMode": "3D_UE5",
+      "modeNote": "Legacy NEXUS runtime id. App-facing cards use basketball_dunk_3d / basketball_dunk_irl.",
+      "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
+      "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
+    },
+    {
       "id": "basketball_dunk_3d",
       "analyticsMode": "dunk_contest",
       "venueKey": "venice_beach_court",
@@ -165,6 +175,7 @@
     { "venueKey": "stadium_pitch", "analyticsPolicyName": "Stadium Pitch" },
     { "venueKey": "golf_green", "analyticsPolicyName": "Golf Green" },
     { "venueKey": "arena_floor", "analyticsPolicyName": "Arena — Gymnastics" },
+    { "venueKey": "regulation_court_irl", "analyticsPolicyName": "Regulation Court — IRL camera mode" },
     { "venueKey": "e3ds_stadium_lobby", "analyticsPolicyName": "E3DS Stadium / Lobby shell" }
   ]
 }
