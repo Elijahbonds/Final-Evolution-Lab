@@ -20,7 +20,13 @@ namespace {
 } // namespace
 
 auto ModeRuntime::physicsParams() const -> ArcadePhysicsParams {
-  return ArcadePhysics::fromPRQ(PRQEngine::getScore(), PRQEngine::getNeuralDrive());
+  const float prqScore = m_hasFitnessSnapshot
+                             ? std::clamp(m_fitnessSnapshot.powerReadiness * 100.0F, 0.0F, 100.0F)
+                             : PRQEngine::getScore();
+  const float neuralDrive = m_hasFitnessSnapshot
+                                ? std::clamp(m_fitnessSnapshot.iapComposite * 100.0F, 0.0F, 100.0F)
+                                : PRQEngine::getNeuralDrive();
+  return ArcadePhysics::fromPRQ(prqScore, neuralDrive);
 }
 
 auto ModeRuntime::parseCarnivalPad(std::string_view label) -> std::optional<CarnivalPad> {
@@ -112,8 +118,15 @@ void ModeRuntime::reset() {
   m_surfing.reset();
   m_whoSceneIt.reset();
   m_outcomeSport.reset();
+  m_fitnessSnapshot = {};
+  m_hasFitnessSnapshot = false;
   m_lastThrowPulseCount = 0;
   m_browseItemsViewed = 0;
+}
+
+void ModeRuntime::setFitnessSnapshot(const FitnessSnapshot& fitness) {
+  m_fitnessSnapshot = fitness;
+  m_hasFitnessSnapshot = true;
 }
 
 void ModeRuntime::update(double deltaSeconds) {

@@ -885,6 +885,91 @@ void karate_mode_input_strike_advances_wave() {
   physics.shutdown();
 }
 
+void mode_input_routes_shared_controls_to_live_mode_families() {
+  const auto expectModeInputScore = [](std::string_view modeId,
+                                       const nlohmann::json& params,
+                                       std::string_view stateKey,
+                                       std::string_view scoreKey) {
+    nexus::creative::VoxelWorld world;
+    nexus::creative::WorldManipulator manipulator(world);
+    nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+    require(gameplay.handleGameplayCommand(
+                "fel.arena.start_session",
+                {{"mode_id", std::string(modeId)}, {"user_id", "mode_input_user"}},
+                "mode_input_start")
+                .status == "ok",
+            std::string("session starts for ") + std::string(modeId));
+
+    const auto action = gameplay.handleGameplayCommand(
+        "fel.arena.mode_input", params, "mode_input_action");
+    require(action.status == "ok", std::string("mode_input ok for ") + std::string(modeId));
+
+    const auto state =
+        gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "mode_input_state");
+    require(state.status == "ok", "mode_input state query ok");
+    require(state.payload[std::string(stateKey)].is_object(),
+            std::string("mode_input state has ") + std::string(stateKey));
+    require(state.payload[std::string(stateKey)][std::string(scoreKey)].get<double>() > 0.0,
+            std::string("mode_input advances ") + std::string(modeId));
+  };
+
+  expectModeInputScore("basketball_h2h",
+                       {{"action", "shoot"}, {"timing", 0.96F}, {"success", true}},
+                       "pickup",
+                       "player_score");
+  expectModeInputScore("brain_brawl",
+                       {{"action", "answer"},
+                        {"correct", true},
+                        {"response_time", 2.0F},
+                        {"category", "SportsIQ"}},
+                       "brain_brawl",
+                       "player_correct");
+  expectModeInputScore("skateboarding",
+                       {{"action", "trick"}, {"difficulty", 0.75F}, {"combo_multiplier", 2}},
+                       "skateboarding",
+                       "trick_score");
+  expectModeInputScore("snowboarding",
+                       {{"action", "carve"}, {"timing", 0.95F}, {"line_difficulty", 0.8F}},
+                       "snowboarding",
+                       "line_score");
+  expectModeInputScore("surfing",
+                       {{"action", "aerial"}, {"air_difficulty", 0.85F}, {"combo_multiplier", 2}},
+                       "surfing",
+                       "wave_score");
+  expectModeInputScore("basketball_3v3",
+                       {{"action", "three_pointer"}, {"success", true}, {"timing", 0.95F}},
+                       "outcome_sport",
+                       "player_score");
+
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "who_scene_it"}, {"user_id", "scene_mode_input_user"}},
+              "scene_mode_input_start")
+              .status == "ok",
+          "who scene it session starts for mode_input");
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.mode_input", {{"action", "buzz_in"}, {"timing", 0.92F}}, "scene_buzz")
+              .status == "ok",
+          "scene buzz_in mode_input ok");
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.mode_input",
+              {{"action", "answer"},
+               {"correct", true},
+               {"response_time", 2.0F},
+               {"category", "ClassicFilm"}},
+              "scene_answer")
+              .status == "ok",
+          "scene answer mode_input ok");
+  const auto sceneState =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "scene_state");
+  require(sceneState.payload["who_scene_it"]["correct_count"].get<int>() == 1,
+          "scene mode_input advances score");
+}
+
 void mode_runtime_tracks_dunk_combo_metrics() {
   nexus::gameplay::ModeRuntime runtime;
   require(runtime.setMode("basketball_dunk").isOk(), "dunk mode set");
@@ -933,6 +1018,17 @@ void exercise_demo_pipeline_maps_production_modes() {
   require(mapping.has_value(), "dunk demo mapping exists");
   require(mapping->moduleId == "mod2", "dunk maps to mod2");
   require(mapping->montagePath.find("mod2") != std::string::npos, "montage path contains mod2");
+
+  for (const auto& mode : nexus::gameplay::ArenaModeRegistry::productionModes()) {
+    const auto productionMapping =
+        nexus::gameplay::ExerciseDemoPipeline::mappingForMode(mode.id);
+    require(productionMapping.has_value(),
+            std::string("production mode has exercise demo mapping: ") + std::string(mode.id));
+  }
+  const auto allMappings = nexus::gameplay::ExerciseDemoPipeline::allProductionMappings();
+  require(allMappings["count"].get<std::size_t>() ==
+              nexus::gameplay::ArenaModeRegistry::productionModes().size(),
+          "exercise demo mappings cover every production mode");
 }
 
 void physics_intent_queue_is_consumed_on_step() {
@@ -966,6 +1062,58 @@ void arcade_physics_maps_prq_75() {
   require(params.hangTimeMultiplier > 2.3F, "hang time multiplier at PRQ 75");
   require(params.explosiveFirstStep > 0.82F && params.explosiveFirstStep < 0.83F,
           "explosive first step at PRQ 75");
+}
+
+void fitness_updates_drive_mode_runtime_arcade_physics() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  nexus::physics::PhysicsWorld physics;
+  require(physics.init({}).isOk(), "physics init");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk"}, {"user_id", "fitness_prq_user"}},
+              "fitness_prq_start")
+              .status == "ok",
+          "fitness prq session starts");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.fitness.update",
+              {{"frc_mobility", 0.1F},
+               {"frc_active_range", 0.1F},
+               {"frc_control", 0.1F},
+               {"iap_engagement", 0.1F},
+               {"iap_confidence", 0.1F},
+               {"breath_phase", 0}},
+              "fitness_low")
+              .status == "ok",
+          "low fitness update ok");
+  gameplay.update(0.05, physics, {});
+  const auto lowState =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "fitness_low_state");
+  const double lowHang =
+      lowState.payload["arcade_physics"]["hang_time_multiplier"].get<double>();
+
+  require(gameplay.handleGameplayCommand(
+              "fel.fitness.update",
+              {{"frc_mobility", 0.95F},
+               {"frc_active_range", 0.95F},
+               {"frc_control", 0.95F},
+               {"iap_engagement", 0.95F},
+               {"iap_confidence", 0.95F},
+               {"breath_phase", 1}},
+              "fitness_high")
+              .status == "ok",
+          "high fitness update ok");
+  gameplay.update(0.05, physics, {});
+  const auto highState =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "fitness_high_state");
+  const double highHang =
+      highState.payload["arcade_physics"]["hang_time_multiplier"].get<double>();
+
+  require(highHang > lowHang, "live fitness increases mode runtime hang time");
+  physics.shutdown();
 }
 
 void dunk_contest_charge_release_scores() {
@@ -2362,7 +2510,7 @@ void nexus_sprint_live_modes_agent_contract_integration() {
     const char* nestedStateKey;
   };
 
-  const std::array<SprintProbe, 9> probes{{
+  const std::array<SprintProbe, 10> probes{{
       {"basketball_dunk", "fel.dunk.charge_begin", {}, "fel.dunk.charge_begin", "dunk"},
       {"karate_endless", "fel.karate.action", {{"action", "heavy_strike"}},
        "fel.karate.action", "karate"},
@@ -2385,6 +2533,8 @@ void nexus_sprint_live_modes_agent_contract_integration() {
        "fel.skate.trick", "skateboarding"},
       {"snowboarding", "fel.snow.carve", {{"timing", 0.93F}, {"line_difficulty", 0.75F}},
        "fel.snow.carve", "snowboarding"},
+      {"surfing", "fel.surf.carve", {{"timing", 0.93F}, {"wave_difficulty", 0.75F}},
+       "fel.surf.carve", "surfing"},
       {"who_scene_it", "fel.scene.buzz_in", {{"timing", 0.91F}}, "fel.scene.buzz_in",
        "who_scene_it"},
   }};
@@ -2748,6 +2898,7 @@ auto main() -> int {
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
   karate_mode_input_strike_advances_wave();
+  mode_input_routes_shared_controls_to_live_mode_families();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
   exercise_demo_pipeline_maps_production_modes();
@@ -2756,6 +2907,7 @@ auto main() -> int {
   gameplay_update_drains_agent_commands_before_throw_catch();
   prq_stub_returns_sprint_defaults();
   arcade_physics_maps_prq_75();
+  fitness_updates_drive_mode_runtime_arcade_physics();
   dunk_contest_charge_release_scores();
   karate_endless_wave_spawns();
   karate_endless_local_coop_wave_survival();

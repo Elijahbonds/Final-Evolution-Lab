@@ -27,6 +27,20 @@
       "bScoringEnabled": true,
       "bNeuroKineticLeakageForDunkParity": true
     },
+    "basketball_dunk_3d": {
+      "unrealOpenLevelPackage": "/Game/FEL/Venues/VeniceBeach/VeniceBeach.VeniceBeach",
+      "modeDisplayName": "Dunk Contest",
+      "unrealBasketballSlice": "FirstToTwentyOne",
+      "ballSpawnType": "SingleAtPrimary",
+      "bIsDunkContest": true,
+      "timeLimitSeconds": 0,
+      "ballCount": 1,
+      "targetScore": 21,
+      "physicsJumpScale": 1.0,
+      "physicsWalkScale": 1.0,
+      "bScoringEnabled": true,
+      "bNeuroKineticLeakageForDunkParity": true
+    },
     "basketball_3v3": {
       "unrealOpenLevelPackage": "/Game/FEL/Venues/VeniceBeach/VeniceBeach.VeniceBeach",
       "modeDisplayName": "Street · 3v3",

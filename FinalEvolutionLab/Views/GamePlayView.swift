@@ -483,7 +483,7 @@ struct GamePlayView: View {
         }
         .onDisappear {
             sceneViewportReady = false
-            nexusEngine.stop()
+            nexusEngine.stop(playerScore: score, opponentScore: opponentScore)
             FELSoundscapeEngine.shared.stop()
             matchLobbyComplete = false
             multipeerService.stop()
@@ -4111,6 +4111,7 @@ struct GamePlayView: View {
         lastAction = ""
         lastJudgeScores = nil
         crowdMessage = ""
+        nexusEngine.stop(playerScore: score, opponentScore: opponentScore)
         withAnimation(.spring(response: 0.4)) {
             isActive = false
         }
