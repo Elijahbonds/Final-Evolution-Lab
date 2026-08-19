@@ -5,6 +5,7 @@
 #include "nexus/core/result.h"
 
 #include <nlohmann/json.hpp>
+#include <cstdint>
 #include <cstddef>
 #include <optional>
 #include <string>
