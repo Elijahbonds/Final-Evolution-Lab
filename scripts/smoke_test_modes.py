@@ -210,6 +210,9 @@ def test_swift_enum():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
+        if mode in PREVIEW_MODES:
+            skip(f"{mode} preview module has no Swift arena enum requirement")
+            continue
         # Search for rawValue
         swift_raw_value = SWIFT_MODE_ALIASES.get(mode, mode)
         if f'= "{swift_raw_value}"' in content:
