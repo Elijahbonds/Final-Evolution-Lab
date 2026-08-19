@@ -1,5 +1,7 @@
 # Final Evolution Lab — Game Completion Audit
 
+> **Superseded NEXUS note (2026-08-19):** This audit is historical and still includes UE 5.7 retail tasks. The active retail ship path is the NEXUS C++ engine + Swift iOS app; use `NEXUS_DELIVERY_MATRIX.md`, `NEXUS_RESUME.md`, `NEXUS_QUALITY_BAR.md`, and `docs/NEXUS_GAMEPLAY_TEST_REPORT.md` for current completion status. Current NEXUS production validation tracks 18 runtime modes, while backend/iOS metadata keeps split dunk and non-game education/module records separately.
+
 **Date:** 2026-06-19  
 **Branch:** `anti-gravity-fel`  
 **Scope:** iOS shell, NEXUS engine, app/gameplay layer, UE/backend registries, GDD/asset handoffs

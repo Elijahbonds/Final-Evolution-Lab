@@ -10,25 +10,25 @@
 
 | Phase | Theme | Status | Command |
 |-------|-------|--------|---------|
-| 1 | Headless engine + gameplay compile | **pass** | `ctest --test-dir build-headless` → 4/4 |
+| 1 | Headless engine + gameplay compile | **pass** | `ctest --test-dir build-headless` → 7/7 |
 | 2 | Full renderer + `nexus_runtime` | **pass** | `cmake -B build-full -DNEXUS_ENABLE_RENDERER=ON && cmake --build build-full` |
 | 3 | Mobile mesh LOD gate | **pass** | `./scripts/nexus_mobile_mesh_gate.sh` (WARN: sidecar naming vs manifest bases) |
 | 4 | Spec v1 integration smoke | **pass** | `./scripts/smoke_v1.sh --skip-build` |
 | 5 | iOS NEXUS static libs | **pass** | `./scripts/build-nexus-ios.sh` → `build-ios/*.a` |
-| 6 | Full build gate | **pass** | `./scripts/nexus_build_gate.sh` → headless 4/4 + full 5/5 ctest |
+| 6 | Full build gate | **pass** | `./scripts/nexus_build_gate.sh` → headless 7/7 + full 8/8 ctest + 18/18 production modes |
 | 7 | Runtime smoke | **pass** | `bench_nexus_runtime.sh`, `smoke_v1.sh`, `smoke_gameplay_session.sh` |
-| 8 | iOS TestFlight packaging | **partial** | Dry-run OK; **no** `FEL.xcarchive`, **no** IPA, **no** `GoogleService-Info.plist` |
+| 8 | iOS TestFlight packaging | **partial** | Preview Firebase archive/export path documented green; production lane still needs real `GoogleService-Info.plist` + ASC app record |
 | 9 | Docs (this file) | **pass** | Honest status — no fake “shipped” claims |
-| 10 | Delivery evidence | **pass** | `build/nexus-pass2-report.json` + logs under `build/` and `build/ios/` |
+| 10 | Delivery evidence | **pass** | `NEXUS_DELIVERY_MATRIX.md` + `artifacts/playtest/gameplay_regression.json` |
 
 **Pass 2 score: 9/10 green** (phase 8 blocked on Firebase plist + code signing + manual archive).
 
-Machine-readable report: `build/nexus-pass2-report.json`
+Machine-readable report: `artifacts/playtest/gameplay_regression.json`
 
 ### What is NOT shipped
 
-- No App Store / TestFlight upload for NEXUS embed path
-- No `build/FEL.xcarchive` on disk (full `archive-ios-testflight.sh` not run)
+- No production App Store / TestFlight upload for NEXUS embed path (ASC app record + real Firebase plist still required)
+- No production-signed archive/export evidence for the live Firebase lane
 - No Instruments 60 FPS proof on device
 - GPU shadow / bloom / FXAA resolve passes still stubs (see `NEXUS_Engine_10_Phase_Pass.md`)
 
@@ -104,7 +104,7 @@ Full renderer requires **CMake**, **SDL3**, **Vulkan/MoltenVK**.
 ```
 Resume NEXUS in /Users/elijahbonds/Final-Evolution-Lab.
 
-Read NEXUS_RESUME.md and build/nexus-pass2-report.json.
+Read NEXUS_RESUME.md, NEXUS_DELIVERY_MATRIX.md, and artifacts/playtest/gameplay_regression.json.
 Run ./scripts/nexus_build_gate.sh; fix compile/test failures.
 Do not hack engine core — log engine API extensions.
 Keep separation: engine/ vs app/gameplay/.
