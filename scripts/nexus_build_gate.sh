@@ -5,6 +5,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+echo "==> Phase 0: NEXUS iOS/C++ mode registry alignment"
+python3 "${ROOT}/scripts/validate_nexus_ios_mode_registry.py"
+
 echo "==> Phase 1: headless build (NEXUS_ENABLE_RENDERER=OFF)"
 cmake -S . -B build-headless \
   -DNEXUS_ENABLE_RENDERER=OFF \

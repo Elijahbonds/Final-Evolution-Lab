@@ -3,6 +3,7 @@
 
 #include "nexus/core/result.h"
 
+#include <cstdint>
 #include <string_view>
 
 namespace nexus::gameplay {
