@@ -744,6 +744,8 @@ struct TriumphTournamentLobbyView: View {
                 Theme.meshGradient.opacity(0.25).ignoresSafeArea()
                 
                 VStack(spacing: 20) {
+                    FELPreviewLabel(text: FELPremiumCopy.Preview.triumphPaymentStub)
+
                     VStack(alignment: .leading, spacing: 6) {
                         Text("DEPOSIT AMOUNT (USD)")
                             .font(.system(size: 11, weight: .black, design: .monospaced))
@@ -760,7 +762,7 @@ struct TriumphTournamentLobbyView: View {
                     }
                     
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("CREDIT CARD DETAILS (STRIPE STUB)")
+                        Text("Payment form (not connected)")
                             .font(.system(size: 11, weight: .black, design: .monospaced))
                             .foregroundStyle(.secondary)
                         

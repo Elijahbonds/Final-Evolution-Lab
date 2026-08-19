@@ -63,7 +63,8 @@ const PRQ_MODE_WEIGHTS = {
   karate: 1.4, karate_h2h: 1.4, karate_endless: 1.4,
   baseball: 1.0, football: 1.5, soccer: 1.1, golf: 0.9, tennis: 1.1,
   volleyball: 1.2, gymnastics: 1.0, brain_brawl: 0.8, surfing: 1.05,
-  skateboarding: 1.0, snowboarding: 1.0, market_browse: 0.0,
+  skateboarding: 1.0, snowboarding: 1.0, who_scene_it: 0.7, court_carnival: 0.9,
+  market_browse: 0.0,
 };
 function computeLocalReward({ mode_id, score, outcome, duration_seconds = 30, combo = 0, critical = 0, pacing = 0 }) {
   const xp = Math.min(500, Math.max(10, Math.floor(score / 5)));

@@ -30,7 +30,7 @@ const FALLBACK_HUB_STATUS = {
 };
 const FALLBACK_HUB_HEALTH = {
   status: "STANDBY",
-  checks: { mode_manager: { production_modes: 19 } },
+  checks: { mode_manager: { production_modes: 18 } },
 };
 const FALLBACK_HUB_HANDSHAKE = {
   handshake_status: "STANDBY",

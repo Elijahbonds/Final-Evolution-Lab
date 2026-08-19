@@ -637,7 +637,7 @@ async def hub_status() -> dict[str, Any]:
 
 @router.get("/production/health")
 async def production_health() -> dict[str, Any]:
-    return {"status": "HEALTHY", "checks": {"mode_manager": {"production_modes": 19}}}
+    return {"status": "HEALTHY", "checks": {"mode_manager": {"production_modes": 18}}}
 
 
 @router.get("/production/handshake-log")
