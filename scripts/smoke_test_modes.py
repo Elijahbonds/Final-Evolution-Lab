@@ -37,13 +37,19 @@ PRODUCTION_MODES = [
     "karate_h2h", "karate_endless",
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
-    "gymnastics", "skateboarding", "snowboarding",
+    "gymnastics", "brain_brawl", "skateboarding", "snowboarding",
+    "who_scene_it", "court_carnival",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = []
+
+MODE_ALIASES = {
+    # Swift exposes separate IRL / 3D launch modes; the C++ runtime id remains basketball_dunk.
+    "basketball_dunk": ["basketball_dunk_3d"],
+}
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -131,15 +137,25 @@ def test_arena_settings():
 def test_venue_registry():
     print("\n── Test 4: VenueRegistry Coverage ──")
     vr = json.loads((REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Config" / "FEL_VenueRegistry.production.json").read_text())
-    mode_ids = {m["id"] for m in vr["modes"]}
+    modes = vr["modes"]
+    mode_ids = {m["id"] for m in modes}
     venue_keys = {v["venueKey"] for v in vr["venues"]}
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
+        alias_ids = MODE_ALIASES.get(mode, [])
+        entry = None
         if mode in mode_ids:
-            entry = next(m for m in vr["modes"] if m["id"] == mode)
+            entry = next(m for m in modes if m["id"] == mode)
+        else:
+            entry = next(
+                (m for m in modes if m.get("nexusRuntimeModeId") == mode or m.get("id") in alias_ids),
+                None,
+            )
+        if entry is not None:
             if entry["venueKey"] in venue_keys:
-                ok(f"{mode} → venue={entry['venueKey']}")
+                suffix = "" if entry["id"] == mode else f" via {entry['id']}"
+                ok(f"{mode}{suffix} → venue={entry['venueKey']}")
             else:
                 fail(f"{mode} references unknown venue: {entry['venueKey']}")
         else:
@@ -194,8 +210,10 @@ def test_swift_enum():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
-        # Search for rawValue
-        if f'= "{mode}"' in content:
+        aliases = MODE_ALIASES.get(mode, [])
+        raw_value_present = f'= "{mode}"' in content or any(f'= "{alias}"' in content for alias in aliases)
+        runtime_mapping_present = f'return "{mode}"' in content
+        if raw_value_present and (mode != "basketball_dunk" or runtime_mapping_present):
             ok(f'{mode} has Swift enum case')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
@@ -256,7 +274,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print("  18 production runtime modes · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()

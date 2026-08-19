@@ -158,6 +158,7 @@
     { "venueKey": "beach_court", "analyticsPolicyName": "Beach Court — Volleyball" },
     { "venueKey": "dojo_arena", "analyticsPolicyName": "Zen / Dojo Arena", "nexusEnvironmentAssetId": "zen_dojo_environment_model_fbx" },
     { "venueKey": "neuro_arena", "analyticsPolicyName": "Neuro Arena", "nexusEnvironmentAssetId": "neuro_arena_environment_model_fbx" },
+    { "venueKey": "regulation_court_irl", "analyticsPolicyName": "Regulation Court — IRL dunk capture" },
     { "venueKey": "skate_park", "analyticsPolicyName": "Skate Park" },
     { "venueKey": "mountain_slope", "analyticsPolicyName": "Mountain Slope" },
     { "venueKey": "stadium_diamond", "analyticsPolicyName": "Stadium Diamond" },

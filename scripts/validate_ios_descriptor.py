@@ -13,6 +13,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ERRORS = []
 WARNINGS = []
+UE_MAP_ALIASES = {
+    "basketball_dunk_3d": "basketball_dunk",
+}
 
 def err(msg): ERRORS.append(msg)
 def warn(msg): WARNINGS.append(msg)
@@ -77,8 +80,11 @@ def validate_fel_play_map():
     ue_maps_path = REPO_ROOT / "backend" / "ue_mode_maps.json"
     if ue_maps_path.exists():
         ue_maps = json.loads(ue_maps_path.read_text()).get("mode_to_unreal_map", {})
-        for mode_id in ue_maps:
-            if mode_id not in play_map_section:
+        for mode_id, unreal_map in ue_maps.items():
+            if unreal_map is None:
+                continue
+            alias = UE_MAP_ALIASES.get(mode_id)
+            if mode_id not in play_map_section and (alias is None or alias not in play_map_section):
                 err(f"FELPlayMap missing mode: {mode_id}")
     print("  ✓ FELPlayMap cross-reference validated")
 
@@ -119,6 +125,11 @@ def validate_arena_settings():
         registry = mgr.get("mode_manager", {}).get("mode_registry", {})
         for mode_id, info in registry.items():
             if mode_id not in modes:
+                if info.get("render_mode") == "IRL" or info.get("venue_id") is None:
+                    continue
+                alias = UE_MAP_ALIASES.get(mode_id)
+                if alias and alias in modes:
+                    continue
                 if info.get("status") in ("production", "staging"):
                     warn(f"ArenaSettings missing config for {info['status']} mode: {mode_id}")
 

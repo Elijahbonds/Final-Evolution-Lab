@@ -5,6 +5,13 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+if [[ "$(uname -s)" == "Linux" && -z "${CXX:-}" && -x /usr/bin/g++ ]]; then
+  export CXX=/usr/bin/g++
+  if [[ -z "${CC:-}" && -x /usr/bin/gcc ]]; then
+    export CC=/usr/bin/gcc
+  fi
+fi
+
 echo "==> Phase 1: headless build (NEXUS_ENABLE_RENDERER=OFF)"
 cmake -S . -B build-headless \
   -DNEXUS_ENABLE_RENDERER=OFF \
