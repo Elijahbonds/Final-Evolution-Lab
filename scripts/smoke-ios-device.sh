@@ -79,6 +79,11 @@ fi
 
 cd "$ROOT"
 
+echo "==> Mode registry + iOS descriptor gates"
+python3 scripts/smoke_test_modes.py
+python3 scripts/validate_ios_descriptor.py
+python3 scripts/validate_cooked_payload.py
+
 echo "==> Headless ctest gate"
 ./scripts/smoke_gameplay_session.sh --skip-build
 
