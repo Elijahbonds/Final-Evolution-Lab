@@ -4,9 +4,9 @@ import {
   Database, Heart, Wifi, Layers, X, CheckCircle2, AlertCircle,
   Clock, Cpu, Terminal, ChevronRight, Activity
 } from "lucide-react";
+import { API_URL } from "@/lib/apiClient";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
 
 // ── Mode status registry ─────────────────────────────────────────
 export const MODE_STATUS = {
