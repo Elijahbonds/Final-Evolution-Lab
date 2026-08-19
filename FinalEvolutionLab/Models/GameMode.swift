@@ -76,10 +76,8 @@ extension GameModeId {
         case .basketballDunkContestIRL, .basketballDunkContest3D, .karateEndless, .basketballHeadToHead, .venicePickup, .courtCarnival,
              .whoSceneIt:
             return .prod
-        case .gymnastics, .skateboarding, .snowboarding, .surfing:
+        case .gymnastics, .skateboarding, .snowboarding, .surfing, .brainBrawl:
             return .prod
-        case .brainBrawl:
-            return .staging
         case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
             return .sim
         case .marketBrowse:
@@ -618,7 +616,17 @@ struct GameModeRegistry {
         for (rawId, entry) in payload.modeManager.modeRegistry {
             guard let modeId = GameModeId(rawValue: rawId) else { continue }
             let baseMode = all.first(where: { $0.id == modeId })
-            let releaseState: GameMode.ReleaseState = entry.status == "production" ? .production : .preview
+            let releaseState: GameMode.ReleaseState
+            switch entry.status.lowercased() {
+            case "production":
+                releaseState = .production
+            case "staging":
+                releaseState = .staging
+            case "non-game-module":
+                releaseState = .nonGame
+            default:
+                releaseState = .preview
+            }
             
             let mode = GameMode(
                 id: modeId,

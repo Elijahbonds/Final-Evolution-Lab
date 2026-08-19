@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-FEL Smoke Test Suite — 12 Production Mode Acceptance Tests
-Tests each production mode's registration, configuration, and deep link routing.
+FEL Smoke Test Suite — NEXUS production mode acceptance tests.
+Tests each production runtime mode's registration, configuration, and deep link routing.
 Run against a live or mock FEL backend.
 """
 import json
@@ -38,12 +38,16 @@ PRODUCTION_MODES = [
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
     "gymnastics", "skateboarding", "snowboarding",
+    "brain_brawl", "who_scene_it", "court_carnival",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
+NEXUS_RUNTIME_ALIASES = {
+    "basketball_dunk": "basketball_dunk_3d",
+}
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = []
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -52,6 +56,19 @@ def test_mode_manager_registry():
     print("\n── Test 1: ModeManager Registry ──")
     mgr = json.loads((REPO_ROOT / "backend" / "FEL_ModeManager.production.json").read_text())
     registry = mgr["mode_manager"]["mode_registry"]
+    declared_total = mgr["mode_manager"].get("total_modes")
+    actual_total = len(registry)
+    if declared_total == actual_total:
+        ok(f"ModeManager total_modes={declared_total}")
+    else:
+        fail(f"ModeManager total_modes={declared_total}, actual={actual_total}")
+
+    declared_production = mgr["mode_manager"].get("production_modes")
+    actual_production = sum(1 for entry in registry.values() if entry.get("status") == "production")
+    if declared_production == actual_production:
+        ok(f"ModeManager production_modes={declared_production}")
+    else:
+        fail(f"ModeManager production_modes={declared_production}, actual={actual_production}")
 
     for mode in PRODUCTION_MODES:
         if mode in registry:
@@ -136,8 +153,12 @@ def test_venue_registry():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
-        if mode in mode_ids:
-            entry = next(m for m in vr["modes"] if m["id"] == mode)
+        venue_mode = NEXUS_RUNTIME_ALIASES.get(mode, mode)
+        if venue_mode in mode_ids:
+            entry = next(m for m in vr["modes"] if m["id"] == venue_mode)
+        else:
+            entry = next((m for m in vr["modes"] if m.get("nexusRuntimeModeId") == mode), None)
+        if entry:
             if entry["venueKey"] in venue_keys:
                 ok(f"{mode} → venue={entry['venueKey']}")
             else:
@@ -194,8 +215,9 @@ def test_swift_enum():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
+        swift_mode = NEXUS_RUNTIME_ALIASES.get(mode, mode)
         # Search for rawValue
-        if f'= "{mode}"' in content:
+        if f'= "{mode}"' in content or f'= "{swift_mode}"' in content:
             ok(f'{mode} has Swift enum case')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
@@ -256,7 +278,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print("  18 NEXUS production runtime modes · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()
