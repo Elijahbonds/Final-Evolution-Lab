@@ -36,8 +36,7 @@ if [[ "${SKIP_BUILD}" -eq 0 && -n "${CXX:-}" && -f "${HEADLESS_DIR}/CMakeCache.t
   DESIRED_CXX="$(command -v "${CXX}" 2>/dev/null || printf '%s' "${CXX}")"
   if [[ -n "${CACHED_CXX}" && "${CACHED_CXX}" != "${DESIRED_CXX}" ]]; then
     echo "==> Resetting stale headless CMake cache (${CACHED_CXX} -> ${DESIRED_CXX})"
-    cmake -E rm -f "${HEADLESS_DIR}/CMakeCache.txt"
-    cmake -E rm -rf "${HEADLESS_DIR}/CMakeFiles"
+    cmake -E rm -rf "${HEADLESS_DIR}"
   fi
 fi
 
