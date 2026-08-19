@@ -57,6 +57,24 @@ namespace {
   return "http://127.0.0.1:8000/api/games/session";
 }
 
+[[nodiscard]] auto envFlagDisabled(const char* value) -> bool {
+  if (value == nullptr || value[0] == '\0') {
+    return false;
+  }
+  const std::string flag(value);
+  return flag == "0" || flag == "false" || flag == "FALSE" || flag == "off" || flag == "OFF";
+}
+
+void normalizeConfig(SessionReceiptClientConfig& config) {
+  if (config.queueDirectory.empty()) {
+    config.queueDirectory =
+        (std::filesystem::path(homeDirectory()) / ".fel" / "pending_receipts").string();
+  }
+  if (envFlagDisabled(std::getenv("NEXUS_RECEIPT_STUB"))) {
+    config.useStubHttpTransport = false;
+  }
+}
+
 } // namespace
 
 auto SessionReceiptClient::defaultQueueDirectory() -> std::string {
@@ -70,15 +88,14 @@ SessionReceiptClient::SessionReceiptClient(SessionReceiptClientConfig config)
           .authToken = m_config.authToken,
           .useStubTransport = m_config.useStubHttpTransport,
       }) {
-  if (m_config.queueDirectory.empty()) {
-    m_config.queueDirectory = defaultQueueDirectory();
-  }
+  normalizeConfig(m_config);
+  m_http.setUrl(resolvePostUrl(m_config));
+  m_http.setAuthToken(m_config.authToken);
+  m_http.setStubTransportEnabled(m_config.useStubHttpTransport);
 }
 
 void SessionReceiptClient::setConfig(SessionReceiptClientConfig config) {
-  if (config.queueDirectory.empty()) {
-    config.queueDirectory = defaultQueueDirectory();
-  }
+  normalizeConfig(config);
   m_config = std::move(config);
   m_http.setUrl(resolvePostUrl(m_config));
   m_http.setAuthToken(m_config.authToken);
@@ -108,8 +125,12 @@ auto SessionReceiptClient::flush() -> SessionReceiptDispatchResult {
 
     const auto delivery = deliverReceipt(receipt);
     if (delivery.isOk()) {
-      ++result.delivered;
-      ++result.queued_on_disk;
+      if (delivery.value().deliveredViaHttp) {
+        ++result.delivered;
+      }
+      if (delivery.value().queuedOnDisk) {
+        ++result.queued_on_disk;
+      }
       continue;
     }
 
@@ -156,6 +177,10 @@ auto SessionReceiptClient::postedRequests() const -> std::span<const nexus::core
   return m_http.postedRequests();
 }
 
+auto SessionReceiptClient::config() const -> const SessionReceiptClientConfig& {
+  return m_config;
+}
+
 auto SessionReceiptClient::queueDirectory() const -> const std::string& {
   return m_config.queueDirectory;
 }
@@ -193,16 +218,19 @@ auto SessionReceiptClient::persistReceipt(const nlohmann::json& receipt) -> std:
   return path.string();
 }
 
-auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Result<int> {
+auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Result<DeliveryResult> {
   const std::string modeId = receipt.value("mode_id", std::string("unknown"));
   const int score = receipt.value("score", 0);
+  DeliveryResult delivery;
+  std::string lastError;
 
   if (m_config.persistToDisk) {
     if (const auto path = persistReceipt(receipt)) {
+      delivery.queuedOnDisk = true;
       NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                      "Session receipt persisted for iOS/SessionService pickup path=" + *path);
     } else {
-      return Result<int>::err("failed to persist receipt");
+      lastError = "failed to persist receipt";
     }
   }
 
@@ -210,18 +238,35 @@ auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Resu
     m_http.setUrl(resolvePostUrl(m_config));
     const auto postResult = m_http.post(receipt.dump());
     if (postResult.isErr()) {
-      return postResult;
+      lastError = postResult.error();
+    } else {
+      delivery.statusCode = postResult.value();
+      delivery.deliveredViaHttp = postResult.value() >= 200 && postResult.value() < 300;
+      NEXUS_LOG_INFO(nexus::LogChannel::kAI,
+                     "Session receipt POST mode=" + modeId + " score=" + std::to_string(score) +
+                         " status=" + std::to_string(postResult.value()));
+      if (!delivery.deliveredViaHttp) {
+        lastError = "session POST returned non-2xx status " + std::to_string(postResult.value());
+      }
     }
-    NEXUS_LOG_INFO(nexus::LogChannel::kAI,
-                   "Session receipt POST mode=" + modeId + " score=" + std::to_string(score) +
-                       " status=" + std::to_string(postResult.value()));
   } else {
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                    "Session receipt flush (HTTP disabled) mode=" + modeId +
                        " score=" + std::to_string(score));
   }
 
-  return Result<int>::ok(200);
+  if (delivery.deliveredViaHttp || delivery.queuedOnDisk) {
+    if (!delivery.deliveredViaHttp && !lastError.empty()) {
+      NEXUS_LOG_WARN(nexus::LogChannel::kAI,
+                     "Session receipt queued on disk after live POST failure: " + lastError);
+    }
+    return Result<DeliveryResult>::ok(delivery);
+  }
+
+  if (lastError.empty()) {
+    lastError = "no session receipt delivery path accepted the receipt";
+  }
+  return Result<DeliveryResult>::err(lastError);
 }
 
 } // namespace nexus::gameplay

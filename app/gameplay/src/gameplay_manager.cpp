@@ -133,7 +133,8 @@ void GameplayManager::clearPendingReceipts() {
 
 auto GameplayManager::flushPendingReceipts() -> SessionReceiptDispatchResult {
   const auto result = m_receiptClient.flush();
-  if (result.delivered > 0 && result.requeued == 0) {
+  const std::size_t accepted = result.delivered + result.queued_on_disk;
+  if (result.attempted > 0 && accepted >= result.attempted && result.requeued == 0) {
     m_pendingReceipts.clear();
     m_receiptClient.clearPending();
   }
@@ -149,10 +150,7 @@ void GameplayManager::setReceiptClientConfig(SessionReceiptClientConfig config) 
 }
 
 auto GameplayManager::receiptClientConfig() const -> SessionReceiptClientConfig {
-  SessionReceiptClientConfig config;
-  config.queueDirectory = m_receiptClient.queueDirectory();
-  config.persistToDisk = true;
-  return config;
+  return m_receiptClient.config();
 }
 
 auto GameplayManager::receiptQueueDirectory() const -> std::string {

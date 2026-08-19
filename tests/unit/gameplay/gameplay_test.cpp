@@ -743,7 +743,7 @@ void arena_pause_resume_preserves_session() {
   require(!gameplay.arena_session().state().paused, "paused flag cleared");
 }
 
-void session_receipt_flush_keeps_queue_when_http_disabled() {
+void session_receipt_flush_persists_disk_queue_when_http_disabled() {
   nexus::creative::VoxelWorld world;
   nexus::creative::WorldManipulator manipulator(world);
   nexus::gameplay::GameplayApplication gameplay(manipulator, world);
@@ -762,9 +762,12 @@ void session_receipt_flush_keeps_queue_when_http_disabled() {
           "session ends");
 
   const auto flush = gameplay.handleGameplayCommand(
-      "fel.arena.flush_receipts", {{"persist_to_disk", true}}, "flush");
+      "fel.arena.flush_receipts", {{"persist_to_disk", true}, {"http_enabled", false}}, "flush");
   require(flush.status == "ok", "flush command ok");
-  require(flush.payload["delivered"].get<std::size_t>() >= 1, "receipt delivered to disk queue");
+  require(flush.payload["delivered"].get<std::size_t>() == 0,
+          "HTTP-disabled flush does not count disk as delivered");
+  require(flush.payload["queued_on_disk"].get<std::size_t>() >= 1,
+          "receipt queued to disk for Swift upload service");
   require(!flush.payload["queue_directory"].get<std::string>().empty(), "queue directory returned");
 
   const auto receipts =
@@ -791,6 +794,7 @@ void session_receipt_disk_keyed_by_session_id() {
   client.enqueue(receipt);
   const auto first = client.flush();
   require(first.delivered == 1, "first flush delivers receipt");
+  require(first.queued_on_disk == 1, "first flush queues receipt on disk");
 
   const auto receiptPath = tempDir / "abc123session.json";
   require(std::filesystem::exists(receiptPath), "receipt file keyed by telemetry.session_id");
@@ -799,6 +803,7 @@ void session_receipt_disk_keyed_by_session_id() {
   client.enqueue(receipt);
   const auto second = client.flush();
   require(second.delivered == 1, "re-flush delivers updated receipt");
+  require(second.queued_on_disk == 1, "re-flush queues updated receipt on disk");
 
   std::size_t jsonFileCount = 0;
   for (const auto& entry : std::filesystem::directory_iterator(tempDir)) {
@@ -955,9 +960,34 @@ void physics_intent_queue_is_consumed_on_step() {
 }
 
 void prq_stub_returns_sprint_defaults() {
+  nexus::gameplay::PRQEngine::resetToSprintDefaults();
   require(nexus::gameplay::PRQEngine::getScore() == 75.0F, "prq sprint default");
   require(nexus::gameplay::PRQEngine::getGrade() == nexus::gameplay::PRQGrade::kPrimed,
           "prq grade primed");
+}
+
+void prq_updates_from_fitness_snapshot() {
+  nexus::gameplay::ThreadSafeFitnessData fitness;
+  fitness.update({1.0F, 1.0F, 1.0F}, {1.0F, 1.0F, 1});
+  nexus::gameplay::PRQEngine::updateFromFitness(fitness.snapshot());
+
+  require(nexus::gameplay::PRQEngine::getScore() == 100.0F, "fitness drives PRQ score");
+  require(nexus::gameplay::PRQEngine::getNeuralDrive() == 100.0F,
+          "fitness drives neural drive");
+  require(nexus::gameplay::PRQEngine::getGrade() == nexus::gameplay::PRQGrade::kElite,
+          "fitness PRQ reaches elite");
+
+  nexus::gameplay::SessionResult result{};
+  result.modeId = "basketball_dunk";
+  result.sessionId = "prq-fitness-session";
+  result.resultType = "win";
+  const nlohmann::json body = nexus::gameplay::sessionReceiptBody(result);
+  require(body["telemetry"]["prq_snapshot"]["score"].get<float>() == 100.0F,
+          "receipt uses fitness PRQ score");
+  require(body["telemetry"]["prq_snapshot"]["grade"].get<std::string>() == "ELITE",
+          "receipt uses fitness PRQ grade");
+
+  nexus::gameplay::PRQEngine::resetToSprintDefaults();
 }
 
 void arcade_physics_maps_prq_75() {
@@ -1921,6 +1951,7 @@ void session_receipt_http_stub_posts_localhost_contract() {
   client.enqueue(receipt);
   const auto flush = client.flush();
   require(flush.delivered == 1, "stub HTTP flush delivers receipt");
+  require(flush.queued_on_disk == 0, "HTTP-only flush does not report disk queue");
   require(client.pendingCount() == 0, "receipt cleared after stub POST");
   require(client.postedRequests().size() == 1, "one stub POST recorded");
   require(client.postedRequests().front().url.find("/api/games/session") != std::string::npos,
@@ -2291,6 +2322,7 @@ void gameplay_refine_game_harder_adjusts_difficulty() {
 }
 
 void session_receipt_body_matches_api_contract() {
+  nexus::gameplay::PRQEngine::resetToSprintDefaults();
   nexus::gameplay::SessionResult result{};
   result.modeId = "basketball_dunk";
   result.sessionId = "nexus-test-session";
@@ -2321,6 +2353,10 @@ void session_receipt_body_matches_api_contract() {
   require(body["telemetry"]["device"]["engine"].get<std::string>() == "NEXUS 1.0",
           "telemetry engine tag");
   require(body["telemetry"]["economy"]["shards_total"].get<int>() == 50, "economy shards candidate");
+  require(body["telemetry"]["prq_snapshot"]["score"].get<float>() == 75.0F,
+          "receipt PRQ default score");
+  require(body["telemetry"]["prq_snapshot"]["grade"].get<std::string>() == "PRIMED",
+          "receipt PRQ default grade");
   require(body.contains("mri_score"), "receipt mri_score contract field");
   require(body["mri_score"].get<float>() == 68.0F, "receipt mri_score value");
   require(body["combo_count"].get<int>() == 3, "receipt combo_count");
@@ -2741,7 +2777,7 @@ auto main() -> int {
   arena_session_end_dispatches_receipt_and_bridge_messages();
   dunk_contest_lifecycle_generates_win_receipt();
   arena_pause_resume_preserves_session();
-  session_receipt_flush_keeps_queue_when_http_disabled();
+  session_receipt_flush_persists_disk_queue_when_http_disabled();
   session_receipt_disk_keyed_by_session_id();
   hud_poll_returns_tick_frame_payload();
   fel_bridge_websocket_stub_sends_outbound();
@@ -2755,6 +2791,7 @@ auto main() -> int {
   engine_tick_runs_physics_before_gameplay_update();
   gameplay_update_drains_agent_commands_before_throw_catch();
   prq_stub_returns_sprint_defaults();
+  prq_updates_from_fitness_snapshot();
   arcade_physics_maps_prq_75();
   dunk_contest_charge_release_scores();
   karate_endless_wave_spawns();

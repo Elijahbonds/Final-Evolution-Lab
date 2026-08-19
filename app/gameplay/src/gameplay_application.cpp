@@ -6,6 +6,7 @@
 #include "nexus/creative/voxel_world.h"
 #include "nexus/core/log.h"
 #include "nexus/gameplay/arena_mode_registry.h"
+#include "nexus/gameplay/prq_engine.h"
 #include "nexus/gameplay/scan_envelope_mapper.h"
 #include "nexus/generative/generative_pipeline.h"
 #include "nexus/generative/generative_types.h"
@@ -125,6 +126,7 @@ void GameplayApplication::update(double deltaSeconds,
       [](const ai::AgentResponse& agentResponse) { return agentResponse.status == "error"; }));
 
   const auto fitness = m_fitnessData.snapshot();
+  PRQEngine::updateFromFitness(fitness);
   if (m_arenaSession.state().phase == ArenaSessionPhase::kActive && !m_arenaSession.state().paused) {
     m_arenaSession.update(deltaSeconds, fitness);
     m_modeRuntime.update(deltaSeconds);
@@ -556,6 +558,7 @@ auto GameplayApplication::applyFitnessCommand(std::string_view command,
   }
 
   const auto snapshot = m_fitnessData.snapshot();
+  PRQEngine::updateFromFitness(snapshot);
   NEXUS_LOG_INFO(LogChannel::kAI, "Fitness metrics updated from agent command");
   nlohmann::json payload = fitnessSnapshotToJson(snapshot);
   payload["hud"] = {
@@ -601,6 +604,7 @@ auto GameplayApplication::applyScanGenerateCommand(std::string_view command,
   }
 
   const auto fitnessSnapshot = m_fitnessData.snapshot();
+  PRQEngine::updateFromFitness(fitnessSnapshot);
   nlohmann::json commandsApplied = nlohmann::json::array({
       "fel.fitness.update",
       "fel.creative.fill_region",
@@ -1069,7 +1073,10 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
     if (params.contains("auth_token")) {
       config.authToken = params.value("auth_token", config.authToken);
     }
-    config.persistToDisk = params.value("persist_to_disk", true);
+    config.persistToDisk = params.value("persist_to_disk", config.persistToDisk);
+    config.httpEnabled = params.value("http_enabled", config.httpEnabled);
+    config.useStubHttpTransport =
+        params.value("use_stub_http_transport", config.useStubHttpTransport);
     m_gameplayManager.setReceiptClientConfig(std::move(config));
     const auto flushResult = m_gameplayManager.flushPendingReceipts();
     return response(id, "ok",
