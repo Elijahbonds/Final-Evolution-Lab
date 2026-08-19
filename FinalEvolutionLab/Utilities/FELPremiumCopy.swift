@@ -50,6 +50,7 @@ enum FELPremiumCopy {
         static let scanToGenerate = "Early Access · Scan to Play"
         static let proctoredDunkLobby = "Early Access · Proctored IRL Dunk"
         static let triumphCashEntry = "Preview · Triumph Cash Entry"
+        static let triumphPaymentStub = "Preview · Payment UI Stub"
         static let proctoredZoomSession = "Preview · Proctored Zoom Session"
     }
 

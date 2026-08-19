@@ -19,14 +19,7 @@ enum NEXUSCursorBridge {
     ]
 
     static func resolvedRepoRootPath() -> String {
-        for key in ["NEXUS_REPO_ROOT", "FEL_NEXUS_REPO_ROOT"] {
-            if let value = ProcessInfo.processInfo.environment[key]?
-                .trimmingCharacters(in: .whitespacesAndNewlines),
-               !value.isEmpty {
-                return value
-            }
-        }
-        return "/Users/elijahbonds/Final-Evolution-Lab"
+        NexusRepoRootResolver.resolvedPath()
     }
 
     static func cursorRepoURI() -> String {

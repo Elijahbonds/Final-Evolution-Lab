@@ -246,34 +246,7 @@ final class NexusStudioWorkspaceService {
     }
 
     static func resolveRepoRoot() -> URL? {
-        if let env = ProcessInfo.processInfo.environment["FEL_NEXUS_REPO_ROOT"]?
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-           !env.isEmpty,
-           FileManager.default.fileExists(atPath: env) {
-            return URL(fileURLWithPath: env, isDirectory: true)
-        }
-
-        #if DEBUG
-        var devCandidates = [
-            "/Users/elijahbonds/Final-Evolution-Lab",
-        ]
-        #if os(macOS)
-        devCandidates.append(
-            FileManager.default.homeDirectoryForCurrentUser
-                .appendingPathComponent("Final-Evolution-Lab").path
-        )
-        #endif
-        for path in devCandidates where FileManager.default.fileExists(atPath: path) {
-            return URL(fileURLWithPath: path, isDirectory: true)
-        }
-        #endif
-
-        if let bundled = Bundle.main.url(forResource: "NexusStudioSnapshot", withExtension: nil),
-           FileManager.default.fileExists(atPath: bundled.path) {
-            return bundled
-        }
-
-        return nil
+        NexusRepoRootResolver.resolveURL()
     }
 }
 
