@@ -32,6 +32,7 @@ import Combine
     let venueRegistry: [String: VenueConfig] = [
         "basketball_h2h":  VenueConfig(map: "Venice_Beach_Court", binary: "FEL-Basketball-H2H"),
         "basketball_dunk": VenueConfig(map: "Venice_Beach_Court", binary: "FEL-DunkContest"),
+        "basketball_dunk_3d": VenueConfig(map: "Venice_Beach_Court", binary: "FEL-DunkContest"),
         "basketball_3v3":  VenueConfig(map: "Venice_Beach_Court", binary: "FEL-Basketball-3v3"),
         "karate_h2h":      VenueConfig(map: "Zen_Dojo", binary: "FEL-Karate-H2H"),
         "karate_endless":  VenueConfig(map: "Zen_Dojo", binary: "FEL-Karate-Endless"),
@@ -46,6 +47,8 @@ import Combine
         "skateboarding":   VenueConfig(map: "Skate_Park", binary: "FEL-Skateboarding"),
         "snowboarding":    VenueConfig(map: "Mountain_Slope", binary: "FEL-Snowboarding"),
         "brain_brawl":     VenueConfig(map: "Neuro_Arena", binary: "FEL-BrainBrawl"),
+        "who_scene_it":     VenueConfig(map: "Neuro_Arena", binary: "FEL-WhoSceneIt"),
+        "court_carnival":   VenueConfig(map: "Venice_Beach_Court", binary: "FEL-CourtCarnival"),
         "market_browse":   VenueConfig(map: "Vault_Shop", binary: "FEL-Market"),
     ]
 
