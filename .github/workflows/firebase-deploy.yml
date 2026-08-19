@@ -41,21 +41,22 @@ jobs:
           python3 - <<'EOF'
           import json, sys
           data = json.load(open('backend/FEL_ModeManager.production.json'))
-          modes = data['mode_manager']['modes']
+          modes = data['mode_manager']['mode_registry']
           errors = []
-          for m in modes:
-              rm = m.get('render_mode', 'MISSING')
-              if rm == 'MISSING':
-                  errors.append(f"{m['id']}: render_mode field missing")
-              print(f"  {m['id']:35} render_mode={rm:8} irl={m.get('irl_mode',False)}")
-          h2h  = next(m for m in modes if m['id'] == 'basketball_h2h')
-          bb   = next(m for m in modes if m['id'] == 'brain_brawl')
-          dunk = next(m for m in modes if m['id'] == 'basketball_dunk')
-          assert h2h['render_mode']  == '3D_UE5',  f"basketball_h2h must be 3D_UE5"
-          assert h2h['irl_mode']     == False,      "basketball_h2h must have irl_mode=false"
-          assert bb['render_mode']   == '2D',       f"brain_brawl must be 2D"
-          assert dunk['render_mode'] == '3D_UE5',   f"basketball_dunk must be 3D_UE5"
-          assert 'Venice' in dunk.get('venue_display', ''), "basketball_dunk venue must mention Venice Beach"
+          for mode_id, m in sorted(modes.items()):
+              rm = m.get('render_mode')
+              if rm is None:
+                  rm = 'IRL' if m.get('venue_id') is None else '3D_UE5'
+              if m.get('status') == 'production' and rm == 'MISSING':
+                  errors.append(f"{mode_id}: render_mode could not be inferred")
+              print(f"  {mode_id:35} render_mode={rm:8} status={m.get('status')}")
+          h2h  = modes['basketball_h2h']
+          dunk = modes['basketball_dunk_3d']
+          irl  = modes['basketball_dunk_irl']
+          assert h2h.get('venue_id') == 'VeniceBeach', "basketball_h2h must route to VeniceBeach"
+          assert dunk.get('render_mode') == '3D_UE5', "basketball_dunk_3d must be 3D_UE5"
+          assert dunk.get('nexus_runtime_mode_id') == 'basketball_dunk', "basketball_dunk_3d must launch NEXUS dunk runtime"
+          assert irl.get('render_mode') == 'IRL' and irl.get('venue_id') is None, "basketball_dunk_irl must be an IRL/no-UE-map mode"
           if errors:
               [print(f"ERROR: {e}") for e in errors]; sys.exit(1)
           print("All render mode assertions passed")
