@@ -933,6 +933,27 @@ void exercise_demo_pipeline_maps_production_modes() {
   require(mapping.has_value(), "dunk demo mapping exists");
   require(mapping->moduleId == "mod2", "dunk maps to mod2");
   require(mapping->montagePath.find("mod2") != std::string::npos, "montage path contains mod2");
+
+  const auto allMappings = nexus::gameplay::ExerciseDemoPipeline::allProductionMappings();
+  require(allMappings["count"].get<std::size_t>() == nexus::gameplay::kProductionModeCount,
+          "exercise demo mapping count covers production modes");
+  require(allMappings["production_demo_mappings"].size() == nexus::gameplay::kProductionModeCount,
+          "exercise demo mapping payload covers production modes");
+
+  for (std::string_view modeId : nexus::gameplay::kProductionModeIds) {
+    const auto productionMapping = nexus::gameplay::ExerciseDemoPipeline::mappingForMode(modeId);
+    require(productionMapping.has_value(),
+            std::string("exercise demo mapping exists for ") + std::string(modeId));
+    require(!productionMapping->moduleId.empty(),
+            std::string("exercise demo module id for ") + std::string(modeId));
+    require(productionMapping->montagePath.find(productionMapping->moduleId) != std::string::npos,
+            std::string("exercise demo montage path contains module for ") + std::string(modeId));
+    require(!productionMapping->displayLabel.empty(),
+            std::string("exercise demo display label for ") + std::string(modeId));
+  }
+
+  require(!nexus::gameplay::ExerciseDemoPipeline::mappingForMode("market_browse").has_value(),
+          "non-game module has no production exercise demo mapping");
 }
 
 void physics_intent_queue_is_consumed_on_step() {
@@ -2362,10 +2383,7 @@ void nexus_sprint_live_modes_agent_contract_integration() {
     const char* nestedStateKey;
   };
 
-  const std::array<SprintProbe, 9> probes{{
-      {"basketball_dunk", "fel.dunk.charge_begin", {}, "fel.dunk.charge_begin", "dunk"},
-      {"karate_endless", "fel.karate.action", {{"action", "heavy_strike"}},
-       "fel.karate.action", "karate"},
+  const std::array<SprintProbe, nexus::gameplay::kProductionModeCount> probes{{
       {"basketball_h2h", "fel.fitness.update",
        {{"frc_mobility", 0.6F},
         {"frc_active_range", 0.6F},
@@ -2374,22 +2392,52 @@ void nexus_sprint_live_modes_agent_contract_integration() {
         {"iap_confidence", 0.6F},
         {"breath_phase", 0}},
        "", "pickup"},
+      {"basketball_dunk", "fel.dunk.charge_begin", {}, "fel.dunk.charge_begin", "dunk"},
+      {"basketball_3v3", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.93F}, {"shot_type", "three_pointer"}},
+       "fel.sport.pulse", "outcome_sport"},
       {"court_carnival", "fel.carnival.trigger_pad", {{"pad", "trick_shot"}, {"timing", 0.9F}},
        "fel.carnival.trigger_pad", "carnival"},
+      {"karate_h2h", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.91F}, {"action", "heavy_strike"}},
+       "fel.sport.pulse", "outcome_sport"},
+      {"karate_endless", "fel.karate.action", {{"action", "heavy_strike"}},
+       "fel.karate.action", "karate"},
+      {"baseball", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.94F}, {"action", "home_run"}},
+       "fel.sport.pulse", "outcome_sport"},
+      {"football", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.9F}, {"play_type", "touchdown"}},
+       "fel.sport.pulse", "outcome_sport"},
+      {"soccer", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.88F}, {"action", "penalty"}},
+       "fel.sport.pulse", "outcome_sport"},
+      {"golf", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.9F}, {"club", "putt"}},
+       "fel.sport.pulse", "outcome_sport"},
+      {"tennis", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.93F}, {"shot_type", "ace"}},
+       "fel.sport.pulse", "outcome_sport"},
+      {"volleyball", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.9F}, {"rally_type", "spike"}},
+       "fel.sport.pulse", "outcome_sport"},
       {"gymnastics", "fel.gymnastics.tap", {{"timing", 0.92F}, {"difficulty", 0.75F}},
        "fel.gymnastics.tap", "gymnastics"},
-      {"brain_brawl", "fel.brain.answer",
-       {{"correct", true}, {"response_time", 5.0F}, {"category", "BodyIQ"}},
-       "fel.brain.answer", "brain_brawl"},
+      {"surfing", "fel.surf.carve", {{"timing", 0.91F}, {"wave_difficulty", 0.74F}},
+       "fel.surf.carve", "surfing"},
       {"skateboarding", "fel.skate.trick", {{"difficulty", 0.85F}, {"combo_multiplier", 2}},
        "fel.skate.trick", "skateboarding"},
       {"snowboarding", "fel.snow.carve", {{"timing", 0.93F}, {"line_difficulty", 0.75F}},
        "fel.snow.carve", "snowboarding"},
+      {"brain_brawl", "fel.brain.answer",
+       {{"correct", true}, {"response_time", 5.0F}, {"category", "BodyIQ"}},
+       "fel.brain.answer", "brain_brawl"},
       {"who_scene_it", "fel.scene.buzz_in", {{"timing", 0.91F}}, "fel.scene.buzz_in",
        "who_scene_it"},
   }};
 
   for (const SprintProbe& probe : probes) {
+    std::fprintf(stderr, "sprint_probe mode_id=%s\n", probe.modeId);
     const std::string startJson = std::string(R"json({"type":"command","id":"sprint_start","payload":{"command":"fel.arena.start_session","params":{"mode_id":")json") +
                                 probe.modeId +
                                 R"json(","user_id":"sprint_agent"}}})json";
