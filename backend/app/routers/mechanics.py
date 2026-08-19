@@ -11,10 +11,12 @@ persist via ``session_processor`` to Postgres (or SQLite when USE_SQLITE_DEV=tru
 """
 from __future__ import annotations
 
+import json
 import random
 import time
 import uuid
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, File, Query, UploadFile
@@ -25,6 +27,7 @@ router = APIRouter(tags=["mechanics"])
 NUTRI_SHARDS_PER_SCAN = 12
 
 _SERVER_STARTED_AT = time.monotonic()
+_MODE_MANAGER_PATH = Path(__file__).resolve().parents[2] / "FEL_ModeManager.production.json"
 
 _biofuel_logs: list[dict[str, Any]] = []
 _pending_scans: dict[str, dict[str, Any]] = {}
@@ -32,6 +35,15 @@ _confirmed_scans: set[str] = set()
 _critique_requests: list[dict[str, Any]] = []
 _brain_brawl_sessions: dict[str, dict[str, Any]] = {}
 _workout_logs: list[dict[str, Any]] = []
+
+
+def _production_mode_count() -> int:
+    try:
+        manager = json.loads(_MODE_MANAGER_PATH.read_text())
+    except (OSError, json.JSONDecodeError):
+        return 0
+    registry = manager.get("mode_manager", {}).get("mode_registry", {})
+    return sum(1 for mode in registry.values() if mode.get("status") == "production")
 
 ARENA_MODES = [
     ("basketball_h2h", "Street · 1v1", "Basketball", "VeniceBeach", "1v1", "3 min"),
@@ -637,7 +649,7 @@ async def hub_status() -> dict[str, Any]:
 
 @router.get("/production/health")
 async def production_health() -> dict[str, Any]:
-    return {"status": "HEALTHY", "checks": {"mode_manager": {"production_modes": 19}}}
+    return {"status": "HEALTHY", "checks": {"mode_manager": {"production_modes": _production_mode_count()}}}
 
 
 @router.get("/production/handshake-log")
