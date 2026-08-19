@@ -1,5 +1,7 @@
 #include "nexus/gameplay/fel_session_types.h"
 
+#include "nexus/gameplay/prq_engine.h"
+
 #include <algorithm>
 #include <chrono>
 #include <ctime>
@@ -69,6 +71,7 @@ auto sessionReceiptBody(const SessionResult& result) -> nlohmann::json {
   const int32_t scoreInt = static_cast<int32_t>(std::max(0.0F, result.score));
   const int32_t durationInt =
       static_cast<int32_t>(std::max(0.0F, result.durationSeconds));
+  const PRQGrade prqGrade = PRQEngine::getGrade();
 
   nlohmann::json telemetry = {
       {"session_id", result.sessionId},
@@ -98,8 +101,8 @@ auto sessionReceiptBody(const SessionResult& result) -> nlohmann::json {
        }},
       {"prq_snapshot",
        {
-           {"score", 75.0F},
-           {"grade", "PRIMED"},
+           {"score", PRQEngine::getScore()},
+           {"grade", PRQEngine::gradeLabel(prqGrade)},
        }},
       {"device",
        {

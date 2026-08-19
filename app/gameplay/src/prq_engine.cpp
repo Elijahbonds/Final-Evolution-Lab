@@ -1,5 +1,7 @@
 #include "nexus/gameplay/prq_engine.h"
 
+#include <algorithm>
+
 namespace nexus::gameplay {
 
 namespace {
@@ -7,14 +9,38 @@ namespace {
 constexpr float kSprintPrqScore = 75.0F;
 constexpr float kSprintNeuralDrive = 60.0F;
 
+struct PRQSnapshot {
+  float score{kSprintPrqScore};
+  float neuralDrive{kSprintNeuralDrive};
+};
+
+[[nodiscard]] auto activeSnapshot() -> PRQSnapshot& {
+  static thread_local PRQSnapshot snapshot;
+  return snapshot;
+}
+
 } // namespace
 
+void PRQEngine::updateFromFitness(const FitnessSnapshot& snapshot) {
+  auto& prq = activeSnapshot();
+  if (snapshot.revision == 0) {
+    prq = {};
+    return;
+  }
+  prq.score = std::clamp(snapshot.powerReadiness * 100.0F, 0.0F, 100.0F);
+  prq.neuralDrive = std::clamp(snapshot.iapComposite * 100.0F, 0.0F, 100.0F);
+}
+
+void PRQEngine::resetToSprintDefaults() {
+  activeSnapshot() = {};
+}
+
 auto PRQEngine::getScore() -> float {
-  return kSprintPrqScore;
+  return activeSnapshot().score;
 }
 
 auto PRQEngine::getNeuralDrive() -> float {
-  return kSprintNeuralDrive;
+  return activeSnapshot().neuralDrive;
 }
 
 auto PRQEngine::getGrade() -> PRQGrade {

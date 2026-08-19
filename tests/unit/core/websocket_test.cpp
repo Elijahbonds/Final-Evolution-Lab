@@ -4,6 +4,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <string>
+#include <thread>
+
+#if !defined(_WIN32)
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#endif
 
 namespace {
 
@@ -90,6 +98,54 @@ void http_stub_post_records_session_contract() {
           "http stub session path");
 }
 
+#if !defined(_WIN32)
+void http_real_transport_reports_server_status() {
+  const int serverSocket = ::socket(AF_INET, SOCK_STREAM, 0);
+  require(serverSocket >= 0, "test HTTP server socket opens");
+
+  const int reuse = 1;
+  (void)::setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+
+  sockaddr_in address{};
+  address.sin_family = AF_INET;
+  address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  address.sin_port = 0;
+  require(::bind(serverSocket, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == 0,
+          "test HTTP server binds");
+
+  socklen_t addressLength = sizeof(address);
+  require(::getsockname(serverSocket, reinterpret_cast<sockaddr*>(&address), &addressLength) == 0,
+          "test HTTP server port resolved");
+  require(::listen(serverSocket, 1) == 0, "test HTTP server listens");
+
+  const int port = ntohs(address.sin_port);
+  std::thread server([serverSocket]() {
+    const int clientSocket = ::accept(serverSocket, nullptr, nullptr);
+    if (clientSocket >= 0) {
+      char requestBuffer[1024];
+      (void)::recv(clientSocket, requestBuffer, sizeof(requestBuffer), 0);
+      constexpr const char* response =
+          "HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+      (void)::send(clientSocket, response, std::char_traits<char>::length(response), 0);
+      (void)::close(clientSocket);
+    }
+    (void)::close(serverSocket);
+  });
+
+  nexus::core::HttpClient client({
+      .url = "http://127.0.0.1:" + std::to_string(port) + "/api/games/session",
+      .useStubTransport = false,
+  });
+  const auto result = client.post(R"({"mode_id":"basketball_dunk","score":10})");
+  server.join();
+
+  require(result.isOk(), "real HTTP transport returns HTTP status");
+  require(result.value() == 503, "real HTTP transport preserves 503 status");
+  require(client.postedRequests().size() == 1, "real HTTP POST recorded");
+  require(client.postedRequests().front().statusCode == 503, "recorded HTTP status is 503");
+}
+#endif
+
 } // namespace
 
 auto main() -> int {
@@ -100,6 +156,9 @@ auto main() -> int {
   stub_reconnect_after_disconnect();
   auto_reconnect_on_send_when_disconnected();
   http_stub_post_records_session_contract();
+#if !defined(_WIN32)
+  http_real_transport_reports_server_status();
+#endif
   std::fprintf(stderr, "PASS: nexus_realtime_test\n");
   return 0;
 }
