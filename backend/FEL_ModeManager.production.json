@@ -1,8 +1,8 @@
 {
-  "cooked_runtime_note": "FEL_ModeManager — 20 total modes (19 game + 1 education). Gate 1 fix applied: who_scene_it + court_carnival promoted to production. production_modes=14. movement_lab added as preview/non-scoring education module.",
+  "cooked_runtime_note": "FEL_ModeManager — 22 total modes (21 game + 1 education). Split dunk production modes are basketball_dunk_3d (NEXUS C++ runtime alias basketball_dunk) and basketball_dunk_irl (IRL/no UE map). movement_lab remains preview/non-scoring education.",
   "mode_manager": {
-    "total_modes": 20,
-    "production_modes": 12,
+    "total_modes": 22,
+    "production_modes": 15,
     "mode_registry": {
       "basketball_h2h": {
         "status": "production",
