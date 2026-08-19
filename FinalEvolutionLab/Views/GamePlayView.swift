@@ -43,6 +43,7 @@ struct GamePlayView: View {
 
     @State private var matchSessionId = UUID()
     @State private var finalizedMatchSessionId: UUID?
+    @State private var stoppedNexusSessionId: UUID?
     @State private var delayedOpponentScoreGeneration: UInt64 = 0
 
     @State private var dunkRound: Int = 1
@@ -483,7 +484,7 @@ struct GamePlayView: View {
         }
         .onDisappear {
             sceneViewportReady = false
-            nexusEngine.stop()
+            stopNexusSessionWithCurrentScores()
             FELSoundscapeEngine.shared.stop()
             matchLobbyComplete = false
             multipeerService.stop()
@@ -3447,6 +3448,7 @@ struct GamePlayView: View {
     private func startGame() {
         matchSessionId = UUID()
         finalizedMatchSessionId = nil
+        stoppedNexusSessionId = nil
         delayedOpponentScoreGeneration = 0
         lastGameplayLeakagePenaltyAt = [:]
         playerActionCount = 0
@@ -4390,6 +4392,7 @@ struct GamePlayView: View {
 
     private func finalizeResults() {
         if finalizedMatchSessionId == matchSessionId { return }
+        stopNexusSessionWithCurrentScores()
 
         CrashReporter.setGameMode(id: gameMode.id.rawValue)
         if shardsReward > 0 {
@@ -4449,6 +4452,12 @@ struct GamePlayView: View {
 #endif
 
         finalizedMatchSessionId = matchSessionId
+    }
+
+    private func stopNexusSessionWithCurrentScores() {
+        guard stoppedNexusSessionId != matchSessionId else { return }
+        nexusEngine.stop(playerScore: score, opponentScore: opponentScore)
+        stoppedNexusSessionId = matchSessionId
     }
 
     private func handleLiveLeakage(joint: JointType, severity: Double) {
