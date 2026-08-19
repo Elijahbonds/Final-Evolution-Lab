@@ -80,9 +80,11 @@ gameplay_log = Path(sys.argv[6]).read_text(errors="replace")
 ctest_log = Path(sys.argv[7]).read_text(errors="replace")
 
 sprint_modes = [
-    "basketball_dunk", "karate_endless", "basketball_h2h", "court_carnival",
-    "gymnastics", "brain_brawl", "skateboarding", "snowboarding", "surfing",
-    "who_scene_it",
+    "basketball_h2h", "basketball_dunk", "basketball_3v3", "court_carnival",
+    "karate_h2h", "karate_endless",
+    "baseball", "football", "soccer", "golf", "tennis", "volleyball",
+    "gymnastics", "surfing", "skateboarding", "snowboarding",
+    "brain_brawl", "who_scene_it",
 ]
 
 modes_exercised = [m for m in sprint_modes if f"mode={m}" in gameplay_log or f"mode_id={m}" in gameplay_log]
