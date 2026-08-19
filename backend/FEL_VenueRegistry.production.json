@@ -155,6 +155,11 @@
       "analyticsPolicyName": "Luma Venice Shop (primary scan)",
       "nexusEnvironmentAssetId": "luma_venice_shop_environment_model_fbx"
     },
+    {
+      "venueKey": "regulation_court_irl",
+      "analyticsPolicyName": "Regulation Court (IRL capture)",
+      "isIRLVenue": true
+    },
     { "venueKey": "beach_court", "analyticsPolicyName": "Beach Court — Volleyball" },
     { "venueKey": "dojo_arena", "analyticsPolicyName": "Zen / Dojo Arena", "nexusEnvironmentAssetId": "zen_dojo_environment_model_fbx" },
     { "venueKey": "neuro_arena", "analyticsPolicyName": "Neuro Arena", "nexusEnvironmentAssetId": "neuro_arena_environment_model_fbx" },
