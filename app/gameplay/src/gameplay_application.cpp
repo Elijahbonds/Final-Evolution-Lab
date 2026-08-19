@@ -1021,6 +1021,7 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
 
   if (command == "fel.arena.mode_input") {
     const std::string action = params.value("action", "");
+    const ActiveModeKind activeKind = m_modeRuntime.activeKind();
     if (action == "charge_begin") {
       return handleGameplayCommand("fel.dunk.charge_begin", params, id);
     }
@@ -1054,6 +1055,63 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
     }
     if (action == "roll_dice") {
       return handleGameplayCommand("fel.carnival.roll_dice", {}, id);
+    }
+    if (activeKind == ActiveModeKind::kVenicePickup && !action.empty()) {
+      return handleGameplayCommand("fel.pickup.action", params, id);
+    }
+    if (activeKind == ActiveModeKind::kBrainBrawl && action == "answer") {
+      return handleGameplayCommand("fel.brain.answer", params, id);
+    }
+    if (activeKind == ActiveModeKind::kSkateboarding) {
+      if (action == "trick") {
+        return handleGameplayCommand("fel.skate.trick", params, id);
+      }
+      if (action == "bail") {
+        return handleGameplayCommand("fel.skate.bail", {}, id);
+      }
+    }
+    if (activeKind == ActiveModeKind::kSnowboarding) {
+      if (action == "carve") {
+        return handleGameplayCommand("fel.snow.carve", params, id);
+      }
+      if (action == "jump") {
+        return handleGameplayCommand("fel.snow.jump", params, id);
+      }
+      if (action == "butter") {
+        return handleGameplayCommand("fel.snow.butter", params, id);
+      }
+      if (action == "wipeout") {
+        return handleGameplayCommand("fel.snow.wipeout", {}, id);
+      }
+    }
+    if (activeKind == ActiveModeKind::kSurfing) {
+      if (action == "carve") {
+        return handleGameplayCommand("fel.surf.carve", params, id);
+      }
+      if (action == "aerial") {
+        return handleGameplayCommand("fel.surf.aerial", params, id);
+      }
+      if (action == "wipeout") {
+        return handleGameplayCommand("fel.surf.wipeout", {}, id);
+      }
+    }
+    if (activeKind == ActiveModeKind::kWhoSceneIt) {
+      if (action == "buzz_in") {
+        return handleGameplayCommand("fel.scene.buzz_in", params, id);
+      }
+      if (action == "answer") {
+        return handleGameplayCommand("fel.scene.answer", params, id);
+      }
+    }
+    if (activeKind == ActiveModeKind::kOutcomeSport && !action.empty()) {
+      return handleGameplayCommand("fel.sport.pulse", params, id);
+    }
+    if (activeKind == ActiveModeKind::kMarketBrowse) {
+      const auto modeResult = m_modeRuntime.handleCommand(command, params);
+      if (modeResult.isErr()) {
+        return response(id, "error", {}, modeResult.error());
+      }
+      return response(id, "ok", modeResult.value());
     }
     return response(id, "error", {}, "unsupported mode_input action");
   }
