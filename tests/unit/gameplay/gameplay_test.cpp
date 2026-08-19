@@ -2362,7 +2362,7 @@ void nexus_sprint_live_modes_agent_contract_integration() {
     const char* nestedStateKey;
   };
 
-  const std::array<SprintProbe, 9> probes{{
+  const std::array<SprintProbe, 18> probes{{
       {"basketball_dunk", "fel.dunk.charge_begin", {}, "fel.dunk.charge_begin", "dunk"},
       {"karate_endless", "fel.karate.action", {{"action", "heavy_strike"}},
        "fel.karate.action", "karate"},
@@ -2385,8 +2385,34 @@ void nexus_sprint_live_modes_agent_contract_integration() {
        "fel.skate.trick", "skateboarding"},
       {"snowboarding", "fel.snow.carve", {{"timing", 0.93F}, {"line_difficulty", 0.75F}},
        "fel.snow.carve", "snowboarding"},
+      {"surfing", "fel.surf.carve", {{"timing", 0.94F}, {"wave_difficulty", 0.72F}},
+       "fel.surf.carve", "surfing"},
       {"who_scene_it", "fel.scene.buzz_in", {{"timing", 0.91F}}, "fel.scene.buzz_in",
        "who_scene_it"},
+      {"basketball_3v3", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.95F}, {"shot_type", "three_pointer"}},
+       "fel.sport.pulse", "outcome_sport"},
+      {"karate_h2h", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.92F}, {"action", "heavy_strike"}},
+       "fel.sport.pulse", "outcome_sport"},
+      {"baseball", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.93F}, {"sport_action", "home_run"}},
+       "fel.sport.pulse", "outcome_sport"},
+      {"football", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.9F}, {"play_type", "touchdown"}},
+       "fel.sport.pulse", "outcome_sport"},
+      {"soccer", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.9F}, {"shot_type", "penalty"}},
+       "fel.sport.pulse", "outcome_sport"},
+      {"golf", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.9F}, {"action", "putt"}},
+       "fel.sport.pulse", "outcome_sport"},
+      {"tennis", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.9F}, {"rally_type", "ace"}},
+       "fel.sport.pulse", "outcome_sport"},
+      {"volleyball", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.93F}, {"rally_type", "ace_serve"}},
+       "fel.sport.pulse", "outcome_sport"},
   }};
 
   for (const SprintProbe& probe : probes) {

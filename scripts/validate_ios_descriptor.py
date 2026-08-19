@@ -17,6 +17,26 @@ WARNINGS = []
 def err(msg): ERRORS.append(msg)
 def warn(msg): WARNINGS.append(msg)
 
+def load_json_checked(path, label):
+    duplicate_keys = []
+
+    def reject_duplicate_pairs(pairs):
+        obj = {}
+        for key, value in pairs:
+            if key in obj:
+                duplicate_keys.append(key)
+            obj[key] = value
+        return obj
+
+    try:
+        data = json.loads(path.read_text(), object_pairs_hook=reject_duplicate_pairs)
+    except json.JSONDecodeError as exc:
+        err(f"{label} contains invalid JSON: {exc}")
+        return {}
+    if duplicate_keys:
+        err(f"{label} contains duplicate key(s): {', '.join(sorted(set(duplicate_keys)))}")
+    return data
+
 # ── 1. Validate DefaultGame.ini packaging settings ──────────────────────────
 def validate_packaging_settings():
     ini_path = REPO_ROOT / "infra" / "ue5_config" / "DefaultGame.ini"
@@ -40,7 +60,7 @@ def validate_packaging_settings():
     # Validate all required maps are listed in MapsToCook
     mode_mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
     if mode_mgr_path.exists():
-        mgr = json.loads(mode_mgr_path.read_text())
+        mgr = load_json_checked(mode_mgr_path, "FEL_ModeManager.production.json")
         registry = mgr.get("mode_manager", {}).get("mode_registry", {})
         maps_in_ini = re.findall(r'\+MapsToCook=\(FilePath="([^"]+)"\)', content)
         for mode_id, info in registry.items():
@@ -76,8 +96,10 @@ def validate_fel_play_map():
     # Cross-check with ue_mode_maps.json
     ue_maps_path = REPO_ROOT / "backend" / "ue_mode_maps.json"
     if ue_maps_path.exists():
-        ue_maps = json.loads(ue_maps_path.read_text()).get("mode_to_unreal_map", {})
-        for mode_id in ue_maps:
+        ue_maps = load_json_checked(ue_maps_path, "ue_mode_maps.json").get("mode_to_unreal_map", {})
+        for mode_id, unreal_map in ue_maps.items():
+            if unreal_map is None:
+                continue
             if mode_id not in play_map_section:
                 err(f"FELPlayMap missing mode: {mode_id}")
     print("  ✓ FELPlayMap cross-reference validated")
@@ -88,7 +110,7 @@ def validate_mode_counts():
     if not mgr_path.exists():
         err("FEL_ModeManager.production.json not found")
         return
-    mgr = json.loads(mgr_path.read_text())
+    mgr = load_json_checked(mgr_path, "FEL_ModeManager.production.json")
     mm = mgr.get("mode_manager", {})
     registry = mm.get("mode_registry", {})
 
@@ -110,14 +132,20 @@ def validate_arena_settings():
     if not arena_path.exists():
         warn("ArenaSettings.json not found — skipping")
         return
-    arena = json.loads(arena_path.read_text())
+    arena = load_json_checked(arena_path, "ArenaSettings.json")
     modes = arena.get("modes", {})
 
     mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
     if mgr_path.exists():
-        mgr = json.loads(mgr_path.read_text())
+        mgr = load_json_checked(mgr_path, "FEL_ModeManager.production.json")
         registry = mgr.get("mode_manager", {}).get("mode_registry", {})
+        ue_maps_path = REPO_ROOT / "backend" / "ue_mode_maps.json"
+        ue_maps = {}
+        if ue_maps_path.exists():
+            ue_maps = load_json_checked(ue_maps_path, "ue_mode_maps.json").get("mode_to_unreal_map", {})
         for mode_id, info in registry.items():
+            if info.get("render_mode") == "IRL" or (mode_id in ue_maps and ue_maps[mode_id] is None):
+                continue
             if mode_id not in modes:
                 if info.get("status") in ("production", "staging"):
                     warn(f"ArenaSettings missing config for {info['status']} mode: {mode_id}")
@@ -130,7 +158,7 @@ def validate_venue_registry():
     if not vr_path.exists():
         warn("VenueRegistry not found")
         return
-    vr = json.loads(vr_path.read_text())
+    vr = load_json_checked(vr_path, "FEL_VenueRegistry.production.json")
     mode_ids = {m["id"] for m in vr.get("modes", [])}
     venue_keys = {v["venueKey"] for v in vr.get("venues", [])}
 
