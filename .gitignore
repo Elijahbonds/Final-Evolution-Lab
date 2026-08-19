@@ -4,6 +4,8 @@ node_modules/
 .bundle/
 android/
 ios/
+!infra/ios/
+!infra/ios/ExportOptions*.plist
 babel.config.js
 metro.config.js
 package.json
