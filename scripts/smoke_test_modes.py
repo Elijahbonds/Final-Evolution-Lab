@@ -38,12 +38,13 @@ PRODUCTION_MODES = [
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
     "gymnastics", "skateboarding", "snowboarding",
+    "brain_brawl", "who_scene_it", "court_carnival",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = []
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -188,17 +189,20 @@ def test_fel_play_map():
 # Test 6: Swift GameMode Enum
 # ═══════════════════════════════════════════════════════════════════════════════
 def test_swift_enum():
-    print("\n── Test 6: Swift GameMode Enum ──")
+    print("\n── Test 6: Swift GameMode Routing ──")
     swift_path = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
     content = swift_path.read_text()
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
-        # Search for rawValue
+        # Most modes are raw enum values. The canonical NEXUS runtime dunk id is routed to
+        # the split app product surface (`basketball_dunk_3d`) by playableMode(forRegistryId:).
         if f'= "{mode}"' in content:
             ok(f'{mode} has Swift enum case')
+        elif mode == "basketball_dunk" and 'case "basketball_dunk":' in content:
+            ok(f'{mode} routes through Swift registry alias')
         else:
-            fail(f'{mode} missing from GameMode.swift enum')
+            fail(f'{mode} missing from GameMode.swift routing')
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 7: Server.py Seeded Game Modes
