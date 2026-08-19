@@ -14,7 +14,9 @@ from __future__ import annotations
 import random
 import time
 import uuid
+import json
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, File, Query, UploadFile
@@ -32,6 +34,7 @@ _confirmed_scans: set[str] = set()
 _critique_requests: list[dict[str, Any]] = []
 _brain_brawl_sessions: dict[str, dict[str, Any]] = {}
 _workout_logs: list[dict[str, Any]] = []
+_MODE_MANAGER_PATH = Path(__file__).resolve().parents[2] / "FEL_ModeManager.production.json"
 
 ARENA_MODES = [
     ("basketball_h2h", "Street · 1v1", "Basketball", "VeniceBeach", "1v1", "3 min"),
@@ -637,7 +640,10 @@ async def hub_status() -> dict[str, Any]:
 
 @router.get("/production/health")
 async def production_health() -> dict[str, Any]:
-    return {"status": "HEALTHY", "checks": {"mode_manager": {"production_modes": 19}}}
+    mode_manager = json.loads(_MODE_MANAGER_PATH.read_text())
+    registry = mode_manager.get("mode_manager", {}).get("mode_registry", {})
+    production_modes = sum(1 for info in registry.values() if info.get("status") == "production")
+    return {"status": "HEALTHY", "checks": {"mode_manager": {"production_modes": production_modes}}}
 
 
 @router.get("/production/handshake-log")

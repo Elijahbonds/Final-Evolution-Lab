@@ -33,17 +33,20 @@ def skip(msg):
 # Production modes expected to pass all gates
 # ═══════════════════════════════════════════════════════════════════════════════
 PRODUCTION_MODES = [
-    "basketball_h2h", "basketball_dunk", "basketball_3v3",
+    "basketball_h2h", "basketball_dunk", "basketball_dunk_3d", "basketball_dunk_irl", "basketball_3v3",
     "karate_h2h", "karate_endless",
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
     "gymnastics", "skateboarding", "snowboarding",
+    "brain_brawl", "who_scene_it", "court_carnival",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = []
+IRL_MODES = {"basketball_dunk_irl"}
+LEGACY_RUNTIME_ALIASES = {"basketball_dunk": "basketball_dunk_3d"}
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -96,7 +99,10 @@ def test_ue_mode_maps():
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
         if mode in mode_map:
-            ok(f"{mode} → {mode_map[mode]}")
+            if mode in IRL_MODES and mode_map[mode] is None:
+                ok(f"{mode} → IRL/null UE map (expected)")
+            else:
+                ok(f"{mode} → {mode_map[mode]}")
         else:
             if mode == "market_browse":
                 # market_browse may not have a UE map (it's a shop module)
@@ -114,6 +120,9 @@ def test_arena_settings():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
+        if mode in IRL_MODES:
+            ok(f"{mode} → IRL mode skips ArenaSettings")
+            continue
         if mode in modes:
             cfg = modes[mode]
             has_level = "unrealOpenLevelPackage" in cfg
@@ -167,6 +176,9 @@ def test_fel_play_map():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
+        if mode in IRL_MODES:
+            ok(f"{mode} → IRL mode skips FELPlayMap")
+            continue
         if mode in play_map:
             path = play_map[mode]
             # Verify path uses /Venues/ convention
@@ -197,6 +209,8 @@ def test_swift_enum():
         # Search for rawValue
         if f'= "{mode}"' in content:
             ok(f'{mode} has Swift enum case')
+        elif mode in LEGACY_RUNTIME_ALIASES and f'case "{mode}":' in content and f'= "{LEGACY_RUNTIME_ALIASES[mode]}"' in content:
+            ok(f'{mode} resolves to Swift {LEGACY_RUNTIME_ALIASES[mode]} card')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
 
@@ -256,7 +270,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print("  20 production registry entries · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()
