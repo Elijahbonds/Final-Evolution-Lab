@@ -772,6 +772,47 @@ void session_receipt_flush_keeps_queue_when_http_disabled() {
   require(receipts.payload["receipts"].size() == 0, "receipt cleared after successful flush");
 }
 
+void session_receipt_flush_preserves_live_transport_config() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_config_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  const auto configure = gameplay.handleGameplayCommand(
+      "fel.arena.flush_receipts",
+      {
+          {"queue_directory", tempDir.string()},
+          {"base_url", "http://127.0.0.1:9/live-receipts"},
+          {"auth_token", "test-token"},
+          {"persist_to_disk", false},
+          {"http_enabled", true},
+          {"use_stub_http_transport", false},
+          {"flush_interval_seconds", 0.25F},
+          {"max_retries", 7U},
+      },
+      "receipt_configure");
+  require(configure.status == "ok", "initial receipt config command ok");
+
+  const auto preserve = gameplay.handleGameplayCommand(
+      "fel.arena.flush_receipts", {{"persist_to_disk", true}}, "receipt_preserve");
+  require(preserve.status == "ok", "partial receipt config command ok");
+
+  const auto config = gameplay.gameplay_manager().receiptClientConfig();
+  require(config.queueDirectory == tempDir.string(), "receipt config keeps queue directory");
+  require(config.baseUrl == "http://127.0.0.1:9/live-receipts", "receipt config keeps base url");
+  require(config.authToken == "test-token", "receipt config keeps auth token");
+  require(config.httpEnabled, "receipt config keeps http enabled");
+  require(!config.useStubHttpTransport, "receipt config keeps live transport");
+  require(config.persistToDisk, "receipt config applies explicit disk override");
+  require(config.flushIntervalSeconds == 0.25F, "receipt config keeps flush interval");
+  require(config.maxRetries == 7U, "receipt config keeps max retries");
+
+  removeTreeBestEffort(tempDir);
+}
+
 void session_receipt_disk_keyed_by_session_id() {
   const auto tempDir = std::filesystem::temp_directory_path() /
                        ("fel_receipt_dedup_test_" + std::to_string(getpid()));
@@ -2459,9 +2500,9 @@ void flagship_modes_emit_post_ready_receipts() {
   nexus::physics::PhysicsWorld physics;
   require(physics.init({}).isOk(), "physics init");
 
-  const std::array<std::string, 5> modes = {
+  const std::array<std::string, 7> modes = {
       "basketball_dunk", "karate_endless", "basketball_h2h", "basketball_3v3",
-      "court_carnival"};
+      "court_carnival", "brain_brawl", "who_scene_it"};
   for (const auto& modeId : modes) {
     require(gameplay.handleGameplayCommand(
                 "fel.arena.start_session",
@@ -2742,6 +2783,7 @@ auto main() -> int {
   dunk_contest_lifecycle_generates_win_receipt();
   arena_pause_resume_preserves_session();
   session_receipt_flush_keeps_queue_when_http_disabled();
+  session_receipt_flush_preserves_live_transport_config();
   session_receipt_disk_keyed_by_session_id();
   hud_poll_returns_tick_frame_payload();
   fel_bridge_websocket_stub_sends_outbound();

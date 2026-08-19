@@ -156,6 +156,10 @@ auto SessionReceiptClient::postedRequests() const -> std::span<const nexus::core
   return m_http.postedRequests();
 }
 
+auto SessionReceiptClient::config() const -> const SessionReceiptClientConfig& {
+  return m_config;
+}
+
 auto SessionReceiptClient::queueDirectory() const -> const std::string& {
   return m_config.queueDirectory;
 }
