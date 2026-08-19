@@ -11,15 +11,15 @@
 
 | Gate | Result |
 |------|--------|
-| `./scripts/nexus_build_gate.sh` | **PASS** — headless 7/7 ctest; full 8/8 ctest (~64s); 14 production modes validate @ mobile |
+| `./scripts/nexus_build_gate.sh` | **PASS** — headless 7/7 ctest; full 8/8 ctest (~64s); 18 production modes validate @ mobile |
 | `./scripts/smoke_v1.sh --skip-build` | **PASS** — 8/8 ctest + dunk/karate validate-only + `nexus_gameplay_test` |
 | `./scripts/nexus_playtest.sh --duration 0 --skip-build` | **PASS** — validate + gameplay smoke artifact |
-| `./scripts/nexus_validate_production_modes.sh` | **PASS** — 14/14 modes |
+| `./scripts/nexus_validate_production_modes.sh` | **PASS** — 18/18 modes |
 | `./scripts/nexus_gameplay_regression.sh --skip-build` | **PASS** — headless ctest + integration suite → `gameplay_regression.json` |
 | `./scripts/build-nexus-ios.sh` | **PASS** (with `DEVELOPER_DIR` / Xcode toolchain) — `NexusPrebuilt/libnexus_*.a` refreshed |
 | `xcodebuild` iOS Simulator (iPhone 17, Debug) | **PASS** — `** BUILD SUCCEEDED **` after DerivedData lock retry |
 
-**Sprint LIVE modes (9):** all covered in `tests/unit/gameplay/gameplay_test.cpp` via per-mode flagship integrations + consolidated `nexus_sprint_live_modes_agent_contract_integration()` (agent router, nested JSON contracts, safe `.value()` access).
+**Sprint LIVE modes (10):** all covered in `tests/unit/gameplay/gameplay_test.cpp` via per-mode flagship integrations + consolidated `nexus_sprint_live_modes_agent_contract_integration()` (agent router, nested JSON contracts, safe `.value()` access).
 
 ---
 
@@ -34,7 +34,7 @@
 | EE-5 | Swift `TrainingLabSocialBridgeError` + `ScanToGenerationBridge` honest PREVIEW labels | `GameLogicTests.trainingLabSocialBridgeErrorsAreHonest` |
 | EE-6 | `handleGameplayCommand` + `CommandRouter` coerce null/malformed params (no `.find()` on JSON null) | `mode_runtime_rejects_non_object_snow_and_scene_params` |
 
-**Note:** `docs/NEXUS_DEBUG_RUNBOOK.md` not present yet (Senior Debugging Agent deliverable).
+**Note:** `docs/NEXUS_DEBUG_RUNBOOK.md` is present and remains the debugging handoff for runtime/app smoke failures.
 
 ---
 
@@ -83,6 +83,7 @@
 | `brain_brawl` | `fel.brain.answer` | `brain_brawl` | ✓ |
 | `skateboarding` | `fel.skate.trick` | `skateboarding` | ✓ |
 | `snowboarding` | `fel.snow.carve` | `snowboarding` | ✓ |
+| `surfing` | `fel.surf.carve` | `surfing` | ✓ |
 | `who_scene_it` | `fel.scene.buzz_in` | `who_scene_it` | ✓ |
 
 Consolidated agent contract: `nexus_sprint_live_modes_agent_contract_integration()` — exercises all nine via `AgentServer` + `CommandRouter`, asserts `agent_envelope.command` where emitted, validates HUD `payload.mode_state.{mode}` without unchecked `.get()` on missing keys.
