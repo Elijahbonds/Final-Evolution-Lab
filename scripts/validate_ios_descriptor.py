@@ -17,6 +17,20 @@ WARNINGS = []
 def err(msg): ERRORS.append(msg)
 def warn(msg): WARNINGS.append(msg)
 
+NEXUS_RUNTIME_ALIASES = {
+    "basketball_dunk_3d": "basketball_dunk",
+}
+
+def nexus_runtime_mode_id(mode_id, info=None):
+    if info and info.get("nexus_runtime_mode_id"):
+        return info["nexus_runtime_mode_id"]
+    return NEXUS_RUNTIME_ALIASES.get(mode_id)
+
+def is_irl_mode(mode_id, info=None):
+    if mode_id == "basketball_dunk_irl":
+        return True
+    return bool(info and (info.get("render_mode") == "IRL" or info.get("venue_id") is None))
+
 # ── 1. Validate DefaultGame.ini packaging settings ──────────────────────────
 def validate_packaging_settings():
     ini_path = REPO_ROOT / "infra" / "ue5_config" / "DefaultGame.ini"
@@ -73,12 +87,22 @@ def validate_fel_play_map():
                 k, v = line.strip().split("=", 1)
                 play_map_section[k.strip()] = v.strip()
 
-    # Cross-check with ue_mode_maps.json
+    mode_registry = {}
+    mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
+    if mgr_path.exists():
+        mgr = json.loads(mgr_path.read_text())
+        mode_registry = mgr.get("mode_manager", {}).get("mode_registry", {})
+
+    # Cross-check with ue_mode_maps.json. NEXUS split-dunk aliases may use the
+    # runtime map key, while IRL modes intentionally have no UE map.
     ue_maps_path = REPO_ROOT / "backend" / "ue_mode_maps.json"
     if ue_maps_path.exists():
         ue_maps = json.loads(ue_maps_path.read_text()).get("mode_to_unreal_map", {})
-        for mode_id in ue_maps:
-            if mode_id not in play_map_section:
+        for mode_id, map_token in ue_maps.items():
+            if map_token is None or is_irl_mode(mode_id, mode_registry.get(mode_id)):
+                continue
+            runtime_id = nexus_runtime_mode_id(mode_id, mode_registry.get(mode_id))
+            if mode_id not in play_map_section and runtime_id not in play_map_section:
                 err(f"FELPlayMap missing mode: {mode_id}")
     print("  ✓ FELPlayMap cross-reference validated")
 
@@ -118,7 +142,11 @@ def validate_arena_settings():
         mgr = json.loads(mgr_path.read_text())
         registry = mgr.get("mode_manager", {}).get("mode_registry", {})
         for mode_id, info in registry.items():
-            if mode_id not in modes:
+            runtime_id = nexus_runtime_mode_id(mode_id, info)
+            has_mode_config = mode_id in modes or (runtime_id in modes if runtime_id else False)
+            if not has_mode_config:
+                if is_irl_mode(mode_id, info):
+                    continue
                 if info.get("status") in ("production", "staging"):
                     warn(f"ArenaSettings missing config for {info['status']} mode: {mode_id}")
 

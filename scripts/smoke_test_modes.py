@@ -33,17 +33,25 @@ def skip(msg):
 # Production modes expected to pass all gates
 # ═══════════════════════════════════════════════════════════════════════════════
 PRODUCTION_MODES = [
-    "basketball_h2h", "basketball_dunk", "basketball_3v3",
+    "basketball_h2h", "basketball_dunk", "basketball_3v3", "court_carnival",
     "karate_h2h", "karate_endless",
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
     "gymnastics", "skateboarding", "snowboarding",
+    "brain_brawl", "who_scene_it",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = []
+
+APP_MODE_ALIASES = {
+    "basketball_dunk": "basketball_dunk_3d",
+}
+
+def app_mode_id(mode):
+    return APP_MODE_ALIASES.get(mode, mode)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -136,10 +144,12 @@ def test_venue_registry():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
-        if mode in mode_ids:
-            entry = next(m for m in vr["modes"] if m["id"] == mode)
+        venue_mode = mode if mode in mode_ids else app_mode_id(mode)
+        if venue_mode in mode_ids:
+            entry = next(m for m in vr["modes"] if m["id"] == venue_mode)
             if entry["venueKey"] in venue_keys:
-                ok(f"{mode} → venue={entry['venueKey']}")
+                alias_note = f" via {venue_mode}" if venue_mode != mode else ""
+                ok(f"{mode} → venue={entry['venueKey']}{alias_note}")
             else:
                 fail(f"{mode} references unknown venue: {entry['venueKey']}")
         else:
@@ -195,8 +205,10 @@ def test_swift_enum():
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
         # Search for rawValue
-        if f'= "{mode}"' in content:
-            ok(f'{mode} has Swift enum case')
+        swift_mode = app_mode_id(mode)
+        if f'= "{swift_mode}"' in content:
+            alias_note = f" via {swift_mode}" if swift_mode != mode else ""
+            ok(f'{mode} has Swift enum case{alias_note}')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
 
@@ -256,7 +268,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print(f"  {len(PRODUCTION_MODES)} runtime production modes · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()
