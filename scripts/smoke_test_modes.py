@@ -48,6 +48,15 @@ PREVIEW_MODES = []
 PREVIEW_MODULES = ["movement_lab"]
 IOS_UE_ALIASES = {"basketball_dunk": "basketball_dunk_3d"}
 IOS_IRL_MODES = ["basketball_dunk_irl"]
+SWIFT_ROUTE_ENTRYPOINTS = [
+    "ContentView.swift",
+    "Views/ArcadeLibraryView.swift",
+    "Views/DashboardView.swift",
+    "Views/GameModeScreenshotHarnessView.swift",
+    "Views/GameModeSelectionView.swift",
+    "Views/LabView.swift",
+    "Views/NexusGameGeneratorView.swift",
+]
 
 def mode_or_ios_alias(mode):
     return IOS_UE_ALIASES.get(mode, mode)
@@ -275,6 +284,52 @@ def test_swift_non_game_guardrails():
     else:
         ok("playableMode(forRegistryId:) excludes market_browse")
 
+
+def test_swift_route_contract():
+    print("\n── Test 6c: Swift Route Contract ──")
+    swift_root = REPO_ROOT / "FinalEvolutionLab"
+    router_path = swift_root / "Views" / "GameModeRouter.swift"
+    router = router_path.read_text()
+
+    route_checks = [
+        ("case .basketballDunkContestIRL:", "IRLDunkView(", "IRL dunk routes to native camera flow"),
+        ("case .brainBrawl:", "BrainBrawl2DView(", "Brain Brawl routes to native 2D view"),
+        ("case .marketBrowse:", "MarketBrowseView(", "Market Browse stays out of gameplay session"),
+        ("default:", "GamePlayView(", "NEXUS runtime modes route to GamePlayView fallback"),
+        ("GamePlayView(", "generatorHudTheme: generatorHudTheme", "generated HUD theme is preserved"),
+        (
+            "GamePlayView(",
+            "skipMatchLobbyForScreenshotHarness: skipMatchLobbyForScreenshotHarness",
+            "screenshot harness skip flag is preserved",
+        ),
+    ]
+    for anchor, needle, label in route_checks:
+        anchor_index = router.find(anchor)
+        needle_index = router.find(needle, anchor_index if anchor_index >= 0 else 0)
+        if anchor_index >= 0 and needle_index >= anchor_index:
+            ok(label)
+        else:
+            fail(f"GameModeRouter missing contract: {label}")
+
+    direct_gameplay = []
+    for path in swift_root.rglob("*.swift"):
+        if path == router_path:
+            continue
+        content = path.read_text()
+        if re.search(r"\bGamePlayView\s*\(", content):
+            direct_gameplay.append(str(path.relative_to(swift_root)))
+    if direct_gameplay:
+        fail("GamePlayView direct launch bypasses GameModeRouter: " + ", ".join(sorted(direct_gameplay)))
+    else:
+        ok("all Swift launch destinations use GameModeRouter")
+
+    for rel_path in SWIFT_ROUTE_ENTRYPOINTS:
+        entry = swift_root / rel_path
+        if "GameModeRouter(" in entry.read_text():
+            ok(f"{rel_path} launches through GameModeRouter")
+        else:
+            fail(f"{rel_path} must launch through GameModeRouter")
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 7: Server.py Seeded Game Modes
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -341,6 +396,7 @@ def main():
     test_fel_play_map()
     test_swift_enum()
     test_swift_non_game_guardrails()
+    test_swift_route_contract()
     test_server_seeded_modes()
     test_economy_integration()
 

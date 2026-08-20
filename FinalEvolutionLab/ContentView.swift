@@ -190,10 +190,11 @@ struct ContentView: View {
         .fullScreenCover(isPresented: $showAgentLaunchedGame) {
             if let mode = agentLaunchMode {
                 NavigationStack {
-                    GamePlayView(
+                    GameModeRouter(
                         viewModel: viewModel,
                         gameMode: mode,
-                        sessionReadiness: agentLaunchReadiness
+                        sessionReadiness: agentLaunchReadiness,
+                        onDismiss: { showAgentLaunchedGame = false }
                     )
                     .toolbar {
                         ToolbarItem(placement: .topBarLeading) {
