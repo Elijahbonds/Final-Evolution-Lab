@@ -2245,6 +2245,32 @@ void session_receipt_http_stub_posts_localhost_contract() {
           "POST body includes mode_id");
 }
 
+void session_receipt_http_continues_when_disk_persist_fails() {
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = "/dev/null/fel_receipt_unwritable",
+      .baseUrl = "http://127.0.0.1:8000/api/games/session",
+      .persistToDisk = true,
+      .httpEnabled = true,
+      .useStubHttpTransport = true,
+  });
+
+  client.enqueue({
+      {"mode_id", "brain_brawl"},
+      {"score", 3},
+      {"telemetry", {{"session_id", "persist_fails_http_continues"}}},
+  });
+
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "persist-fail HTTP fallback attempted");
+  require(flush.delivered == 1, "persist-fail HTTP fallback delivered");
+  require(flush.requeued == 0, "persist-fail HTTP fallback not requeued");
+  require(flush.queued_on_disk == 0, "persist-fail HTTP fallback does not count disk queue");
+  require(client.pendingCount() == 0, "persist-fail HTTP fallback clears pending receipt");
+  require(client.postedRequests().size() == 1, "persist-fail HTTP fallback records POST");
+  require(client.postedRequests().front().body.find("brain_brawl") != std::string::npos,
+          "persist-fail HTTP fallback posts receipt body");
+}
+
 void session_receipt_live_http_success_does_not_count_disk_queue() {
 #if defined(__unix__) || defined(__APPLE__)
   if (!curlAvailable()) {
@@ -3116,6 +3142,102 @@ void karate_h2h_session_end_dispatches_receipt() {
       "karate h2h receipt includes outcome_sport state");
 }
 
+void brain_brawl_session_end_dispatches_receipt() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  const auto mode = nexus::gameplay::ArenaModeRegistry::find("brain_brawl");
+  require(mode.has_value(), "brain brawl registered");
+  require(mode->scoringEnabled, "brain brawl scoring enabled");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "brain_brawl"}, {"user_id", "brain_receipt"}},
+              "brain_receipt_start")
+              .status == "ok",
+          "brain brawl receipt session starts");
+
+  for (int i = 0; i < 3 && !gameplay.mode_runtime().shouldAutoEndSession(); ++i) {
+    const auto answer = gameplay.handleGameplayCommand(
+        "fel.brain.answer",
+        {{"correct", true}, {"response_time", 4.0F}, {"category", "BodyIQ"}},
+        "brain_receipt_answer");
+    require(answer.status == "ok", "brain brawl answer for receipt");
+  }
+
+  require(gameplay.mode_runtime().shouldAutoEndSession(), "brain brawl match complete");
+
+  const auto end = gameplay.handleGameplayCommand(
+      "fel.arena.end_session",
+      {{"use_live_scores", true}},
+      "brain_receipt_end");
+  require(end.status == "ok", "brain brawl session ends");
+  require(end.payload["outcome"].get<std::string>() == "win", "brain brawl win outcome");
+
+  const auto receipts =
+      gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "brain_receipts");
+  require(!receipts.payload["receipts"].empty(), "brain brawl receipt queued");
+  require(receipts.payload["receipts"].back()["mode_id"].get<std::string>() == "brain_brawl",
+          "brain brawl receipt mode id");
+  require(receipts.payload["receipts"].back()["score"].get<int>() >= 3,
+          "brain brawl receipt score from C++ state");
+  require(receipts.payload["receipts"].back()["telemetry"]["mode_specific"]["brain_brawl"].is_object(),
+          "brain brawl receipt includes mode_specific state");
+}
+
+void who_scene_it_session_end_dispatches_receipt() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  const auto mode = nexus::gameplay::ArenaModeRegistry::find("who_scene_it");
+  require(mode.has_value(), "who scene it registered");
+  require(mode->scoringEnabled, "who scene it scoring enabled");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "who_scene_it"}, {"user_id", "scene_receipt"}},
+              "scene_receipt_start")
+              .status == "ok",
+          "who scene it receipt session starts");
+
+  for (int i = 0; i < 7 && !gameplay.mode_runtime().shouldAutoEndSession(); ++i) {
+    require(gameplay.handleGameplayCommand(
+                "fel.scene.buzz_in",
+                {{"timing", 0.94F}},
+                "scene_receipt_buzz")
+                .status == "ok",
+            "who scene it buzz for receipt");
+    require(gameplay.handleGameplayCommand(
+                "fel.scene.answer",
+                {{"correct", true}, {"response_time", 4.0F}, {"category", "ClassicFilm"}},
+                "scene_receipt_answer")
+                .status == "ok",
+            "who scene it answer for receipt");
+  }
+
+  require(gameplay.mode_runtime().shouldAutoEndSession(), "who scene it match complete");
+
+  const auto end = gameplay.handleGameplayCommand(
+      "fel.arena.end_session",
+      {{"use_live_scores", true}},
+      "scene_receipt_end");
+  require(end.status == "ok", "who scene it session ends");
+  require(end.payload["outcome"].get<std::string>() == "win", "who scene it win outcome");
+
+  const auto receipts =
+      gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "scene_receipts");
+  require(!receipts.payload["receipts"].empty(), "who scene it receipt queued");
+  require(receipts.payload["receipts"].back()["mode_id"].get<std::string>() == "who_scene_it",
+          "who scene it receipt mode id");
+  require(receipts.payload["receipts"].back()["score"].get<int>() >= 7,
+          "who scene it receipt score from C++ state");
+  require(
+      receipts.payload["receipts"].back()["telemetry"]["mode_specific"]["who_scene_it"].is_object(),
+      "who scene it receipt includes mode_specific state");
+}
+
 } // namespace
 
 auto main() -> int {
@@ -3146,6 +3268,7 @@ auto main() -> int {
   hud_relay_websocket_stub_emits_frames();
   hud_relay_broadcast_messages_are_bounded();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_http_continues_when_disk_persist_fails();
   session_receipt_live_http_success_does_not_count_disk_queue();
   session_receipt_live_http_non_2xx_requeues_without_disk();
   karate_mode_input_strike_advances_wave();
@@ -3189,6 +3312,8 @@ auto main() -> int {
   basketball_3v3_session_end_dispatches_receipt();
   court_carnival_session_end_dispatches_receipt();
   karate_h2h_session_end_dispatches_receipt();
+  brain_brawl_session_end_dispatches_receipt();
+  who_scene_it_session_end_dispatches_receipt();
   text_prompt_adapter_maps_beach_arena_prompt();
   gameplay_from_text_executes_mixed_plan();
   agent_router_routes_from_text_to_gameplay();

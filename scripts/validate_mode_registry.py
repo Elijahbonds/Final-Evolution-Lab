@@ -120,10 +120,20 @@ def validate_cpp_runtime_modes(registry: dict[str, dict[str, object]], ue_maps: 
             err(f"{mode} missing launch map token in ue_mode_maps.json")
 
         block = cpp_blocks.get(mode, "")
-        if 'scoringEnabled = true' in block or mode in {"brain_brawl", "who_scene_it"}:
+        if 'scoringEnabled = true' in block:
             ok(f"{mode} scoring state is explicit")
         else:
             err(f"{mode} does not explicitly enable scoring")
+
+        expected_scoring = bool(entry.get("scoring_enabled", True)) if entry else True
+        cpp_scoring = 'scoringEnabled = true' in block
+        if cpp_scoring == expected_scoring:
+            ok(f"{mode} C++ scoring matches backend registry")
+        else:
+            err(
+                f"{mode} C++ scoringEnabled={cpp_scoring}, "
+                f"backend scoring_enabled={expected_scoring}"
+            )
 
     return production_ids
 
