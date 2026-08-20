@@ -36,7 +36,7 @@ Run from repo root (`/Users/elijahbonds/Final-Evolution-Lab`):
 
 | Script | Result | Evidence |
 |--------|--------|----------|
-| `./scripts/nexus_build_gate.sh` | **PASS** | Headless **7/7** ctest + full **8/8** ctest + **18/18** production + **0/0** staging modes @ mobile — sim FR re-verify **PASS** 2026-06-19T21:52Z (`support_gate_handoff.json`; parallel flake retried green) |
+| `./scripts/nexus_build_gate.sh` | **PASS** | Headless **11/11** ctest + full **13/13** ctest + **18/18** production + **0/0** staging modes @ mobile — sim FR re-verify **PASS** 2026-06-19T21:52Z (`support_gate_handoff.json`; parallel flake retried green). Linux cloud full renderer requires Vulkan + SDL3 dev packages. |
 | `ctest -R nexus_renderer_test` (V-013 re-run) | **PASS** | Venice `basketball_dunk` manifest mesh load + mobile budget; **25.15s** (2026-06-19 V-013) |
 | `./scripts/nexus_gameplay_regression.sh` | **PASS** | 100% ctest + `nexus_gameplay_test` incl. `flagship_outcome_sport_validate_only_integration` |
 | `./scripts/nexus_validate_production_modes.sh` | **PASS** | 18/18 production modes @ mobile mesh profile — sim FR independent **PASS** 2026-06-19T21:52Z (`support_gate_handoff.json` + `quality_handoff.json`) |
@@ -64,7 +64,7 @@ Run from repo root (`/Users/elijahbonds/Final-Evolution-Lab`):
 
 | Phase | Goal | Pass 1 | Pass 2 | Actual (2026-06-19) |
 |-------|------|:------:|:------:|---------------------|
-| **1** | Build gate | **PASS** | **PASS** | Headless **7/7** + full **8/8** ctest + **18/18** production + **0/0** staging validate-only @ mobile |
+| **1** | Build gate | **PASS** | **PASS** | Headless **11/11** + full **13/13** ctest + **18/18** production + **0/0** staging validate-only @ mobile |
 | **8** | Metal iOS renderer | **PARTIAL** | **PARTIAL** | Wireframe/solid mesh draw + manifest load; `nexus_metal_bridge_bundled_venue_mesh_loadable`; Dunk auto-Metal when bundle OK; SceneKit default elsewhere |
 | **10** | Performance ship gate | **PASS** | **PARTIAL** | Desktop validate-only OK; no Instruments proof on device |
 
@@ -72,7 +72,7 @@ Run from repo root (`/Users/elijahbonds/Final-Evolution-Lab`):
 
 ## Spec v1 DoD tracker (§9.1)
 
-**Composite quality score:** **8.0 / 10** per `NEXUS_QUALITY_BAR.md` — engine gate fully green (headless **7/7** + full **8/8** ctest + **18/18** production modes @ `NEXUS_MESH_PROFILE=mobile`); iOS Simulator compile green; signed preview IPA evidenced; device perf, live Firebase POST, and premium visual bar remain open. **NEXUS-only — no UE/Unity ship claims.**
+**Composite quality score:** **8.0 / 10** per `NEXUS_QUALITY_BAR.md` — engine gate fully green when renderer dependencies are installed (headless **11/11** + full **13/13** ctest + **18/18** production modes @ `NEXUS_MESH_PROFILE=mobile`); iOS Simulator compile green; signed preview IPA evidenced; device perf, live Firebase POST, and premium visual bar remain open. **NEXUS-only — no UE/Unity ship claims.**
 
 **DoD score:** **5/9 met · 3 partial · 1 open**
 
@@ -85,7 +85,7 @@ Run from repo root (`/Users/elijahbonds/Final-Evolution-Lab`):
 | 5 | Karate Endless functional | **MET** | `fel.karate.action` + wave spawner; ctest + smoke |
 | 6 | Mode menu navigates production modes | **MET** | `GameModeSelectionView` + `arena_mode_registry.cpp` — **18** production modes (`nexus_validate_production_modes.sh`) |
 | 7 | No exceptions in engine code | **MET** | `Result<T>` throughout gameplay/engine |
-| 8 | ctest passes | **MET** | Headless **7/7** + full renderer **8/8** (`nexus_build_gate.sh`) |
+| 8 | ctest passes | **MET** | Headless **11/11** + full renderer **13/13** (`nexus_build_gate.sh`; full renderer needs Vulkan + SDL3 in Linux cloud) |
 | 9 | TestFlight candidate (production Firebase) | **PARTIAL** | **V-003** — `--preview-firebase` signed App Store + ad-hoc IPA PASS; real `GoogleService-Info.plist`, ASC app record, live Auth/Crashlytics open |
 
 **Partial drift map:** **V-003** → DoD #9 · **V-012** → DoD #4 · **V-013** → DoD #1–2
@@ -107,7 +107,7 @@ Run from repo root (`/Users/elijahbonds/Final-Evolution-Lab`):
 1. **Production Firebase (V-003)** — **PARTIAL workaround in tree:** `--preview-firebase` archive skips Crashlytics + runs with `FirebaseBootstrap.isPreviewMode` (Auth/Firestore offline, PREVIEW banner). **Still blocked:** real `GoogleService-Info.plist` for live Firebase TestFlight + Crashlytics.
 2. **TestFlight upload (ASC app record)** — **BLOCKED (user action):** signed App Store IPA exports successfully (`--export`); Transporter upload requires creating `com.finalevolutionlab.app` in App Store Connect. **Workaround:** `--export-adhoc` for Firebase App Distribution / sideload without ASC app.
 3. ~~**NEXUS venue assets not in app bundle**~~ — **FIXED in tree / PARTIAL on device (2026-06-19):** `Bundle NEXUS venue assets` run script copies `assets/nexus/manifests/` + `imported/*.nexusmesh.json` into app resources; `NexusMetalBridge` sets `NEXUS_RESOURCE_ROOT` for manifest/mesh resolution. **Simulator (V-013):** bundle grep + `NEXUS_USE_METAL=1` launch OK; Dunk Contest auto-Metal in tree. **OPEN:** physical iPhone Metal draw (phone unlock for `devicectl`); visual mesh proof on sim/device |
-4. **Session receipt live POST (DoD #4)** — C++ queues to `~/.fel/pending_receipts/`; Swift drain + authenticated POST stubbed.
+4. **Session receipt live POST (DoD #4)** — iOS C++ bridge queues to `~/.fel/pending_receipts/` with C++ HTTP disabled; Swift drain performs authenticated POST. Live 2xx production proof remains open.
 5. **Device validation gap** — no Instruments 60 FPS @ mobile mesh profile on physical iPhone; Metal PBR/post parity with Vulkan deferred.
 
 ---

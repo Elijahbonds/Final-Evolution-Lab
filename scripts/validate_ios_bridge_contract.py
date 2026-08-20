@@ -120,7 +120,24 @@ def main() -> int:
         print("FAIL: stop() marks session inactive before final score sync", file=sys.stderr)
         return 1
 
-    print("PASS: iOS bridge tick order and Swift gameplay handoff match engine contract")
+    flush_match = re.search(
+        r"char\*\s+nexus_gameplay_session_flush_receipts\s*\([^)]*\)\s*\{(?P<body>.*?)\n\}",
+        source,
+        re.DOTALL,
+    )
+    if not flush_match:
+        print(f"FAIL: could not find nexus_gameplay_session_flush_receipts in {BRIDGE_PATH}", file=sys.stderr)
+        return 1
+    flush_body = flush_match.group("body")
+    flush_checks = [
+        require_contains(flush_body, '{"persist_to_disk", true}', "iOS receipt disk persistence"),
+        require_contains(flush_body, '{"http_enabled", false}', "iOS C++ receipt HTTP disabled"),
+        require_contains(flush_body, '{"use_stub_http", false}', "iOS C++ receipt stub transport disabled"),
+    ]
+    if not all(flush_checks):
+        return 1
+
+    print("PASS: iOS bridge tick, receipt flush, and Swift gameplay handoff match engine contract")
     return 0
 
 
