@@ -36,11 +36,14 @@ jobs:
           import json
           with open('./backend/FEL_ModeManager.production.json') as f:
               d = json.load(f)
-          modes = d['mode_manager']['modes']
-          print(f'Mode registry: {len(modes)} modes')
-          prod = [m for m in modes if m.get('status') == 'production']
-          print(f'Production: {len(prod)} | Staging: {len(modes) - len(prod)}')
-          assert len(modes) >= 17, 'Expected 17+ modes'
+          mm = d['mode_manager']
+          registry = mm['mode_registry']
+          print(f'Mode registry: {len(registry)} ids')
+          prod = [mode_id for mode_id, mode in registry.items() if mode.get('status') == 'production']
+          print(f'Production: {len(prod)} | Non-production: {len(registry) - len(prod)}')
+          assert len(registry) == mm['total_modes'], 'Declared total_modes drifted from registry'
+          assert len(prod) == mm['production_modes'], 'Declared production_modes drifted from registry'
+          assert len(prod) >= 18, 'Expected 18+ production NEXUS/app modes'
           print('✓ Mode registry valid')
           "
 
