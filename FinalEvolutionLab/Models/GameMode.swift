@@ -297,7 +297,9 @@ struct GameModeRegistry {
     /// badges (prod/sim/staging) stay honest via ``GameModeId/nexusCapabilityTier``.
     static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases).subtracting([.marketBrowse])
 
-    /// All 20 mode IDs from `arena_mode_registry.cpp` — keep in sync when adding modes.
+    /// iOS-visible registry surface: 18 launchable NEXUS runtime ids represented as
+    /// 19 cards because dunk is split into IRL/3D, plus the non-game module.
+    /// C++ keeps `basketball_dunk` as one canonical runtime id.
     static let arenaRegistryModeIds: [GameModeId] = [
         .basketballHeadToHead, .basketballDunkContestIRL, .basketballDunkContest3D, .basketball3v3,
         .karate, .karateEndless,

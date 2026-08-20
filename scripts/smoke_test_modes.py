@@ -285,8 +285,35 @@ def test_swift_non_game_guardrails():
         ok("playableMode(forRegistryId:) excludes market_browse")
 
 
+def test_swift_matchmaking_aliases():
+    print("\n── Test 6c: Swift Matchmaking Aliases ──")
+    matchmaking_path = REPO_ROOT / "FinalEvolutionLab" / "Models" / "Matchmaking.swift"
+    content = matchmaking_path.read_text()
+
+    if "allConfigs[canonicalModeId(for: modeId)]" in content:
+        ok("MatchmakingConfig.config(for:) normalizes Swift aliases")
+    else:
+        fail("MatchmakingConfig.config(for:) must normalize Swift aliases")
+
+    alias_checks = [
+        ('case "venice_pickup":', 'return "basketball_h2h"', "venice_pickup uses basketball_h2h matchmaking"),
+        (
+            'case "basketball_dunk_3d", "basketball_dunk_irl":',
+            'return "basketball_dunk"',
+            "split dunk modes use canonical basketball_dunk matchmaking",
+        ),
+    ]
+    for anchor, expected, label in alias_checks:
+        anchor_index = content.find(anchor)
+        expected_index = content.find(expected, anchor_index if anchor_index >= 0 else 0)
+        if anchor_index >= 0 and expected_index >= anchor_index:
+            ok(label)
+        else:
+            fail(f"Matchmaking alias missing: {label}")
+
+
 def test_swift_route_contract():
-    print("\n── Test 6c: Swift Route Contract ──")
+    print("\n── Test 6d: Swift Route Contract ──")
     swift_root = REPO_ROOT / "FinalEvolutionLab"
     router_path = swift_root / "Views" / "GameModeRouter.swift"
     router = router_path.read_text()
@@ -396,6 +423,7 @@ def main():
     test_fel_play_map()
     test_swift_enum()
     test_swift_non_game_guardrails()
+    test_swift_matchmaking_aliases()
     test_swift_route_contract()
     test_server_seeded_modes()
     test_economy_integration()

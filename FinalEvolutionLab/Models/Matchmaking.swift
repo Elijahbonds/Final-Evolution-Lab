@@ -121,7 +121,8 @@ nonisolated struct MatchmakingConfig: Sendable {
 
     var totalPlayers: Int { playersPerTeam * teamsCount }
 
-    // Static library of all mode configs
+    // Static library of canonical runtime mode configs. Swift-only aliases are
+    // normalized in config(for:) so launch cards and matchmaking agree.
     static let allConfigs: [String: MatchmakingConfig] = [
         "basketball_h2h": MatchmakingConfig(modeId: "basketball_h2h", playersPerTeam: 1, teamsCount: 2, isSolo: false),
         "basketball_dunk": MatchmakingConfig(modeId: "basketball_dunk", playersPerTeam: 1, teamsCount: 4, isSolo: false),
@@ -144,7 +145,18 @@ nonisolated struct MatchmakingConfig: Sendable {
     ]
 
     static func config(for modeId: String) -> MatchmakingConfig? {
-        allConfigs[modeId]
+        allConfigs[canonicalModeId(for: modeId)]
+    }
+
+    private static func canonicalModeId(for modeId: String) -> String {
+        switch modeId {
+        case "venice_pickup":
+            return "basketball_h2h"
+        case "basketball_dunk_3d", "basketball_dunk_irl":
+            return "basketball_dunk"
+        default:
+            return modeId
+        }
     }
 }
 
