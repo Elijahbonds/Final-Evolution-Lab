@@ -205,6 +205,7 @@ nonisolated struct GameMode: Sendable, Identifiable {
     nonisolated enum ReleaseState: String, Sendable {
         case production
         case preview
+        case nonGame = "non-game-module"
     }
 
     let releaseState: ReleaseState
@@ -262,7 +263,7 @@ extension GameMode {
         }
     }
 
-    /// Honest toolbar badge — nil for canonical production modes (`releaseState == .production`).
+    /// Honest toolbar badge — nil for canonical production and non-game library modules.
     var felPreviewLabel: String? {
         guard releaseState == .preview else { return nil }
         return FELPremiumCopy.Tier.earlyAccess(name)
@@ -303,13 +304,14 @@ struct GameModeRegistry {
     static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases)
         .subtracting([.basketballDunkContestIRL, .marketBrowse, .movementLab])
 
-    /// All Arena game/module IDs from `arena_mode_registry.cpp` (excludes education-only preview modules).
+    /// Public Arena catalog IDs. Split dunk entries mirror iOS/backend aliases while movement lab
+    /// is the preview education module registered by the C++ arena catalog.
     static let arenaRegistryModeIds: [GameModeId] = [
         .basketballHeadToHead, .basketballDunkContestIRL, .basketballDunkContest3D, .basketball3v3,
         .karate, .karateEndless,
         .baseball, .football, .soccer, .golf, .tennis, .volleyball,
         .gymnastics, .surfing, .skateboarding, .snowboarding,
-        .brainBrawl, .whoSceneIt, .courtCarnival, .marketBrowse,
+        .brainBrawl, .whoSceneIt, .courtCarnival, .marketBrowse, .movementLab,
     ]
 
     static var nexusSprintModes: [GameMode] {
@@ -323,7 +325,7 @@ struct GameModeRegistry {
         if Config.showPreviewGameModes {
             return all
         }
-        return all.filter { $0.releaseState == .production }
+        return all.filter { $0.releaseState == .production || $0.releaseState == .nonGame }
     }
 
     static let all: [GameMode] = [
@@ -563,7 +565,7 @@ struct GameModeRegistry {
             multiplayerType: .solo,
             environmentName: "Luma Venice Shop",
             hint: "Browse the vault · scan venues · shop collectibles",
-            releaseState: .preview
+            releaseState: .nonGame
         ),
         GameMode(
             id: .movementLab,
@@ -622,7 +624,7 @@ struct GameModeRegistry {
         catalogModes.filter { $0.sport == sport }
     }
 
-    /// All 20 arena modes — always listed in the mode picker with honest prod/staging/preview badges.
+    /// Public arena catalog — listed with honest production, library, and preview badges.
     static var catalogModes: [GameMode] {
         all.filter { arenaRegistryModeIds.contains($0.id) }
     }
@@ -633,7 +635,15 @@ struct GameModeRegistry {
         for (rawId, entry) in payload.modeManager.modeRegistry {
             guard let modeId = GameModeId(rawValue: rawId) else { continue }
             let baseMode = all.first(where: { $0.id == modeId })
-            let releaseState: GameMode.ReleaseState = entry.status == "production" ? .production : .preview
+            let releaseState: GameMode.ReleaseState
+            switch entry.status {
+            case "production":
+                releaseState = .production
+            case "non-game-module", "non_game":
+                releaseState = .nonGame
+            default:
+                releaseState = .preview
+            }
             
             let mode = GameMode(
                 id: modeId,

@@ -272,6 +272,19 @@ def test_swift_enum():
         else:
             fail(f'{module} missing preview non-game GameMode entry')
 
+    for module in NON_GAME_MODULES:
+        swift_module = mode_or_ios_alias(module)
+        case_name = _swift_case_name(swift_module)
+        module_block = re.search(
+            rf"GameMode\(\s*id:\s*\.{case_name},.*?releaseState:\s*\.nonGame",
+            content,
+            re.DOTALL,
+        )
+        if module_block:
+            ok(f'{module} surfaced as non-game Swift library module')
+        else:
+            fail(f'{module} missing non-game Swift module entry')
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 7: Server.py Seeded Game Modes
 # ═══════════════════════════════════════════════════════════════════════════════

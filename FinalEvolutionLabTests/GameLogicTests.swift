@@ -413,11 +413,21 @@ struct GameLogicTests {
 
     @Test func previewModesExposeHonestGameplayPreviewLabels() {
         let previewModes = GameModeRegistry.all.filter { $0.releaseState == .preview }
-        #expect(previewModes.contains { $0.id == .marketBrowse })
         #expect(previewModes.contains { $0.id == .movementLab })
         for mode in previewModes {
             #expect(mode.felPreviewLabel?.hasPrefix("Early Access · ") == true)
         }
+    }
+
+    @Test func marketBrowseIsNonGameLibraryModule() {
+        let mode = GameModeRegistry.mode(for: .marketBrowse)
+        #expect(mode.releaseState == .nonGame)
+        #expect(mode.capabilityTier == .nonGame)
+        #expect(!mode.isLaunchableInCurrentBuild)
+        #expect(!mode.isNexusSprintPlayable)
+        #expect(GameModeRegistry.arenaRegistryModeIds.contains(.marketBrowse))
+        #expect(mode.felPreviewLabel == nil)
+        #expect(mode.felHonestTierLabel?.hasPrefix("Library · ") == true)
     }
 
     @Test func movementLabIsPreviewEducationOnly() {
@@ -426,7 +436,7 @@ struct GameLogicTests {
         #expect(mode.capabilityTier == .nonGame)
         #expect(!mode.isLaunchableInCurrentBuild)
         #expect(!mode.isNexusSprintPlayable)
-        #expect(!GameModeRegistry.arenaRegistryModeIds.contains(.movementLab))
+        #expect(GameModeRegistry.arenaRegistryModeIds.contains(.movementLab))
         #expect(!GameModeRegistry.nexusSprintModeIds.contains(.movementLab))
         #expect(PRQ.modeWeight(for: .movementLab) == 0.0)
         #expect(GameModeRules.forMode(.movementLab).rewardEligibleMinActions == 0)

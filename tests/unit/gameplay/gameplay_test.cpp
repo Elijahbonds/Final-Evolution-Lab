@@ -493,15 +493,22 @@ void gameplay_update_drains_agent_commands_before_throw_catch() {
   physics.shutdown();
 }
 
-void arena_mode_registry_lists_nineteen_modes() {
-  require(nexus::gameplay::ArenaModeRegistry::allModes().size() == 19,
-          "arena registry exposes 19 modes");
+void arena_mode_registry_lists_catalog_modes() {
+  require(nexus::gameplay::ArenaModeRegistry::allModes().size() == 20,
+          "arena registry exposes 20 catalog modes");
   const auto dunk = nexus::gameplay::ArenaModeRegistry::find("basketball_dunk");
   require(dunk.has_value(), "basketball_dunk found");
   require(dunk->venueToken == "Venice_Beach_Court", "dunk venue token");
   require(dunk->nexusMeshPath.find(".nexusmesh.json") != std::string_view::npos,
           "dunk nexus mesh path");
   require(dunk->legacyUeMapAlias.find("/Game/FEL/Maps/") == 0, "dunk legacy ue alias");
+
+  const auto movement = nexus::gameplay::ArenaModeRegistry::find("movement_lab");
+  require(movement.has_value(), "movement_lab found");
+  require(movement->releaseState == nexus::gameplay::ArenaReleaseState::kPreview,
+          "movement_lab is preview");
+  require(!movement->scoringEnabled, "movement_lab scoring disabled");
+  require(movement->modeWeight == 0.0F, "movement_lab has zero PRQ weight");
 }
 
 void arena_mode_registry_production_modes_match_validate_script() {
@@ -3094,7 +3101,7 @@ auto main() -> int {
   voxel_parser_passes_through_set_voxels_and_fill_region();
   voxel_parser_rejects_invalid_creative_params();
   gameplay_session_state_query_returns_coherent_payload();
-  arena_mode_registry_lists_nineteen_modes();
+  arena_mode_registry_lists_catalog_modes();
   arena_mode_registry_production_modes_match_validate_script();
   gameplay_manager_evaluates_volleyball_outcome();
   outcome_sport_mode_mechanics_and_session_scores();
