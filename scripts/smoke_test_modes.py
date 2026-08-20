@@ -30,20 +30,39 @@ def skip(msg):
     print(f"  ⏭  {msg}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Production modes expected to pass all gates
+# Registry helpers and mode buckets expected to pass all gates
 # ═══════════════════════════════════════════════════════════════════════════════
-PRODUCTION_MODES = [
-    "basketball_h2h", "basketball_dunk", "basketball_3v3",
-    "karate_h2h", "karate_endless",
-    "baseball", "football", "soccer", "golf",
-    "tennis", "volleyball", "surfing",
-    "gymnastics", "skateboarding", "snowboarding",
-]
+def load_mode_manager():
+    return json.loads((REPO_ROOT / "backend" / "FEL_ModeManager.production.json").read_text())
 
-NON_GAME_MODULES = ["market_browse"]
+def load_registry():
+    return load_mode_manager()["mode_manager"]["mode_registry"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+def modes_with_status(status):
+    return [mode_id for mode_id, info in load_registry().items() if info.get("status") == status]
+
+def load_ue_mode_maps():
+    return json.loads((REPO_ROOT / "backend" / "ue_mode_maps.json").read_text())["mode_to_unreal_map"]
+
+def runtime_alias_for(mode_id):
+    info = load_registry().get(mode_id, {})
+    return info.get("nexus_runtime_mode_id")
+
+def is_unreal_backed_mode(mode_id):
+    info = load_registry().get(mode_id, {})
+    ue_maps = load_ue_mode_maps()
+    if info.get("render_mode") == "IRL" or info.get("status") == "non-game-module":
+        return False
+    if mode_id in ue_maps:
+        return ue_maps[mode_id] is not None
+    if info.get("status") == "preview" and info.get("scoring_enabled") is False:
+        return False
+    return True
+
+PRODUCTION_MODES = modes_with_status("production")
+STAGING_MODES = modes_with_status("staging")
+PREVIEW_MODES = modes_with_status("preview")
+NON_GAME_MODULES = modes_with_status("non-game-module")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -97,6 +116,8 @@ def test_ue_mode_maps():
     for mode in all_modes:
         if mode in mode_map:
             ok(f"{mode} → {mode_map[mode]}")
+        elif not is_unreal_backed_mode(mode):
+            ok(f"{mode} → non-Unreal/null-map mode")
         else:
             if mode == "market_browse":
                 # market_browse may not have a UE map (it's a shop module)
@@ -114,6 +135,9 @@ def test_arena_settings():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
+        if not is_unreal_backed_mode(mode):
+            ok(f"{mode} → IRL/null-map mode (ArenaSettings not required)")
+            continue
         if mode in modes:
             cfg = modes[mode]
             has_level = "unrealOpenLevelPackage" in cfg
@@ -136,6 +160,9 @@ def test_venue_registry():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
+        if mode not in mode_ids and not is_unreal_backed_mode(mode):
+            ok(f"{mode} → non-Unreal/null-map mode (VenueRegistry not required)")
+            continue
         if mode in mode_ids:
             entry = next(m for m in vr["modes"] if m["id"] == mode)
             if entry["venueKey"] in venue_keys:
@@ -167,6 +194,9 @@ def test_fel_play_map():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
+        if not is_unreal_backed_mode(mode):
+            ok(f"{mode} → IRL/null-map mode (FELPlayMap not required)")
+            continue
         if mode in play_map:
             path = play_map[mode]
             # Verify path uses /Venues/ convention
@@ -174,6 +204,9 @@ def test_fel_play_map():
                 ok(f"{mode} → {path}")
             else:
                 fail(f"{mode} deep link path doesn't use /Venues/ convention: {path}")
+        elif runtime_alias_for(mode) in play_map:
+            alias = runtime_alias_for(mode)
+            ok(f"{mode} → runtime alias {alias} → {play_map[alias]}")
         else:
             if mode in ("market_browse",):
                 # market_browse has its own path format
@@ -197,6 +230,10 @@ def test_swift_enum():
         # Search for rawValue
         if f'= "{mode}"' in content:
             ok(f'{mode} has Swift enum case')
+        elif f'return "{mode}"' in content or f'forRegistryId: "{mode}"' in content:
+            ok(f'{mode} has Swift runtime alias')
+        elif mode not in PRODUCTION_MODES and not is_unreal_backed_mode(mode):
+            ok(f'{mode} is a non-production non-Unreal preview module')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
 
@@ -212,6 +249,12 @@ def test_server_seeded_modes():
     for mode in all_modes:
         if f'"id":"{mode}"' in content or f'"id": "{mode}"' in content:
             ok(f"{mode} in server seeded modes")
+        elif runtime_alias_for(mode) and (
+            f'"id":"{runtime_alias_for(mode)}"' in content or f'"id": "{runtime_alias_for(mode)}"' in content
+        ):
+            ok(f"{mode} uses seeded runtime alias {runtime_alias_for(mode)}")
+        elif not is_unreal_backed_mode(mode):
+            ok(f"{mode} is IRL/null-map mode (server seeded UE mode not required)")
         else:
             fail(f"{mode} missing from server.py seeded modes")
 
@@ -244,11 +287,19 @@ def test_economy_integration():
         else:
             fail(f"{label} missing")
 
-    # Verify PRQ weights cover all scoring modes
-    scoring_modes = PRODUCTION_MODES  # all production modes are scoring modes
+    # Verify PRQ weights cover production modes. Split/IRL modes may carry their
+    # weight in ModeManager or share the legacy runtime mode's server weight.
+    scoring_modes = [mode for mode in PRODUCTION_MODES if mode not in NON_GAME_MODULES]
+    weights_block = content.split("PRQ_MODE_WEIGHTS")[1].split("}")[0]
     for mode in scoring_modes:
-        if f'"{mode}"' in content.split("PRQ_MODE_WEIGHTS")[1].split("}")[0]:
+        alias = runtime_alias_for(mode)
+        registry_weighted = "prq_weight" in load_registry().get(mode, {})
+        if f'"{mode}"' in weights_block:
             ok(f"PRQ weight defined for {mode}")
+        elif alias and f'"{alias}"' in weights_block:
+            ok(f"PRQ weight for {mode} provided by runtime alias {alias}")
+        elif registry_weighted:
+            ok(f"PRQ weight for {mode} provided by ModeManager registry")
         else:
             fail(f"PRQ weight missing for {mode}")
 
@@ -256,7 +307,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print(f"  {len(load_registry())} registry entries · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()
