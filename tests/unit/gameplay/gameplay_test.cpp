@@ -892,6 +892,7 @@ void session_receipt_disk_keyed_by_session_id() {
   client.enqueue(receipt);
   const auto first = client.flush();
   require(first.delivered == 1, "first flush delivers receipt");
+  require(first.queued_on_disk == 1, "offline flush reports one receipt queued on disk");
 
   const auto receiptPath = tempDir / "abc123session.json";
   require(std::filesystem::exists(receiptPath), "receipt file keyed by telemetry.session_id");
@@ -2177,6 +2178,38 @@ void session_receipt_http_stub_posts_localhost_contract() {
           "POST body includes mode_id");
 }
 
+void session_receipt_http_success_removes_persisted_queue_file() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_persist_http_success_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = "http://127.0.0.1:8000/api/games/session",
+      .persistToDisk = true,
+      .httpEnabled = true,
+      .useStubHttpTransport = true,
+  });
+
+  client.enqueue({
+      {"mode_id", "basketball_dunk"},
+      {"score", 21},
+      {"telemetry", {{"session_id", "persist_http_success_session"}}},
+  });
+
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "persisted HTTP success attempted");
+  require(flush.delivered == 1, "persisted HTTP success delivered");
+  require(flush.requeued == 0, "persisted HTTP success not requeued");
+  require(flush.queued_on_disk == 0, "successful HTTP delivery does not report disk queue");
+  require(client.pendingCount() == 0, "successful HTTP delivery clears pending receipt");
+  require(client.postedRequests().size() == 1, "successful HTTP delivery posts once");
+  require(!std::filesystem::exists(tempDir / "persist_http_success_session.json"),
+          "successful HTTP delivery removes persisted receipt file");
+
+  removeTreeBestEffort(tempDir);
+}
+
 void session_receipt_live_http_success_does_not_count_disk_queue() {
 #if defined(__unix__) || defined(__APPLE__)
   if (!curlAvailable()) {
@@ -3078,6 +3111,7 @@ auto main() -> int {
   hud_relay_websocket_stub_emits_frames();
   hud_relay_broadcast_messages_are_bounded();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_http_success_removes_persisted_queue_file();
   session_receipt_live_http_success_does_not_count_disk_queue();
   session_receipt_live_http_non_2xx_requeues_without_disk();
   karate_mode_input_strike_advances_wave();

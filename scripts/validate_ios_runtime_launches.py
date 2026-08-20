@@ -11,6 +11,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 CPP_REGISTRY_H = REPO_ROOT / "app" / "gameplay" / "include" / "nexus" / "gameplay" / "arena_mode_registry.h"
 SWIFT_GAME_MODE = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
 AGENT_SERVICE = REPO_ROOT / "FinalEvolutionLab" / "Services" / "NEXUSAgentService.swift"
+CONTENT_VIEW = REPO_ROOT / "FinalEvolutionLab" / "ContentView.swift"
+GAMEPLAY_VIEW = REPO_ROOT / "FinalEvolutionLab" / "Views" / "GamePlayView.swift"
+BACKEND_CLIENT = REPO_ROOT / "FinalEvolutionLab" / "Services" / "NexusBackendClient.swift"
+RECEIPT_COORDINATOR = REPO_ROOT / "FinalEvolutionLab" / "Services" / "GameplaySessionReceiptCoordinator.swift"
 
 ERRORS: list[str] = []
 
@@ -173,6 +177,33 @@ def validate_agent_launch_surface(source: str) -> None:
             err(f"registry launch alias missing: {snippet}")
 
 
+def validate_swift_receipt_and_launch_wiring() -> None:
+    content_source = CONTENT_VIEW.read_text()
+    content_alias_uses = content_source.count("GameModeRegistry.playableMode(forRegistryId: modeId)")
+    if content_alias_uses >= 2 and "GameModeId(rawValue: modeId)" not in content_source:
+        ok("ContentView agent/deep-link launches resolve registry aliases")
+    else:
+        err("ContentView launch handlers must use GameModeRegistry.playableMode(forRegistryId:)")
+
+    receipt_source = RECEIPT_COORDINATOR.read_text()
+    if "GameModeRegistry.playableMode(forRegistryId: modeStr)?.id" in receipt_source:
+        ok("receipt ingestion resolves C++ runtime mode aliases")
+    else:
+        err("receipt ingestion must resolve mode aliases before GameModeId(rawValue:)")
+
+    backend_source = BACKEND_CLIENT.read_text()
+    if "FirebaseBootstrap.isPreviewMode && resolvedBackendAuthToken == nil" in backend_source:
+        ok("preview receipt lane allows explicit backend-token POSTs")
+    else:
+        err("preview receipt lane must not block explicit backend-token POSTs")
+
+    gameplay_source = GAMEPLAY_VIEW.read_text()
+    if "nexusEngine.stop(playerScore: score, opponentScore: opponentScore)" in gameplay_source:
+        ok("GamePlayView teardown passes final Swift scores into NEXUS stop")
+    else:
+        err("GamePlayView teardown must stop NEXUS with final player/opponent scores")
+
+
 def main() -> int:
     print("== iOS NEXUS runtime launch validation ==")
     swift_source = SWIFT_GAME_MODE.read_text()
@@ -189,6 +220,7 @@ def main() -> int:
     validate_launchable_set(cpp_production_modes, swift_cases, overrides, excluded_cases)
     validate_non_launchable_modes(cpp_production_modes, swift_cases, overrides, excluded_cases)
     validate_agent_launch_surface(swift_source)
+    validate_swift_receipt_and_launch_wiring()
 
     print()
     if ERRORS:

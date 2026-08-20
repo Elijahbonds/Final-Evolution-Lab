@@ -109,7 +109,7 @@ auto SessionReceiptClient::flush() -> SessionReceiptDispatchResult {
     const auto delivery = deliverReceipt(receipt);
     if (delivery.isOk()) {
       ++result.delivered;
-      if (m_config.persistToDisk) {
+      if (delivery.value()) {
         ++result.queued_on_disk;
       }
       continue;
@@ -120,7 +120,7 @@ auto SessionReceiptClient::flush() -> SessionReceiptDispatchResult {
       ++result.requeued;
       remaining.push_back(std::move(receipt));
       remainingRetries.push_back(retries);
-      if (m_config.persistToDisk) {
+      if (m_config.persistToDisk && !m_config.httpEnabled) {
         (void)persistReceipt(remaining.back());
       }
     } else {
@@ -199,16 +199,18 @@ auto SessionReceiptClient::persistReceipt(const nlohmann::json& receipt) -> std:
   return path.string();
 }
 
-auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Result<int> {
+auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Result<bool> {
   const std::string modeId = receipt.value("mode_id", std::string("unknown"));
   const int score = receipt.value("score", 0);
+  std::optional<std::string> persistedPath;
 
   if (m_config.persistToDisk) {
     if (const auto path = persistReceipt(receipt)) {
+      persistedPath = *path;
       NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                      "Session receipt persisted for iOS/SessionService pickup path=" + *path);
     } else {
-      return Result<int>::err("failed to persist receipt");
+      return Result<bool>::err("failed to persist receipt");
     }
   }
 
@@ -216,25 +218,35 @@ auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Resu
     m_http.setUrl(resolvePostUrl(m_config));
     const auto postResult = m_http.post(receipt.dump());
     if (postResult.isErr()) {
-      return postResult;
+      return Result<bool>::err(postResult.error());
     }
     const int statusCode = postResult.value();
     if (statusCode < 200 || statusCode >= 300) {
       NEXUS_LOG_WARN(nexus::LogChannel::kAI,
                      "Session receipt POST rejected mode=" + modeId +
                          " status=" + std::to_string(statusCode));
-      return Result<int>::err("session POST returned HTTP " + std::to_string(statusCode));
+      return Result<bool>::err("session POST returned HTTP " + std::to_string(statusCode));
     }
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                    "Session receipt POST mode=" + modeId + " score=" + std::to_string(score) +
                        " status=" + std::to_string(statusCode));
+    if (persistedPath) {
+      std::error_code ec;
+      std::filesystem::remove(*persistedPath, ec);
+      if (ec) {
+        NEXUS_LOG_WARN(nexus::LogChannel::kAI,
+                       "Session receipt delivered but disk cleanup failed path=" + *persistedPath);
+        return Result<bool>::ok(true);
+      }
+      persistedPath = std::nullopt;
+    }
   } else {
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                    "Session receipt flush (HTTP disabled) mode=" + modeId +
                        " score=" + std::to_string(score));
   }
 
-  return Result<int>::ok(200);
+  return Result<bool>::ok(persistedPath.has_value());
 }
 
 } // namespace nexus::gameplay
