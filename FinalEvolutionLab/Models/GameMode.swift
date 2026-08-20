@@ -79,11 +79,11 @@ extension GameModeId {
         case .gymnastics, .skateboarding, .snowboarding, .surfing:
             return .prod
         case .brainBrawl:
-            return .staging
+            return .prod
         case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
             return .sim
         case .marketBrowse:
-            return .preview
+            return .nonGame
         }
     }
 
@@ -107,12 +107,6 @@ extension GameModeId {
 
     /// Playable via NEXUS headless gameplay (full simulators + outcome evaluators).
     var isNexusSprintPlayable: Bool {
-        switch self {
-        case .marketBrowse:
-            return true
-        default:
-            break
-        }
         switch nexusCapabilityTier {
         case .prod, .sim, .staging: return true
         case .preview, .nonGame: return false
@@ -303,7 +297,9 @@ struct GameModeRegistry {
     /// badges (prod/sim/staging) stay honest via ``GameModeId/nexusCapabilityTier``.
     static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases).subtracting([.marketBrowse])
 
-    /// All 20 mode IDs from `arena_mode_registry.cpp` — keep in sync when adding modes.
+    /// iOS-visible registry surface: 18 launchable NEXUS runtime ids represented as
+    /// 19 cards because dunk is split into IRL/3D, plus the non-game module.
+    /// C++ keeps `basketball_dunk` as one canonical runtime id.
     static let arenaRegistryModeIds: [GameModeId] = [
         .basketballHeadToHead, .basketballDunkContestIRL, .basketballDunkContest3D, .basketball3v3,
         .karate, .karateEndless,
@@ -578,13 +574,14 @@ struct GameModeRegistry {
             return mode(for: .basketballHeadToHead)
         case "basketball_dunk":
             return mode(for: .basketballDunkContest3D)
-        case "market_browse", "module_library", "vault_shop":
-            return mode(for: .marketBrowse)
         default:
             break
         }
         guard let id = GameModeId(rawValue: raw) else { return nil }
-        return all.first(where: { $0.id == id })
+        guard let mode = all.first(where: { $0.id == id }),
+              mode.isNexusSprintPlayable
+        else { return nil }
+        return mode
     }
 
     /// Session readiness derived from generated spec difficulty tier.

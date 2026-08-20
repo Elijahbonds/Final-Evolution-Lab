@@ -112,6 +112,14 @@ SceneKit iOS shells provide visual gameplay; NEXUS C++ owns session receipts and
 
 ## Mode count summary
 
+NEXUS uses a deliberately split registry surface:
+
+| Surface | Count | Notes |
+|---------|-------|-------|
+| C++ runtime registry | 19 | 18 production gameplay runtimes + `market_browse`; canonical dunk runtime id is `basketball_dunk`. |
+| Swift iOS arena registry | 20 | 18 launchable NEXUS runtime ids represented as 19 cards because dunk is split into `basketball_dunk_irl` / `basketball_dunk_3d`, plus `market_browse`. |
+| Backend ModeManager JSON | 22 | Adds backend-facing aliases/modules (`basketball_dunk`, split dunk ids, `movement_lab`) for routing and preview metadata. |
+
 | Tier | Count |
 |------|-------|
 | prod — flagship full sim | 5 |

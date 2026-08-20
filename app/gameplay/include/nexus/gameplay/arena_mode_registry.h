@@ -2,6 +2,8 @@
 // NEXUS runtime resolves venues via `venueToken` + `nexusMeshPath` under `assets/nexus/imported/`.
 // `legacyUeMapAlias` retains archived UE `/Game/FEL/Maps/*` strings for vault JSON compat only.
 #pragma once
+#include <cstddef>
+#include <cstdint>
 
 #include <nlohmann/json.hpp>
 #include <optional>
@@ -55,6 +57,8 @@ public:
   [[nodiscard]] static auto vaultDisplayModeForMode(std::string_view modeId) -> std::string;
   [[nodiscard]] static auto nexusMeshPathForMode(std::string_view modeId) -> std::string;
   [[nodiscard]] static auto legacyUeMapAliasForMode(std::string_view modeId) -> std::string;
+  [[nodiscard]] static auto releaseStateLabel(ArenaReleaseState state) -> std::string_view;
+  [[nodiscard]] static auto releaseStateLabelForMode(std::string_view modeId) -> std::string;
   [[nodiscard]] static auto modeToJson(const ArenaModeConfig& config) -> nlohmann::json;
 };
 
