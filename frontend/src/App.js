@@ -1114,11 +1114,16 @@ const GameModesView = () => {
               <div className="flex items-center gap-2 mb-2">
                 <span className="badge-clinical">{mode.category}</span>
                 {mode.playable && <span className="badge-clinical" style={{background:'rgba(0,255,157,0.1)',borderColor:'rgba(0,255,157,0.3)',color:'#00FF9D'}}>PLAYABLE</span>}
+                {!mode.playable && <span className="badge-clinical" style={{background:'rgba(113,113,122,0.18)',borderColor:'rgba(113,113,122,0.35)',color:'#A1A1AA'}}>{mode.status === 'preview' ? 'PREVIEW' : 'MODULE'}</span>}
               </div>
               <h3 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>{mode.display_name}</h3>
               <p className="text-sm text-zinc-400 mb-2">{mode.description}</p>
               <div className="flex items-center gap-4 text-xs text-zinc-500"><span>{mode.player_count}</span><span>{mode.duration}</span><span>{mode.difficulty}</span></div>
-              {mode.playable && <button data-testid={`play-${mode.id}`} className="btn-primary mt-3 text-sm py-2 w-full" onClick={(e) => {e.stopPropagation();launchNativeMode(mode);}}>{launchingMode === mode.id ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>Launching UE5...</span> : <span><Play className="w-4 h-4 inline mr-1" />Launch Game</span>}</button>}
+              {mode.playable ? (
+                <button data-testid={`play-${mode.id}`} className="btn-primary mt-3 text-sm py-2 w-full" onClick={(e) => {e.stopPropagation();launchNativeMode(mode);}}>{launchingMode === mode.id ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>Launching UE5...</span> : <span><Play className="w-4 h-4 inline mr-1" />Launch Game</span>}</button>
+              ) : (
+                <button data-testid={`module-${mode.id}`} className="mt-3 text-sm py-2 w-full border border-zinc-700 text-zinc-500 uppercase tracking-wider cursor-not-allowed" disabled>{mode.status === 'preview' ? 'Preview Module' : 'Non-game Module'}</button>
+              )}
             </div>
           </div>
         ))}

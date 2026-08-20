@@ -5,9 +5,14 @@ native-launch handshake, and the Final Evolution Hub command center.
 """
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 from app.main import app
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_prq_metrics_and_stats_overview() -> None:
@@ -108,9 +113,13 @@ def test_hub_command_center_status_renders() -> None:
 
     assert status.status_code == 200
     assert status.json()["database"]["status"] == "ready"
-    assert len(status.json()["database"]["venues"]) == 12
+    registry = json.loads((REPO_ROOT / "FEL_ModeManager.production.json").read_text())["mode_manager"][
+        "mode_registry"
+    ]
+    expected_venues = {entry["venue_id"] for entry in registry.values() if entry.get("venue_id")}
+    assert set(status.json()["database"]["venues"]) == expected_venues
     assert health.status_code == 200
-    assert health.json()["checks"]["mode_manager"]["production_modes"] == 19
+    assert health.json()["checks"]["mode_manager"]["production_modes"] == 20
     assert handshake.status_code == 200
     assert handshake.json()["log"]
     assert telemetry.status_code == 200
