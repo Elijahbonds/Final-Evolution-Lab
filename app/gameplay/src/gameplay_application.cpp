@@ -97,6 +97,10 @@ struct ArenaModeInputRoute {
          modeId == "tennis" || modeId == "volleyball";
 }
 
+[[nodiscard]] auto isDunkContestRuntimeMode(std::string_view modeId) -> bool {
+  return modeId == "basketball_dunk";
+}
+
 [[nodiscard]] auto paramsWithAction(const nlohmann::json& params,
                                     std::string action) -> nlohmann::json {
   nlohmann::json routed = params;
@@ -112,14 +116,18 @@ struct ArenaModeInputRoute {
     return std::nullopt;
   }
   const bool activeOutcomeSport = isOutcomeSportRuntimeMode(activeModeId);
+  const bool activeDunkContest = isDunkContestRuntimeMode(activeModeId);
 
-  if (action == "charge_begin" || action == "charge" || action == "start_charge") {
+  if (activeDunkContest &&
+      (action == "charge_begin" || action == "charge" || action == "start_charge")) {
     return ArenaModeInputRoute{"fel.dunk.charge_begin", params};
   }
-  if (action == "charge_release" || action == "release" || action == "release_charge") {
+  if (activeDunkContest &&
+      (action == "charge_release" || action == "release" || action == "release_charge")) {
     return ArenaModeInputRoute{"fel.dunk.charge_release", params};
   }
-  if (action == "apex_tap" || action == "apex" || action == "dunk" || action == "finish") {
+  if (activeDunkContest &&
+      (action == "apex_tap" || action == "apex" || action == "dunk" || action == "finish")) {
     return ArenaModeInputRoute{"fel.dunk.apex_tap", params};
   }
 

@@ -1118,6 +1118,45 @@ void arena_mode_input_routes_production_runtime_modes() {
   physics.shutdown();
 }
 
+void arena_mode_input_rejects_cross_mode_dunk_aliases() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  nexus::physics::PhysicsWorld physics;
+  require(physics.init({}).isOk(), "cross-mode dunk alias physics init");
+
+  struct RejectedDunkAliasProbe {
+    const char* modeId;
+    const char* action;
+  };
+
+  const std::array<RejectedDunkAliasProbe, 3> probes{{
+      {"gymnastics", "finish"},
+      {"karate_endless", "charge_begin"},
+      {"basketball_3v3", "release"},
+  }};
+
+  for (const RejectedDunkAliasProbe& probe : probes) {
+    require(gameplay.handleGameplayCommand(
+                "fel.arena.start_session",
+                {{"mode_id", probe.modeId}, {"user_id", "mode_input_guard_agent"}},
+                "mode_input_guard_start")
+                .status == "ok",
+            std::string("mode_input guard start ok for ") + probe.modeId);
+
+    const auto action = gameplay.handleGameplayCommand(
+        "fel.arena.mode_input", {{"action", probe.action}}, "mode_input_guard_action");
+    require(action.status == "error",
+            std::string("cross-mode dunk alias rejected for ") + probe.modeId);
+    require(action.error.find(probe.action) != std::string::npos,
+            std::string("cross-mode dunk alias error names action for ") + probe.modeId);
+    require(action.error.find(probe.modeId) != std::string::npos,
+            std::string("cross-mode dunk alias error names mode for ") + probe.modeId);
+  }
+
+  physics.shutdown();
+}
+
 void mode_runtime_tracks_dunk_combo_metrics() {
   nexus::gameplay::ModeRuntime runtime;
   require(runtime.setMode("basketball_dunk").isOk(), "dunk mode set");
@@ -3152,6 +3191,7 @@ auto main() -> int {
   session_receipt_live_http_non_2xx_requeues_without_disk();
   karate_mode_input_strike_advances_wave();
   arena_mode_input_routes_production_runtime_modes();
+  arena_mode_input_rejects_cross_mode_dunk_aliases();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
   exercise_demo_pipeline_maps_production_modes();
