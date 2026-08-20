@@ -557,6 +557,28 @@ void arena_mode_registry_lists_nineteen_modes() {
   require(dunk->legacyUeMapAlias.find("/Game/FEL/Maps/") == 0, "dunk legacy ue alias");
 }
 
+void arena_mode_registry_resolves_split_dunk_alias_for_agent_paths() {
+  const auto alias = nexus::gameplay::ArenaModeRegistry::find("basketball_dunk_3d");
+  require(alias.has_value(), "basketball_dunk_3d alias resolves");
+  require(alias->id == "basketball_dunk", "basketball_dunk_3d canonicalizes to dunk runtime");
+
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  const auto start = gameplay.handleGameplayCommand(
+      "fel.arena.start_session",
+      {{"mode_id", "basketball_dunk_3d"}, {"user_id", "split_dunk_agent"}},
+      "split_dunk_start");
+  require(start.status == "ok", "split dunk alias starts through arena command");
+  require(start.payload["mode_id"].get<std::string>() == "basketball_dunk",
+          "split dunk session stores canonical mode");
+  require(gameplay.mode_runtime().activeModeId() == "basketball_dunk",
+          "split dunk runtime stores canonical mode");
+  require(gameplay.mode_runtime().activeKind() == nexus::gameplay::ActiveModeKind::kDunkContest,
+          "split dunk alias dispatches dunk runtime");
+}
+
 void arena_mode_registry_production_modes_match_validate_script() {
   const auto production = nexus::gameplay::ArenaModeRegistry::productionModes();
   require(production.size() == nexus::gameplay::kProductionModeCount,
@@ -2596,6 +2618,8 @@ void game_prompt_adapter_covers_all_playable_modes() {
 }
 
 void game_prompt_adapter_normalizes_mode_aliases() {
+  require(nexus::ai::normalizeGameModeId("basketball_dunk_3d") == "basketball_dunk",
+          "basketball_dunk_3d alias");
   require(nexus::ai::normalizeGameModeId("venice_pickup") == "basketball_h2h", "venice_pickup alias");
   require(nexus::ai::normalizeGameModeId("karate_kata") == "karate_endless", "karate_kata alias");
   require(nexus::ai::normalizeGameModeId("market_browse").empty(), "market_browse excluded");
@@ -3287,6 +3311,7 @@ auto main() -> int {
   voxel_parser_rejects_invalid_creative_params();
   gameplay_session_state_query_returns_coherent_payload();
   arena_mode_registry_lists_nineteen_modes();
+  arena_mode_registry_resolves_split_dunk_alias_for_agent_paths();
   arena_mode_registry_production_modes_match_validate_script();
   gameplay_manager_evaluates_volleyball_outcome();
   outcome_sport_mode_mechanics_and_session_scores();

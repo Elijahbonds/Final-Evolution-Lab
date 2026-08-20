@@ -978,8 +978,10 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
     if (modeSet.isErr()) {
       return response(id, "error", {}, modeSet.error());
     }
-    m_felBridge.notifyVenueTravel(ArenaModeRegistry::venueTokenForMode(*modeId), *modeId);
-    m_felBridge.emitVaultSessionSnapshot(*modeId, 0.0F, 0.0F, 0.0F);
+    const std::string& canonicalModeId = m_arenaSession.state().modeId;
+    m_felBridge.notifyVenueTravel(ArenaModeRegistry::venueTokenForMode(canonicalModeId),
+                                  canonicalModeId);
+    m_felBridge.emitVaultSessionSnapshot(canonicalModeId, 0.0F, 0.0F, 0.0F);
     return response(id, "ok", m_arenaSession.stateJson());
   }
 
