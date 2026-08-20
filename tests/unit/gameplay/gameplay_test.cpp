@@ -1762,47 +1762,57 @@ void flagship_outcome_sport_validate_only_integration() {
   nexus::physics::PhysicsWorld physics;
   require(physics.init({}).isOk(), "physics init");
 
-  require(gameplay.handleGameplayCommand(
-              "fel.arena.start_session",
-              {{"mode_id", "baseball"}, {"user_id", "flagship_baseball"}},
-              "baseball_start")
-              .status == "ok",
-          "baseball session starts");
+  struct OutcomeProbe {
+    const char* modeId;
+    const char* userId;
+    const char* actionKey;
+    const char* actionValue;
+    float timing;
+    int maxPulses;
+    bool requireAutoEnd;
+  };
 
-  for (int i = 0; i < 48; ++i) {
-    if (gameplay.mode_runtime().shouldAutoEndSession()) {
-      break;
-    }
-    const auto pulse = gameplay.handleGameplayCommand(
-        "fel.sport.pulse", {{"success", true}, {"timing", 0.9F}}, "baseball_pulse");
-    require(pulse.status == "ok", "baseball sport pulse ok");
-    gameplay.update(0.05, physics, {});
-  }
+  const std::array<OutcomeProbe, 6> probes{{
+      {"baseball", "flagship_baseball", "sport_action", "home_run", 0.94F, 48, true},
+      {"football", "flagship_football", "play_type", "touchdown", 0.92F, 8, true},
+      {"soccer", "flagship_soccer", "sport_action", "penalty", 0.9F, 8, true},
+      {"golf", "flagship_golf", "club", "putt", 0.93F, 12, true},
+      {"tennis", "flagship_tennis", "shot_type", "ace", 0.9F, 12, true},
+      {"volleyball", "flagship_volleyball", "rally_type", "ace_serve", 0.94F, 60, true},
+  }};
 
-  const auto end = gameplay.handleGameplayCommand(
-      "fel.arena.end_session", {{"use_live_scores", true}}, "baseball_end");
-  require(end.status == "ok", "baseball session ends with live scores");
-  require(end.payload.contains("outcome"), "baseball outcome present");
-
-  require(gameplay.handleGameplayCommand(
-              "fel.arena.start_session",
-              {{"mode_id", "volleyball"}, {"user_id", "flagship_volleyball"}},
-              "volleyball_start")
-              .status == "ok",
-          "volleyball session starts");
-
-  for (int i = 0; i < 60; ++i) {
-    if (gameplay.mode_runtime().shouldAutoEndSession()) {
-      break;
-    }
+  for (const auto& probe : probes) {
     require(gameplay.handleGameplayCommand(
-                "fel.sport.pulse", {{"success", true}, {"timing", 0.88F}}, "volleyball_pulse")
+                "fel.arena.start_session",
+                {{"mode_id", probe.modeId}, {"user_id", probe.userId}},
+                std::string(probe.modeId) + "_start")
                 .status == "ok",
-            "volleyball sport pulse ok");
-    gameplay.update(0.05, physics, {});
-  }
+            std::string(probe.modeId) + " session starts");
 
-  require(gameplay.mode_runtime().shouldAutoEndSession(), "volleyball match completes");
+    for (int i = 0; i < probe.maxPulses; ++i) {
+      if (gameplay.mode_runtime().shouldAutoEndSession()) {
+        break;
+      }
+      require(gameplay.handleGameplayCommand(
+                  "fel.sport.pulse",
+                  {{"success", true}, {"timing", probe.timing}, {probe.actionKey, probe.actionValue}},
+                  std::string(probe.modeId) + "_pulse")
+                  .status == "ok",
+              std::string(probe.modeId) + " sport pulse ok");
+      gameplay.update(0.05, physics, {});
+    }
+
+    if (probe.requireAutoEnd) {
+      require(gameplay.mode_runtime().shouldAutoEndSession(),
+              std::string(probe.modeId) + " match completes");
+    }
+
+    const auto end = gameplay.handleGameplayCommand(
+        "fel.arena.end_session", {{"use_live_scores", true}}, std::string(probe.modeId) + "_end");
+    require(end.status == "ok", std::string(probe.modeId) + " session ends with live scores");
+    require(end.payload.contains("outcome"), std::string(probe.modeId) + " outcome present");
+    std::fprintf(stderr, "mode_id=%s outcome_sport_validated\n", probe.modeId);
+  }
 
   physics.shutdown();
 }
