@@ -3,12 +3,22 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BUILD_DIR="${ROOT}/build-full"
+BUILD_DIR="${ROOT}/build-validate"
 cd "$ROOT"
 
-if [[ ! -x "${BUILD_DIR}/nexus_runtime" ]]; then
-  cmake -S . -B "$BUILD_DIR" -DNEXUS_ENABLE_RENDERER=ON -DNEXUS_BUILD_RUNTIME=ON
-  cmake --build "$BUILD_DIR" --target nexus_runtime
+if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
+  export CC="${CC:-gcc}"
+  export CXX="g++"
+fi
+
+if [[ ! -x "${BUILD_DIR}/nexus_mode_validator" ]]; then
+  cmake -S . -B "$BUILD_DIR" \
+    -DNEXUS_ENABLE_RENDERER=OFF \
+    -DNEXUS_BUILD_RUNTIME=OFF \
+    -DNEXUS_BUILD_TESTS=OFF \
+    -DNEXUS_BUILD_AGENT_CLI=OFF \
+    -DNEXUS_BUILD_MODE_VALIDATOR=ON
+  cmake --build "$BUILD_DIR" --target nexus_mode_validator -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 fi
 
 export NEXUS_MESH_PROFILE=mobile
@@ -19,7 +29,7 @@ STAGING_MODES=()
 failed=()
 for mode in "${STAGING_MODES[@]}"; do
   echo ">> validate-only --mode ${mode}"
-  if ! "${BUILD_DIR}/nexus_runtime" --validate-only --mode "${mode}"; then
+  if ! "${BUILD_DIR}/nexus_mode_validator" --mode "${mode}"; then
     failed+=("${mode}")
   fi
 done
