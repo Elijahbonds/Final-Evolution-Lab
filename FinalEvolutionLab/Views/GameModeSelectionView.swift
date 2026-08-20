@@ -127,8 +127,12 @@ struct GameModeSelectionView: View {
                             FELHaptics.modeSelect()
                             SaveSystem.saveLastSelectedArenaModeId(mode.id.rawValue)
                             pendingMode = mode
-                            Task { @MainActor in
-                                await launchSelectedMode()
+                            if mode.id.isIRLDunkContest {
+                                showDunkPlatform = true
+                            } else {
+                                Task { @MainActor in
+                                    await launchSelectedMode()
+                                }
                             }
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
@@ -402,6 +406,12 @@ struct GameModeSelectionView: View {
     /// Clears ``navigationDestination`` before re-push so EXIT → same mode re-entry works (SwiftUI item routing).
     @MainActor
     private func pushGameplayRoute(_ modeId: GameModeId) async {
+        if modeId.isIRLDunkContest {
+            gameplayRoute = nil
+            gameplayLaunchId = UUID()
+            showDunkPlatform = true
+            return
+        }
         if gameplayRoute == modeId {
             gameplayRoute = nil
             try? await Task.sleep(for: .milliseconds(50))

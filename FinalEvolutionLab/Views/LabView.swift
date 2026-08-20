@@ -22,6 +22,7 @@ struct LabView: View {
     @State private var pendingArenaMode: GameMode?
     @State private var sessionReadiness: Double = 50
     @State private var navigateToArenaGame: Bool = false
+    @State private var showDunkPlatform: Bool = false
     @State private var freestyleDunk = DunkContestState()
     @State private var freestyleDunkTimer: Task<Void, Never>?
     @State private var freestyleLastAction: String = ""
@@ -100,14 +101,27 @@ struct LabView: View {
                     showGlobalMatchmaking = false
                     Task {
                         try? await Task.sleep(for: .milliseconds(300))
-                        navigateToArenaGame = true
+                        if mode.id.isIRLDunkContest {
+                            showDunkPlatform = true
+                        } else {
+                            navigateToArenaGame = true
+                        }
                     }
                 }
             }
         }
         .navigationDestination(isPresented: $navigateToArenaGame) {
             if let mode = pendingArenaMode {
-                GamePlayView(viewModel: viewModel, gameMode: mode, sessionReadiness: sessionReadiness)
+                if mode.id.isIRLDunkContest {
+                    DunkMatchmakingView(viewModel: viewModel)
+                } else {
+                    GamePlayView(viewModel: viewModel, gameMode: mode, sessionReadiness: sessionReadiness)
+                }
+            }
+        }
+        .fullScreenCover(isPresented: $showDunkPlatform) {
+            NavigationStack {
+                DunkMatchmakingView(viewModel: viewModel)
             }
         }
         .navigationDestination(isPresented: $showCoach) {
@@ -512,7 +526,11 @@ struct LabView: View {
         Button {
             guard let mode = GameModeRegistry.resolvedLastSelectedMode() else { return }
             pendingArenaMode = mode
-            showGlobalMatchmaking = true
+            if mode.id.isIRLDunkContest {
+                showDunkPlatform = true
+            } else {
+                showGlobalMatchmaking = true
+            }
         } label: {
             HStack(spacing: 14) {
                 ZStack {

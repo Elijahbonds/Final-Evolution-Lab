@@ -9,6 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(NEXUS_BUILD_TESTS "Build NEXUS tests" ON)
 option(NEXUS_BUILD_RUNTIME "Build the NEXUS runtime executable" ON)
 option(NEXUS_BUILD_AGENT_CLI "Build headless nexus_agent_cli for external agents" ON)
+option(NEXUS_BUILD_MODE_VALIDATOR "Build CPU-only NEXUS venue/mode validator" OFF)
 if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
   set(NEXUS_BUILD_AGENT_CLI OFF CACHE BOOL "Build headless nexus_agent_cli for external agents" FORCE)
 endif()
@@ -16,7 +17,7 @@ option(NEXUS_ENABLE_RENDERER "Build SDL3/Vulkan renderer targets" ON)
 option(NEXUS_ENABLE_METAL_RENDERER "Build Metal-only renderer for iOS embed (no Vulkan/SDL)" OFF)
 
 set(NEXUS_BUILD_ANY_RENDERER OFF)
-if(NEXUS_ENABLE_RENDERER OR NEXUS_ENABLE_METAL_RENDERER)
+if(NEXUS_ENABLE_RENDERER OR NEXUS_ENABLE_METAL_RENDERER OR NEXUS_BUILD_MODE_VALIDATOR)
   set(NEXUS_BUILD_ANY_RENDERER ON)
 endif()
 
@@ -208,6 +209,14 @@ if(NEXUS_BUILD_ANY_RENDERER)
   endif()
 endif()
 
+if(NEXUS_BUILD_ANY_RENDERER AND (NEXUS_BUILD_RUNTIME OR NEXUS_BUILD_MODE_VALIDATOR))
+  add_library(nexus_mode_validation
+    runtime/src/venue_mesh_validator.cpp
+  )
+  target_include_directories(nexus_mode_validation PUBLIC runtime/include)
+  target_link_libraries(nexus_mode_validation PUBLIC nexus_renderer)
+endif()
+
 if(NEXUS_ENABLE_RENDERER)
   add_library(nexus_engine
     engine/core/src/engine.cpp
@@ -225,7 +234,13 @@ if(NEXUS_BUILD_RUNTIME)
   target_link_libraries(nexus_runtime PRIVATE
     nexus_engine
     nexus_gameplay
+    nexus_mode_validation
   )
+endif()
+
+if(NEXUS_BUILD_MODE_VALIDATOR)
+  add_executable(nexus_mode_validator runtime/src/mode_validator_main.cpp)
+  target_link_libraries(nexus_mode_validator PRIVATE nexus_mode_validation)
 endif()
 
 if(NEXUS_BUILD_AGENT_CLI)
