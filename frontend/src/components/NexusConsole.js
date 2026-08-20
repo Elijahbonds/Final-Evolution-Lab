@@ -4,19 +4,22 @@ import {
   Database, Heart, Wifi, Layers, X, CheckCircle2, AlertCircle,
   Clock, Cpu, Terminal, ChevronRight, Activity
 } from "lucide-react";
+import { API_URL } from "@/lib/apiClient";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const API = API_URL;
 
 // ── Mode status registry ─────────────────────────────────────────
 export const MODE_STATUS = {
-  basketball_h2h: "production", basketball_dunk: "production", basketball_3v3: "production",
-  karate_h2h: "production", karate_endless: "production", baseball: "production",
+  basketball_h2h: "production", basketball_dunk: "production",
+  basketball_dunk_3d: "production", basketball_dunk_irl: "production",
+  basketball_3v3: "production", karate_h2h: "production",
+  karate_endless: "production", baseball: "production",
   football: "production", soccer: "production", golf: "production",
-  tennis: "staging", volleyball: "staging", gymnastics: "staging",
-  surfing: "staging", skateboarding: "staging", snowboarding: "staging",
-  brain_brawl: "preview", who_scene_it: "preview",
-  court_carnival: "preview", market_browse: "non-game-module"
+  tennis: "production", volleyball: "production", surfing: "production",
+  gymnastics: "production", brain_brawl: "production",
+  who_scene_it: "production", court_carnival: "production",
+  skateboarding: "production", snowboarding: "production",
+  market_browse: "non-game-module", movement_lab: "preview"
 };
 
 export const statusColor = (status) => {
@@ -39,7 +42,7 @@ const LOG_POOL = [
   "HealthKit read authorization confirmed",
   "Emergent WebSocket ping/pong ✓ (42ms)",
   "Avatar mesh streamed from CDN",
-  "Mode registry validated: 19 entries",
+  "Mode registry validated: 22 entries",
   "UE5 bridge channel open — MapLoaded acknowledged",
   "Session entropy seeded via SecureEnclave",
   "PRQ computation pipeline idle",
