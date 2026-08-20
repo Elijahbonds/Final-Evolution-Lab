@@ -828,7 +828,9 @@ void session_receipt_flush_keeps_queue_when_http_disabled() {
           "session ends");
 
   const auto flush = gameplay.handleGameplayCommand(
-      "fel.arena.flush_receipts", {{"persist_to_disk", true}}, "flush");
+      "fel.arena.flush_receipts",
+      {{"persist_to_disk", true}, {"http_enabled", false}, {"use_stub_http", false}},
+      "flush");
   require(flush.status == "ok", "flush command ok");
   require(flush.payload["delivered"].get<std::size_t>() >= 1, "receipt delivered to disk queue");
   require(!flush.payload["queue_directory"].get<std::string>().empty(), "queue directory returned");
@@ -854,7 +856,7 @@ void session_receipt_disk_keyed_by_session_id() {
   std::filesystem::create_directories(tempDir, ec);
 
   nexus::gameplay::SessionReceiptClient client(
-      {.queueDirectory = tempDir.string(), .persistToDisk = true});
+      {.queueDirectory = tempDir.string(), .persistToDisk = true, .httpEnabled = false});
 
   nlohmann::json receipt = {
       {"mode_id", "karate_endless"},
@@ -1996,7 +1998,7 @@ void flagship_who_scene_it_validate_only_integration() {
 }
 
 void fel_bridge_websocket_stub_sends_outbound() {
-  nexus::gameplay::FelBridgeService bridge;
+  nexus::gameplay::FelBridgeService bridge({.useStubTransport = true});
   bridge.setWebSocketUrl("ws://127.0.0.1:8787/ws/vault");
   require(bridge.connectTransport().isOk(), "fel bridge transport connect");
   bridge.notifyVenueTravel("Venice_Beach_Court", "basketball_dunk");
@@ -2020,7 +2022,7 @@ void fel_bridge_websocket_stub_sends_outbound() {
 }
 
 void hud_relay_websocket_stub_emits_frames() {
-  nexus::gameplay::HudRelayService relay;
+  nexus::gameplay::HudRelayService relay({.useStubTransport = true});
   relay.setWebSocketUrl("ws://127.0.0.1:8787/ws/hud");
   require(relay.connectRelay().isOk(), "hud relay connect");
   relay.emitTickFrame({{"prq", 72.5F}, {"mode_id", "basketball_dunk"}});

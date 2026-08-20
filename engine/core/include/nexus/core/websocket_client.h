@@ -26,8 +26,8 @@ struct WebSocketErrorEnvelope {
 struct WebSocketClientConfig {
   std::string url{"ws://127.0.0.1:8787/ws/vault"};
   bool autoReconnect{true};
-  /// When true, connect/send succeed without network (headless + unit tests).
-  bool useStubTransport{true};
+  /// When true, connect/send succeed without network; tests must opt in explicitly.
+  bool useStubTransport{false};
 };
 
 /// Minimal WebSocket client for FEL bridge outbound and HUD /ws/hud relay.

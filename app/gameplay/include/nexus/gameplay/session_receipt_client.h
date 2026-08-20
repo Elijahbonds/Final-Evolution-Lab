@@ -19,7 +19,7 @@ struct SessionReceiptClientConfig {
   std::string authToken;
   bool persistToDisk{true};
   bool httpEnabled{true};
-  bool useStubHttpTransport{true};
+  bool useStubHttpTransport{false};
   float flushIntervalSeconds{5.0F};
   std::size_t maxRetries{5};
 };
