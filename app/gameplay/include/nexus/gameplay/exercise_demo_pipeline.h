@@ -1,4 +1,4 @@
-// Port of UFELExerciseDemoPipelineSubsystem — maps 12 production arena modes to Academy mod1-mod12
+// Port of UFELExerciseDemoPipelineSubsystem — maps each production arena mode to Academy montages.
 #pragma once
 
 #include <nlohmann/json.hpp>

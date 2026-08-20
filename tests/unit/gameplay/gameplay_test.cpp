@@ -1096,6 +1096,22 @@ void exercise_demo_pipeline_maps_production_modes() {
   require(mapping.has_value(), "dunk demo mapping exists");
   require(mapping->moduleId == "mod2", "dunk maps to mod2");
   require(mapping->montagePath.find("mod2") != std::string::npos, "montage path contains mod2");
+
+  const auto allMappings = nexus::gameplay::ExerciseDemoPipeline::allProductionMappings();
+  const auto productionModes = nexus::gameplay::ArenaModeRegistry::productionModes();
+  require(allMappings["count"].get<std::size_t>() == productionModes.size(),
+          "academy demo mappings cover every production mode");
+
+  for (const auto& mode : productionModes) {
+    const auto productionMapping =
+        nexus::gameplay::ExerciseDemoPipeline::mappingForMode(mode.id);
+    require(productionMapping.has_value(),
+            std::string("academy demo mapping exists for ") + std::string(mode.id));
+    require(!productionMapping->moduleId.empty(),
+            std::string("academy module id set for ") + std::string(mode.id));
+    require(productionMapping->montagePath.find(productionMapping->moduleId) != std::string::npos,
+            std::string("academy montage path contains module id for ") + std::string(mode.id));
+  }
 }
 
 void physics_intent_queue_is_consumed_on_step() {
@@ -3048,6 +3064,112 @@ void karate_h2h_session_end_dispatches_receipt() {
       "karate h2h receipt includes outcome_sport state");
 }
 
+void cognitive_modes_session_end_dispatches_receipts() {
+  {
+    nexus::creative::VoxelWorld world;
+    nexus::creative::WorldManipulator manipulator(world);
+    nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+    const auto mode = nexus::gameplay::ArenaModeRegistry::find("brain_brawl");
+    require(mode.has_value(), "brain brawl registered");
+    require(mode->scoringEnabled, "brain brawl scoring enabled");
+
+    require(gameplay.handleGameplayCommand(
+                "fel.arena.start_session",
+                {{"mode_id", "brain_brawl"}, {"user_id", "brain_receipt"}},
+                "brain_receipt_start")
+                .status == "ok",
+            "brain brawl receipt session starts");
+
+    for (int i = 0; i < nexus::gameplay::BrainBrawlMode::kQuestionsToWin &&
+                    !gameplay.mode_runtime().shouldAutoEndSession();
+         ++i) {
+      const auto answer = gameplay.handleGameplayCommand(
+          "fel.brain.answer",
+          {{"correct", true}, {"response_time", 3.5F}, {"category", "BodyIQ"}},
+          "brain_receipt_answer");
+      require(answer.status == "ok", "brain brawl answer for receipt");
+    }
+
+    require(gameplay.mode_runtime().shouldAutoEndSession(), "brain brawl match completes");
+
+    const auto end = gameplay.handleGameplayCommand(
+        "fel.arena.end_session",
+        {{"use_live_scores", true}},
+        "brain_receipt_end");
+    require(end.status == "ok", "brain brawl session ends");
+    require(end.payload["outcome"].get<std::string>() == "win", "brain brawl win outcome");
+
+    const auto receipts =
+        gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "brain_receipts");
+    require(!receipts.payload["receipts"].empty(), "brain brawl receipt queued");
+    const auto& receipt = receipts.payload["receipts"].back();
+    require(receipt["mode_id"].get<std::string>() == "brain_brawl",
+            "brain brawl receipt mode id");
+    require(receipt["telemetry"]["mode_specific"]["brain_brawl"].is_object(),
+            "brain brawl receipt includes mode_specific state");
+    const int correctAnswers =
+        receipt["telemetry"]["mode_specific"]["brain_brawl"]["player_correct"].get<int>();
+    require(correctAnswers > 0, "brain brawl receipt tracks correct answers");
+    require(receipt["score"].get<int>() == correctAnswers,
+            "brain brawl receipt score matches correct answers");
+  }
+
+  {
+    nexus::creative::VoxelWorld world;
+    nexus::creative::WorldManipulator manipulator(world);
+    nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+    const auto mode = nexus::gameplay::ArenaModeRegistry::find("who_scene_it");
+    require(mode.has_value(), "who scene it registered");
+    require(mode->scoringEnabled, "who scene it scoring enabled");
+
+    require(gameplay.handleGameplayCommand(
+                "fel.arena.start_session",
+                {{"mode_id", "who_scene_it"}, {"user_id", "scene_receipt"}},
+                "scene_receipt_start")
+                .status == "ok",
+            "who scene it receipt session starts");
+
+    for (int i = 0; i < nexus::gameplay::WhoSceneItMode::kCorrectToWin &&
+                    !gameplay.mode_runtime().shouldAutoEndSession();
+         ++i) {
+      require(gameplay.handleGameplayCommand(
+                  "fel.scene.buzz_in",
+                  {{"timing", 0.95F}},
+                  "scene_receipt_buzz")
+                  .status == "ok",
+              "who scene it buzz for receipt");
+      const auto answer = gameplay.handleGameplayCommand(
+          "fel.scene.answer",
+          {{"correct", true}, {"response_time", 4.0F}, {"category", "ClassicFilm"}},
+          "scene_receipt_answer");
+      require(answer.status == "ok", "who scene it answer for receipt");
+    }
+
+    require(gameplay.mode_runtime().shouldAutoEndSession(), "who scene it match completes");
+
+    const auto end = gameplay.handleGameplayCommand(
+        "fel.arena.end_session",
+        {{"use_live_scores", true}},
+        "scene_receipt_end");
+    require(end.status == "ok", "who scene it session ends");
+    require(end.payload["outcome"].get<std::string>() == "win", "who scene it win outcome");
+
+    const auto receipts =
+        gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "scene_receipts");
+    require(!receipts.payload["receipts"].empty(), "who scene it receipt queued");
+    require(receipts.payload["receipts"].back()["mode_id"].get<std::string>() == "who_scene_it",
+            "who scene it receipt mode id");
+    require(receipts.payload["receipts"].back()["score"].get<int>() >=
+                nexus::gameplay::WhoSceneItMode::kCorrectToWin,
+            "who scene it receipt score from correct answers");
+    require(receipts.payload["receipts"].back()["telemetry"]["mode_specific"]["who_scene_it"]
+                .is_object(),
+            "who scene it receipt includes mode_specific state");
+  }
+}
+
 } // namespace
 
 auto main() -> int {
@@ -3120,6 +3242,7 @@ auto main() -> int {
   basketball_3v3_session_end_dispatches_receipt();
   court_carnival_session_end_dispatches_receipt();
   karate_h2h_session_end_dispatches_receipt();
+  cognitive_modes_session_end_dispatches_receipts();
   text_prompt_adapter_maps_beach_arena_prompt();
   gameplay_from_text_executes_mixed_plan();
   agent_router_routes_from_text_to_gameplay();
