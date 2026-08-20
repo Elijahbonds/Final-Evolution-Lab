@@ -12,6 +12,8 @@ struct GamePlayView: View {
     let viewModel: LabViewModel
     let gameMode: GameMode
     let sessionReadiness: Double
+    /// Local co-op roster selected before launch; forwarded to NEXUS for karate endless wave scaling.
+    var coopPlayerCount: Int = 1
     /// HUD theme from NEXUS Game Generator customizer — flows into live gameplay chrome.
     var generatorHudTheme: NexusGeneratorHudTheme? = nil
     /// When true (screenshot harness only), skips multiplayer lobby + countdown so START MATCH + scene chrome are visible immediately.
@@ -465,7 +467,11 @@ struct GamePlayView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .onAppear {
             sceneViewportReady = false
-            nexusEngine.start(modeId: gameMode.id.nexusRuntimeModeId, readiness: sessionReadiness)
+            nexusEngine.start(
+                modeId: gameMode.id.nexusRuntimeModeId,
+                readiness: sessionReadiness,
+                coopPlayerCount: coopPlayerCount
+            )
             FELSoundscapeEngine.shared.start(for: gameMode.id)
             FELHaptics.prepare()
             if skipMatchLobbyForScreenshotHarness {

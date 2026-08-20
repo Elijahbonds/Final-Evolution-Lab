@@ -1,6 +1,8 @@
 """Server-authoritative FEL economy constants."""
 from __future__ import annotations
 
+from app.utils.mode_registry import registry_prq_mode_weights
+
 XP_MIN_PER_SESSION = 10
 XP_CAP_PER_SESSION = 500
 XP_SCORE_DIVISOR = 5
@@ -16,9 +18,11 @@ SHARD_CRITICAL_BONUS = 10
 SHARD_PACING_BONUS_RATE = 0.05
 SHARD_PACING_THRESHOLD = 75
 
-PRQ_MODE_WEIGHTS = {
+_DEFAULT_PRQ_MODE_WEIGHTS = {
     "basketball_h2h": 1.2,
     "basketball_dunk": 1.0,
+    "basketball_dunk_3d": 1.0,
+    "basketball_dunk_irl": 1.5,
     "basketball_3v3": 1.3,
     "karate": 1.4,
     "karate_h2h": 1.4,
@@ -31,11 +35,15 @@ PRQ_MODE_WEIGHTS = {
     "volleyball": 1.2,
     "gymnastics": 1.0,
     "brain_brawl": 0.8,
+    "who_scene_it": 0.7,
+    "court_carnival": 0.9,
     "surfing": 1.05,
     "skateboarding": 1.0,
     "snowboarding": 1.0,
     "market_browse": 0.0,
 }
+
+PRQ_MODE_WEIGHTS = registry_prq_mode_weights(_DEFAULT_PRQ_MODE_WEIGHTS)
 # PRQ v2.0 outcome bases (Architecture §6.1 — mirrors server.py)
 PRQ_OUTCOME_BASE = {
     "win": 2.0,

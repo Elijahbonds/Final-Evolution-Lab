@@ -13,8 +13,15 @@ def test_game_modes_and_ai_coach_are_available() -> None:
     chat = client.post("/api/ai/chat", json={"message": "Build a training day", "model": "gpt-5.2"})
 
     assert modes.status_code == 200
-    assert len(modes.json()) == 19
-    assert any(mode["id"] == "trivia_arena" for mode in modes.json())
+    mode_by_id = {mode["id"]: mode for mode in modes.json()}
+    assert len(mode_by_id) >= 20
+    assert "trivia_arena" not in mode_by_id
+    assert mode_by_id["basketball_dunk_irl"]["render_mode"] == "IRL"
+    assert mode_by_id["basketball_dunk_3d"]["nexus_runtime_mode_id"] == "basketball_dunk"
+    assert mode_by_id["who_scene_it"]["game_type"] == "quiz"
+    assert mode_by_id["court_carnival"]["game_type"] == "party"
+    assert mode_by_id["market_browse"]["playable"] is False
+    assert all(mode["source"] == "FEL_ModeManager.production.json" for mode in modes.json())
     assert chat.status_code == 200
     assert "FEL Coach" in chat.json()["response"]
 

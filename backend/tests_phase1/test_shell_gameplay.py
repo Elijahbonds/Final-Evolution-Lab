@@ -93,9 +93,16 @@ def test_native_launch_returns_no_deeplink_on_web() -> None:
     assert hub.status_code == 200
     assert hub.json()["deep_link"] is None
     assert hub.json()["mode_id"] == "karate_h2h"
+    assert hub.json()["status"] == "registered"
+    assert hub.json()["source"] == "FEL_ModeManager.production.json"
     assert vault.status_code == 200
     assert state.status_code == 200
     assert state.json()["state"] == "completed"
+
+    unknown = client.post("/api/hub/launch-mode", json={"mode_id": "trivia_arena"})
+    assert unknown.status_code == 200
+    assert unknown.json()["status"] == "unregistered"
+    assert unknown.json()["source"] == "local_shell"
 
 
 def test_hub_command_center_status_renders() -> None:
@@ -108,9 +115,13 @@ def test_hub_command_center_status_renders() -> None:
 
     assert status.status_code == 200
     assert status.json()["database"]["status"] == "ready"
-    assert len(status.json()["database"]["venues"]) == 12
+    assert status.json()["database"]["source"] == "FEL_VenueRegistry.production.json"
+    assert status.json()["database"]["total_venues"] == len(status.json()["database"]["venues"])
+    assert "regulation_court_irl" in status.json()["database"]["venues"]
     assert health.status_code == 200
     assert health.json()["checks"]["mode_manager"]["production_modes"] == 20
+    assert health.json()["checks"]["mode_manager"]["catalog_modes"] >= 20
+    assert health.json()["checks"]["mode_manager"]["source"] == "FEL_ModeManager.production.json"
     assert handshake.status_code == 200
     assert handshake.json()["log"]
     assert telemetry.status_code == 200

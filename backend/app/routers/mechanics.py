@@ -20,6 +20,14 @@ from typing import Any
 from fastapi import APIRouter, File, Query, UploadFile
 from pydantic import BaseModel, Field
 
+from app.utils.mode_registry import (
+    catalog_mode_ids,
+    load_venue_registry,
+    mode_registry,
+    production_mode_count,
+    venue_mode_metadata,
+)
+
 router = APIRouter(tags=["mechanics"])
 
 NUTRI_SHARDS_PER_SCAN = 12
@@ -33,27 +41,29 @@ _critique_requests: list[dict[str, Any]] = []
 _brain_brawl_sessions: dict[str, dict[str, Any]] = {}
 _workout_logs: list[dict[str, Any]] = []
 
-ARENA_MODES = [
-    ("basketball_h2h", "Street · 1v1", "Basketball", "VeniceBeach", "1v1", "3 min"),
-    ("basketball_dunk", "Dunk Contest", "Basketball", "VeniceBeach", "Solo", "5 min"),
-    ("basketball_3v3", "Street · 3v3", "Basketball", "VeniceBeach", "3v3", "8 min"),
-    ("karate", "Karate · Dojo", "Combat", "Dojo", "Solo", "3 min"),
-    ("karate_h2h", "Karate · 1v1", "Combat", "Dojo", "1v1", "3 min"),
-    ("karate_endless", "Karate · Endless", "Combat", "Dojo", "Solo", "Endless"),
-    ("baseball", "Baseball · Ballpark", "Field", "BaseballPark", "Solo", "5 min"),
-    ("football", "Football · Kick Return", "Field", "Gridiron", "Solo", "4 min"),
-    ("soccer", "Soccer · Stadium", "Field", "SoccerStadium", "Solo", "3 min"),
-    ("golf", "Golf · Links", "Precision", "Links", "Solo", "5 min"),
-    ("tennis", "Tennis · Court", "Court", "TennisCourt", "1v1", "3 min"),
-    ("volleyball", "Volleyball · Sand Court", "Court", "SandCourt", "2v2", "3 min"),
-    ("gymnastics", "Gymnastics · Floor", "Performance", "TrainingFloor", "Solo", "4 min"),
-    ("brain_brawl", "Academy · Brain Brawl", "Academy", "NeuroArena", "Solo", "2 min"),
-    ("surfing", "Surf · Line", "Board", "VeniceBeach", "Solo", "3 min"),
-    ("skateboarding", "Skate · Dojo", "Board", "Dojo", "Solo", "3 min"),
-    ("snowboarding", "Snow · Line", "Board", "TrainingFloor", "Solo", "3 min"),
-    ("market_browse", "Sovereign Shop", "Academy", "Luma_Venice_Shop", "Browse", "Open"),
-    ("trivia_arena", "Trivia Arena", "Academy", "NeuroArena", "Solo", "2 min"),
-]
+MODE_DISPLAY_OVERRIDES = {
+    "basketball_h2h": ("Street · 1v1", "Basketball", "1v1", "3 min"),
+    "basketball_dunk": ("Dunk Contest", "Basketball", "Solo", "5 min"),
+    "basketball_dunk_3d": ("Dunk Contest · 3D", "Basketball", "Solo", "5 min"),
+    "basketball_dunk_irl": ("IRL Dunk Contest", "Basketball", "H2H", "5 min"),
+    "basketball_3v3": ("Street · 3v3", "Basketball", "3v3", "8 min"),
+    "karate_h2h": ("Karate · 1v1", "Combat", "1v1", "3 min"),
+    "karate_endless": ("Karate · Endless", "Combat", "Co-op", "Endless"),
+    "baseball": ("Baseball · Ballpark", "Field", "Solo", "5 min"),
+    "football": ("Football · Kick Return", "Field", "Solo", "4 min"),
+    "soccer": ("Soccer · Stadium", "Field", "Solo", "3 min"),
+    "golf": ("Golf · Links", "Precision", "Solo", "5 min"),
+    "tennis": ("Tennis · Court", "Court", "1v1", "3 min"),
+    "volleyball": ("Volleyball · Sand Court", "Court", "2v2", "3 min"),
+    "gymnastics": ("Gymnastics · Floor", "Performance", "Solo", "4 min"),
+    "brain_brawl": ("Academy · Brain Brawl", "Academy", "Solo", "2 min"),
+    "who_scene_it": ("Who Scene It", "Academy", "Solo", "2 min"),
+    "court_carnival": ("Court Carnival", "Party", "Party", "Open"),
+    "surfing": ("Surf · Line", "Board", "Solo", "3 min"),
+    "skateboarding": ("Skate · Line", "Board", "Solo", "3 min"),
+    "snowboarding": ("Snow · Line", "Board", "Solo", "3 min"),
+    "market_browse": ("Sovereign Shop", "Academy", "Browse", "Open"),
+}
 
 INTENTS = {
     "fascial_hydration": "Fascial Hydration",
@@ -142,19 +152,41 @@ def _now() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def _mode(row: tuple[str, str, str, str, str, str]) -> dict[str, Any]:
-    mode_id, display_name, category, venue, players, duration = row
+def _humanize_mode_id(mode_id: str) -> str:
+    return " · ".join(part.capitalize() for part in mode_id.split("_"))
+
+
+def _mode(mode_id: str, config: dict[str, Any], venue_meta: dict[str, Any] | None = None) -> dict[str, Any]:
+    display_name, category, players, duration = MODE_DISPLAY_OVERRIDES.get(
+        mode_id,
+        (_humanize_mode_id(mode_id), "Arena", "Solo", "3 min"),
+    )
+    venue_meta = venue_meta or {}
+    venue = config.get("venue_id") or venue_meta.get("displayVenue") or venue_meta.get("venueKey") or "Local Shell"
+    status = str(config.get("status", "preview"))
+    playable = status != "non-game-module"
+    game_type = "quiz" if mode_id in {"brain_brawl", "who_scene_it"} else "reflex"
+    if mode_id == "court_carnival":
+        game_type = "party"
+    elif mode_id == "market_browse":
+        game_type = "market"
+
     return {
         "id": mode_id,
         "name": display_name,
         "display_name": display_name,
         "category": category,
         "venue": venue,
+        "venue_key": venue_meta.get("venueKey"),
+        "render_mode": config.get("render_mode") or venue_meta.get("renderMode") or "3D_UE5",
+        "nexus_runtime_mode_id": config.get("nexus_runtime_mode_id", mode_id),
         "player_count": players,
         "duration": duration,
         "difficulty": "Cognitive" if category == "Academy" else "Adaptive",
-        "game_type": "quiz" if mode_id in {"brain_brawl", "trivia_arena"} else "reflex",
-        "playable": mode_id != "market_browse",
+        "game_type": game_type,
+        "playable": playable,
+        "registry_status": status,
+        "source": "FEL_ModeManager.production.json",
         "image_url": "/images/ue5_basketball.png" if category == "Basketball" else "/images/ue5_board.png",
         "description": f"{display_name} is wired through the FEL shell economy and HUD pipeline.",
     }
@@ -175,7 +207,9 @@ def _target() -> dict[str, int]:
 
 @router.get("/games/modes")
 async def game_modes() -> list[dict[str, Any]]:
-    return [_mode(row) for row in ARENA_MODES]
+    registry = mode_registry()
+    venue_modes = venue_mode_metadata()
+    return [_mode(mode_id, registry[mode_id], venue_modes.get(mode_id)) for mode_id in catalog_mode_ids()]
 
 
 @router.post("/ai/chat")
@@ -472,12 +506,17 @@ async def update_profile(payload: dict[str, Any] | None = None) -> dict[str, Any
 # Native-launch + session-state (web returns no deep link → browser sim)
 # ─────────────────────────────────────────────────────────────
 def _launch_payload(mode_id: str) -> dict[str, Any]:
+    registry = mode_registry()
+    config = registry.get(mode_id, {})
+    registered = mode_id in catalog_mode_ids()
     return {
         "session_id": f"hub_{uuid.uuid4().hex[:12]}",
         "mode_id": mode_id,
         # No deep link on the web shell — the React PlayableGame simulator is used.
         "deep_link": None,
-        "status": "registered",
+        "status": "registered" if registered else "unregistered",
+        "registry_status": config.get("status"),
+        "source": "FEL_ModeManager.production.json" if registered else "local_shell",
         "hub": "local",
     }
 
@@ -617,16 +656,20 @@ def _uptime_seconds() -> int:
 
 @router.get("/hub/status")
 async def hub_status() -> dict[str, Any]:
+    venue_registry = load_venue_registry()
+    venues = venue_registry.get("venues", [])
+    venue_tokens = [
+        venue.get("venueKey")
+        for venue in venues
+        if isinstance(venue, dict) and venue.get("venueKey")
+    ]
     return {
         "websocket": {"status": "connected", "connected_clients": [], "total_messages": 0},
         "database": {
             "status": "ready",
-            "total_venues": 12,
-            "venues": [
-                "VeniceBeach", "Dojo", "BaseballPark", "Gridiron", "SoccerStadium",
-                "Links", "TennisCourt", "SandCourt", "TrainingFloor", "NeuroArena",
-                "Luma_Venice_Shop", "SecureEnclave",
-            ],
+            "total_venues": len(venue_tokens),
+            "venues": venue_tokens,
+            "source": "FEL_VenueRegistry.production.json",
         },
         "integrity": {"status": "ACTIVE", "hardware_auth": {"bIsHardwareAuthenticated": True, "back_camera_verified": True, "imu_visual_sync": True}},
         "telemetry": {"prq": 75.6, "combo_meter": 0, "buckets": 0, "vertical_jump": 0, "velocity_vectors": {"x": 0, "y": 0, "z": 0}},
@@ -637,7 +680,16 @@ async def hub_status() -> dict[str, Any]:
 
 @router.get("/production/health")
 async def production_health() -> dict[str, Any]:
-    return {"status": "HEALTHY", "checks": {"mode_manager": {"production_modes": 20}}}
+    return {
+        "status": "HEALTHY",
+        "checks": {
+            "mode_manager": {
+                "production_modes": production_mode_count(),
+                "catalog_modes": len(catalog_mode_ids()),
+                "source": "FEL_ModeManager.production.json",
+            }
+        },
+    }
 
 
 @router.get("/production/handshake-log")
