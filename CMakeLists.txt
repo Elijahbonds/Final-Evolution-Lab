@@ -206,6 +206,15 @@ if(NEXUS_BUILD_ANY_RENDERER)
   if(APPLE)
     target_link_libraries(nexus_renderer PUBLIC "-framework Metal" "-framework QuartzCore" "-framework Foundation")
   endif()
+
+  add_library(nexus_mode_validation
+    runtime/src/mode_validation.cpp
+  )
+  target_include_directories(nexus_mode_validation PUBLIC runtime/include)
+  target_link_libraries(nexus_mode_validation PUBLIC nexus_renderer nexus_assets nexus_core)
+
+  add_executable(nexus_mode_validator runtime/src/mode_validator_main.cpp)
+  target_link_libraries(nexus_mode_validator PRIVATE nexus_mode_validation)
 endif()
 
 if(NEXUS_ENABLE_RENDERER)
@@ -222,9 +231,11 @@ endif()
 
 if(NEXUS_BUILD_RUNTIME)
   add_executable(nexus_runtime runtime/src/main.cpp)
+  target_include_directories(nexus_runtime PRIVATE runtime/include)
   target_link_libraries(nexus_runtime PRIVATE
     nexus_engine
     nexus_gameplay
+    nexus_mode_validation
   )
 endif()
 

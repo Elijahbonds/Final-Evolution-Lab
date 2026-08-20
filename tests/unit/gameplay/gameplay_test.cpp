@@ -31,13 +31,19 @@
 #include <array>
 #include <chrono>
 #include <cstdlib>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <fstream>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
+#if defined(__unix__) || defined(__APPLE__)
+#include <netinet/in.h>
+#include <sys/socket.h>
+#endif
 #include <unistd.h>
 
 namespace {
@@ -62,6 +68,91 @@ void removeTreeBestEffort(const std::filesystem::path& root) {
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(10 * (attempt + 1)));
   }
+}
+
+#if defined(__unix__) || defined(__APPLE__)
+class SingleResponseHttpServer {
+public:
+  explicit SingleResponseHttpServer(int statusCode) {
+    const int serverSocket = ::socket(AF_INET, SOCK_STREAM, 0);
+    require(serverSocket >= 0, "create receipt test HTTP socket");
+
+    const int reuse = 1;
+    (void)::setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+
+    sockaddr_in address{};
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    address.sin_port = 0;
+    require(::bind(serverSocket, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == 0,
+            "bind receipt test HTTP socket");
+    require(::listen(serverSocket, 1) == 0, "listen receipt test HTTP socket");
+
+    socklen_t length = sizeof(address);
+    require(::getsockname(serverSocket, reinterpret_cast<sockaddr*>(&address), &length) == 0,
+            "read receipt test HTTP socket port");
+    m_port = ntohs(address.sin_port);
+
+    m_thread = std::thread([serverSocket, statusCode]() {
+      const int clientSocket = ::accept(serverSocket, nullptr, nullptr);
+      if (clientSocket >= 0) {
+        char requestBuffer[2048];
+        (void)::recv(clientSocket, requestBuffer, sizeof(requestBuffer), 0);
+        const std::string body = "{}";
+        const std::string response = "HTTP/1.1 " + std::to_string(statusCode) +
+                                     " NEXUS\r\nContent-Type: application/json\r\n"
+                                     "Content-Length: " +
+                                     std::to_string(body.size()) +
+                                     "\r\nConnection: close\r\n\r\n" + body;
+        (void)::send(clientSocket, response.data(), response.size(), 0);
+        (void)::close(clientSocket);
+      }
+      (void)::close(serverSocket);
+    });
+  }
+
+  ~SingleResponseHttpServer() {
+    if (m_thread.joinable()) {
+      m_thread.join();
+    }
+  }
+
+  [[nodiscard]] auto url() const -> std::string {
+    return "http://127.0.0.1:" + std::to_string(m_port) + "/api/games/session";
+  }
+
+private:
+  std::uint16_t m_port{0};
+  std::thread m_thread;
+};
+
+[[nodiscard]] auto curlAvailable() -> bool {
+  return std::system("command -v curl >/dev/null 2>&1") == 0;
+}
+#endif
+
+[[nodiscard]] auto makeTestSessionResult(std::string sessionId,
+                                         std::string modeId = "basketball_dunk",
+                                         float score = 21.0F) -> nexus::gameplay::SessionResult {
+  nexus::gameplay::SessionResult result{};
+  result.userId = "receipt_sync_user";
+  result.sessionId = std::move(sessionId);
+  result.modeId = std::move(modeId);
+  result.venueId = "venice_beach";
+  result.outcome = nexus::gameplay::MatchOutcome::kWin;
+  result.score = score;
+  result.opponentScore = 10.0F;
+  result.durationSeconds = 60.0F;
+  result.completed = true;
+  result.resultType = "win";
+  result.arv = 75.0F;
+  result.esi = 20.0F;
+  result.pacingScore = 80.0F;
+  result.mriScore = 75.0F;
+  result.xpCandidate = 250.0F;
+  result.shardsCandidate = 50.0F;
+  result.prqDeltaCandidate = 1.5F;
+  return result;
 }
 
 void fitness_data_snapshots_are_thread_safe() {
@@ -574,6 +665,151 @@ void soccer_penalty_validate_only_integration() {
   physics.shutdown();
 }
 
+void football_touchdown_validate_only_integration() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  nexus::physics::PhysicsWorld physics;
+  require(physics.init({}).isOk(), "physics init");
+
+  const auto mode = nexus::gameplay::ArenaModeRegistry::find("football");
+  require(mode.has_value(), "football mode registered");
+  require(mode->venueToken == "Gridiron_Stadium", "football uses gridiron stadium");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "football"}, {"user_id", "flagship_football"}},
+              "football_start")
+              .status == "ok",
+          "football session starts");
+
+  for (int i = 0; i < 3; ++i) {
+    const auto pulse = gameplay.handleGameplayCommand(
+        "fel.sport.pulse",
+        {{"success", true}, {"timing", 0.94F}, {"play_type", "touchdown"}},
+        "football_touchdown_pulse");
+    require(pulse.status == "ok", "football touchdown pulse ok");
+    gameplay.update(0.05, physics, {});
+  }
+
+  const auto state =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "football_state");
+  require(state.status == "ok", "football mode state ok");
+  require(state.payload["outcome_sport"]["player_touchdowns"].get<int>() == 3,
+          "football HUD exposes touchdown target");
+  require(gameplay.mode_runtime().shouldAutoEndSession(),
+          "football match completes after three touchdowns");
+
+  const auto end = gameplay.handleGameplayCommand(
+      "fel.arena.end_session", {{"use_live_scores", true}}, "football_end");
+  require(end.status == "ok", "football session ends with live scores");
+  require(end.payload["outcome"].get<std::string>() == "win", "football win outcome");
+
+  const auto receipts =
+      gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "football_receipts");
+  require(!receipts.payload["receipts"].empty(), "football receipt queued");
+  require(receipts.payload["receipts"].back()["mode_id"].get<std::string>() == "football",
+          "football receipt mode id");
+
+  physics.shutdown();
+}
+
+void golf_nine_hole_validate_only_integration() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  nexus::physics::PhysicsWorld physics;
+  require(physics.init({}).isOk(), "physics init");
+
+  const auto mode = nexus::gameplay::ArenaModeRegistry::find("golf");
+  require(mode.has_value(), "golf mode registered");
+  require(mode->venueToken == "Links_Course", "golf uses links course");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "golf"}, {"user_id", "flagship_golf"}},
+              "golf_start")
+              .status == "ok",
+          "golf session starts");
+
+  for (int i = 0; i < 9; ++i) {
+    const auto pulse = gameplay.handleGameplayCommand(
+        "fel.sport.pulse",
+        {{"success", true}, {"timing", 0.93F}, {"club", "putt"}},
+        "golf_putt_pulse");
+    require(pulse.status == "ok", "golf putt pulse ok");
+    gameplay.update(0.05, physics, {});
+  }
+
+  const auto state = gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "golf_state");
+  require(state.status == "ok", "golf mode state ok");
+  require(state.payload["outcome_sport"]["holes_played"].get<int>() == 9,
+          "golf HUD exposes nine holes played");
+  require(state.payload["outcome_sport"]["course_par"].get<int>() == 36,
+          "golf HUD exposes course par");
+  require(gameplay.mode_runtime().shouldAutoEndSession(), "golf match completes after nine holes");
+
+  const auto end = gameplay.handleGameplayCommand(
+      "fel.arena.end_session", {{"use_live_scores", true}}, "golf_end");
+  require(end.status == "ok", "golf session ends with live scores");
+  require(end.payload.contains("outcome"), "golf outcome present");
+
+  const auto receipts =
+      gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "golf_receipts");
+  require(!receipts.payload["receipts"].empty(), "golf receipt queued");
+  require(receipts.payload["receipts"].back()["mode_id"].get<std::string>() == "golf",
+          "golf receipt mode id");
+
+  physics.shutdown();
+}
+
+void tennis_ace_validate_only_integration() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  nexus::physics::PhysicsWorld physics;
+  require(physics.init({}).isOk(), "physics init");
+
+  const auto mode = nexus::gameplay::ArenaModeRegistry::find("tennis");
+  require(mode.has_value(), "tennis mode registered");
+  require(mode->venueToken == "Tennis_Court", "tennis uses tennis court");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "tennis"}, {"user_id", "flagship_tennis"}},
+              "tennis_start")
+              .status == "ok",
+          "tennis session starts");
+
+  for (int i = 0; i < 4; ++i) {
+    const auto pulse = gameplay.handleGameplayCommand(
+        "fel.sport.pulse",
+        {{"success", true}, {"timing", 0.94F}, {"shot_type", "ace"}},
+        "tennis_ace_pulse");
+    require(pulse.status == "ok", "tennis ace pulse ok");
+    gameplay.update(0.05, physics, {});
+  }
+
+  const auto state = gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "tennis_state");
+  require(state.status == "ok", "tennis mode state ok");
+  require(state.payload["outcome_sport"]["player_sets"].get<int>() == 2,
+          "tennis HUD exposes two-set win");
+  require(gameplay.mode_runtime().shouldAutoEndSession(), "tennis match completes after two sets");
+
+  const auto end = gameplay.handleGameplayCommand(
+      "fel.arena.end_session", {{"use_live_scores", true}}, "tennis_end");
+  require(end.status == "ok", "tennis session ends with live scores");
+  require(end.payload["outcome"].get<std::string>() == "win", "tennis win outcome");
+
+  const auto receipts =
+      gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "tennis_receipts");
+  require(!receipts.payload["receipts"].empty(), "tennis receipt queued");
+  require(receipts.payload["receipts"].back()["mode_id"].get<std::string>() == "tennis",
+          "tennis receipt mode id");
+
+  physics.shutdown();
+}
+
 void karate_h2h_sport_pulse_hp_combat() {
   using nexus::gameplay::GameplayManager;
   using nexus::gameplay::MatchOutcome;
@@ -762,7 +998,9 @@ void session_receipt_flush_keeps_queue_when_http_disabled() {
           "session ends");
 
   const auto flush = gameplay.handleGameplayCommand(
-      "fel.arena.flush_receipts", {{"persist_to_disk", true}}, "flush");
+      "fel.arena.flush_receipts",
+      {{"persist_to_disk", true}, {"http_enabled", false}, {"use_stub_http", false}},
+      "flush");
   require(flush.status == "ok", "flush command ok");
   require(flush.payload["delivered"].get<std::size_t>() >= 1, "receipt delivered to disk queue");
   require(!flush.payload["queue_directory"].get<std::string>().empty(), "queue directory returned");
@@ -770,6 +1008,43 @@ void session_receipt_flush_keeps_queue_when_http_disabled() {
   const auto receipts =
       gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "flush_receipts");
   require(receipts.payload["receipts"].size() == 0, "receipt cleared after successful flush");
+
+  const auto configFlush = gameplay.handleGameplayCommand(
+      "fel.arena.flush_receipts",
+      {{"persist_to_disk", false}, {"http_enabled", false}, {"use_stub_http", false}},
+      "flush_config");
+  require(configFlush.status == "ok", "flush config command ok");
+  require(!configFlush.payload["http_enabled"].get<bool>(), "flush command applies http_enabled");
+  require(!configFlush.payload["use_stub_http"].get<bool>(), "flush command applies use_stub_http");
+}
+
+void session_receipt_defaults_to_disk_queue_only() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_default_disk_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = "http://127.0.0.1:8000/api/games/session",
+      .persistToDisk = true,
+      .useStubHttpTransport = true,
+      .flushIntervalSeconds = 0.01F,
+  });
+
+  require(!client.config().httpEnabled, "receipt HTTP disabled by default");
+  client.enqueue({
+      {"mode_id", "basketball_dunk"},
+      {"score", 21},
+      {"telemetry", {{"session_id", "default_disk_session"}}},
+  });
+
+  client.tick(1.0);
+  require(client.pendingCount() == 0, "default disk flush clears in-memory queue");
+  require(client.postedRequests().empty(), "default disk flush does not POST");
+  require(std::filesystem::exists(tempDir / "default_disk_session.json"),
+          "default disk flush writes queue file");
+
+  removeTreeBestEffort(tempDir);
 }
 
 void session_receipt_disk_keyed_by_session_id() {
@@ -780,7 +1055,7 @@ void session_receipt_disk_keyed_by_session_id() {
   std::filesystem::create_directories(tempDir, ec);
 
   nexus::gameplay::SessionReceiptClient client(
-      {.queueDirectory = tempDir.string(), .persistToDisk = true});
+      {.queueDirectory = tempDir.string(), .persistToDisk = true, .httpEnabled = false});
 
   nlohmann::json receipt = {
       {"mode_id", "karate_endless"},
@@ -791,6 +1066,7 @@ void session_receipt_disk_keyed_by_session_id() {
   client.enqueue(receipt);
   const auto first = client.flush();
   require(first.delivered == 1, "first flush delivers receipt");
+  require(first.queued_on_disk == 1, "offline flush reports one receipt queued on disk");
 
   const auto receiptPath = tempDir / "abc123session.json";
   require(std::filesystem::exists(receiptPath), "receipt file keyed by telemetry.session_id");
@@ -813,6 +1089,68 @@ void session_receipt_disk_keyed_by_session_id() {
   require(loaded["score"].get<int>() == 99, "re-flush overwrites receipt contents");
 
   removeTreeBestEffort(tempDir);
+}
+
+void gameplay_manager_partial_receipt_flush_keeps_only_failed_receipts_pending() {
+#if defined(__unix__) || defined(__APPLE__)
+  if (!curlAvailable()) {
+    std::fprintf(stderr, "SKIP: curl unavailable for gameplay manager partial receipt flush test\n");
+    return;
+  }
+
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_manager_partial_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  SingleResponseHttpServer server(204);
+  nexus::gameplay::GameplayManager manager;
+  manager.setReceiptClientConfig({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  manager.dispatchSessionReceipt(makeTestSessionResult("delivered_session", "basketball_dunk", 21.0F));
+  manager.dispatchSessionReceipt(makeTestSessionResult("retry_session", "karate_endless", 8.0F));
+  require(manager.pendingReceipts().size() == 2, "manager starts with two pending receipts");
+
+  const auto flush = manager.flushPendingReceipts();
+  require(flush.attempted == 2, "partial manager flush attempts both receipts");
+  require(flush.delivered == 1, "partial manager flush delivers first receipt");
+  require(flush.requeued == 1, "partial manager flush requeues failed receipt");
+  require(manager.pendingReceipts().size() == 1, "manager pending mirrors receipt client retry queue");
+  require(manager.pendingReceipts().front()["telemetry"]["session_id"].get<std::string>() ==
+              "retry_session",
+          "manager keeps only failed receipt pending");
+  require(!std::filesystem::exists(tempDir), "partial HTTP-only manager flush does not create disk queue");
+#else
+  std::fprintf(stderr, "SKIP: gameplay manager partial receipt flush test requires POSIX sockets\n");
+#endif
+}
+
+void gameplay_manager_tick_flush_syncs_pending_receipts() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_manager_tick_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::GameplayManager manager;
+  manager.setReceiptClientConfig({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = "http://127.0.0.1:8000/api/games/session",
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = true,
+      .flushIntervalSeconds = 0.1F,
+  });
+  manager.dispatchSessionReceipt(makeTestSessionResult("tick_flush_session"));
+  require(manager.pendingReceipts().size() == 1, "tick flush test starts pending");
+
+  manager.tickReceiptClient(0.2);
+
+  require(manager.pendingReceipts().empty(), "tick-triggered receipt flush clears manager pending");
+  require(!std::filesystem::exists(tempDir), "stub tick flush does not create disk queue");
 }
 
 void hud_poll_returns_tick_frame_payload() {
@@ -933,6 +1271,17 @@ void exercise_demo_pipeline_maps_production_modes() {
   require(mapping.has_value(), "dunk demo mapping exists");
   require(mapping->moduleId == "mod2", "dunk maps to mod2");
   require(mapping->montagePath.find("mod2") != std::string::npos, "montage path contains mod2");
+
+  const auto allMappings = nexus::gameplay::ExerciseDemoPipeline::allProductionMappings();
+  require(allMappings["count"].get<std::size_t>() == nexus::gameplay::kProductionModeCount,
+          "academy demo mappings cover all production modes");
+  for (std::string_view modeId : nexus::gameplay::kProductionModeIds) {
+    const auto modeMapping = nexus::gameplay::ExerciseDemoPipeline::mappingForMode(modeId);
+    require(modeMapping.has_value(),
+            std::string("academy demo mapping exists for ") + std::string(modeId));
+    require(modeMapping->montagePath.find(modeMapping->moduleId) != std::string::npos,
+            std::string("academy montage path contains module for ") + std::string(modeId));
+  }
 }
 
 void physics_intent_queue_is_consumed_on_step() {
@@ -954,10 +1303,79 @@ void physics_intent_queue_is_consumed_on_step() {
   physics.shutdown();
 }
 
-void prq_stub_returns_sprint_defaults() {
+void prq_uses_sprint_defaults_until_fitness_arrives() {
   require(nexus::gameplay::PRQEngine::getScore() == 75.0F, "prq sprint default");
   require(nexus::gameplay::PRQEngine::getGrade() == nexus::gameplay::PRQGrade::kPrimed,
           "prq grade primed");
+
+  nexus::gameplay::FitnessSnapshot coldStart{};
+  require(nexus::gameplay::PRQEngine::scoreForSnapshot(coldStart) == 75.0F,
+          "cold-start snapshot uses sprint default");
+  require(nexus::gameplay::PRQEngine::neuralDriveForSnapshot(coldStart) == 60.0F,
+          "cold-start neural drive uses sprint default");
+}
+
+void prq_derives_readiness_from_fitness_snapshot() {
+  nexus::gameplay::ThreadSafeFitnessData fitness;
+  fitness.update({0.9F, 0.85F, 0.8F}, {0.95F, 0.9F, 1});
+
+  const auto snapshot = fitness.snapshot();
+  const float prq = nexus::gameplay::PRQEngine::scoreForSnapshot(snapshot);
+  const float neuralDrive = nexus::gameplay::PRQEngine::neuralDriveForSnapshot(snapshot);
+  require(prq > 89.0F, "high fitness produces elite PRQ");
+  require(neuralDrive > 90.0F, "high fitness produces neural burst drive");
+  require(nexus::gameplay::PRQEngine::gradeForScore(prq) ==
+              nexus::gameplay::PRQGrade::kElite,
+          "high fitness maps to elite PRQ grade");
+
+  fitness.update({0.05F, 0.1F, 0.05F}, {0.1F, 0.1F, -1});
+  const auto recovery = fitness.snapshot();
+  require(nexus::gameplay::PRQEngine::scoreForSnapshot(recovery) < 40.0F,
+          "low fitness produces recovering PRQ");
+  require(nexus::gameplay::PRQEngine::neuralDriveForSnapshot(recovery) < neuralDrive,
+          "low fitness lowers neural drive");
+}
+
+void mode_runtime_prq_state_tracks_live_fitness() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk"}, {"user_id", "prq_fitness"}},
+              "prq_session")
+              .status == "ok",
+          "prq mode session starts");
+
+  auto modeState = gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "prq_default");
+  require(modeState.payload["prq"].get<float>() == 75.0F, "default mode PRQ before fitness");
+  require(modeState.payload["prq_source"].get<std::string>() == "sprint_default",
+          "default PRQ source is explicit");
+
+  const auto fitness = gameplay.handleGameplayCommand(
+      "fel.fitness.update",
+      {{"frc_mobility", 0.9F},
+       {"frc_active_range", 0.85F},
+       {"frc_control", 0.8F},
+       {"iap_engagement", 0.95F},
+       {"iap_confidence", 0.9F},
+       {"breath_phase", 1}},
+      "prq_fitness_update");
+  require(fitness.status == "ok", "fitness update for PRQ ok");
+
+  modeState = gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "prq_live");
+  require(modeState.payload["prq"].get<float>() > 89.0F, "mode PRQ follows fitness snapshot");
+  require(modeState.payload["prq_grade"].get<std::string>() == "ELITE",
+          "mode PRQ grade follows fitness snapshot");
+  require(modeState.payload["prq_source"].get<std::string>() == "fitness_snapshot",
+          "mode PRQ source follows fitness");
+  require(modeState.payload["fitness_revision"].get<std::uint64_t>() == 1,
+          "mode state reports fitness revision");
+  require(modeState.payload["neural_drive"].get<float>() > 90.0F,
+          "mode state reports fitness neural drive");
+  require(modeState.payload["arcade_physics"]["neural_burst_active"].get<bool>(),
+          "fitness neural drive enables burst physics");
 }
 
 void arcade_physics_maps_prq_75() {
@@ -1853,7 +2271,7 @@ void flagship_who_scene_it_validate_only_integration() {
 }
 
 void fel_bridge_websocket_stub_sends_outbound() {
-  nexus::gameplay::FelBridgeService bridge;
+  nexus::gameplay::FelBridgeService bridge({.useStubTransport = true});
   bridge.setWebSocketUrl("ws://127.0.0.1:8787/ws/vault");
   require(bridge.connectTransport().isOk(), "fel bridge transport connect");
   bridge.notifyVenueTravel("Venice_Beach_Court", "basketball_dunk");
@@ -1877,7 +2295,7 @@ void fel_bridge_websocket_stub_sends_outbound() {
 }
 
 void hud_relay_websocket_stub_emits_frames() {
-  nexus::gameplay::HudRelayService relay;
+  nexus::gameplay::HudRelayService relay({.useStubTransport = true});
   relay.setWebSocketUrl("ws://127.0.0.1:8787/ws/hud");
   require(relay.connectRelay().isOk(), "hud relay connect");
   relay.emitTickFrame({{"prq", 72.5F}, {"mode_id", "basketball_dunk"}});
@@ -1887,6 +2305,22 @@ void hud_relay_websocket_stub_emits_frames() {
   require(!relay.sentTransportFrames().empty(), "hud relay stub sent WS frame");
   require(relay.sentTransportFrames().front().find("fel.hud.frame") != std::string::npos,
           "hud relay WS payload type");
+}
+
+void hud_relay_broadcast_messages_are_bounded() {
+  nexus::gameplay::HudRelayService relay({.useStubTransport = true});
+  relay.setWebSocketUrl("ws://127.0.0.1:8787/ws/hud");
+  require(relay.connectRelay().isOk(), "hud relay broadcast cap connect");
+
+  for (int index = 0; index < 130; ++index) {
+    relay.broadcastMessage("economy_update", {{"index", index}});
+  }
+
+  require(relay.pendingFrames().size() <= 120, "hud broadcast pending frames remain bounded");
+  require(relay.pendingFrames().front()["payload"]["index"].get<int>() >= 60,
+          "hud broadcast cap trims oldest pending messages");
+  require(relay.pendingFrames().back()["payload"]["index"].get<int>() == 129,
+          "hud broadcast cap preserves newest message");
 }
 
 void session_receipt_http_stub_posts_localhost_contract() {
@@ -1927,6 +2361,118 @@ void session_receipt_http_stub_posts_localhost_contract() {
           "POST targets session contract path");
   require(client.postedRequests().front().body.find("karate_endless") != std::string::npos,
           "POST body includes mode_id");
+}
+
+void session_receipt_http_success_removes_persisted_queue_file() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_persist_http_success_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = "http://127.0.0.1:8000/api/games/session",
+      .persistToDisk = true,
+      .httpEnabled = true,
+      .useStubHttpTransport = true,
+  });
+
+  client.enqueue({
+      {"mode_id", "basketball_dunk"},
+      {"score", 21},
+      {"telemetry", {{"session_id", "persist_http_success_session"}}},
+  });
+
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "persisted HTTP success attempted");
+  require(flush.delivered == 1, "persisted HTTP success delivered");
+  require(flush.requeued == 0, "persisted HTTP success not requeued");
+  require(flush.queued_on_disk == 0, "successful HTTP delivery does not report disk queue");
+  require(client.pendingCount() == 0, "successful HTTP delivery clears pending receipt");
+  require(client.postedRequests().size() == 1, "successful HTTP delivery posts once");
+  require(!std::filesystem::exists(tempDir / "persist_http_success_session.json"),
+          "successful HTTP delivery removes persisted receipt file");
+
+  removeTreeBestEffort(tempDir);
+}
+
+void session_receipt_live_http_success_does_not_count_disk_queue() {
+#if defined(__unix__) || defined(__APPLE__)
+  if (!curlAvailable()) {
+    std::fprintf(stderr, "SKIP: curl unavailable for live receipt success test\n");
+    return;
+  }
+
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_live_success_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  SingleResponseHttpServer server(204);
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  client.enqueue({
+      {"mode_id", "basketball_dunk"},
+      {"score", 21},
+      {"telemetry", {{"session_id", "live_success_session"}}},
+  });
+
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "live success flush attempted");
+  require(flush.delivered == 1, "live success flush delivered");
+  require(flush.requeued == 0, "live success flush not requeued");
+  require(flush.queued_on_disk == 0, "HTTP-only success does not count disk queue");
+  require(client.pendingCount() == 0, "HTTP-only success clears pending receipt");
+  require(client.postedRequests().size() == 1, "live success POST recorded");
+  require(client.postedRequests().front().statusCode == 204, "live success status recorded");
+  require(!std::filesystem::exists(tempDir), "HTTP-only success does not create disk queue");
+#else
+  std::fprintf(stderr, "SKIP: live receipt success test requires POSIX sockets\n");
+#endif
+}
+
+void session_receipt_live_http_non_2xx_requeues_without_disk() {
+#if defined(__unix__) || defined(__APPLE__)
+  if (!curlAvailable()) {
+    std::fprintf(stderr, "SKIP: curl unavailable for live receipt retry test\n");
+    return;
+  }
+
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_live_retry_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  SingleResponseHttpServer server(503);
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  client.enqueue({
+      {"mode_id", "basketball_dunk"},
+      {"score", 8},
+      {"telemetry", {{"session_id", "live_retry_session"}}},
+  });
+
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "live non-2xx flush attempted");
+  require(flush.delivered == 0, "live non-2xx flush not delivered");
+  require(flush.requeued == 1, "live non-2xx flush requeued");
+  require(flush.queued_on_disk == 0, "HTTP-only retry does not count disk queue");
+  require(client.pendingCount() == 1, "live non-2xx keeps pending receipt");
+  require(client.postedRequests().size() == 1, "live non-2xx POST recorded");
+  require(client.postedRequests().front().statusCode == 503, "live non-2xx status recorded");
+  require(!std::filesystem::exists(tempDir), "HTTP-only retry does not create disk queue");
+#else
+  std::fprintf(stderr, "SKIP: live receipt retry test requires POSIX sockets\n");
+#endif
 }
 
 struct TextGenTempWorkspace {
@@ -2742,11 +3288,18 @@ auto main() -> int {
   dunk_contest_lifecycle_generates_win_receipt();
   arena_pause_resume_preserves_session();
   session_receipt_flush_keeps_queue_when_http_disabled();
+  session_receipt_defaults_to_disk_queue_only();
   session_receipt_disk_keyed_by_session_id();
+  gameplay_manager_partial_receipt_flush_keeps_only_failed_receipts_pending();
+  gameplay_manager_tick_flush_syncs_pending_receipts();
   hud_poll_returns_tick_frame_payload();
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
+  hud_relay_broadcast_messages_are_bounded();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_http_success_removes_persisted_queue_file();
+  session_receipt_live_http_success_does_not_count_disk_queue();
+  session_receipt_live_http_non_2xx_requeues_without_disk();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
@@ -2754,7 +3307,9 @@ auto main() -> int {
   physics_intent_queue_is_consumed_on_step();
   engine_tick_runs_physics_before_gameplay_update();
   gameplay_update_drains_agent_commands_before_throw_catch();
-  prq_stub_returns_sprint_defaults();
+  prq_uses_sprint_defaults_until_fitness_arrives();
+  prq_derives_readiness_from_fitness_snapshot();
+  mode_runtime_prq_state_tracks_live_fitness();
   arcade_physics_maps_prq_75();
   dunk_contest_charge_release_scores();
   karate_endless_wave_spawns();
@@ -2776,6 +3331,9 @@ auto main() -> int {
   flagship_surfing_validate_only_integration();
   flagship_outcome_sport_validate_only_integration();
   soccer_penalty_validate_only_integration();
+  football_touchdown_validate_only_integration();
+  golf_nine_hole_validate_only_integration();
+  tennis_ace_validate_only_integration();
   flagship_who_scene_it_validate_only_integration();
   session_receipt_body_matches_api_contract();
   flagship_modes_emit_post_ready_receipts();

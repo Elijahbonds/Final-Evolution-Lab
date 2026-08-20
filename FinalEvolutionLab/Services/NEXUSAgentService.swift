@@ -433,17 +433,17 @@ final class NEXUSAgentService {
             return failure(.launchMode, "Missing mode_id")
         }
 
-        guard let parsed = GameModeId(rawValue: modeId) else {
+        guard let mode = GameModeRegistry.playableMode(forRegistryId: modeId) else {
             let valid = GameModeRegistry.arenaRegistryModeIds.map(\.rawValue).joined(separator: ", ")
             return failure(.launchMode, "Unknown mode_id '\(modeId)'. Valid: \(valid)")
         }
 
-        guard let mode = GameModeRegistry.all.first(where: { $0.id == parsed }) else {
-            return failure(.launchMode, "Mode registry missing \(modeId)")
+        guard mode.isLaunchableInCurrentBuild else {
+            return failure(.launchMode, "\(modeId) is not launchable in this build.")
         }
 
-        if mode.releaseState == .preview && !Config.showPreviewGameModes {
-            return failure(.launchMode, "\(modeId) is preview-only; enable preview modes or ship flag.")
+        guard mode.isNexusSprintPlayable, !mode.id.isIRLDunkContest else {
+            return failure(.launchMode, "\(modeId) is an IRL or non-game module and cannot start a NEXUS C++ playtest.")
         }
 
         let readiness = min(100, max(0, (arguments["readiness"] as? Double)
@@ -454,7 +454,7 @@ final class NEXUSAgentService {
             name: .nexusAgentLaunchMode,
             object: nil,
             userInfo: [
-                "mode_id": modeId,
+                "mode_id": mode.id.rawValue,
                 "mode_name": mode.name,
                 "readiness": readiness,
             ]
@@ -463,9 +463,11 @@ final class NEXUSAgentService {
         return NEXUSAgentToolResult(
             tool: .launchMode,
             success: true,
-            summary: "Playtest: launching \(mode.name) (\(modeId))",
+            summary: "Playtest: launching \(mode.name) (\(mode.id.rawValue))",
             payload: [
-                "mode_id": modeId,
+                "requested_mode_id": modeId,
+                "mode_id": mode.id.rawValue,
+                "nexus_runtime_mode_id": mode.id.nexusRuntimeModeId,
                 "mode_name": mode.name,
                 "readiness": readiness,
                 "preview_label": mode.isNexusSprintPlayable ? "sprint_playable" : "preview_or_p2",

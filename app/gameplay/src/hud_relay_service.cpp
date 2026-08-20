@@ -2,27 +2,43 @@
 
 #include "nexus/core/log.h"
 
+#include <cstddef>
+#include <utility>
+
 namespace nexus::gameplay {
 
 namespace {
 
-nexus::core::WebSocketClient makeRelayClient(std::string url, bool useStubTransport) {
+constexpr std::size_t kMaxPendingHudFrames = 120;
+constexpr std::size_t kPendingHudFramesAfterTrim = 60;
+
+nexus::core::WebSocketClient makeRelayClient(const HudRelayConfig& config) {
   return nexus::core::WebSocketClient{
       nexus::core::WebSocketClientConfig{
-          .url = std::move(url),
-          .autoReconnect = true,
-          .useStubTransport = useStubTransport,
+          .url = config.websocketUrl,
+          .autoReconnect = config.autoReconnect,
+          .useStubTransport = config.useStubTransport,
       },
   };
 }
 
+void trimPendingHudFrames(std::vector<nlohmann::json>& pendingFrames) {
+  if (pendingFrames.size() > kMaxPendingHudFrames) {
+    pendingFrames.erase(pendingFrames.begin(),
+                        pendingFrames.begin() +
+                            static_cast<std::ptrdiff_t>(pendingFrames.size() -
+                                                        kPendingHudFramesAfterTrim));
+  }
+}
+
 } // namespace
 
-HudRelayService::HudRelayService()
-    : m_relay(makeRelayClient(m_websocketUrl, true)) {}
+HudRelayService::HudRelayService(HudRelayConfig config)
+    : m_config(std::move(config)),
+      m_relay(makeRelayClient(m_config)) {}
 
 auto HudRelayService::connectRelay() -> nexus::Result<void> {
-  m_relay.setUrl(m_websocketUrl);
+  m_relay.setUrl(m_config.websocketUrl);
   return m_relay.connect();
 }
 
@@ -39,8 +55,8 @@ auto HudRelayService::lastRelayError() const -> const nexus::core::WebSocketErro
 }
 
 void HudRelayService::setWebSocketUrl(std::string url) {
-  m_websocketUrl = std::move(url);
-  m_relay.setUrl(m_websocketUrl);
+  m_config.websocketUrl = std::move(url);
+  m_relay.setUrl(m_config.websocketUrl);
 }
 
 void HudRelayService::emitTickFrame(const nlohmann::json& framePayload) {
@@ -52,9 +68,7 @@ void HudRelayService::emitTickFrame(const nlohmann::json& framePayload) {
       {"payload", framePayload},
   };
   m_pendingFrames.push_back(m_latestFrame);
-  if (m_pendingFrames.size() > 120) {
-    m_pendingFrames.erase(m_pendingFrames.begin(), m_pendingFrames.begin() + 60);
-  }
+  trimPendingFrames();
 
   if (m_relay.state() != nexus::core::WebSocketClientState::kConnected) {
     (void)m_relay.connect();
@@ -74,6 +88,7 @@ void HudRelayService::broadcastMessage(std::string_view messageType,
       {"payload", payload},
   };
   m_pendingFrames.push_back(frame);
+  trimPendingFrames();
 
   if (m_relay.state() != nexus::core::WebSocketClientState::kConnected) {
     (void)m_relay.connect();
@@ -111,6 +126,10 @@ auto HudRelayService::sentTransportFrames() const -> std::span<const std::string
 
 void HudRelayService::clearPendingFrames() {
   m_pendingFrames.clear();
+}
+
+void HudRelayService::trimPendingFrames() {
+  trimPendingHudFrames(m_pendingFrames);
 }
 
 } // namespace nexus::gameplay

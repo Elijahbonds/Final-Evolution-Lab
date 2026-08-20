@@ -19,8 +19,8 @@ struct HttpPostRecord {
 struct HttpClientConfig {
   std::string url{"http://127.0.0.1:8000/api/games/session"};
   std::string authToken;
-  /// When true, POST succeeds in-process without network (headless + unit tests).
-  bool useStubTransport{true};
+  /// When true, POST succeeds in-process without network; tests must opt in explicitly.
+  bool useStubTransport{false};
 };
 
 /// Minimal HTTP POST client for FEL session receipts (`POST /api/games/session`).

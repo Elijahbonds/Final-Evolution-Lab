@@ -18,8 +18,9 @@ struct SessionReceiptClientConfig {
   std::string baseUrl{"http://127.0.0.1:8000/api/games/session"};
   std::string authToken;
   bool persistToDisk{true};
-  bool httpEnabled{true};
-  bool useStubHttpTransport{true};
+  // Default to the iOS-safe queue lane; live POST is an explicit opt-in.
+  bool httpEnabled{false};
+  bool useStubHttpTransport{false};
   float flushIntervalSeconds{5.0F};
   std::size_t maxRetries{5};
 };
@@ -42,6 +43,7 @@ public:
   [[nodiscard]] auto pendingCount() const -> std::size_t;
   [[nodiscard]] auto pendingReceipts() const -> std::span<const nlohmann::json>;
   [[nodiscard]] auto postedRequests() const -> std::span<const nexus::core::HttpPostRecord>;
+  [[nodiscard]] auto config() const -> const SessionReceiptClientConfig&;
   [[nodiscard]] auto queueDirectory() const -> const std::string&;
   void clearPending();
 
@@ -49,7 +51,8 @@ private:
   [[nodiscard]] static auto defaultQueueDirectory() -> std::string;
   [[nodiscard]] auto ensureQueueDirectory() const -> Result<void>;
   [[nodiscard]] auto persistReceipt(const nlohmann::json& receipt) -> std::optional<std::string>;
-  [[nodiscard]] auto deliverReceipt(const nlohmann::json& receipt) -> Result<int>;
+  /// Returns true when the receipt remains available on disk for a later Swift drain.
+  [[nodiscard]] auto deliverReceipt(const nlohmann::json& receipt) -> Result<bool>;
 
   SessionReceiptClientConfig m_config;
   nexus::core::HttpClient m_http;
