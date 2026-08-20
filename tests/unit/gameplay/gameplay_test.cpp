@@ -74,6 +74,19 @@ void removeTreeBestEffort(const std::filesystem::path& root) {
   }
 }
 
+auto jsonFileCount(const std::filesystem::path& root) -> std::size_t {
+  if (!std::filesystem::exists(root)) {
+    return 0;
+  }
+  std::size_t count = 0;
+  for (const auto& entry : std::filesystem::directory_iterator(root)) {
+    if (entry.path().extension() == ".json") {
+      ++count;
+    }
+  }
+  return count;
+}
+
 #if defined(__unix__) || defined(__APPLE__)
 class SingleResponseHttpServer {
 public:
@@ -2157,6 +2170,44 @@ void session_receipt_live_http_success_does_not_count_disk_queue() {
 #endif
 }
 
+void session_receipt_live_http_success_removes_persisted_queue_file() {
+#if defined(__unix__) || defined(__APPLE__)
+  if (!curlAvailable()) {
+    std::fprintf(stderr, "SKIP: curl unavailable for live receipt disk cleanup test\n");
+    return;
+  }
+
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_live_disk_cleanup_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  SingleResponseHttpServer server(204);
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = true,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  client.enqueue({
+      {"mode_id", "basketball_dunk"},
+      {"score", 44},
+      {"telemetry", {{"session_id", "live_disk_cleanup_session"}}},
+  });
+
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "live persisted success flush attempted");
+  require(flush.delivered == 1, "live persisted success flush delivered");
+  require(flush.requeued == 0, "live persisted success not requeued");
+  require(flush.queued_on_disk == 0, "live 2xx removes verified disk queue file");
+  require(client.pendingCount() == 0, "live persisted success clears pending receipt");
+  require(jsonFileCount(tempDir) == 0, "verified receipt file removed after live POST 2xx");
+#else
+  std::fprintf(stderr, "SKIP: live receipt disk cleanup test requires POSIX sockets\n");
+#endif
+}
+
 void session_receipt_live_http_non_2xx_requeues_without_disk() {
 #if defined(__unix__) || defined(__APPLE__)
   if (!curlAvailable()) {
@@ -2194,6 +2245,43 @@ void session_receipt_live_http_non_2xx_requeues_without_disk() {
   require(!std::filesystem::exists(tempDir), "HTTP-only retry does not create disk queue");
 #else
   std::fprintf(stderr, "SKIP: live receipt retry test requires POSIX sockets\n");
+#endif
+}
+
+void session_receipt_live_http_non_2xx_keeps_persisted_queue_file() {
+#if defined(__unix__) || defined(__APPLE__)
+  if (!curlAvailable()) {
+    std::fprintf(stderr, "SKIP: curl unavailable for live receipt persisted retry test\n");
+    return;
+  }
+
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_live_persisted_retry_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  SingleResponseHttpServer server(503);
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = true,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  client.enqueue({
+      {"mode_id", "basketball_dunk"},
+      {"score", 9},
+      {"telemetry", {{"session_id", "live_persisted_retry_session"}}},
+  });
+
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "live persisted non-2xx flush attempted");
+  require(flush.delivered == 0, "live persisted non-2xx not delivered");
+  require(flush.requeued == 1, "live persisted non-2xx requeued");
+  require(client.pendingCount() == 1, "live persisted non-2xx keeps pending receipt");
+  require(jsonFileCount(tempDir) == 1, "failed live POST keeps receipt file for Swift retry");
+#else
+  std::fprintf(stderr, "SKIP: live receipt persisted retry test requires POSIX sockets\n");
 #endif
 }
 
@@ -3016,7 +3104,9 @@ auto main() -> int {
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
   session_receipt_live_http_success_does_not_count_disk_queue();
+  session_receipt_live_http_success_removes_persisted_queue_file();
   session_receipt_live_http_non_2xx_requeues_without_disk();
+  session_receipt_live_http_non_2xx_keeps_persisted_queue_file();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();

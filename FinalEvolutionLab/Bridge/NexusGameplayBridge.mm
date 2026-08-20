@@ -11,7 +11,9 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <initializer_list>
 #include <memory>
+#include <optional>
 #include <string>
 
 /*
@@ -32,10 +34,12 @@
 
    4. flush:  nexus_gameplay_session_flush_receipts(handle)
               — persists receipts to ~/.fel/pending_receipts/*.json for offline queue
+              — if FEL_SESSION_RECEIPT_URL / NEXUS_RECEIPT_URL is configured, also attempts a
+                live POST and removes the queued file only after HTTP 2xx
 
  Swift SessionService should read that directory and POST each file to
  /api/games/session when connectivity is available (Bearer Firebase JWT).
- The C++ layer does not perform HTTP in v1; it only logs + writes queue files.
+ The C++ layer defaults to stub/offline queue mode unless a receipt URL override is present.
 
  Example Swift stop() sequence:
    let result = NexusGameplayBridge.endArena(session, playerScore: score, opponentScore: 0)
@@ -96,6 +100,35 @@ auto handleCommandJson(nexus::gameplay::GameplayApplication& application,
 
   const auto response = application.handleGameplayCommand(command, params, id);
   return agentResponseJson(response);
+}
+
+auto firstNonEmptyEnv(std::initializer_list<const char*> names) -> std::optional<std::string> {
+  for (const char* name : names) {
+    if (const char* value = std::getenv(name)) {
+      if (value[0] != '\0') {
+        return std::string(value);
+      }
+    }
+  }
+  return std::nullopt;
+}
+
+auto receiptUrlFromEnvironment() -> std::optional<std::string> {
+  if (auto url = firstNonEmptyEnv({"NEXUS_RECEIPT_URL", "FEL_SESSION_RECEIPT_URL"})) {
+    return url;
+  }
+
+  auto apiBase = firstNonEmptyEnv({"FEL_API_BASE_URL", "FEL_LOCAL_API"});
+  if (!apiBase.has_value()) {
+    return std::nullopt;
+  }
+  while (!apiBase->empty() && apiBase->back() == '/') {
+    apiBase->pop_back();
+  }
+  if (apiBase->empty()) {
+    return std::nullopt;
+  }
+  return *apiBase + "/api/games/session";
 }
 
 } // namespace
@@ -243,10 +276,20 @@ char* nexus_gameplay_session_flush_receipts(NexusGameplayHandle handle) {
     return nullptr;
   }
 
+  nlohmann::json params = {{"persist_to_disk", true}};
+  if (auto receiptUrl = receiptUrlFromEnvironment()) {
+    params["base_url"] = *receiptUrl;
+    params["http_enabled"] = true;
+    params["use_stub_http"] = false;
+  }
+  if (auto authToken = firstNonEmptyEnv({"FEL_BACKEND_AUTH_TOKEN", "FEL_SESSION_TOKEN"})) {
+    params["auth_token"] = *authToken;
+  }
+
   const nlohmann::json request = {
       {"command", "fel.arena.flush_receipts"},
       {"id", "ios_flush_receipts"},
-      {"params", {{"persist_to_disk", true}}},
+      {"params", std::move(params)},
   };
   return copyJsonString(handleCommandJson(session->application, request));
 }
