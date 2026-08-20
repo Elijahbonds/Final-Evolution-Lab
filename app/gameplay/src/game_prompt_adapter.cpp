@@ -211,10 +211,12 @@ auto wantsArenaGeneration(std::string_view lowered) -> bool {
 }
 
 auto isPlayableGameMode(std::string_view modeId) -> bool {
-  if (modeId.empty() || modeId == "market_browse") {
+  if (modeId.empty()) {
     return false;
   }
-  return ArenaModeRegistry::find(modeId).has_value();
+  const auto config = ArenaModeRegistry::find(modeId);
+  return config.has_value() &&
+         config->releaseState == nexus::gameplay::ArenaReleaseState::kProduction;
 }
 
 auto buildSpec(std::string_view prompt, std::string_view lowered) -> Result<GameGenerationSpec> {
@@ -381,6 +383,10 @@ auto normalizeGameModeId(std::string_view modeId) -> std::string {
     return "karate_h2h";
   }
   if (lowered == "market_browse" || lowered == "module_library" || lowered == "vault_shop") {
+    return "";
+  }
+  if (const auto config = nexus::gameplay::ArenaModeRegistry::find(lowered);
+      config.has_value() && config->releaseState != nexus::gameplay::ArenaReleaseState::kProduction) {
     return "";
   }
   return lowered;

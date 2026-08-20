@@ -40,7 +40,7 @@ Prerequisites
 A. Menu navigation (DoD #6)
   1. Launch app → tab shell visible (≤2 taps to Arena)
   2. Arena → Modes → Dunk Contest (P0) and Karate Endless (P1) cards visible
-  3. Tap a P2 mode → "Coming Soon" sheet (release config)
+  3. Tap a production P2 mode → GamePlayView loads with the correct NEXUS runtime label
 
 B. Dunk Contest touch loop (DoD #3)
   1. Tap Dunk Contest → GamePlayView loads (no crash)
@@ -81,6 +81,15 @@ cd "$ROOT"
 
 echo "==> Headless ctest gate"
 ./scripts/smoke_gameplay_session.sh --skip-build
+
+echo "==> Mode registry contract"
+python3 "${ROOT}/scripts/validate_mode_registry.py"
+
+echo "==> iOS mode registry payload contract"
+python3 "${ROOT}/scripts/validate_ios_mode_registry.py"
+
+echo "==> iOS runtime launch contract"
+python3 "${ROOT}/scripts/validate_ios_runtime_launches.py"
 
 if [[ "$SKIP_BUILD" -eq 1 ]]; then
   print_checklist

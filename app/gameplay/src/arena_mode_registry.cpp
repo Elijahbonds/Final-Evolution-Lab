@@ -7,7 +7,7 @@ namespace nexus::gameplay {
 
 namespace {
 
-constexpr std::array<ArenaModeConfig, 19> kModes{{
+constexpr std::array<ArenaModeConfig, 20> kModes{{
     {.id = "basketball_h2h",
      .displayName = "Head to Head",
      .venueToken = "Venice_Beach_Court",
@@ -220,6 +220,17 @@ constexpr std::array<ArenaModeConfig, 19> kModes{{
      .defaultMatchDurationSeconds = 0.0F,
      .scoringEnabled = false,
      .releaseState = ArenaReleaseState::kNonGameModule},
+    {.id = "movement_lab",
+     .displayName = "Movement Lab",
+     .venueToken = "Movement_Lab",
+     .vaultDisplayMode = "movement_lab",
+     .nexusMeshPath = "assets/nexus/imported/movement_lab_preview_placeholder.nexusmesh.json",
+     .legacyUeMapAlias = "/Game/FEL/Venues/MovementLab/MovementLab",
+     .inputScheme = "drag_tap",
+     .modeWeight = 0.0F,
+     .defaultMatchDurationSeconds = 0.0F,
+     .scoringEnabled = false,
+     .releaseState = ArenaReleaseState::kPreview},
 }};
 
 [[nodiscard]] auto resolveModeId(std::string_view modeId) -> std::string_view {

@@ -49,7 +49,7 @@ enum PremiumViewpointConfig {
             return .stadium
         case .golf, .volleyball, .skateboarding, .snowboarding:
             return .outdoor
-        case .gymnastics, .brainBrawl, .whoSceneIt, .marketBrowse:
+        case .gymnastics, .brainBrawl, .whoSceneIt, .marketBrowse, .movementLab:
             return .indoor
         }
     }
@@ -163,6 +163,11 @@ enum PremiumViewpointConfig {
             offsetX: 0.4, offsetY: 2.6, offsetZ: 5.2,
             lookAtY: 1.4, followSpeed: 4.0, targetSpeed: 6.0,
             fovNormal: 56, fovAction: 48
+        ),
+        .movementLab: ChaseCamera(
+            offsetX: 0.2, offsetY: 2.4, offsetZ: 5.0,
+            lookAtY: 1.2, followSpeed: 4.0, targetSpeed: 6.0,
+            fovNormal: 54, fovAction: 46
         ),
         .baseball: ChaseCamera(
             offsetX: -2.2, offsetY: 4.2, offsetZ: 7.5,
