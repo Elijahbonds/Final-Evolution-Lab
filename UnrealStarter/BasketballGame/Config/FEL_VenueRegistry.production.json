@@ -30,9 +30,27 @@
       }
     },
     {
+      "id": "basketball_dunk",
+      "analyticsMode": "dunk_contest",
+      "venueKey": "venice_beach_court_dunk",
+      "displayVenue": "Venice Beach Blue Court",
+      "renderMode": "3D_UE5",
+      "nexusRuntimeModeId": "basketball_dunk",
+      "courtColor": "venice_blue",
+      "lumaScanSource": "venice_beach",
+      "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
+      "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx",
+      "lumaAssets": {
+        "baseMesh": "SM_LumaScan_VeniceBeach_Mesh",
+        "albedoTexture": "T_LumaScan_VeniceBeach_Albedo",
+        "importPath": "Content/FEL/Venues/VeniceBeach/LumaScans/",
+        "courtSurfaceOverride": "T_VeniceBlue_ConcreteCourtSurface"
+      }
+    },
+    {
       "id": "basketball_dunk_3d",
       "analyticsMode": "dunk_contest",
-      "venueKey": "venice_beach_court",
+      "venueKey": "venice_beach_court_dunk",
       "displayVenue": "Venice Beach Blue Court",
       "renderMode": "3D_UE5",
       "nexusRuntimeModeId": "basketball_dunk",
@@ -65,7 +83,7 @@
     {
       "id": "basketball_3v3",
       "analyticsMode": "streetball_3v3",
-      "venueKey": "venice_beach_court",
+      "venueKey": "venice_beach_court_3v3",
       "displayVenue": "Venice Beach Court",
       "renderMode": "3D_UE5",
       "lumaScanSource": "venice_beach",
@@ -123,7 +141,7 @@
     {
       "id": "court_carnival",
       "analyticsMode": "court_carnival",
-      "venueKey": "venice_beach_court",
+      "venueKey": "venice_beach_court_party",
       "displayVenue": "Venice Beach Court",
       "optional": true,
       "lumaScanSource": "venice_beach",
@@ -137,6 +155,29 @@
       "analyticsPolicyName": "Venice Beach — Court + Luma shop backdrop",
       "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
       "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
+    },
+    {
+      "venueKey": "venice_beach_court_dunk",
+      "analyticsPolicyName": "Venice Beach — Blue dunk court + Luma shop backdrop",
+      "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
+      "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
+    },
+    {
+      "venueKey": "venice_beach_court_3v3",
+      "analyticsPolicyName": "Venice Beach — 3v3 court + Luma shop backdrop",
+      "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
+      "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
+    },
+    {
+      "venueKey": "venice_beach_court_party",
+      "analyticsPolicyName": "Venice Beach — Court Carnival party board",
+      "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
+      "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
+    },
+    {
+      "venueKey": "regulation_court_irl",
+      "analyticsPolicyName": "Regulation Court — IRL dunk capture",
+      "nexusEnvironmentAssetId": "irl_camera_capture_hud"
     },
     {
       "venueKey": "venice_beach_surf",

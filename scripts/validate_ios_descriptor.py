@@ -43,14 +43,29 @@ def validate_packaging_settings():
         mgr = json.loads(mode_mgr_path.read_text())
         registry = mgr.get("mode_manager", {}).get("mode_registry", {})
         maps_in_ini = re.findall(r'\+MapsToCook=\(FilePath="([^"]+)"\)', content)
+        play_map = {}
+        in_play_map = False
+        for line in content.splitlines():
+            stripped = line.strip()
+            if stripped == "[FELPlayMap]":
+                in_play_map = True
+                continue
+            if in_play_map and stripped.startswith("["):
+                break
+            if in_play_map and stripped and not stripped.startswith(";") and "=" in stripped:
+                mode_id, cooked_path = stripped.split("=", 1)
+                play_map[mode_id.strip()] = cooked_path.strip()
         for mode_id, info in registry.items():
+            if info.get("render_mode") == "IRL":
+                continue
             map_path = info.get("map", "")
-            if map_path and map_path not in maps_in_ini:
+            cooked_path = play_map.get(mode_id, map_path)
+            if cooked_path and cooked_path not in maps_in_ini:
                 # Check if venue folder is at least present
-                venue = map_path.split("/")[-1]
+                venue = cooked_path.split("/")[-1]
                 found = any(venue in m for m in maps_in_ini)
                 if not found and info.get("status") == "production":
-                    warn(f"Production mode '{mode_id}' map not in MapsToCook: {map_path}")
+                    warn(f"Production mode '{mode_id}' map not in MapsToCook: {cooked_path}")
 
     print("  ✓ Packaging settings validated")
 
@@ -73,11 +88,14 @@ def validate_fel_play_map():
                 k, v = line.strip().split("=", 1)
                 play_map_section[k.strip()] = v.strip()
 
-    # Cross-check with ue_mode_maps.json
+    # Cross-check with ue_mode_maps.json. A null map means a real-world / camera mode
+    # (for example basketball_dunk_irl), so it must not require a UE play-map entry.
     ue_maps_path = REPO_ROOT / "backend" / "ue_mode_maps.json"
     if ue_maps_path.exists():
         ue_maps = json.loads(ue_maps_path.read_text()).get("mode_to_unreal_map", {})
-        for mode_id in ue_maps:
+        for mode_id, unreal_map in ue_maps.items():
+            if unreal_map is None:
+                continue
             if mode_id not in play_map_section:
                 err(f"FELPlayMap missing mode: {mode_id}")
     print("  ✓ FELPlayMap cross-reference validated")
@@ -113,11 +131,18 @@ def validate_arena_settings():
     arena = json.loads(arena_path.read_text())
     modes = arena.get("modes", {})
 
+    ue_maps_path = REPO_ROOT / "backend" / "ue_mode_maps.json"
+    ue_maps = {}
+    if ue_maps_path.exists():
+        ue_maps = json.loads(ue_maps_path.read_text()).get("mode_to_unreal_map", {})
+
     mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
     if mgr_path.exists():
         mgr = json.loads(mgr_path.read_text())
         registry = mgr.get("mode_manager", {}).get("mode_registry", {})
         for mode_id, info in registry.items():
+            if info.get("render_mode") == "IRL" or ue_maps.get(mode_id) is None:
+                continue
             if mode_id not in modes:
                 if info.get("status") in ("production", "staging"):
                     warn(f"ArenaSettings missing config for {info['status']} mode: {mode_id}")

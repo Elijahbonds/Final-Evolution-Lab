@@ -72,6 +72,18 @@ def validate_maps_to_cook_coverage():
 
     import re
     maps_to_cook = set(re.findall(r'\+MapsToCook=\(FilePath="([^"]+)"\)', content))
+    play_map = {}
+    in_play_map = False
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped == "[FELPlayMap]":
+            in_play_map = True
+            continue
+        if in_play_map and stripped.startswith("["):
+            break
+        if in_play_map and stripped and not stripped.startswith(";") and "=" in stripped:
+            mode_id, cooked_path = stripped.split("=", 1)
+            play_map[mode_id.strip()] = cooked_path.strip()
 
     mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
     mgr = json.loads(mgr_path.read_text())
@@ -80,9 +92,12 @@ def validate_maps_to_cook_coverage():
     for mode_id, info in registry.items():
         if info.get("status") != "production":
             continue
+        if info.get("render_mode") == "IRL":
+            continue
         map_path = info.get("map", "")
-        if map_path and map_path not in maps_to_cook:
-            err(f"Production map not in MapsToCook: {mode_id} → {map_path}")
+        cooked_path = play_map.get(mode_id, map_path)
+        if cooked_path and cooked_path not in maps_to_cook:
+            err(f"Production map not in MapsToCook: {mode_id} → {cooked_path}")
 
     print("  ✓ MapsToCook coverage validated")
 
