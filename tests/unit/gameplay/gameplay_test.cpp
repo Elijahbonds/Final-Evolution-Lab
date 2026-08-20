@@ -31,6 +31,7 @@
 #include <array>
 #include <chrono>
 #include <cstdlib>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <fstream>
@@ -38,6 +39,10 @@
 #include <thread>
 #include <vector>
 
+#if defined(__unix__) || defined(__APPLE__)
+#include <netinet/in.h>
+#include <sys/socket.h>
+#endif
 #include <unistd.h>
 
 namespace {
@@ -63,6 +68,67 @@ void removeTreeBestEffort(const std::filesystem::path& root) {
     std::this_thread::sleep_for(std::chrono::milliseconds(10 * (attempt + 1)));
   }
 }
+
+#if defined(__unix__) || defined(__APPLE__)
+class SingleResponseHttpServer {
+public:
+  explicit SingleResponseHttpServer(int statusCode) {
+    const int serverSocket = ::socket(AF_INET, SOCK_STREAM, 0);
+    require(serverSocket >= 0, "create receipt test HTTP socket");
+
+    const int reuse = 1;
+    (void)::setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+
+    sockaddr_in address{};
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    address.sin_port = 0;
+    require(::bind(serverSocket, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == 0,
+            "bind receipt test HTTP socket");
+    require(::listen(serverSocket, 1) == 0, "listen receipt test HTTP socket");
+
+    socklen_t length = sizeof(address);
+    require(::getsockname(serverSocket, reinterpret_cast<sockaddr*>(&address), &length) == 0,
+            "read receipt test HTTP socket port");
+    m_port = ntohs(address.sin_port);
+
+    m_thread = std::thread([serverSocket, statusCode]() {
+      const int clientSocket = ::accept(serverSocket, nullptr, nullptr);
+      if (clientSocket >= 0) {
+        char requestBuffer[2048];
+        (void)::recv(clientSocket, requestBuffer, sizeof(requestBuffer), 0);
+        const std::string body = "{}";
+        const std::string response = "HTTP/1.1 " + std::to_string(statusCode) +
+                                     " NEXUS\r\nContent-Type: application/json\r\n"
+                                     "Content-Length: " +
+                                     std::to_string(body.size()) +
+                                     "\r\nConnection: close\r\n\r\n" + body;
+        (void)::send(clientSocket, response.data(), response.size(), 0);
+        (void)::close(clientSocket);
+      }
+      (void)::close(serverSocket);
+    });
+  }
+
+  ~SingleResponseHttpServer() {
+    if (m_thread.joinable()) {
+      m_thread.join();
+    }
+  }
+
+  [[nodiscard]] auto url() const -> std::string {
+    return "http://127.0.0.1:" + std::to_string(m_port) + "/api/games/session";
+  }
+
+private:
+  std::uint16_t m_port{0};
+  std::thread m_thread;
+};
+
+[[nodiscard]] auto curlAvailable() -> bool {
+  return std::system("command -v curl >/dev/null 2>&1") == 0;
+}
+#endif
 
 void fitness_data_snapshots_are_thread_safe() {
   nexus::gameplay::ThreadSafeFitnessData fitness;
@@ -770,6 +836,14 @@ void session_receipt_flush_keeps_queue_when_http_disabled() {
   const auto receipts =
       gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "flush_receipts");
   require(receipts.payload["receipts"].size() == 0, "receipt cleared after successful flush");
+
+  const auto configFlush = gameplay.handleGameplayCommand(
+      "fel.arena.flush_receipts",
+      {{"persist_to_disk", false}, {"http_enabled", false}, {"use_stub_http", false}},
+      "flush_config");
+  require(configFlush.status == "ok", "flush config command ok");
+  require(!configFlush.payload["http_enabled"].get<bool>(), "flush command applies http_enabled");
+  require(!configFlush.payload["use_stub_http"].get<bool>(), "flush command applies use_stub_http");
 }
 
 void session_receipt_disk_keyed_by_session_id() {
@@ -954,10 +1028,79 @@ void physics_intent_queue_is_consumed_on_step() {
   physics.shutdown();
 }
 
-void prq_stub_returns_sprint_defaults() {
+void prq_uses_sprint_defaults_until_fitness_arrives() {
   require(nexus::gameplay::PRQEngine::getScore() == 75.0F, "prq sprint default");
   require(nexus::gameplay::PRQEngine::getGrade() == nexus::gameplay::PRQGrade::kPrimed,
           "prq grade primed");
+
+  nexus::gameplay::FitnessSnapshot coldStart{};
+  require(nexus::gameplay::PRQEngine::scoreForSnapshot(coldStart) == 75.0F,
+          "cold-start snapshot uses sprint default");
+  require(nexus::gameplay::PRQEngine::neuralDriveForSnapshot(coldStart) == 60.0F,
+          "cold-start neural drive uses sprint default");
+}
+
+void prq_derives_readiness_from_fitness_snapshot() {
+  nexus::gameplay::ThreadSafeFitnessData fitness;
+  fitness.update({0.9F, 0.85F, 0.8F}, {0.95F, 0.9F, 1});
+
+  const auto snapshot = fitness.snapshot();
+  const float prq = nexus::gameplay::PRQEngine::scoreForSnapshot(snapshot);
+  const float neuralDrive = nexus::gameplay::PRQEngine::neuralDriveForSnapshot(snapshot);
+  require(prq > 89.0F, "high fitness produces elite PRQ");
+  require(neuralDrive > 90.0F, "high fitness produces neural burst drive");
+  require(nexus::gameplay::PRQEngine::gradeForScore(prq) ==
+              nexus::gameplay::PRQGrade::kElite,
+          "high fitness maps to elite PRQ grade");
+
+  fitness.update({0.05F, 0.1F, 0.05F}, {0.1F, 0.1F, -1});
+  const auto recovery = fitness.snapshot();
+  require(nexus::gameplay::PRQEngine::scoreForSnapshot(recovery) < 40.0F,
+          "low fitness produces recovering PRQ");
+  require(nexus::gameplay::PRQEngine::neuralDriveForSnapshot(recovery) < neuralDrive,
+          "low fitness lowers neural drive");
+}
+
+void mode_runtime_prq_state_tracks_live_fitness() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk"}, {"user_id", "prq_fitness"}},
+              "prq_session")
+              .status == "ok",
+          "prq mode session starts");
+
+  auto modeState = gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "prq_default");
+  require(modeState.payload["prq"].get<float>() == 75.0F, "default mode PRQ before fitness");
+  require(modeState.payload["prq_source"].get<std::string>() == "sprint_default",
+          "default PRQ source is explicit");
+
+  const auto fitness = gameplay.handleGameplayCommand(
+      "fel.fitness.update",
+      {{"frc_mobility", 0.9F},
+       {"frc_active_range", 0.85F},
+       {"frc_control", 0.8F},
+       {"iap_engagement", 0.95F},
+       {"iap_confidence", 0.9F},
+       {"breath_phase", 1}},
+      "prq_fitness_update");
+  require(fitness.status == "ok", "fitness update for PRQ ok");
+
+  modeState = gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "prq_live");
+  require(modeState.payload["prq"].get<float>() > 89.0F, "mode PRQ follows fitness snapshot");
+  require(modeState.payload["prq_grade"].get<std::string>() == "ELITE",
+          "mode PRQ grade follows fitness snapshot");
+  require(modeState.payload["prq_source"].get<std::string>() == "fitness_snapshot",
+          "mode PRQ source follows fitness");
+  require(modeState.payload["fitness_revision"].get<std::uint64_t>() == 1,
+          "mode state reports fitness revision");
+  require(modeState.payload["neural_drive"].get<float>() > 90.0F,
+          "mode state reports fitness neural drive");
+  require(modeState.payload["arcade_physics"]["neural_burst_active"].get<bool>(),
+          "fitness neural drive enables burst physics");
 }
 
 void arcade_physics_maps_prq_75() {
@@ -1929,6 +2072,86 @@ void session_receipt_http_stub_posts_localhost_contract() {
           "POST body includes mode_id");
 }
 
+void session_receipt_live_http_success_does_not_count_disk_queue() {
+#if defined(__unix__) || defined(__APPLE__)
+  if (!curlAvailable()) {
+    std::fprintf(stderr, "SKIP: curl unavailable for live receipt success test\n");
+    return;
+  }
+
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_live_success_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  SingleResponseHttpServer server(204);
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  client.enqueue({
+      {"mode_id", "basketball_dunk"},
+      {"score", 21},
+      {"telemetry", {{"session_id", "live_success_session"}}},
+  });
+
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "live success flush attempted");
+  require(flush.delivered == 1, "live success flush delivered");
+  require(flush.requeued == 0, "live success flush not requeued");
+  require(flush.queued_on_disk == 0, "HTTP-only success does not count disk queue");
+  require(client.pendingCount() == 0, "HTTP-only success clears pending receipt");
+  require(client.postedRequests().size() == 1, "live success POST recorded");
+  require(client.postedRequests().front().statusCode == 204, "live success status recorded");
+  require(!std::filesystem::exists(tempDir), "HTTP-only success does not create disk queue");
+#else
+  std::fprintf(stderr, "SKIP: live receipt success test requires POSIX sockets\n");
+#endif
+}
+
+void session_receipt_live_http_non_2xx_requeues_without_disk() {
+#if defined(__unix__) || defined(__APPLE__)
+  if (!curlAvailable()) {
+    std::fprintf(stderr, "SKIP: curl unavailable for live receipt retry test\n");
+    return;
+  }
+
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_live_retry_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  SingleResponseHttpServer server(503);
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  client.enqueue({
+      {"mode_id", "basketball_dunk"},
+      {"score", 8},
+      {"telemetry", {{"session_id", "live_retry_session"}}},
+  });
+
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "live non-2xx flush attempted");
+  require(flush.delivered == 0, "live non-2xx flush not delivered");
+  require(flush.requeued == 1, "live non-2xx flush requeued");
+  require(flush.queued_on_disk == 0, "HTTP-only retry does not count disk queue");
+  require(client.pendingCount() == 1, "live non-2xx keeps pending receipt");
+  require(client.postedRequests().size() == 1, "live non-2xx POST recorded");
+  require(client.postedRequests().front().statusCode == 503, "live non-2xx status recorded");
+  require(!std::filesystem::exists(tempDir), "HTTP-only retry does not create disk queue");
+#else
+  std::fprintf(stderr, "SKIP: live receipt retry test requires POSIX sockets\n");
+#endif
+}
+
 struct TextGenTempWorkspace {
   std::filesystem::path root;
   std::string manifestPath;
@@ -2747,6 +2970,8 @@ auto main() -> int {
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_live_http_success_does_not_count_disk_queue();
+  session_receipt_live_http_non_2xx_requeues_without_disk();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
@@ -2754,7 +2979,9 @@ auto main() -> int {
   physics_intent_queue_is_consumed_on_step();
   engine_tick_runs_physics_before_gameplay_update();
   gameplay_update_drains_agent_commands_before_throw_catch();
-  prq_stub_returns_sprint_defaults();
+  prq_uses_sprint_defaults_until_fitness_arrives();
+  prq_derives_readiness_from_fitness_snapshot();
+  mode_runtime_prq_state_tracks_live_fitness();
   arcade_physics_maps_prq_75();
   dunk_contest_charge_release_scores();
   karate_endless_wave_spawns();
