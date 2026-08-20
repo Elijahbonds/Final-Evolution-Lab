@@ -2,6 +2,8 @@
 // NEXUS runtime resolves venues via `venueToken` + `nexusMeshPath` under `assets/nexus/imported/`.
 // `legacyUeMapAlias` retains archived UE `/Game/FEL/Maps/*` strings for vault JSON compat only.
 #pragma once
+#include <cstddef>
+#include <cstdint>
 
 #include <nlohmann/json.hpp>
 #include <optional>

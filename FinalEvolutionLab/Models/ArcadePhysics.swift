@@ -340,7 +340,7 @@ nonisolated struct GamePhysicsConfig: Sendable {
                 floorShakeAmplitude: 0.012 + normalized * 0.022,
                 particleTrailDensity: 14 + normalized * 26
             )
-        case .marketBrowse:
+        case .marketBrowse, .movementLab:
             return GamePhysicsConfig(
                 jumpHeight: 0.0,
                 moveSpeed: 0.5,
