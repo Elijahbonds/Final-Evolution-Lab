@@ -198,10 +198,25 @@ def validate_swift_receipt_and_launch_wiring() -> None:
         err("preview receipt lane must not block explicit backend-token POSTs")
 
     gameplay_source = GAMEPLAY_VIEW.read_text()
-    if "nexusEngine.stop(playerScore: score, opponentScore: opponentScore)" in gameplay_source:
-        ok("GamePlayView teardown passes final Swift scores into NEXUS stop")
+    required_gameplay_snippets = [
+        "private var usesNexusScoreAuthority: Bool",
+        "nexusEngine.hud.playerScore",
+        "nexusEngine.hud.opponentScore",
+        "nexusEngine.hud.matchComplete",
+        "playerScore: score",
+        "opponentScore: opponentScore",
+        "skipScoreSync: usesNexusScoreAuthority",
+    ]
+    missing_gameplay_snippets = [
+        snippet for snippet in required_gameplay_snippets if snippet not in gameplay_source
+    ]
+    if not missing_gameplay_snippets:
+        ok("GamePlayView mirrors NEXUS HUD authority and preserves final score teardown")
     else:
-        err("GamePlayView teardown must stop NEXUS with final player/opponent scores")
+        err(
+            "GamePlayView NEXUS score-authority wiring missing: "
+            + ", ".join(missing_gameplay_snippets)
+        )
 
 
 def main() -> int:
