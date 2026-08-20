@@ -238,6 +238,7 @@ struct GamePlayView: View {
             VStack(spacing: 0) {
                 hudBar
                 gameplayHonestyStrip
+                outcomeSportHudStrip
                 Spacer()
                 controlPanel
             }
@@ -531,6 +532,44 @@ struct GamePlayView: View {
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 6)
+    }
+
+    private var outcomeSportHudSnapshot: NexusHUDSnapshot {
+        var snapshot = nexusEngine.hud
+        if snapshot.modeId.isEmpty {
+            snapshot.modeId = gameMode.id.nexusRuntimeModeId
+        }
+        if snapshot.outcomeSportModeId.isEmpty {
+            snapshot.outcomeSportModeId = snapshot.modeId
+        }
+        return snapshot
+    }
+
+    @ViewBuilder
+    private var outcomeSportHudStrip: some View {
+        if gameMode.id.isNexusOutcomeSportMode {
+            FELOutcomeSportHudStrip(
+                snapshot: outcomeSportHudSnapshot,
+                accent: effectiveHudAccent,
+                karateH2H: gameMode.id == .karate,
+                showPulseBonus: true,
+                lastPulsePoints: nexusEngine.lastSportPulsePoints
+            )
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .frame(maxWidth: .infinity)
+            .background {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Theme.cardBackground.opacity(0.72))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(effectiveHudAccent.opacity(0.18), lineWidth: 0.75)
+                    }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 6)
+            .accessibilityIdentifier("GameplayOutcomeSportHudStrip")
+        }
     }
 
     // MARK: - HUD Bar

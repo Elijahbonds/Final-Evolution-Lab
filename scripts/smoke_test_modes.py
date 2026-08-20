@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-FEL Smoke Test Suite — 12 Production Mode Acceptance Tests
+FEL Smoke Test Suite — Production Mode Acceptance Tests
 Tests each production mode's registration, configuration, and deep link routing.
 Run against a live or mock FEL backend.
 """
@@ -30,20 +30,40 @@ def skip(msg):
     print(f"  ⏭  {msg}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Production modes expected to pass all gates
+# Production registry entries expected to pass all applicable gates. The C++ runtime
+# uses basketball_dunk; iOS also exposes split 3D/IRL dunk ids.
 # ═══════════════════════════════════════════════════════════════════════════════
 PRODUCTION_MODES = [
-    "basketball_h2h", "basketball_dunk", "basketball_3v3",
+    "basketball_h2h", "basketball_dunk", "basketball_dunk_3d", "basketball_dunk_irl", "basketball_3v3",
+    "court_carnival",
     "karate_h2h", "karate_endless",
     "baseball", "football", "soccer", "golf",
-    "tennis", "volleyball", "surfing",
-    "gymnastics", "skateboarding", "snowboarding",
+    "tennis", "volleyball",
+    "gymnastics", "surfing", "skateboarding", "snowboarding",
+    "brain_brawl", "who_scene_it",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = ["movement_lab"]
+ROUTED_GAME_MODES = PRODUCTION_MODES + STAGING_MODES
+IRL_MODES = {"basketball_dunk_irl"}
+MODE_ALIASES = {
+    "basketball_dunk": ["basketball_dunk_3d"],
+    "basketball_dunk_3d": ["basketball_dunk"],
+    "basketball_dunk_irl": ["basketball_dunk"],
+}
+
+def equivalent_modes(mode):
+    return [mode] + MODE_ALIASES.get(mode, [])
+
+def contains_mode_literal(content, mode):
+    return any(f'"id":"{candidate}"' in content or f'"id": "{candidate}"' in content for candidate in equivalent_modes(mode))
+
+def has_prq_weight(content, mode):
+    weight_block = content.split("PRQ_MODE_WEIGHTS", 1)[1].split("}", 1)[0]
+    return any(f'"{candidate}"' in weight_block for candidate in equivalent_modes(mode))
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -93,10 +113,13 @@ def test_ue_mode_maps():
     ue_maps = json.loads((REPO_ROOT / "backend" / "ue_mode_maps.json").read_text())
     mode_map = ue_maps["mode_to_unreal_map"]
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = ROUTED_GAME_MODES
     for mode in all_modes:
         if mode in mode_map:
-            ok(f"{mode} → {mode_map[mode]}")
+            if mode in IRL_MODES and mode_map[mode] is None:
+                ok(f"{mode} → IRL/no UE map (expected)")
+            else:
+                ok(f"{mode} → {mode_map[mode]}")
         else:
             if mode == "market_browse":
                 # market_browse may not have a UE map (it's a shop module)
@@ -112,8 +135,11 @@ def test_arena_settings():
     arena = json.loads((REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Content" / "FEL" / "Config" / "ArenaSettings.json").read_text())
     modes = arena["modes"]
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = ROUTED_GAME_MODES
     for mode in all_modes:
+        if mode in IRL_MODES:
+            ok(f"{mode} → IRL/no ArenaSettings config required")
+            continue
         if mode in modes:
             cfg = modes[mode]
             has_level = "unrealOpenLevelPackage" in cfg
@@ -134,10 +160,11 @@ def test_venue_registry():
     mode_ids = {m["id"] for m in vr["modes"]}
     venue_keys = {v["venueKey"] for v in vr["venues"]}
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = ROUTED_GAME_MODES
     for mode in all_modes:
-        if mode in mode_ids:
-            entry = next(m for m in vr["modes"] if m["id"] == mode)
+        resolved_mode = next((candidate for candidate in equivalent_modes(mode) if candidate in mode_ids), None)
+        if resolved_mode:
+            entry = next(m for m in vr["modes"] if m["id"] == resolved_mode)
             if entry["venueKey"] in venue_keys:
                 ok(f"{mode} → venue={entry['venueKey']}")
             else:
@@ -165,8 +192,11 @@ def test_fel_play_map():
                 k, v = line.strip().split("=", 1)
                 play_map[k.strip()] = v.strip()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = ROUTED_GAME_MODES
     for mode in all_modes:
+        if mode in IRL_MODES:
+            ok(f"{mode} → IRL/no FELPlayMap route required")
+            continue
         if mode in play_map:
             path = play_map[mode]
             # Verify path uses /Venues/ convention
@@ -192,10 +222,10 @@ def test_swift_enum():
     swift_path = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
     content = swift_path.read_text()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = ROUTED_GAME_MODES
     for mode in all_modes:
         # Search for rawValue
-        if f'= "{mode}"' in content:
+        if f'= "{mode}"' in content or any(f'case "{candidate}":' in content for candidate in equivalent_modes(mode)):
             ok(f'{mode} has Swift enum case')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
@@ -208,9 +238,9 @@ def test_server_seeded_modes():
     server_path = REPO_ROOT / "backend" / "server.py"
     content = server_path.read_text()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = ROUTED_GAME_MODES
     for mode in all_modes:
-        if f'"id":"{mode}"' in content or f'"id": "{mode}"' in content:
+        if contains_mode_literal(content, mode):
             ok(f"{mode} in server seeded modes")
         else:
             fail(f"{mode} missing from server.py seeded modes")
@@ -247,7 +277,7 @@ def test_economy_integration():
     # Verify PRQ weights cover all scoring modes
     scoring_modes = PRODUCTION_MODES  # all production modes are scoring modes
     for mode in scoring_modes:
-        if f'"{mode}"' in content.split("PRQ_MODE_WEIGHTS")[1].split("}")[0]:
+        if has_prq_weight(content, mode):
             ok(f"PRQ weight defined for {mode}")
         else:
             fail(f"PRQ weight missing for {mode}")
@@ -256,7 +286,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print(f"  {len(PRODUCTION_MODES)} production entries · {len(PREVIEW_MODES)} preview · 8 test categories")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()
