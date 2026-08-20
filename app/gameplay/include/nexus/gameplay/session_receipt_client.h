@@ -6,6 +6,7 @@
 
 #include <nlohmann/json.hpp>
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
@@ -49,7 +50,7 @@ private:
   [[nodiscard]] static auto defaultQueueDirectory() -> std::string;
   [[nodiscard]] auto ensureQueueDirectory() const -> Result<void>;
   [[nodiscard]] auto persistReceipt(const nlohmann::json& receipt) -> std::optional<std::string>;
-  [[nodiscard]] auto deliverReceipt(const nlohmann::json& receipt) -> Result<int>;
+  [[nodiscard]] auto deliverReceipt(const nlohmann::json& receipt) -> Result<bool>;
 
   SessionReceiptClientConfig m_config;
   nexus::core::HttpClient m_http;
