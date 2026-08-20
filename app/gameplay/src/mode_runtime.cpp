@@ -20,7 +20,8 @@ namespace {
 } // namespace
 
 auto ModeRuntime::physicsParams() const -> ArcadePhysicsParams {
-  return ArcadePhysics::fromPRQ(PRQEngine::getScore(), PRQEngine::getNeuralDrive());
+  return ArcadePhysics::fromPRQ(PRQEngine::scoreForSnapshot(m_fitnessSnapshot),
+                                PRQEngine::neuralDriveForSnapshot(m_fitnessSnapshot));
 }
 
 auto ModeRuntime::parseCarnivalPad(std::string_view label) -> std::optional<CarnivalPad> {
@@ -114,6 +115,10 @@ void ModeRuntime::reset() {
   m_outcomeSport.reset();
   m_lastThrowPulseCount = 0;
   m_browseItemsViewed = 0;
+}
+
+void ModeRuntime::setFitnessSnapshot(FitnessSnapshot snapshot) {
+  m_fitnessSnapshot = snapshot;
 }
 
 void ModeRuntime::update(double deltaSeconds) {
@@ -440,11 +445,16 @@ auto ModeRuntime::handleCommand(std::string_view command, const nlohmann::json& 
 }
 
 auto ModeRuntime::stateJson() const -> nlohmann::json {
+  const float prqScore = PRQEngine::scoreForSnapshot(m_fitnessSnapshot);
+  const float neuralDrive = PRQEngine::neuralDriveForSnapshot(m_fitnessSnapshot);
   nlohmann::json payload{
       {"mode_id", m_modeId},
       {"kind", static_cast<int>(m_kind)},
-      {"prq", PRQEngine::getScore()},
-      {"prq_grade", PRQEngine::gradeLabel(PRQEngine::getGrade())},
+      {"prq", prqScore},
+      {"prq_grade", PRQEngine::gradeLabel(PRQEngine::gradeForScore(prqScore))},
+      {"prq_source", m_fitnessSnapshot.revision == 0 ? "sprint_default" : "fitness_snapshot"},
+      {"fitness_revision", m_fitnessSnapshot.revision},
+      {"neural_drive", neuralDrive},
   };
 
   const ArcadePhysicsParams physics = physicsParams();
@@ -452,6 +462,8 @@ auto ModeRuntime::stateJson() const -> nlohmann::json {
       {"hang_time_multiplier", physics.hangTimeMultiplier},
       {"explosive_first_step", physics.explosiveFirstStep},
       {"critical_hit_chance", physics.criticalHitChance},
+      {"neural_burst_active", physics.neuralBurstActive},
+      {"neural_burst_multiplier", physics.neuralBurstMultiplier},
   };
 
   if (m_kind == ActiveModeKind::kDunkContest) {

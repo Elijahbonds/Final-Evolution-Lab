@@ -133,15 +133,13 @@ void GameplayManager::clearPendingReceipts() {
 
 auto GameplayManager::flushPendingReceipts() -> SessionReceiptDispatchResult {
   const auto result = m_receiptClient.flush();
-  if (result.delivered > 0 && result.requeued == 0) {
-    m_pendingReceipts.clear();
-    m_receiptClient.clearPending();
-  }
+  syncPendingReceiptsFromClient();
   return result;
 }
 
 void GameplayManager::tickReceiptClient(double deltaSeconds) {
   m_receiptClient.tick(deltaSeconds);
+  syncPendingReceiptsFromClient();
 }
 
 void GameplayManager::setReceiptClientConfig(SessionReceiptClientConfig config) {
@@ -149,14 +147,16 @@ void GameplayManager::setReceiptClientConfig(SessionReceiptClientConfig config) 
 }
 
 auto GameplayManager::receiptClientConfig() const -> SessionReceiptClientConfig {
-  SessionReceiptClientConfig config;
-  config.queueDirectory = m_receiptClient.queueDirectory();
-  config.persistToDisk = true;
-  return config;
+  return m_receiptClient.config();
 }
 
 auto GameplayManager::receiptQueueDirectory() const -> std::string {
   return m_receiptClient.queueDirectory();
+}
+
+void GameplayManager::syncPendingReceiptsFromClient() {
+  const auto pending = m_receiptClient.pendingReceipts();
+  m_pendingReceipts.assign(pending.begin(), pending.end());
 }
 
 auto GameplayManager::evaluateBasketballOutcome(float playerScore, float opponentScore)

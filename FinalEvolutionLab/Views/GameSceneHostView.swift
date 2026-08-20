@@ -229,7 +229,7 @@ struct GameSceneHostView: UIViewRepresentable {
             switch gameMode {
             case .basketballHeadToHead, .venicePickup:
                 return MovementBounds(minX: -3.8, maxX: 3.8, minZ: -2.5, maxZ: 2.5, speed: 0.12)
-            case .marketBrowse:
+            case .marketBrowse, .movementLab:
                 return MovementBounds(minX: -2.6, maxX: 2.6, minZ: -2.8, maxZ: 2.4, speed: 0.08)
             case .basketballDunkContest3D, .basketballDunkContestIRL:
                 return MovementBounds(minX: -5.0, maxX: 4.0, minZ: -3.5, maxZ: 3.5, speed: 0.14)
