@@ -587,7 +587,7 @@ final class NexusGameplayEngine {
             return
         }
 
-        NexusGameplayBridge.syncReadiness(session, readiness: Float(readiness))
+        syncReadiness(readiness)
 
         let startPayload: [String: Any] = [
             "command": "fel.arena.start_session",
@@ -655,6 +655,13 @@ final class NexusGameplayEngine {
             ],
         ]
         _ = sendCommand(payload)
+    }
+
+    /// Refreshes the active C++ fitness snapshot when HealthKit/readiness changes during play.
+    func syncReadiness(_ readiness: Double) {
+        guard session != nil, physicsReady else { return }
+        NexusGameplayBridge.syncReadiness(session, readiness: Float(readiness))
+        refreshHUDPoll()
     }
 
     @discardableResult

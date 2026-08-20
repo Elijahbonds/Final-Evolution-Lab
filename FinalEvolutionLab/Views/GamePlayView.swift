@@ -490,6 +490,12 @@ struct GamePlayView: View {
         .onChange(of: nexusEngine.hud) { _, _ in
             applyNexusHudAuthority()
         }
+        .onChange(of: viewModel.profile.metrics.readinessScore) { _, newReadiness in
+            syncNexusReadinessIfNeeded(newReadiness)
+        }
+        .onChange(of: viewModel.healthKit.neuralReadinessScore) { _, newReadiness in
+            syncNexusReadinessIfNeeded(newReadiness)
+        }
         .onChange(of: score) { _, _ in
             syncNexusScoresIfNeeded()
         }
@@ -3603,6 +3609,11 @@ struct GamePlayView: View {
     private func syncNexusScoresIfNeeded() {
         guard nexusEngine.isLinked, !usesNexusScoreAuthority else { return }
         nexusEngine.syncScores(player: score, opponent: opponentScore)
+    }
+
+    private func syncNexusReadinessIfNeeded(_ readiness: Double) {
+        guard gameMode.isNexusSprintPlayable, nexusEngine.isLinked else { return }
+        nexusEngine.syncReadiness(readiness)
     }
 
     private func stopNexusSessionForCurrentScores() {

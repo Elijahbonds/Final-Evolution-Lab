@@ -133,6 +133,41 @@ def main() -> int:
             "lastCommandError = \"NEXUS physics world failed to initialize\"",
             "player-visible physics init failure",
         ),
+        require_contains(
+            source,
+            "FEL_SESSION_RECEIPT_URL",
+            "iOS bridge receipt URL handoff",
+        ),
+        require_contains(
+            source,
+            "FEL_BACKEND_AUTH_TOKEN",
+            "iOS bridge backend auth handoff",
+        ),
+        require_contains(
+            source,
+            "\"use_stub_http\"",
+            "iOS bridge live receipt stub override",
+        ),
+        require_contains(
+            source,
+            "\"http_enabled\"",
+            "iOS bridge live receipt HTTP enable",
+        ),
+        require_contains(
+            engine_source,
+            "func syncReadiness(_ readiness: Double)",
+            "Swift runtime readiness resync method",
+        ),
+        require_contains(
+            view_source,
+            ".onChange(of: viewModel.healthKit.neuralReadinessScore)",
+            "HealthKit readiness-to-NEXUS resync",
+        ),
+        require_contains(
+            view_source,
+            "syncNexusReadinessIfNeeded(newReadiness)",
+            "profile readiness-to-NEXUS resync",
+        ),
     ]
     if not all(checks):
         return 1

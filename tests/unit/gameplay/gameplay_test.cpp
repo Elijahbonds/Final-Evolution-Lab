@@ -2043,6 +2043,71 @@ void session_receipt_live_http_success_does_not_count_disk_queue() {
 #endif
 }
 
+void session_receipt_env_url_defaults_to_live_http_transport() {
+#if defined(__unix__) || defined(__APPLE__)
+  if (!curlAvailable()) {
+    std::fprintf(stderr, "SKIP: curl unavailable for env receipt URL test\n");
+    return;
+  }
+
+  const char* previousUrl = std::getenv("NEXUS_RECEIPT_URL");
+  const char* previousStub = std::getenv("NEXUS_RECEIPT_USE_STUB");
+  const char* previousToken = std::getenv("NEXUS_RECEIPT_AUTH_TOKEN");
+  const std::string previousUrlValue = previousUrl == nullptr ? "" : previousUrl;
+  const std::string previousStubValue = previousStub == nullptr ? "" : previousStub;
+  const std::string previousTokenValue = previousToken == nullptr ? "" : previousToken;
+
+  SingleResponseHttpServer server(204);
+  setenv("NEXUS_RECEIPT_URL", server.url().c_str(), 1);
+  unsetenv("NEXUS_RECEIPT_USE_STUB");
+  setenv("NEXUS_RECEIPT_AUTH_TOKEN", "test_receipt_token", 1);
+
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_env_live_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+  });
+
+  client.enqueue({
+      {"mode_id", "basketball_dunk"},
+      {"score", 42},
+      {"telemetry", {{"session_id", "env_live_session"}}},
+  });
+  const auto flush = client.flush();
+
+  require(!client.config().useStubHttpTransport,
+          "explicit NEXUS_RECEIPT_URL disables receipt stub transport");
+  require(client.config().authToken == "test_receipt_token",
+          "receipt client picks up env auth token");
+  require(flush.delivered == 1, "env URL live receipt delivered");
+  require(client.postedRequests().size() == 1, "env URL live POST recorded");
+  require(client.postedRequests().front().url == server.url(), "env URL live POST target used");
+  require(client.postedRequests().front().statusCode == 204, "env URL live status recorded");
+
+  if (previousUrl == nullptr) {
+    unsetenv("NEXUS_RECEIPT_URL");
+  } else {
+    setenv("NEXUS_RECEIPT_URL", previousUrlValue.c_str(), 1);
+  }
+  if (previousStub == nullptr) {
+    unsetenv("NEXUS_RECEIPT_USE_STUB");
+  } else {
+    setenv("NEXUS_RECEIPT_USE_STUB", previousStubValue.c_str(), 1);
+  }
+  if (previousToken == nullptr) {
+    unsetenv("NEXUS_RECEIPT_AUTH_TOKEN");
+  } else {
+    setenv("NEXUS_RECEIPT_AUTH_TOKEN", previousTokenValue.c_str(), 1);
+  }
+#else
+  std::fprintf(stderr, "SKIP: env receipt URL test requires POSIX sockets\n");
+#endif
+}
+
 void session_receipt_live_http_non_2xx_requeues_without_disk() {
 #if defined(__unix__) || defined(__APPLE__)
   if (!curlAvailable()) {
@@ -2902,6 +2967,7 @@ auto main() -> int {
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
   session_receipt_live_http_success_does_not_count_disk_queue();
+  session_receipt_env_url_defaults_to_live_http_transport();
   session_receipt_live_http_non_2xx_requeues_without_disk();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
