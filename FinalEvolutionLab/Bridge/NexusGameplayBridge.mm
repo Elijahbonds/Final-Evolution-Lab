@@ -10,6 +10,7 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <cctype>
 #include <cstdlib>
 #include <memory>
 #include <string>
@@ -32,10 +33,11 @@
 
    4. flush:  nexus_gameplay_session_flush_receipts(handle)
               — persists receipts to ~/.fel/pending_receipts/*.json for offline queue
+              — live-posts from C++ only when FEL/NEXUS receipt URL + auth env are present
 
- Swift SessionService should read that directory and POST each file to
+ Swift SessionReceiptUploadService should read that directory and POST each file to
  /api/games/session when connectivity is available (Bearer Firebase JWT).
- The C++ layer does not perform HTTP in v1; it only logs + writes queue files.
+ The C++ layer otherwise stays offline-safe and only logs + writes queue files.
 
  Example Swift stop() sequence:
    let result = NexusGameplayBridge.endArena(session, playerScore: score, opponentScore: 0)
@@ -98,10 +100,57 @@ auto handleCommandJson(nexus::gameplay::GameplayApplication& application,
   return agentResponseJson(response);
 }
 
+auto nonEmptyEnv(const char* key) -> std::string {
+  if (const char* value = std::getenv(key)) {
+    std::string trimmed(value);
+    trimmed.erase(trimmed.begin(),
+                  std::find_if(trimmed.begin(), trimmed.end(), [](unsigned char ch) {
+                    return !std::isspace(ch);
+                  }));
+    trimmed.erase(std::find_if(trimmed.rbegin(), trimmed.rend(), [](unsigned char ch) {
+                    return !std::isspace(ch);
+                  }).base(),
+                  trimmed.end());
+    return trimmed;
+  }
+  return {};
+}
+
+auto configuredReceiptUrl() -> std::string {
+  if (auto value = nonEmptyEnv("FEL_SESSION_RECEIPT_URL"); !value.empty()) {
+    return value;
+  }
+  if (auto value = nonEmptyEnv("NEXUS_RECEIPT_URL"); !value.empty()) {
+    return value;
+  }
+  return {};
+}
+
+auto configuredReceiptAuthToken() -> std::string {
+  if (auto value = nonEmptyEnv("FEL_BACKEND_AUTH_TOKEN"); !value.empty()) {
+    return value;
+  }
+  if (auto value = nonEmptyEnv("FEL_SESSION_TOKEN"); !value.empty()) {
+    return value;
+  }
+  if (auto value = nonEmptyEnv("NEXUS_RECEIPT_AUTH_TOKEN"); !value.empty()) {
+    return value;
+  }
+  return {};
+}
+
 } // namespace
 
 bool nexus_gameplay_bridge_is_linked(void) {
-  return true;
+  static const bool linked = [] {
+    try {
+      auto probe = std::make_unique<NexusGameplaySession>();
+      return probe != nullptr && probe->physicsReady;
+    } catch (...) {
+      return false;
+    }
+  }();
+  return linked;
 }
 
 NexusGameplayHandle nexus_gameplay_session_create(void) {
@@ -116,6 +165,11 @@ void nexus_gameplay_session_destroy(NexusGameplayHandle handle) {
   delete static_cast<NexusGameplaySession*>(handle);
 }
 
+bool nexus_gameplay_session_physics_ready(NexusGameplayHandle handle) {
+  auto* session = static_cast<NexusGameplaySession*>(handle);
+  return session != nullptr && session->physicsReady;
+}
+
 void nexus_gameplay_session_tick(NexusGameplayHandle handle, double deltaSeconds) {
   auto* session = static_cast<NexusGameplaySession*>(handle);
   if (session == nullptr || !session->physicsReady) {
@@ -125,8 +179,8 @@ void nexus_gameplay_session_tick(NexusGameplayHandle handle, double deltaSeconds
   auto& perf = nexus::core::PerfMonitor::instance();
   perf.beginFrame();
   
-  session->application.update(deltaSeconds, session->physicsWorld, {});
   session->physicsWorld.step(deltaSeconds);
+  session->application.update(deltaSeconds, session->physicsWorld, {});
   
   perf.endFrame();
 }
@@ -243,10 +297,24 @@ char* nexus_gameplay_session_flush_receipts(NexusGameplayHandle handle) {
     return nullptr;
   }
 
+  nlohmann::json params = {{"persist_to_disk", true}};
+  const auto receiptUrl = configuredReceiptUrl();
+  const auto authToken = configuredReceiptAuthToken();
+  if (!receiptUrl.empty()) {
+    params["base_url"] = receiptUrl;
+  }
+  if (!authToken.empty()) {
+    params["auth_token"] = authToken;
+  }
+  if (!receiptUrl.empty() && !authToken.empty()) {
+    params["http_enabled"] = true;
+    params["use_stub_http"] = false;
+  }
+
   const nlohmann::json request = {
       {"command", "fel.arena.flush_receipts"},
       {"id", "ios_flush_receipts"},
-      {"params", {{"persist_to_disk", true}}},
+      {"params", std::move(params)},
   };
   return copyJsonString(handleCommandJson(session->application, request));
 }

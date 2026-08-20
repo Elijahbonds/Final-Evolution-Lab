@@ -13,10 +13,12 @@ export const FEL_ARENA_MODES = [
   ["volleyball", "Volleyball · Sand Court", "Court", "SandCourt", "2v2", "3 min"],
   ["gymnastics", "Gymnastics · Floor", "Performance", "TrainingFloor", "Solo", "4 min"],
   ["brain_brawl", "Academy · Brain Brawl", "Academy", "NeuroArena", "Solo", "2 min"],
+  ["who_scene_it", "Who Scene It", "Academy", "NeuroArena", "2-8", "15 min"],
+  ["court_carnival", "Court Carnival · Arcade", "Party", "VeniceBeach", "2-4", "30 min"],
   ["surfing", "Surf · Line", "Board", "VeniceBeach", "Solo", "3 min"],
   ["skateboarding", "Skate · Dojo", "Board", "Dojo", "Solo", "3 min"],
   ["snowboarding", "Snow · Line", "Board", "TrainingFloor", "Solo", "3 min"],
-  ["market_browse", "Sovereign Shop", "Academy", "Luma_Venice_Shop", "Browse", "Open"],
+  ["market_browse", "Sovereign Shop", "Shop", "Luma_Venice_Shop", "Browse", "Open"],
   ["trivia_arena", "Trivia Arena", "Academy", "NeuroArena", "Solo", "2 min"],
 ].map(([id, displayName, category, venue, playerCount, duration]) => ({
   id,
@@ -27,7 +29,7 @@ export const FEL_ARENA_MODES = [
   player_count: playerCount,
   duration,
   difficulty: category === "Academy" ? "Cognitive" : "Adaptive",
-  game_type: id === "brain_brawl" || id === "trivia_arena" ? "quiz" : "reflex",
+  game_type: id === "brain_brawl" || id === "who_scene_it" || id === "trivia_arena" ? "quiz" : id === "court_carnival" ? "strategy" : "reflex",
   playable: id !== "market_browse",
   image_url:
     category === "Basketball"

@@ -9,6 +9,7 @@
 #include <fstream>
 #include <optional>
 #include <sstream>
+#include <string>
 
 namespace nexus::gameplay {
 
@@ -45,6 +46,10 @@ namespace {
   return "receipt_" + std::to_string(++counter);
 }
 
+[[nodiscard]] auto defaultQueueDirectoryPath() -> std::string {
+  return (std::filesystem::path(homeDirectory()) / ".fel" / "pending_receipts").string();
+}
+
 [[nodiscard]] auto resolvePostUrl(const SessionReceiptClientConfig& config) -> std::string {
   if (const char* envUrl = std::getenv("NEXUS_RECEIPT_URL")) {
     if (envUrl[0] != '\0') {
@@ -57,29 +62,72 @@ namespace {
   return "http://127.0.0.1:8000/api/games/session";
 }
 
+[[nodiscard]] auto envFlagEnabled(const char* value) -> std::optional<bool> {
+  if (value == nullptr || value[0] == '\0') {
+    return std::nullopt;
+  }
+
+  std::string normalized(value);
+  for (char& ch : normalized) {
+    ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+  }
+  if (normalized == "1" || normalized == "true" || normalized == "yes" || normalized == "on") {
+    return true;
+  }
+  if (normalized == "0" || normalized == "false" || normalized == "no" || normalized == "off") {
+    return false;
+  }
+  return std::nullopt;
+}
+
+[[nodiscard]] auto explicitReceiptUrlConfigured() -> bool {
+  if (const char* envUrl = std::getenv("NEXUS_RECEIPT_URL")) {
+    return envUrl[0] != '\0';
+  }
+  return false;
+}
+
+[[nodiscard]] auto normalizeConfig(SessionReceiptClientConfig config) -> SessionReceiptClientConfig {
+  if (config.queueDirectory.empty()) {
+    config.queueDirectory = defaultQueueDirectoryPath();
+  }
+
+  if (config.authToken.empty()) {
+    if (const char* token = std::getenv("NEXUS_RECEIPT_AUTH_TOKEN")) {
+      config.authToken = token;
+    }
+  }
+
+  if (const auto httpEnabled = envFlagEnabled(std::getenv("NEXUS_RECEIPT_HTTP_ENABLED"))) {
+    config.httpEnabled = *httpEnabled;
+  }
+
+  if (const auto stubOverride = envFlagEnabled(std::getenv("NEXUS_RECEIPT_USE_STUB"))) {
+    config.useStubHttpTransport = *stubOverride;
+  } else if (explicitReceiptUrlConfigured()) {
+    config.useStubHttpTransport = false;
+  }
+
+  return config;
+}
+
 } // namespace
 
 auto SessionReceiptClient::defaultQueueDirectory() -> std::string {
-  return (std::filesystem::path(homeDirectory()) / ".fel" / "pending_receipts").string();
+  return defaultQueueDirectoryPath();
 }
 
 SessionReceiptClient::SessionReceiptClient(SessionReceiptClientConfig config)
-    : m_config(std::move(config)),
+    : m_config(normalizeConfig(std::move(config))),
       m_http(nexus::core::HttpClientConfig{
           .url = resolvePostUrl(m_config),
           .authToken = m_config.authToken,
           .useStubTransport = m_config.useStubHttpTransport,
       }) {
-  if (m_config.queueDirectory.empty()) {
-    m_config.queueDirectory = defaultQueueDirectory();
-  }
 }
 
 void SessionReceiptClient::setConfig(SessionReceiptClientConfig config) {
-  if (config.queueDirectory.empty()) {
-    config.queueDirectory = defaultQueueDirectory();
-  }
-  m_config = std::move(config);
+  m_config = normalizeConfig(std::move(config));
   m_http.setUrl(resolvePostUrl(m_config));
   m_http.setAuthToken(m_config.authToken);
   m_http.setStubTransportEnabled(m_config.useStubHttpTransport);
@@ -109,7 +157,9 @@ auto SessionReceiptClient::flush() -> SessionReceiptDispatchResult {
     const auto delivery = deliverReceipt(receipt);
     if (delivery.isOk()) {
       ++result.delivered;
-      ++result.queued_on_disk;
+      if (m_config.persistToDisk) {
+        ++result.queued_on_disk;
+      }
       continue;
     }
 
@@ -154,6 +204,10 @@ auto SessionReceiptClient::pendingReceipts() const -> std::span<const nlohmann::
 
 auto SessionReceiptClient::postedRequests() const -> std::span<const nexus::core::HttpPostRecord> {
   return m_http.postedRequests();
+}
+
+auto SessionReceiptClient::config() const -> const SessionReceiptClientConfig& {
+  return m_config;
 }
 
 auto SessionReceiptClient::queueDirectory() const -> const std::string& {
@@ -212,9 +266,16 @@ auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Resu
     if (postResult.isErr()) {
       return postResult;
     }
+    const int statusCode = postResult.value();
+    if (statusCode < 200 || statusCode >= 300) {
+      NEXUS_LOG_WARN(nexus::LogChannel::kAI,
+                     "Session receipt POST rejected mode=" + modeId +
+                         " status=" + std::to_string(statusCode));
+      return Result<int>::err("session POST returned HTTP " + std::to_string(statusCode));
+    }
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                    "Session receipt POST mode=" + modeId + " score=" + std::to_string(score) +
-                       " status=" + std::to_string(postResult.value()));
+                       " status=" + std::to_string(statusCode));
   } else {
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                    "Session receipt flush (HTTP disabled) mode=" + modeId +

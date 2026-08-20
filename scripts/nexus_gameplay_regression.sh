@@ -23,13 +23,29 @@ done
 mkdir -p "${ARTIFACT_DIR}"
 cd "${ROOT}"
 
+echo "==> iOS bridge contract"
+python3 "${ROOT}/scripts/validate_ios_bridge_contract.py"
+
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
   echo "==> Configure + build headless gameplay tests"
+  if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
+    export CC="${CC:-gcc}"
+    export CXX="g++"
+  fi
+  CMAKE_COMPILER_ARGS=()
+  if [[ -n "${CC:-}" ]]; then
+    CMAKE_COMPILER_ARGS+=("-DCMAKE_C_COMPILER=${CC}")
+  fi
+  if [[ -n "${CXX:-}" ]]; then
+    CMAKE_COMPILER_ARGS+=("-DCMAKE_CXX_COMPILER=${CXX}")
+  fi
   cmake -S . -B "${HEADLESS_DIR}" \
+    "${CMAKE_COMPILER_ARGS[@]}" \
     -DNEXUS_ENABLE_RENDERER=OFF \
     -DNEXUS_BUILD_RUNTIME=OFF \
     -DNEXUS_BUILD_TESTS=ON
-  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)" --target nexus_gameplay_test
+  # Regression runs must not reuse stale objects after engine/gameplay ABI changes.
+  cmake --build "${HEADLESS_DIR}" --clean-first -j"${NEXUS_CLEAN_BUILD_JOBS:-1}"
 fi
 
 GAMEPLAY_TEST="${HEADLESS_DIR}/nexus_gameplay_test"
