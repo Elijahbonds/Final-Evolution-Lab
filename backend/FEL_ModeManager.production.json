@@ -29,7 +29,7 @@
         "venue_id": null,
         "healthkit_tracked": true,
         "prq_weight": 1.5,
-        "note": "Reconciled from claude branch basketball_irl — no UE map"
+        "note": "Reconciled from legacy IRL dunk branch — no UE map"
       },
       "basketball_3v3": {
         "status": "production",

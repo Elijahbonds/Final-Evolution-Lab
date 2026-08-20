@@ -5,7 +5,7 @@
     { "modeId": "basketball_h2h",      "scene": "basketball_h2h.nexus.json",      "displayVenue": "Overdrive Court",       "spawnPoint": "center_court",      "ambientSFX": "crowd_medium" },
     { "modeId": "basketball_dunk",     "scene": "basketball_dunk.nexus.json",     "displayVenue": "Venice Beach Court",    "spawnPoint": "left_wing",         "ambientSFX": "crowd_hype" },
     { "modeId": "basketball_3v3",      "scene": "basketball_3v3.nexus.json",      "displayVenue": "Streetball Arena",      "spawnPoint": "offense_start",     "ambientSFX": "crowd_medium" },
-    { "modeId": "basketball_irl",      "scene": "basketball_irl.nexus.json",      "displayVenue": "Your Court (IRL)",      "spawnPoint": "irl_origin",        "ambientSFX": "ambient_gym" },
+    { "modeId": "basketball_dunk_irl", "scene": "basketball_dunk_irl.nexus.json", "displayVenue": "Your Court (IRL)",      "spawnPoint": "irl_origin",        "ambientSFX": "ambient_gym" },
     { "modeId": "karate_h2h",          "scene": "karate_h2h.nexus.json",          "displayVenue": "Sovereign Dojo",        "spawnPoint": "dojo_center",       "ambientSFX": "dojo_ambient" },
     { "modeId": "karate_endless",      "scene": "karate_endless.nexus.json",      "displayVenue": "Shadow Gauntlet",       "spawnPoint": "gauntlet_start",    "ambientSFX": "dojo_drums" },
     { "modeId": "baseball",            "scene": "baseball.nexus.json",            "displayVenue": "Pro Diamond",           "spawnPoint": "home_plate",        "ambientSFX": "stadium_cheer" },

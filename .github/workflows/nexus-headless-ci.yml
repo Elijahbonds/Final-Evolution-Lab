@@ -38,5 +38,7 @@ jobs:
       - name: Validate mode and iOS descriptors
         run: |
           python3 scripts/smoke_test_modes.py
+          python3 scripts/validate_ios_bridge_contract.py
+          python3 scripts/validate_swift_cpp_mode_registry.py
           python3 scripts/validate_ios_descriptor.py
           python3 scripts/validate_cooked_payload.py
