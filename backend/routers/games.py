@@ -33,7 +33,9 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 
 # ── PRQ Mode Weights & Economy Constants ───────────────────────────────────
 PRQ_MODE_WEIGHTS = {
-    "basketball_h2h": 1.2, "basketball_dunk": 1.0, "basketball_3v3": 1.3,
+    "basketball_h2h": 1.2, "basketball_dunk": 1.0,
+    "basketball_dunk_3d": 1.0, "basketball_dunk_irl": 1.5,
+    "basketball_3v3": 1.3,
     "karate_h2h": 1.4, "karate_endless": 1.4,
     "baseball": 1.0, "football": 1.5, "soccer": 1.1,
     "golf": 0.9, "tennis": 1.1, "volleyball": 1.2,
@@ -44,6 +46,10 @@ PRQ_MODE_WEIGHTS = {
 SHARD_WIN, SHARD_DRAW, SHARD_LOSS = 50, 25, 15
 SHARD_COMBO_MULTIPLIER, SHARD_CRITICAL_BONUS = 5, 10
 XP_CAP_PER_SESSION = 500
+
+
+async def _sovereign_broadcast(message: Dict[str, Any], *, encrypt: bool = False) -> None:
+    await sovereign_bridge("broadcast", {"message": message, "encrypt": encrypt})
 
 
 def _compute_prq_delta(mode_id: str, score: int, duration: int, completed: bool) -> float:
@@ -603,7 +609,7 @@ async def create_party_session(data: Dict[str, Any], user: User = Depends(get_cu
         "status": "active", "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.party_sessions.insert_one(session)
-    await sovereign_bridge.broadcast({"type": "party_session_start", "session_id": session["id"], "mode": "court_carnival"}, encrypt=True)
+    await _sovereign_broadcast({"type": "party_session_start", "session_id": session["id"], "mode": "court_carnival"}, encrypt=True)
     return {k: v for k, v in session.items() if k != "_id"}
 
 
@@ -813,32 +819,38 @@ async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_curr
     mode_config = registry.get(mode_id)
     if not mode_config:
         raise HTTPException(status_code=404, detail=f"Mode {mode_id} not found in production registry")
+    if mode_config.get("status") in ("non_game", "non-game-module") or mode_config.get("render_mode") == "IRL":
+        raise HTTPException(status_code=400, detail=f"Mode {mode_id} is not UE-launchable")
 
-    venue_key = mode_config["map"].split("/")[-1]
+    map_path = mode_config.get("map")
+    if not map_path:
+        raise HTTPException(status_code=400, detail=f"Mode {mode_id} has no UE map")
+
+    venue_key = map_path.split("/")[-1]
 
     session_id = f"sess_{uuid.uuid4().hex[:12]}"
     session = {
         "id": session_id, "user_id": user.user_id, "mode_id": mode_id,
-        "venue": venue_key, "map_path": mode_config["map"],
-        "gamemode_class": mode_config["gamemode_class"],
-        "binary": mode_config["binary"],
+        "venue": venue_key, "map_path": map_path,
+        "gamemode_class": mode_config.get("gamemode_class", ""),
+        "binary": mode_config.get("binary", ""),
         "status": "launching",
         "score": 0, "started_at": datetime.now(timezone.utc).isoformat(),
         "completed_at": None, "source": "sovereign_hub_local"
     }
     await db.live_sessions.insert_one(session)
 
-    await sovereign_bridge.broadcast({
+    await _sovereign_broadcast({
         "type": "mode_launch", "session_id": session_id, "mode_id": mode_id,
-        "venue": venue_key, "map_path": mode_config["map"], "user_id": user.user_id
+        "venue": venue_key, "map_path": map_path, "user_id": user.user_id
     }, encrypt=False)
 
     deep_link = f"finalevolution://launch?map={venue_key}&mode={mode_id}&session={session_id}"
 
     return {
         "session_id": session_id, "mode_id": mode_id, "venue": venue_key,
-        "map_path": mode_config["map"], "gamemode_class": mode_config["gamemode_class"],
-        "binary": mode_config["binary"], "status": mode_config["status"],
+        "map_path": map_path, "gamemode_class": mode_config.get("gamemode_class", ""),
+        "binary": mode_config.get("binary", ""), "status": mode_config.get("status", "production"),
         "deep_link": deep_link, "source": "FEL_ModeManager.production.json",
         "cloud": False, "sovereign_session": True
     }
@@ -864,7 +876,7 @@ async def update_session_state(data: Dict[str, Any], user: User = Depends(get_cu
 
     if new_state == "active":
         session = await db.live_sessions.find_one({"id": session_id}, {"_id": 0})
-        await sovereign_bridge.broadcast({
+        await _sovereign_broadcast({
             "type": "map_loaded", "session_id": session_id,
             "venue": session.get("venue") if session else "unknown",
             "user_id": user.user_id
@@ -899,15 +911,18 @@ async def get_all_mapped_modes():
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mapped = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
+        map_path = config.get("map")
+        if not map_path:
+            continue
+        venue_key = map_path.split("/")[-1]
         venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
         deep_link = f"finalevolution://launch?map={venue_key}&mode={mode_id}"
         mapped.append({
             "mode_id": mode_id, "deep_link": deep_link,
-            "map_path": config["map"], "map_token": venue_key,
-            "gamemode_class": config["gamemode_class"],
-            "binary": config["binary"],
-            "production_status": config["status"],
+            "map_path": map_path, "map_token": venue_key,
+            "gamemode_class": config.get("gamemode_class", ""),
+            "binary": config.get("binary", ""),
+            "production_status": config.get("status", "staging"),
             "venue_display": venue_data.get("display_name", venue_key),
             "category": venue_data.get("category", "Unknown"),
             "db_collection": venue_data.get("db_collection", ""),
@@ -929,14 +944,17 @@ async def get_production_modes():
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     modes = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
+        map_path = config.get("map")
+        if not map_path:
+            continue
+        venue_key = map_path.split("/")[-1]
         venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
         collection = venue_data.get("db_collection", f"sessions_{venue_key.lower()}")
         live_sessions = await db[collection].count_documents({})
         modes.append({
-            "mode_id": mode_id, "map_path": config["map"],
-            "gamemode_class": config["gamemode_class"],
-            "binary": config["binary"], "status": config["status"],
+            "mode_id": mode_id, "map_path": map_path,
+            "gamemode_class": config.get("gamemode_class", ""),
+            "binary": config.get("binary", ""), "status": config.get("status", "staging"),
             "venue": venue_key, "venue_display": venue_data.get("display_name", venue_key),
             "live_sessions": live_sessions, "db_collection": collection,
             "data_source": "FEL_ModeManager.production.json"
@@ -1181,18 +1199,21 @@ async def get_venue_registry():
 
     result = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
+        map_path = config.get("map")
+        if not map_path:
+            continue
+        venue_key = map_path.split("/")[-1]
         venue_data = venues.get(venue_key, {})
         result.append({
             "mode_id": mode_id,
             "deep_link": f"finalevolution://launch?map={venue_key}&mode={mode_id}",
-            "map_path": config["map"],
+            "map_path": map_path,
             "venue_token": venue_key,
             "venue_display": venue_data.get("display_name", venue_key.replace("_", " ")),
             "category": venue_data.get("category", "Unknown"),
-            "binary": config["binary"],
-            "status": config["status"],
-            "gamemode_class": config["gamemode_class"]
+            "binary": config.get("binary", ""),
+            "status": config.get("status", "staging"),
+            "gamemode_class": config.get("gamemode_class", "")
         })
 
     return {

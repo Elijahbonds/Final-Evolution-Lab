@@ -1,21 +1,30 @@
 {
-  "cooked_runtime_note": "FEL_ModeManager — 20 total modes (19 game + 1 education). Gate 1 fix applied: who_scene_it + court_carnival promoted to production. production_modes=14. movement_lab added as preview/non-scoring education module.",
+  "cooked_runtime_note": "FEL_ModeManager — 22 registry entries: 18 NEXUS runtime production modes, split dunk iOS shipping IDs, 1 non-game module, and movement_lab preview education. Map-backed modes include launch metadata for backend deep links.",
   "mode_manager": {
-    "total_modes": 20,
-    "production_modes": 12,
+    "total_modes": 22,
+    "production_modes": 20,
     "mode_registry": {
       "basketball_h2h": {
+        "map": "/Game/FEL/Maps/Venice_Beach_Court",
+        "gamemode_class": "/Script/FEL.BP_Basketball_H2H",
+        "binary": "FEL-Basketball-H2H",
         "status": "production",
         "venue_id": "VeniceBeach",
         "prq_weight": 1.2
       },
       "basketball_dunk": {
+        "map": "/Game/FEL/Maps/Venice_Beach_Court",
+        "gamemode_class": "/Script/FEL.BP_DunkContest",
+        "binary": "FEL-DunkContest",
         "status": "production",
         "venue_id": "VeniceBeach",
         "prq_weight": 1.0,
         "note": "Legacy alias → basketball_dunk_3d (NEXUS C++ runtime id)"
       },
       "basketball_dunk_3d": {
+        "map": "/Game/FEL/Maps/Venice_Beach_Court",
+        "gamemode_class": "/Script/FEL.BP_DunkContest",
+        "binary": "FEL-DunkContest",
         "status": "production",
         "render_mode": "3D_UE5",
         "venue_id": "VeniceBeach",
@@ -32,87 +41,138 @@
         "note": "Reconciled from claude branch basketball_irl — no UE map"
       },
       "basketball_3v3": {
+        "map": "/Game/FEL/Maps/Venice_Beach_Court",
+        "gamemode_class": "/Script/FEL.BP_Basketball_3v3",
+        "binary": "FEL-Basketball-3v3",
         "status": "production",
         "venue_id": "VeniceBeach",
         "prq_weight": 1.3
       },
       "karate_h2h": {
+        "map": "/Game/FEL/Maps/Zen_Dojo",
+        "gamemode_class": "/Script/FEL.BP_Karate_H2H",
+        "binary": "FEL-Karate-H2H",
         "status": "production",
         "venue_id": "ZenDojo",
         "prq_weight": 1.4
       },
       "karate_endless": {
+        "map": "/Game/FEL/Maps/Zen_Dojo",
+        "gamemode_class": "/Script/FEL.BP_Karate_Endless",
+        "binary": "FEL-Karate-Endless",
         "status": "production",
         "venue_id": "ZenDojo",
         "prq_weight": 1.4
       },
       "baseball": {
+        "map": "/Game/FEL/Maps/Baseball_Park",
+        "gamemode_class": "/Script/FEL.BP_Baseball",
+        "binary": "FEL-Baseball",
         "status": "production",
         "venue_id": "BaseballPark",
         "prq_weight": 1.0
       },
       "football": {
+        "map": "/Game/FEL/Maps/Gridiron_Stadium",
+        "gamemode_class": "/Script/FEL.BP_Football_KickReturn",
+        "binary": "FEL-Football",
         "status": "production",
         "venue_id": "GridironStadium",
         "prq_weight": 1.5
       },
       "soccer": {
+        "map": "/Game/FEL/Maps/Soccer_Stadium",
+        "gamemode_class": "/Script/FEL.BP_Soccer",
+        "binary": "FEL-Soccer",
         "status": "production",
         "venue_id": "Soccer_Stadium",
         "prq_weight": 1.1
       },
       "golf": {
+        "map": "/Game/FEL/Maps/Links_Course",
+        "gamemode_class": "/Script/FEL.BP_Golf",
+        "binary": "FEL-Golf",
         "status": "production",
         "venue_id": "Links_Golf_Course",
         "prq_weight": 0.9
       },
       "tennis": {
+        "map": "/Game/FEL/Maps/Tennis_Court",
+        "gamemode_class": "/Script/FEL.BP_Tennis",
+        "binary": "FEL-Tennis",
         "status": "production",
         "venue_id": "Tennis_Court",
         "prq_weight": 1.1
       },
       "volleyball": {
+        "map": "/Game/FEL/Maps/Sand_Court",
+        "gamemode_class": "/Script/FEL.BP_Volleyball",
+        "binary": "FEL-Volleyball",
         "status": "production",
         "venue_id": "Sand_Court",
         "prq_weight": 1.2
       },
       "surfing": {
+        "map": "/Game/FEL/Maps/Venice_Beach_Surf",
+        "gamemode_class": "/Script/FEL.BP_Surfing",
+        "binary": "FEL-Surfing",
         "status": "production",
         "venue_id": "VeniceBeach",
         "prq_weight": 1.05
       },
       "gymnastics": {
-        "status": "staging",
+        "map": "/Game/FEL/Maps/Training_Floor",
+        "gamemode_class": "/Script/FEL.BP_Gymnastics",
+        "binary": "FEL-Gymnastics",
+        "status": "production",
         "venue_id": "Training_Floor",
         "prq_weight": 1.0
       },
       "brain_brawl": {
-        "status": "staging",
+        "map": "/Game/FEL/Maps/Neuro_Arena",
+        "gamemode_class": "/Script/FEL.BP_BrainBrawl",
+        "binary": "FEL-BrainBrawl",
+        "status": "production",
         "venue_id": "Neuro_Arena",
         "prq_weight": 1.0
       },
       "who_scene_it": {
-        "status": "preview",
+        "map": "/Game/FEL/Maps/Neuro_Arena",
+        "gamemode_class": "/Script/FEL.BP_WhoSceneIt",
+        "binary": "FEL-WhoSceneIt",
+        "status": "production",
         "venue_id": "Neuro_Arena",
         "prq_weight": 1.1
       },
       "court_carnival": {
+        "map": "/Game/FEL/Maps/Venice_Beach_Court",
+        "gamemode_class": "/Script/FEL.BP_PartyMode",
+        "binary": "FEL-PartyMode",
         "status": "production",
         "venue_id": "VeniceBeach",
         "prq_weight": 1.0,
         "scoring_enabled": true
       },
       "skateboarding": {
-        "status": "staging",
+        "map": "/Game/FEL/Maps/Skate_Park",
+        "gamemode_class": "/Script/FEL.BP_Skateboarding",
+        "binary": "FEL-Skateboarding",
+        "status": "production",
         "venue_id": "Skate_Park",
         "prq_weight": 0.9
       },
       "snowboarding": {
-        "status": "staging",
+        "map": "/Game/FEL/Maps/Mountain_Slope",
+        "gamemode_class": "/Script/FEL.BP_Snowboarding",
+        "binary": "FEL-Snowboarding",
+        "status": "production",
         "venue_id": "Mountain_Slope",
         "prq_weight": 0.9
       },
       "market_browse": {
+        "map": "/Game/FEL/Maps/Vault_Shop",
+        "gamemode_class": "/Script/FEL.BP_MarketBrowse",
+        "binary": "FEL-Market",
         "status": "non-game-module",
         "venue_id": "Luma_Venice_Shop",
         "prq_weight": 0.0
@@ -122,6 +182,9 @@
         "release_state": "preview",
         "venue_id": "Movement_Lab",
         "map_path": "/Game/FEL/Venues/MovementLab/MovementLab",
+        "map": "/Game/FEL/Venues/MovementLab/MovementLab",
+        "gamemode_class": "/Script/FEL.BP_MovementLab",
+        "binary": "FEL-MovementLab",
         "prq_weight": 0.0,
         "scoring_enabled": false,
         "description": "Interactive 3D Movement Education & Anatomy Academy — RTN/pFRG + IAP Oscillation Literacy",

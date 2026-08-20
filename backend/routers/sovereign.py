@@ -29,7 +29,23 @@ def _load_json(rel_path: str, default: dict) -> dict:
             logger.warning("sovereign: could not load %s: %s", rel_path, exc)
     return default
 
-VENUE_REGISTRY: Dict[str, Any] = _load_json(
+def _normalize_venue_registry(raw: dict[str, Any]) -> dict[str, Any]:
+    venues = raw.get("venues", {})
+    if isinstance(venues, list):
+        venues_by_key = {
+            venue["venueKey"]: venue
+            for venue in venues
+            if isinstance(venue, dict) and venue.get("venueKey")
+        }
+        return {
+            **raw,
+            "venues": venues_by_key,
+            "venues_list": venues,
+            "total_venues": len(venues),
+        }
+    return raw
+
+VENUE_REGISTRY: Dict[str, Any] = _normalize_venue_registry(_load_json(
     "FEL_VenueRegistry.production.json",
     {
         "venues": [
@@ -38,7 +54,7 @@ VENUE_REGISTRY: Dict[str, Any] = _load_json(
             {"id": "nexus_dome", "name": "Nexus Dome", "capacity": 4, "modes": ["basketball_3v3", "football", "soccer"]},
         ]
     }
-)
+))
 
 MODE_MANAGER: Dict[str, Any] = _load_json(
     "FEL_ModeManager.production.json",
@@ -88,13 +104,20 @@ async def sovereign_bridge(action: str, payload: Optional[Dict[str, Any]] = None
         sovereign_state["active_sessions"][sid] = payload
         return {"ok": True, "session_id": sid}
 
+    if action == "broadcast":
+        events = sovereign_state.setdefault("events", [])
+        events.append(payload)
+        if len(events) > 100:
+            del events[:-100]
+        return {"ok": True, "queued": len(events)}
+
     if action == "end_session":
         sid = payload.get("session_id", "")
         sovereign_state["active_sessions"].pop(sid, None)
         return {"ok": True, "session_id": sid}
 
     if action == "get_venues":
-        return {"ok": True, "venues": VENUE_REGISTRY.get("venues", [])}
+        return {"ok": True, "venues": VENUE_REGISTRY.get("venues_list", list(VENUE_REGISTRY.get("venues", {}).values()))}
 
     if action == "get_modes":
         return {"ok": True, "modes": MODE_MANAGER.get("mode_manager", {}).get("modes", [])}

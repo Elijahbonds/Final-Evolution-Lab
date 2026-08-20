@@ -165,7 +165,7 @@ class TestDirective2DefaultGameIni:
 
 
 class TestDirective4VenueRegistry:
-    """Directive 4: MongoDB linked to 18 venues from FEL_VenueRegistry.production.json"""
+    """Directive 4: MongoDB linked to 19 venues from FEL_VenueRegistry.production.json"""
     
     def test_venue_registry_exists(self):
         """FEL_VenueRegistry.production.json exists"""
@@ -173,13 +173,13 @@ class TestDirective4VenueRegistry:
         assert os.path.exists(registry_path), f"Venue registry not found at {registry_path}"
         print("✅ FEL_VenueRegistry.production.json exists")
     
-    def test_venue_registry_has_18_venues(self):
-        """Venue registry has 18 venues"""
+    def test_venue_registry_has_19_venues(self):
+        """Venue registry has 19 venues"""
         registry_path = VENUE_REGISTRY_PATH
         with open(registry_path, 'r') as f:
             data = json.load(f)
-        assert len(data.get("venues", [])) == 18, f"Expected 18 venue entries, got {len(data.get('venues', []))}"
-        print("✅ Venue registry has 18 venues")
+        assert len(data.get("venues", [])) == 19, f"Expected 19 venue entries, got {len(data.get('venues', []))}"
+        print("✅ Venue registry has 19 venues")
     
     def test_venue_registry_venues_list(self):
         """Venue registry contains all expected venues"""
@@ -188,7 +188,7 @@ class TestDirective4VenueRegistry:
             data = json.load(f)
         expected_venues = [
             "venice_beach_court", "venice_beach_court_dunk", "venice_beach_court_3v3", "venice_beach_court_party",
-            "venice_beach_court_tennis", "venice_beach_surf", "beach_court", "dojo_arena", "neuro_arena",
+            "venice_beach_court_tennis", "venice_beach_surf", "regulation_court_irl", "beach_court", "dojo_arena", "neuro_arena",
             "skate_park", "mountain_slope", "stadium_diamond", "stadium_field", "stadium_pitch", "golf_green",
             "arena_floor", "vault_shop", "e3ds_stadium_lobby"
         ]
