@@ -39,13 +39,13 @@ void nexus_metal_renderer_destroy(NexusMetalRendererHandle _Nullable handle);
 void nexus_metal_renderer_set_mode_id(NexusMetalRendererHandle _Nullable handle,
                                       const char *_Nullable modeId);
 
-/// Binds a CAMetalLayer (e.g. from MTKView) and configures the clear-color stub renderer.
+/// Binds a CAMetalLayer (e.g. from MTKView) and configures the bundled venue mesh renderer.
 bool nexus_metal_renderer_initialize(NexusMetalRendererHandle _Nullable handle,
                                      CAMetalLayer *_Nullable layer,
                                      uint32_t width,
                                      uint32_t height);
 
-/// Draws one stub frame (clear color + empty scene batch). Safe to call from MTKViewDelegate.
+/// Draws one frame of the configured venue mesh. Safe to call from MTKViewDelegate.
 bool nexus_metal_renderer_render(NexusMetalRendererHandle _Nullable handle);
 
 /// Orbit speed in radians per frame (default ~0.0035). Set 0 for static venue backdrop during hybrid gameplay.

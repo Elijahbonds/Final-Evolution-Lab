@@ -149,7 +149,7 @@ nonisolated struct GameModeRules: Sendable {
                 targetScore: 0,
                 rewardEligibleMinActions: 6
             )
-        case .marketBrowse:
+        case .marketBrowse, .movementLab:
             return GameModeRules(
                 useMatchCountdown: false,
                 matchDurationSeconds: 0,

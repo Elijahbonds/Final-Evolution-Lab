@@ -462,7 +462,10 @@ struct GamePlayView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .onAppear {
             sceneViewportReady = false
-            nexusEngine.start(modeId: gameMode.id.nexusRuntimeModeId, readiness: sessionReadiness)
+            let runtimeModeId = gameMode.id.nexusRuntimeModeId
+            if gameMode.isNexusSprintPlayable, !runtimeModeId.isEmpty {
+                nexusEngine.start(modeId: runtimeModeId, readiness: sessionReadiness)
+            }
             FELSoundscapeEngine.shared.start(for: gameMode.id)
             FELHaptics.prepare()
             if skipMatchLobbyForScreenshotHarness {
@@ -483,7 +486,7 @@ struct GamePlayView: View {
         }
         .onDisappear {
             sceneViewportReady = false
-            nexusEngine.stop()
+            nexusEngine.stop(playerScore: score, opponentScore: opponentScore)
             FELSoundscapeEngine.shared.stop()
             matchLobbyComplete = false
             multipeerService.stop()
@@ -3248,6 +3251,7 @@ struct GamePlayView: View {
         case .whoSceneIt: ["Freeze", "Spot Star", "Recall"]
         case .courtCarnival: ["Pad Hit", "Dice Roll", "Mini Win"]
         case .marketBrowse: ["Browse", "Scan", "Vault"]
+        case .movementLab: ["Learn", "Balance", "Breath"]
         }
     }
 
@@ -4069,7 +4073,7 @@ struct GamePlayView: View {
                 return action.contains("Win") ? 300 : (action.contains("Tie") ? 100 : 0)
             }
             return 50
-        case .marketBrowse:
+        case .marketBrowse, .movementLab:
             return 10
         }
     }
@@ -4391,12 +4395,15 @@ struct GamePlayView: View {
     private func finalizeResults() {
         if finalizedMatchSessionId == matchSessionId { return }
 
+        let receiptModeId = gameMode.id.nexusReceiptModeId
+        nexusEngine.stop(playerScore: score, opponentScore: opponentScore)
+
         CrashReporter.setGameMode(id: gameMode.id.rawValue)
         if shardsReward > 0 {
             viewModel.profile.pendingUnverifiedShardCredits += shardsReward
             Task {
                 await TrainingLabSocialBridge.shared.recordShardLedgerForArenaSession(
-                    gameModeId: gameMode.id.rawValue,
+                    gameModeId: receiptModeId,
                     deltaShards: shardsReward,
                     sessionId: matchSessionId.uuidString
                 )
@@ -4437,7 +4444,7 @@ struct GamePlayView: View {
         Task {
             await GameplaySessionReceiptCoordinator.shared.submitNativeSessionReceipt(
                 matchSessionId: matchSessionId,
-                gameModeId: gameMode.id.rawValue,
+                gameModeId: receiptModeId,
                 playerScore: score,
                 opponentScore: opponentScore,
                 durationSeconds: elapsedSeconds,
