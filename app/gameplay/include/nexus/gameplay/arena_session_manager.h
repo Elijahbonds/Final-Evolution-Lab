@@ -1,5 +1,6 @@
 // Port of AFELGameModeBase session lifecycle + arena mode selection
 #pragma once
+#include <cstdint>
 
 #include "nexus/core/result.h"
 #include "nexus/gameplay/fel_session_types.h"

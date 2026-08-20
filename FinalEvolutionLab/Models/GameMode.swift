@@ -29,6 +29,8 @@ nonisolated enum GameModeId: String, Codable, Sendable, CaseIterable, Identifiab
     case courtCarnival = "court_carnival"
     /// Module library browser.
     case marketBrowse = "market_browse"
+    /// Preview education module surfaced from the backend registry; not a scoring game mode.
+    case movementLab = "movement_lab"
 
     var id: String { rawValue }
 }
@@ -79,11 +81,11 @@ extension GameModeId {
         case .gymnastics, .skateboarding, .snowboarding, .surfing:
             return .prod
         case .brainBrawl:
-            return .staging
+            return .prod
         case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
             return .sim
-        case .marketBrowse:
-            return .preview
+        case .marketBrowse, .movementLab:
+            return .nonGame
         }
     }
 
@@ -101,18 +103,14 @@ extension GameModeId {
         switch self {
         case .venicePickup: return GameModeId.basketballHeadToHead.rawValue
         case .basketballDunkContest3D: return "basketball_dunk"
+        case .basketballDunkContestIRL: return ""
         default: return rawValue
         }
     }
 
     /// Playable via NEXUS headless gameplay (full simulators + outcome evaluators).
     var isNexusSprintPlayable: Bool {
-        switch self {
-        case .marketBrowse:
-            return true
-        default:
-            break
-        }
+        if isIRLDunkContest { return false }
         switch nexusCapabilityTier {
         case .prod, .sim, .staging: return true
         case .preview, .nonGame: return false
@@ -169,7 +167,7 @@ extension GameModeId {
             return .filmQuiz
         case .courtCarnival:
             return .partyBoard
-        case .marketBrowse:
+        case .marketBrowse, .movementLab:
             return .dragTap
         }
     }
@@ -257,8 +255,10 @@ extension GameMode {
         switch nexusCapabilityTier {
         case .prod, .sim, .staging:
             return true
-        case .preview, .nonGame:
+        case .preview:
             return Config.showPreviewGameModes
+        case .nonGame:
+            return false
         }
     }
 
@@ -299,17 +299,17 @@ struct GameModeRegistry {
         "brain_brawl", "who_scene_it",
     ]
 
-    /// Every playable arena mode — full lineup ships available; per-mode capability
-    /// badges (prod/sim/staging) stay honest via ``GameModeId/nexusCapabilityTier``.
-    static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases).subtracting([.marketBrowse])
+    /// Every playable arena mode — full lineup ships available; non-game modules stay out of quick launch.
+    static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases)
+        .subtracting([.basketballDunkContestIRL, .marketBrowse, .movementLab])
 
-    /// All 20 mode IDs from `arena_mode_registry.cpp` — keep in sync when adding modes.
+    /// All Arena game/module IDs mirrored from `arena_mode_registry.cpp`; preview education modules stay non-launchable.
     static let arenaRegistryModeIds: [GameModeId] = [
         .basketballHeadToHead, .basketballDunkContestIRL, .basketballDunkContest3D, .basketball3v3,
         .karate, .karateEndless,
         .baseball, .football, .soccer, .golf, .tennis, .volleyball,
         .gymnastics, .surfing, .skateboarding, .snowboarding,
-        .brainBrawl, .whoSceneIt, .courtCarnival, .marketBrowse,
+        .brainBrawl, .whoSceneIt, .courtCarnival, .marketBrowse, .movementLab,
     ]
 
     static var nexusSprintModes: [GameMode] {
@@ -565,6 +565,19 @@ struct GameModeRegistry {
             hint: "Browse the vault · scan venues · shop collectibles",
             releaseState: .preview
         ),
+        GameMode(
+            id: .movementLab,
+            name: "Movement Lab",
+            subtitle: "Movement education",
+            sport: .academy,
+            iconName: "figure.mind.and.body",
+            accentColor: Color(red: 0.38, green: 0.84, blue: 1.0),
+            multiplayerType: .solo,
+            environmentName: "Movement Lab",
+            hint: "Preview learning module · RTN/pFRG and IAP literacy · no PRQ scoring",
+            releaseState: .preview,
+            capabilityTier: .nonGame
+        ),
     ]
 
     static func mode(for id: GameModeId) -> GameMode {
@@ -580,6 +593,8 @@ struct GameModeRegistry {
             return mode(for: .basketballDunkContest3D)
         case "market_browse", "module_library", "vault_shop":
             return mode(for: .marketBrowse)
+        case "movement_lab", "movement_education", "education_lab":
+            return mode(for: .movementLab)
         default:
             break
         }
@@ -607,7 +622,7 @@ struct GameModeRegistry {
         catalogModes.filter { $0.sport == sport }
     }
 
-    /// All 20 arena modes — always listed in the mode picker with honest prod/staging/preview badges.
+    /// All arena catalog modes — listed with honest prod/staging/preview badges.
     static var catalogModes: [GameMode] {
         all.filter { arenaRegistryModeIds.contains($0.id) }
     }

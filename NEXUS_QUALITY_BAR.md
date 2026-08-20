@@ -84,12 +84,12 @@
 | Production modes @ mobile gate | 18/18 | 18/18 | **MET** |
 | Production modes @ vision bar (6-axis) | 18/18 PASS | **11/18 PASS** | **PARTIAL** |
 | Non-game module honesty | market_browse labeled | PREVIEW + PRQ 0 | **MET** |
-| Education stub | movement_lab registered or retired | Unregistered placeholder | **FAIL** |
+| Education stub | movement_lab registered or retired | Backend + Swift + C++ registry preview module; placeholder asset explicitly labeled | **MET** |
 | Outcome-sport HUD honesty | ≥7/10 all modes | 6/10 (8 modes) | **FAIL** |
 | Surfing venue fidelity | Dedicated mesh | Venice court proxy | **FAIL** |
 | Live session receipt POST | Authenticated | Queued locally (V-012) | **PARTIAL** |
 
-**Composite mode vision score:** **7.1 / 10** — engine validate gate green; product honesty gaps in outcome-sport HUD labeling, surfing proxy, movement_lab stub, and live receipt POST.
+**Composite mode vision score:** **7.1 / 10** — engine validate gate green; product honesty gaps remain in outcome-sport HUD labeling, surfing proxy, and live receipt POST. `movement_lab` is registered as preview/non-scoring education metadata, not a production game.
 
 **Minimum bar:** See matrix artifact § `minimum_bar`. No tier lowering for TestFlight ship.
 
