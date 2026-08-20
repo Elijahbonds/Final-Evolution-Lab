@@ -30,6 +30,7 @@
 #include <cstdlib>
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <cstdint>
 #include <filesystem>
@@ -56,6 +57,10 @@ void require(bool condition, const char* message) {
 
 void require(bool condition, const std::string& message) {
   require(condition, message.c_str());
+}
+
+void requireNear(float actual, float expected, float tolerance, const char* message) {
+  require(std::fabs(actual - expected) <= tolerance, message);
 }
 
 void removeTreeBestEffort(const std::filesystem::path& root) {
@@ -897,6 +902,17 @@ void hud_poll_returns_tick_frame_payload() {
   require(physics.init({}).isOk(), "physics init");
 
   require(gameplay.handleGameplayCommand(
+              "fel.fitness.update",
+              {{"frc_mobility", 0.9F},
+               {"frc_active_range", 0.8F},
+               {"frc_control", 0.7F},
+               {"iap_engagement", 0.6F},
+               {"iap_confidence", 0.5F},
+               {"breath_phase", 1}},
+              "hud_fitness")
+              .status == "ok",
+          "hud fitness update ok");
+  require(gameplay.handleGameplayCommand(
               "fel.arena.start_session",
               {{"mode_id", "basketball_dunk"}, {"user_id", "hud_user"}},
               "hud_start")
@@ -916,9 +932,47 @@ void hud_poll_returns_tick_frame_payload() {
           "hud throw catch radius");
   require(hud.payload["payload"]["fitness"]["power_readiness"].is_number(),
           "hud fitness readiness");
+  requireNear(hud.payload["payload"]["prq"].get<float>(), 60.75F, 0.01F,
+              "hud measured prq");
+  require(hud.payload["payload"]["prq_grade"].get<std::string>() == "PRIMED",
+          "hud measured prq grade");
+  requireNear(hud.payload["payload"]["neural_drive"].get<float>(), 52.5F, 0.01F,
+              "hud measured neural drive");
+  requireNear(hud.payload["payload"]["fitness"]["prq_score"].get<float>(), 60.75F, 0.01F,
+              "hud fitness embeds measured prq");
   require(hud.payload["payload"]["mode_state"].contains("dunk"), "hud mode_state dunk nested");
 
   physics.shutdown();
+}
+
+void bridge_map_loaded_uses_measured_prq() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  require(gameplay.handleGameplayCommand(
+              "fel.fitness.update",
+              {{"frc_mobility", 0.9F},
+               {"frc_active_range", 0.8F},
+               {"frc_control", 0.7F},
+               {"iap_engagement", 0.6F},
+               {"iap_confidence", 0.5F},
+               {"breath_phase", 1}},
+              "bridge_fitness")
+              .status == "ok",
+          "bridge fitness update ok");
+  const auto mapLoaded = gameplay.handleGameplayCommand(
+      "fel.bridge.broadcast_map_loaded",
+      {{"map", "Venice"}, {"mode_id", "basketball_dunk"}},
+      "bridge_map_loaded");
+  require(mapLoaded.status == "ok", "map loaded bridge command ok");
+
+  const auto messages = gameplay.fel_bridge().outboundMessages();
+  require(!messages.empty(), "map loaded bridge message queued");
+  const auto& payload = messages.back();
+  require(payload["type"].get<std::string>() == "map_loaded", "map loaded payload type");
+  requireNear(payload["prq"].get<float>(), 60.75F, 0.01F,
+              "map loaded bridge uses measured prq");
 }
 
 void karate_mode_input_strike_advances_wave() {
@@ -1028,10 +1082,34 @@ void physics_intent_queue_is_consumed_on_step() {
   physics.shutdown();
 }
 
-void prq_stub_returns_sprint_defaults() {
-  require(nexus::gameplay::PRQEngine::getScore() == 75.0F, "prq sprint default");
+void prq_engine_uses_baseline_until_fitness_metrics_arrive() {
+  nexus::gameplay::FitnessSnapshot emptySnapshot;
+  require(nexus::gameplay::PRQEngine::getScore() == 75.0F, "prq baseline default");
+  require(nexus::gameplay::PRQEngine::getNeuralDrive() == 60.0F,
+          "prq neural drive baseline default");
+  require(nexus::gameplay::PRQEngine::getScore(emptySnapshot) == 75.0F,
+          "prq baseline before fitness revision");
   require(nexus::gameplay::PRQEngine::getGrade() == nexus::gameplay::PRQGrade::kPrimed,
-          "prq grade primed");
+          "baseline prq grade primed");
+}
+
+void prq_engine_scores_measured_fitness_snapshot() {
+  nexus::gameplay::ThreadSafeFitnessData fitness;
+  fitness.update({0.9F, 0.8F, 0.7F}, {0.6F, 0.5F, 1});
+  const auto snapshot = fitness.snapshot();
+
+  requireNear(nexus::gameplay::PRQEngine::getScore(snapshot), 60.75F, 0.01F,
+              "measured prq score blends frc/iap/readiness");
+  requireNear(nexus::gameplay::PRQEngine::getNeuralDrive(snapshot), 52.5F, 0.01F,
+              "measured neural drive blends iap/control/breath");
+  require(nexus::gameplay::PRQEngine::getGrade(snapshot) ==
+              nexus::gameplay::PRQGrade::kPrimed,
+          "measured prq grade primed");
+
+  fitness.update({0.0F, 0.0F, 0.0F}, {0.0F, 0.0F, -1});
+  require(nexus::gameplay::PRQEngine::getGrade(fitness.snapshot()) ==
+              nexus::gameplay::PRQGrade::kRecovering,
+          "low measured prq grade recovering");
 }
 
 void arcade_physics_maps_prq_75() {
@@ -2910,7 +2988,8 @@ auto main() -> int {
   physics_intent_queue_is_consumed_on_step();
   engine_tick_runs_physics_before_gameplay_update();
   gameplay_update_drains_agent_commands_before_throw_catch();
-  prq_stub_returns_sprint_defaults();
+  prq_engine_uses_baseline_until_fitness_metrics_arrive();
+  prq_engine_scores_measured_fitness_snapshot();
   arcade_physics_maps_prq_75();
   dunk_contest_charge_release_scores();
   karate_endless_wave_spawns();
@@ -2919,6 +2998,7 @@ auto main() -> int {
   end_session_idempotent_returns_last_result();
   fitness_partial_update_rejects_empty_params();
   fitness_update_rejects_non_finite_values();
+  bridge_map_loaded_uses_measured_prq();
   mode_runtime_rejects_non_object_snow_and_scene_params();
   snowboarding_action_payloads_are_objects();
   flagship_basketball_dunk_validate_only_integration();
