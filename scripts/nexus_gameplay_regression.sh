@@ -23,6 +23,9 @@ done
 mkdir -p "${ARTIFACT_DIR}"
 cd "${ROOT}"
 
+echo "==> iOS bridge contract"
+python3 "${ROOT}/scripts/validate_ios_bridge_contract.py"
+
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
   echo "==> Configure + build headless gameplay tests"
   if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
