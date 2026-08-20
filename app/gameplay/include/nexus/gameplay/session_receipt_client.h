@@ -18,7 +18,8 @@ struct SessionReceiptClientConfig {
   std::string baseUrl{"http://127.0.0.1:8000/api/games/session"};
   std::string authToken;
   bool persistToDisk{true};
-  bool httpEnabled{true};
+  // Default to the iOS-safe queue lane; live POST is an explicit opt-in.
+  bool httpEnabled{false};
   bool useStubHttpTransport{false};
   float flushIntervalSeconds{5.0F};
   std::size_t maxRetries{5};

@@ -665,6 +665,151 @@ void soccer_penalty_validate_only_integration() {
   physics.shutdown();
 }
 
+void football_touchdown_validate_only_integration() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  nexus::physics::PhysicsWorld physics;
+  require(physics.init({}).isOk(), "physics init");
+
+  const auto mode = nexus::gameplay::ArenaModeRegistry::find("football");
+  require(mode.has_value(), "football mode registered");
+  require(mode->venueToken == "Gridiron_Stadium", "football uses gridiron stadium");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "football"}, {"user_id", "flagship_football"}},
+              "football_start")
+              .status == "ok",
+          "football session starts");
+
+  for (int i = 0; i < 3; ++i) {
+    const auto pulse = gameplay.handleGameplayCommand(
+        "fel.sport.pulse",
+        {{"success", true}, {"timing", 0.94F}, {"play_type", "touchdown"}},
+        "football_touchdown_pulse");
+    require(pulse.status == "ok", "football touchdown pulse ok");
+    gameplay.update(0.05, physics, {});
+  }
+
+  const auto state =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "football_state");
+  require(state.status == "ok", "football mode state ok");
+  require(state.payload["outcome_sport"]["player_touchdowns"].get<int>() == 3,
+          "football HUD exposes touchdown target");
+  require(gameplay.mode_runtime().shouldAutoEndSession(),
+          "football match completes after three touchdowns");
+
+  const auto end = gameplay.handleGameplayCommand(
+      "fel.arena.end_session", {{"use_live_scores", true}}, "football_end");
+  require(end.status == "ok", "football session ends with live scores");
+  require(end.payload["outcome"].get<std::string>() == "win", "football win outcome");
+
+  const auto receipts =
+      gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "football_receipts");
+  require(!receipts.payload["receipts"].empty(), "football receipt queued");
+  require(receipts.payload["receipts"].back()["mode_id"].get<std::string>() == "football",
+          "football receipt mode id");
+
+  physics.shutdown();
+}
+
+void golf_nine_hole_validate_only_integration() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  nexus::physics::PhysicsWorld physics;
+  require(physics.init({}).isOk(), "physics init");
+
+  const auto mode = nexus::gameplay::ArenaModeRegistry::find("golf");
+  require(mode.has_value(), "golf mode registered");
+  require(mode->venueToken == "Links_Course", "golf uses links course");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "golf"}, {"user_id", "flagship_golf"}},
+              "golf_start")
+              .status == "ok",
+          "golf session starts");
+
+  for (int i = 0; i < 9; ++i) {
+    const auto pulse = gameplay.handleGameplayCommand(
+        "fel.sport.pulse",
+        {{"success", true}, {"timing", 0.93F}, {"club", "putt"}},
+        "golf_putt_pulse");
+    require(pulse.status == "ok", "golf putt pulse ok");
+    gameplay.update(0.05, physics, {});
+  }
+
+  const auto state = gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "golf_state");
+  require(state.status == "ok", "golf mode state ok");
+  require(state.payload["outcome_sport"]["holes_played"].get<int>() == 9,
+          "golf HUD exposes nine holes played");
+  require(state.payload["outcome_sport"]["course_par"].get<int>() == 36,
+          "golf HUD exposes course par");
+  require(gameplay.mode_runtime().shouldAutoEndSession(), "golf match completes after nine holes");
+
+  const auto end = gameplay.handleGameplayCommand(
+      "fel.arena.end_session", {{"use_live_scores", true}}, "golf_end");
+  require(end.status == "ok", "golf session ends with live scores");
+  require(end.payload.contains("outcome"), "golf outcome present");
+
+  const auto receipts =
+      gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "golf_receipts");
+  require(!receipts.payload["receipts"].empty(), "golf receipt queued");
+  require(receipts.payload["receipts"].back()["mode_id"].get<std::string>() == "golf",
+          "golf receipt mode id");
+
+  physics.shutdown();
+}
+
+void tennis_ace_validate_only_integration() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  nexus::physics::PhysicsWorld physics;
+  require(physics.init({}).isOk(), "physics init");
+
+  const auto mode = nexus::gameplay::ArenaModeRegistry::find("tennis");
+  require(mode.has_value(), "tennis mode registered");
+  require(mode->venueToken == "Tennis_Court", "tennis uses tennis court");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "tennis"}, {"user_id", "flagship_tennis"}},
+              "tennis_start")
+              .status == "ok",
+          "tennis session starts");
+
+  for (int i = 0; i < 4; ++i) {
+    const auto pulse = gameplay.handleGameplayCommand(
+        "fel.sport.pulse",
+        {{"success", true}, {"timing", 0.94F}, {"shot_type", "ace"}},
+        "tennis_ace_pulse");
+    require(pulse.status == "ok", "tennis ace pulse ok");
+    gameplay.update(0.05, physics, {});
+  }
+
+  const auto state = gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "tennis_state");
+  require(state.status == "ok", "tennis mode state ok");
+  require(state.payload["outcome_sport"]["player_sets"].get<int>() == 2,
+          "tennis HUD exposes two-set win");
+  require(gameplay.mode_runtime().shouldAutoEndSession(), "tennis match completes after two sets");
+
+  const auto end = gameplay.handleGameplayCommand(
+      "fel.arena.end_session", {{"use_live_scores", true}}, "tennis_end");
+  require(end.status == "ok", "tennis session ends with live scores");
+  require(end.payload["outcome"].get<std::string>() == "win", "tennis win outcome");
+
+  const auto receipts =
+      gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "tennis_receipts");
+  require(!receipts.payload["receipts"].empty(), "tennis receipt queued");
+  require(receipts.payload["receipts"].back()["mode_id"].get<std::string>() == "tennis",
+          "tennis receipt mode id");
+
+  physics.shutdown();
+}
+
 void karate_h2h_sport_pulse_hp_combat() {
   using nexus::gameplay::GameplayManager;
   using nexus::gameplay::MatchOutcome;
@@ -871,6 +1016,35 @@ void session_receipt_flush_keeps_queue_when_http_disabled() {
   require(configFlush.status == "ok", "flush config command ok");
   require(!configFlush.payload["http_enabled"].get<bool>(), "flush command applies http_enabled");
   require(!configFlush.payload["use_stub_http"].get<bool>(), "flush command applies use_stub_http");
+}
+
+void session_receipt_defaults_to_disk_queue_only() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_default_disk_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = "http://127.0.0.1:8000/api/games/session",
+      .persistToDisk = true,
+      .useStubHttpTransport = true,
+      .flushIntervalSeconds = 0.01F,
+  });
+
+  require(!client.config().httpEnabled, "receipt HTTP disabled by default");
+  client.enqueue({
+      {"mode_id", "basketball_dunk"},
+      {"score", 21},
+      {"telemetry", {{"session_id", "default_disk_session"}}},
+  });
+
+  client.tick(1.0);
+  require(client.pendingCount() == 0, "default disk flush clears in-memory queue");
+  require(client.postedRequests().empty(), "default disk flush does not POST");
+  require(std::filesystem::exists(tempDir / "default_disk_session.json"),
+          "default disk flush writes queue file");
+
+  removeTreeBestEffort(tempDir);
 }
 
 void session_receipt_disk_keyed_by_session_id() {
@@ -1097,6 +1271,17 @@ void exercise_demo_pipeline_maps_production_modes() {
   require(mapping.has_value(), "dunk demo mapping exists");
   require(mapping->moduleId == "mod2", "dunk maps to mod2");
   require(mapping->montagePath.find("mod2") != std::string::npos, "montage path contains mod2");
+
+  const auto allMappings = nexus::gameplay::ExerciseDemoPipeline::allProductionMappings();
+  require(allMappings["count"].get<std::size_t>() == nexus::gameplay::kProductionModeCount,
+          "academy demo mappings cover all production modes");
+  for (std::string_view modeId : nexus::gameplay::kProductionModeIds) {
+    const auto modeMapping = nexus::gameplay::ExerciseDemoPipeline::mappingForMode(modeId);
+    require(modeMapping.has_value(),
+            std::string("academy demo mapping exists for ") + std::string(modeId));
+    require(modeMapping->montagePath.find(modeMapping->moduleId) != std::string::npos,
+            std::string("academy montage path contains module for ") + std::string(modeId));
+  }
 }
 
 void physics_intent_queue_is_consumed_on_step() {
@@ -3103,6 +3288,7 @@ auto main() -> int {
   dunk_contest_lifecycle_generates_win_receipt();
   arena_pause_resume_preserves_session();
   session_receipt_flush_keeps_queue_when_http_disabled();
+  session_receipt_defaults_to_disk_queue_only();
   session_receipt_disk_keyed_by_session_id();
   gameplay_manager_partial_receipt_flush_keeps_only_failed_receipts_pending();
   gameplay_manager_tick_flush_syncs_pending_receipts();
@@ -3145,6 +3331,9 @@ auto main() -> int {
   flagship_surfing_validate_only_integration();
   flagship_outcome_sport_validate_only_integration();
   soccer_penalty_validate_only_integration();
+  football_touchdown_validate_only_integration();
+  golf_nine_hole_validate_only_integration();
+  tennis_ace_validate_only_integration();
   flagship_who_scene_it_validate_only_integration();
   session_receipt_body_matches_api_contract();
   flagship_modes_emit_post_ready_receipts();

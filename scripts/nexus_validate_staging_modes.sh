@@ -3,23 +3,37 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BUILD_DIR="${ROOT}/build-full"
+BUILD_DIR="${ROOT}/build-validate"
+VALIDATOR="${BUILD_DIR}/nexus_mode_validator"
 cd "$ROOT"
-
-if [[ ! -x "${BUILD_DIR}/nexus_runtime" ]]; then
-  cmake -S . -B "$BUILD_DIR" -DNEXUS_ENABLE_RENDERER=ON -DNEXUS_BUILD_RUNTIME=ON
-  cmake --build "$BUILD_DIR" --target nexus_runtime
-fi
 
 export NEXUS_MESH_PROFILE=mobile
 
 # All former staging simulators promoted to kProduction (2026-06-19 gameplay_tester).
 STAGING_MODES=()
 
+if ((${#STAGING_MODES[@]} > 0)); then
+  if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
+    export CC="${CC:-gcc}"
+    export CXX="g++"
+  fi
+
+  if [[ ! -x "$VALIDATOR" ]]; then
+    cmake -S . -B "$BUILD_DIR" \
+      -DCMAKE_C_COMPILER="${CC:-cc}" \
+      -DCMAKE_CXX_COMPILER="${CXX:-c++}" \
+      -DNEXUS_ENABLE_RENDERER=OFF \
+      -DNEXUS_ENABLE_METAL_RENDERER=ON \
+      -DNEXUS_BUILD_RUNTIME=OFF \
+      -DNEXUS_BUILD_TESTS=OFF
+    cmake --build "$BUILD_DIR" --target nexus_mode_validator
+  fi
+fi
+
 failed=()
 for mode in "${STAGING_MODES[@]}"; do
   echo ">> validate-only --mode ${mode}"
-  if ! "${BUILD_DIR}/nexus_runtime" --validate-only --mode "${mode}"; then
+  if ! "$VALIDATOR" --mode "${mode}"; then
     failed+=("${mode}")
   fi
 done
