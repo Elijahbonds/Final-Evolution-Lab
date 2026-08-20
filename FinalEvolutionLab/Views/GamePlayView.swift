@@ -143,9 +143,34 @@ struct GamePlayView: View {
 
     private var isKarate: Bool { gameMode.id == .karate || gameMode.id == .karateEndless }
     private var usesNexusScoreAuthority: Bool {
-        gameMode.id == .basketballDunkContest3D || gameMode.id == .karateEndless
+        switch gameMode.id {
+        case .basketballDunkContest3D, .karateEndless, .basketballHeadToHead, .venicePickup, .courtCarnival:
+            return true
+        default:
+            return false
+        }
     }
     private var inputScheme: InputScheme { gameMode.id.inputScheme }
+
+    private var nexusHudStatusLine: String? {
+        guard nexusEngine.isLinked else { return nil }
+        if gameMode.id.isNexusOutcomeSportMode {
+            let line = nexusEngine.hud.outcomeSportStatusLine
+            return line.isEmpty ? nil : line
+        }
+        if gameMode.id == .karateEndless {
+            let hp = Int(nexusEngine.hud.karatePlayerHP.rounded(.toNearestOrAwayFromZero))
+            let target = max(1, nexusEngine.hud.karateTargetWave)
+            return "WAVE \(nexusEngine.hud.karateWave)/\(target) · HP \(hp) · OPP \(nexusEngine.hud.karateOpponentsAlive)"
+        }
+        if gameMode.id == .courtCarnival {
+            let pad = nexusEngine.hud.carnivalActivePad.isEmpty
+                ? "READY"
+                : nexusEngine.hud.carnivalActivePad.uppercased()
+            return "CARNIVAL \(nexusEngine.hud.carnivalRoundsWon)/\(nexusEngine.hud.carnivalRoundsToWin) · \(pad)"
+        }
+        return nil
+    }
 
     private var usesAcademyRhythmOverlay: Bool {
         switch inputScheme {
@@ -368,6 +393,9 @@ struct GamePlayView: View {
                     prqCurrent: playerPRQ,
                     modeAttributeLabel: prqAttributeLabel,
                     modeAttributeValue: prqAttributeValue,
+                    timingGrade: gameMode.id == .basketballDunkContest3D && !nexusEngine.lastDunkTimingGrade.isEmpty
+                        ? nexusEngine.lastDunkTimingGrade
+                        : nil,
                     onReturn: {
                         finalizeResults()
                         dismiss()
@@ -637,6 +665,15 @@ struct GamePlayView: View {
                                 .font(.system(size: 8, weight: .black, design: .monospaced))
                         }
                         .foregroundStyle(Theme.brandCyan.opacity(0.85))
+                    }
+
+                    if let hudStatus = nexusHudStatusLine {
+                        Text(hudStatus)
+                            .font(.system(size: 8, weight: .black, design: .monospaced))
+                            .foregroundStyle(Theme.brandCyan.opacity(0.75))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.55)
+                            .accessibilityIdentifier("NexusModeStatusLine")
                     }
                 }
 

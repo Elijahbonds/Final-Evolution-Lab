@@ -493,6 +493,9 @@ void arena_mode_registry_production_modes_match_validate_script() {
     require(mode.has_value(), std::string("production mode registered: ") + std::string(expectedId));
     require(mode->releaseState == nexus::gameplay::ArenaReleaseState::kProduction,
             std::string("production release state: ") + std::string(expectedId));
+    const auto modeJson = nexus::gameplay::ArenaModeRegistry::modeToJson(*mode);
+    require(modeJson["release_state_label"].get<std::string>() == "production",
+            std::string("production release state label: ") + std::string(expectedId));
   }
 }
 
@@ -534,11 +537,13 @@ void outcome_sport_mode_mechanics_and_session_scores() {
 
   OutcomeSportMode basketball;
   basketball.reset("basketball_3v3");
-  require(basketball.pulse({{"success", true},
-                            {"timing", 0.95F},
-                            {"shot_type", "three_pointer"}})
-              .isOk(),
+  const auto basketballPulse = basketball.pulse({{"success", true},
+                                                 {"timing", 0.95F},
+                                                 {"shot_type", "three_pointer"}});
+  require(basketballPulse.isOk(),
           "basketball three-pointer pulse ok");
+  require(basketballPulse.value()["release_state"].get<std::string>() == "production",
+          "basketball production pulse release state");
   require(basketball.stateJson().value("player_metric", 0) >= 4,
           "three-pointer awards bonus points");
 
@@ -568,8 +573,11 @@ void outcome_sport_mode_mechanics_and_session_scores() {
 
   OutcomeSportMode football;
   football.reset("football");
-  require(football.pulse({{"success", true}, {"play_type", "touchdown"}}).isOk(),
+  const auto footballPulse = football.pulse({{"success", true}, {"play_type", "touchdown"}});
+  require(footballPulse.isOk(),
           "football touchdown pulse ok");
+  require(footballPulse.value()["release_state"].get<std::string>() == "production",
+          "football production pulse release state");
   require(football.pulse({{"success", true}, {"play_type", "field_goal"}}).isOk(),
           "football field goal pulse ok");
   require(football.pulse({{"success", false}, {"play_type", "turnover"}}).isOk(),
@@ -1745,6 +1753,8 @@ void flagship_gymnastics_validate_only_integration() {
   require(tap.status == "ok", "gymnastics rhythm tap");
   require(tap.payload["gymnastics"].is_object(), "gymnastics nested mode envelope");
   require(tap.payload["tap"]["grade"].get<std::string>() == "perfect", "gymnastics perfect tap");
+  require(tap.payload["release_state"].get<std::string>() == "production",
+          "gymnastics production release state");
   require(tap.payload["gymnastics"]["judge_score"].get<float>() > 0.0F, "gymnastics judge score");
 
   for (int step = 0; step < 5; ++step) {
@@ -1824,6 +1834,8 @@ void flagship_skateboarding_validate_only_integration() {
   auto trick = gameplay.handleGameplayCommand(
       "fel.skate.trick", {{"difficulty", 0.85F}, {"combo_multiplier", 3}}, "skate_trick");
   require(trick.status == "ok", "skateboarding trick land");
+  require(trick.payload["release_state"].get<std::string>() == "production",
+          "skateboarding production release state");
   require(trick.payload["trick_score"].get<int>() > 0, "skateboarding score");
 
   int guard = 0;
@@ -1869,6 +1881,8 @@ void flagship_snowboarding_validate_only_integration() {
   auto carve = gameplay.handleGameplayCommand(
       "fel.snow.carve", {{"timing", 0.95F}, {"line_difficulty", 0.8F}}, "snow_carve");
   require(carve.status == "ok", "snowboarding carve");
+  require(carve.payload["release_state"].get<std::string>() == "production",
+          "snowboarding production release state");
   require(carve.payload["agent_envelope"]["command"].get<std::string>() == "fel.snow.carve",
           "snow carve agent envelope");
 
@@ -1917,6 +1931,8 @@ void flagship_surfing_validate_only_integration() {
   const auto carve = gameplay.handleGameplayCommand(
       "fel.surf.carve", {{"timing", 0.94F}, {"wave_difficulty", 0.8F}}, "surf_carve");
   require(carve.status == "ok", "surfing carve");
+  require(carve.payload["release_state"].get<std::string>() == "production",
+          "surfing production release state");
   require(carve.payload["carve"]["grade"].get<std::string>() == "perfect", "surf perfect carve");
   require(carve.payload["wave_score"].get<int>() > 0, "surfing wave score advances");
 
@@ -2016,6 +2032,8 @@ void flagship_who_scene_it_validate_only_integration() {
   auto buzz = gameplay.handleGameplayCommand(
       "fel.scene.buzz_in", {{"timing", 0.94F}}, "scene_buzz");
   require(buzz.status == "ok", "who scene it buzz in");
+  require(buzz.payload["release_state"].get<std::string>() == "production",
+          "who scene it production release state");
   require(buzz.payload["buzz"]["won_buzz"].get<bool>(), "player wins buzz");
   require(buzz.payload["agent_envelope"]["command"].get<std::string>() == "fel.scene.buzz_in",
           "scene buzz agent envelope");

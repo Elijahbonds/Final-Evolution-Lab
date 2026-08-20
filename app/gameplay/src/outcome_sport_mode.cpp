@@ -1,5 +1,7 @@
 #include "nexus/gameplay/outcome_sport_mode.h"
 
+#include "nexus/gameplay/arena_mode_registry.h"
+
 #include <algorithm>
 #include <string_view>
 
@@ -302,7 +304,7 @@ auto OutcomeSportMode::pulse(const nlohmann::json& params) -> Result<nlohmann::j
                       {"points", points},
                       {"sport_action", m_lastAction},
                       {"streak", m_streak}};
-  payload["release_state"] = "validate_only";
+  payload["release_state"] = ArenaModeRegistry::releaseStateLabelForMode(m_modeId);
   return Result<nlohmann::json>::ok(std::move(payload));
 }
 
