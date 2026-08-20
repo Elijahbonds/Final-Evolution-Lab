@@ -190,14 +190,23 @@ struct ContentView: View {
         .fullScreenCover(isPresented: $showAgentLaunchedGame) {
             if let mode = agentLaunchMode {
                 NavigationStack {
-                    GamePlayView(
-                        viewModel: viewModel,
-                        gameMode: mode,
-                        sessionReadiness: agentLaunchReadiness
-                    )
-                    .toolbar {
-                        ToolbarItem(placement: .topBarLeading) {
-                            Button("Close") { showAgentLaunchedGame = false }
+                    if mode.id.isIRLDunkContest {
+                        DunkMatchmakingView(viewModel: viewModel)
+                            .toolbar {
+                                ToolbarItem(placement: .topBarLeading) {
+                                    Button("Close") { showAgentLaunchedGame = false }
+                                }
+                            }
+                    } else {
+                        GamePlayView(
+                            viewModel: viewModel,
+                            gameMode: mode,
+                            sessionReadiness: agentLaunchReadiness
+                        )
+                        .toolbar {
+                            ToolbarItem(placement: .topBarLeading) {
+                                Button("Close") { showAgentLaunchedGame = false }
+                            }
                         }
                     }
                 }

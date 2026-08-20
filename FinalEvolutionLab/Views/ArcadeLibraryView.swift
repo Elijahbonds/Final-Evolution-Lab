@@ -485,6 +485,12 @@ struct ArcadeLibraryView: View {
 
     @MainActor
     private func pushGameplayRoute(_ modeId: GameModeId) async {
+        if modeId.isIRLDunkContest {
+            gameplayRoute = nil
+            gameplayLaunchId = UUID()
+            showDunkPlatform = true
+            return
+        }
         if gameplayRoute == modeId {
             gameplayRoute = nil
             try? await Task.sleep(for: .milliseconds(50))

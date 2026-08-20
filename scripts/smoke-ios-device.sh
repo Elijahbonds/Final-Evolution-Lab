@@ -39,31 +39,36 @@ Prerequisites
 
 A. Menu navigation (DoD #6)
   1. Launch app → tab shell visible (≤2 taps to Arena)
-  2. Arena → Modes → Dunk Contest (P0) and Karate Endless (P1) cards visible
+  2. Arena → Modes → IRL H2H Dunk Contest (P0), 3D H2H Dunk Contest, and Karate Endless (P1) cards visible
   3. Tap a P2 mode → "Coming Soon" sheet (release config)
 
-B. Dunk Contest touch loop (DoD #3)
-  1. Tap Dunk Contest → GamePlayView loads (no crash)
+B. IRL Dunk proctored flow (DoD #3)
+  1. Tap IRL H2H Dunk Contest → DunkMatchmakingView loads (no C++ session error)
+  2. Confirm regulation rim / tripod / proctor checklist appears
+  3. Start queue → WDA judges panel and recording tracker are reachable
+
+C. 3D Dunk Contest touch loop (DoD #3)
+  1. Tap 3D H2H Dunk Contest → GamePlayView loads (no crash)
   2. Hold anywhere → release → tap at apex
   3. Center HUD: timing_grade + player_score increment
   4. NEXUS session_state shows active during play
 
-C. Karate Endless combat (DoD #5)
+D. Karate Endless combat (DoD #5)
   1. Back → Arena → Karate Endless
   2. Tap Punch / Kick / Block → combo/score updates in HUD
   3. HUD shows wave + HP from mode_state.karate
 
-D. Session end + receipt (DoD #4)
-  1. Play one dunk or karate round → tap back / exit gameplay
+E. Session end + receipt (DoD #4)
+  1. Play one 3D dunk or karate round → tap back / exit gameplay
   2. Xcode → Window → Devices and Simulators → select iPhone
   3. Download container → inspect:
        Library/Application Support/.fel/pending_receipts/*.json
      (or ~/Library/Containers/.../Data/... on simulator)
   4. Relaunch app → foreground upload drains queue (HTTP 2xx when authed)
 
-E. Stability
+F. Stability
   1. No crash on session start, HUD poll, or session end
-  2. Return to Arena menu; repeat B once
+  2. Return to Arena menu; repeat B and C once
 
 Sign-off
   Tester: ____________   Device: ____________   iOS: ____________
