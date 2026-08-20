@@ -101,7 +101,15 @@ auto handleCommandJson(nexus::gameplay::GameplayApplication& application,
 } // namespace
 
 bool nexus_gameplay_bridge_is_linked(void) {
-  return true;
+  static const bool linked = [] {
+    try {
+      auto probe = std::make_unique<NexusGameplaySession>();
+      return probe != nullptr && probe->physicsReady;
+    } catch (...) {
+      return false;
+    }
+  }();
+  return linked;
 }
 
 NexusGameplayHandle nexus_gameplay_session_create(void) {
@@ -116,6 +124,11 @@ void nexus_gameplay_session_destroy(NexusGameplayHandle handle) {
   delete static_cast<NexusGameplaySession*>(handle);
 }
 
+bool nexus_gameplay_session_physics_ready(NexusGameplayHandle handle) {
+  auto* session = static_cast<NexusGameplaySession*>(handle);
+  return session != nullptr && session->physicsReady;
+}
+
 void nexus_gameplay_session_tick(NexusGameplayHandle handle, double deltaSeconds) {
   auto* session = static_cast<NexusGameplaySession*>(handle);
   if (session == nullptr || !session->physicsReady) {
@@ -125,8 +138,8 @@ void nexus_gameplay_session_tick(NexusGameplayHandle handle, double deltaSeconds
   auto& perf = nexus::core::PerfMonitor::instance();
   perf.beginFrame();
   
-  session->application.update(deltaSeconds, session->physicsWorld, {});
   session->physicsWorld.step(deltaSeconds);
+  session->application.update(deltaSeconds, session->physicsWorld, {});
   
   perf.endFrame();
 }

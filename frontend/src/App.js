@@ -59,11 +59,12 @@ const FALLBACK_PROGRESS = { total_workouts: 0, total_games: 0, total_brawls: 0, 
 // XP / Shards / PRQ / MRI rewards even when the backend is unreachable.
 const SHARD_BASE_BY_OUTCOME = { win: 50, draw: 25, loss: 15 };
 const PRQ_MODE_WEIGHTS = {
-  basketball_h2h: 1.2, basketball_dunk: 1.0, basketball_3v3: 1.3,
+  basketball_h2h: 1.2, basketball_dunk: 1.0, basketball_dunk_3d: 1.0, basketball_dunk_irl: 1.5, basketball_3v3: 1.3,
   karate: 1.4, karate_h2h: 1.4, karate_endless: 1.4,
   baseball: 1.0, football: 1.5, soccer: 1.1, golf: 0.9, tennis: 1.1,
-  volleyball: 1.2, gymnastics: 1.0, brain_brawl: 0.8, surfing: 1.05,
-  skateboarding: 1.0, snowboarding: 1.0, market_browse: 0.0,
+  volleyball: 1.2, gymnastics: 1.0, brain_brawl: 1.0, who_scene_it: 1.1,
+  court_carnival: 1.0, trivia_arena: 1.0, surfing: 1.05,
+  skateboarding: 0.9, snowboarding: 0.9, market_browse: 0.0,
 };
 function computeLocalReward({ mode_id, score, outcome, duration_seconds = 30, combo = 0, critical = 0, pacing = 0 }) {
   const xp = Math.min(500, Math.max(10, Math.floor(score / 5)));
@@ -1061,7 +1062,7 @@ const GameModesView = () => {
               <Shield className="w-20 h-20 text-yellow-400 mx-auto mb-6" />
               <h2 className="text-3xl font-bold" style={{fontFamily:'Barlow Condensed'}}>SYSTEM RE-AUTH REQUIRED</h2>
               <p className="text-zinc-400 mt-3">No MapLoaded signal received within 10s.</p>
-              <p className="text-zinc-500 text-sm mt-2">Verify UE5 binary is running and Final Evolution Hub is reachable.</p>
+              <p className="text-zinc-500 text-sm mt-2">Verify the NEXUS runtime is running and Final Evolution Hub is reachable.</p>
               <div className="flex gap-4 mt-6 justify-center">
                 <button onClick={() => {setLaunchStatus(null);setLaunchingMode(null);}} className="btn-secondary">Back to Modes</button>
                 <button onClick={() => launchNativeMode(modes.find(m => m.id === launchingMode) || modes[0])} className="btn-primary">Retry Launch</button>
@@ -1070,8 +1071,8 @@ const GameModesView = () => {
           ) : (
             <>
               <div className="w-20 h-20 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-              <h2 className="text-3xl font-bold" style={{fontFamily:'Barlow Condensed'}}>INITIALIZING UE5 MODULE</h2>
-              <p className="text-zinc-400 mt-3 font-mono text-sm">FinalEvolutionLab.uproject → {(launchingMode || '').replace(/_/g,' ')}</p>
+              <h2 className="text-3xl font-bold" style={{fontFamily:'Barlow Condensed'}}>INITIALIZING NEXUS RUNTIME</h2>
+              <p className="text-zinc-400 mt-3 font-mono text-sm">FinalEvolutionLab NEXUS → {(launchingMode || '').replace(/_/g,' ')}</p>
               <div className="mt-6 space-y-2 text-xs text-zinc-500 font-mono">
                 <div className="flex items-center gap-2 justify-center"><div className="w-2 h-2 bg-green-400 rounded-full"></div>Session registered at Final Evolution Hub</div>
                 <div className="flex items-center gap-2 justify-center"><div className={`w-2 h-2 rounded-full ${launchStatus === 'map_loading' ? 'bg-cyan-400 animate-pulse' : 'bg-zinc-600'}`}></div>Awaiting MapLoaded handshake from bridge...</div>
@@ -1095,7 +1096,7 @@ const GameModesView = () => {
     return <PlayableGame mode={playingMode} onComplete={handleGameComplete} onBack={() => setPlayingMode(null)} />;
   }
 
-  const categories = ['all','Basketball','Combat','Field','Court','Precision','Board','Performance','Academy'];
+  const categories = ['all','Basketball','Combat','Field','Court','Precision','Board','Performance','Academy','Party','Shop'];
   const filtered = filter === 'all' ? modes : modes.filter(m => m.category === filter);
 
   return (
@@ -1118,7 +1119,7 @@ const GameModesView = () => {
               <h3 className="text-xl font-bold" style={{fontFamily:'Barlow Condensed'}}>{mode.display_name}</h3>
               <p className="text-sm text-zinc-400 mb-2">{mode.description}</p>
               <div className="flex items-center gap-4 text-xs text-zinc-500"><span>{mode.player_count}</span><span>{mode.duration}</span><span>{mode.difficulty}</span></div>
-              {mode.playable && <button data-testid={`play-${mode.id}`} className="btn-primary mt-3 text-sm py-2 w-full" onClick={(e) => {e.stopPropagation();launchNativeMode(mode);}}>{launchingMode === mode.id ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>Launching UE5...</span> : <span><Play className="w-4 h-4 inline mr-1" />Launch Game</span>}</button>}
+              {mode.playable && <button data-testid={`play-${mode.id}`} className="btn-primary mt-3 text-sm py-2 w-full" onClick={(e) => {e.stopPropagation();launchNativeMode(mode);}}>{launchingMode === mode.id ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>Launching NEXUS...</span> : <span><Play className="w-4 h-4 inline mr-1" />Launch Game</span>}</button>}
             </div>
           </div>
         ))}
