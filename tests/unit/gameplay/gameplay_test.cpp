@@ -36,6 +36,7 @@
 #include <fstream>
 #include <fstream>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -58,6 +59,11 @@ void require(bool condition, const char* message) {
 void require(bool condition, const std::string& message) {
   require(condition, message.c_str());
 }
+
+void require_json_object(const nlohmann::json& value, const char* label);
+void require_nested_object(const nlohmann::json& root,
+                           std::string_view key,
+                           const char* label);
 
 void removeTreeBestEffort(const std::filesystem::path& root) {
   for (int attempt = 0; attempt < 5; ++attempt) {
