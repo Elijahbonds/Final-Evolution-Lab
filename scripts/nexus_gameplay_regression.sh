@@ -23,8 +23,8 @@ done
 mkdir -p "${ARTIFACT_DIR}"
 cd "${ROOT}"
 
-echo "==> iOS bridge contract"
-python3 "${ROOT}/scripts/validate_ios_bridge_contract.py"
+echo "==> iOS/NEXUS Linux preflight"
+"${ROOT}/scripts/ios-linux-preflight.sh"
 
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
   echo "==> Configure + build headless gameplay tests"
