@@ -37,6 +37,8 @@ public:
   void clearPendingFrames();
 
 private:
+  void trimPendingFrames();
+
   HudRelayConfig m_config;
   nexus::core::WebSocketClient m_relay;
   nlohmann::json m_latestFrame{nlohmann::json::object()};

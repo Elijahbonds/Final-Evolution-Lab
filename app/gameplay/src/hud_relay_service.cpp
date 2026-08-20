@@ -2,11 +2,15 @@
 
 #include "nexus/core/log.h"
 
+#include <cstddef>
 #include <utility>
 
 namespace nexus::gameplay {
 
 namespace {
+
+constexpr std::size_t kMaxPendingHudFrames = 120;
+constexpr std::size_t kPendingHudFramesAfterTrim = 60;
 
 nexus::core::WebSocketClient makeRelayClient(const HudRelayConfig& config) {
   return nexus::core::WebSocketClient{
@@ -16,6 +20,15 @@ nexus::core::WebSocketClient makeRelayClient(const HudRelayConfig& config) {
           .useStubTransport = config.useStubTransport,
       },
   };
+}
+
+void trimPendingHudFrames(std::vector<nlohmann::json>& pendingFrames) {
+  if (pendingFrames.size() > kMaxPendingHudFrames) {
+    pendingFrames.erase(pendingFrames.begin(),
+                        pendingFrames.begin() +
+                            static_cast<std::ptrdiff_t>(pendingFrames.size() -
+                                                        kPendingHudFramesAfterTrim));
+  }
 }
 
 } // namespace
@@ -55,9 +68,7 @@ void HudRelayService::emitTickFrame(const nlohmann::json& framePayload) {
       {"payload", framePayload},
   };
   m_pendingFrames.push_back(m_latestFrame);
-  if (m_pendingFrames.size() > 120) {
-    m_pendingFrames.erase(m_pendingFrames.begin(), m_pendingFrames.begin() + 60);
-  }
+  trimPendingFrames();
 
   if (m_relay.state() != nexus::core::WebSocketClientState::kConnected) {
     (void)m_relay.connect();
@@ -77,6 +88,7 @@ void HudRelayService::broadcastMessage(std::string_view messageType,
       {"payload", payload},
   };
   m_pendingFrames.push_back(frame);
+  trimPendingFrames();
 
   if (m_relay.state() != nexus::core::WebSocketClientState::kConnected) {
     (void)m_relay.connect();
@@ -114,6 +126,10 @@ auto HudRelayService::sentTransportFrames() const -> std::span<const std::string
 
 void HudRelayService::clearPendingFrames() {
   m_pendingFrames.clear();
+}
+
+void HudRelayService::trimPendingFrames() {
+  trimPendingHudFrames(m_pendingFrames);
 }
 
 } // namespace nexus::gameplay

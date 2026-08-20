@@ -37,6 +37,7 @@
 #include <fstream>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #if defined(__unix__) || defined(__APPLE__)
@@ -129,6 +130,30 @@ private:
   return std::system("command -v curl >/dev/null 2>&1") == 0;
 }
 #endif
+
+[[nodiscard]] auto makeTestSessionResult(std::string sessionId,
+                                         std::string modeId = "basketball_dunk",
+                                         float score = 21.0F) -> nexus::gameplay::SessionResult {
+  nexus::gameplay::SessionResult result{};
+  result.userId = "receipt_sync_user";
+  result.sessionId = std::move(sessionId);
+  result.modeId = std::move(modeId);
+  result.venueId = "venice_beach";
+  result.outcome = nexus::gameplay::MatchOutcome::kWin;
+  result.score = score;
+  result.opponentScore = 10.0F;
+  result.durationSeconds = 60.0F;
+  result.completed = true;
+  result.resultType = "win";
+  result.arv = 75.0F;
+  result.esi = 20.0F;
+  result.pacingScore = 80.0F;
+  result.mriScore = 75.0F;
+  result.xpCandidate = 250.0F;
+  result.shardsCandidate = 50.0F;
+  result.prqDeltaCandidate = 1.5F;
+  return result;
+}
 
 void fitness_data_snapshots_are_thread_safe() {
   nexus::gameplay::ThreadSafeFitnessData fitness;
@@ -889,6 +914,68 @@ void session_receipt_disk_keyed_by_session_id() {
   require(loaded["score"].get<int>() == 99, "re-flush overwrites receipt contents");
 
   removeTreeBestEffort(tempDir);
+}
+
+void gameplay_manager_partial_receipt_flush_keeps_only_failed_receipts_pending() {
+#if defined(__unix__) || defined(__APPLE__)
+  if (!curlAvailable()) {
+    std::fprintf(stderr, "SKIP: curl unavailable for gameplay manager partial receipt flush test\n");
+    return;
+  }
+
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_manager_partial_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  SingleResponseHttpServer server(204);
+  nexus::gameplay::GameplayManager manager;
+  manager.setReceiptClientConfig({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  manager.dispatchSessionReceipt(makeTestSessionResult("delivered_session", "basketball_dunk", 21.0F));
+  manager.dispatchSessionReceipt(makeTestSessionResult("retry_session", "karate_endless", 8.0F));
+  require(manager.pendingReceipts().size() == 2, "manager starts with two pending receipts");
+
+  const auto flush = manager.flushPendingReceipts();
+  require(flush.attempted == 2, "partial manager flush attempts both receipts");
+  require(flush.delivered == 1, "partial manager flush delivers first receipt");
+  require(flush.requeued == 1, "partial manager flush requeues failed receipt");
+  require(manager.pendingReceipts().size() == 1, "manager pending mirrors receipt client retry queue");
+  require(manager.pendingReceipts().front()["telemetry"]["session_id"].get<std::string>() ==
+              "retry_session",
+          "manager keeps only failed receipt pending");
+  require(!std::filesystem::exists(tempDir), "partial HTTP-only manager flush does not create disk queue");
+#else
+  std::fprintf(stderr, "SKIP: gameplay manager partial receipt flush test requires POSIX sockets\n");
+#endif
+}
+
+void gameplay_manager_tick_flush_syncs_pending_receipts() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_manager_tick_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::GameplayManager manager;
+  manager.setReceiptClientConfig({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = "http://127.0.0.1:8000/api/games/session",
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = true,
+      .flushIntervalSeconds = 0.1F,
+  });
+  manager.dispatchSessionReceipt(makeTestSessionResult("tick_flush_session"));
+  require(manager.pendingReceipts().size() == 1, "tick flush test starts pending");
+
+  manager.tickReceiptClient(0.2);
+
+  require(manager.pendingReceipts().empty(), "tick-triggered receipt flush clears manager pending");
+  require(!std::filesystem::exists(tempDir), "stub tick flush does not create disk queue");
 }
 
 void hud_poll_returns_tick_frame_payload() {
@@ -2034,6 +2121,22 @@ void hud_relay_websocket_stub_emits_frames() {
           "hud relay WS payload type");
 }
 
+void hud_relay_broadcast_messages_are_bounded() {
+  nexus::gameplay::HudRelayService relay({.useStubTransport = true});
+  relay.setWebSocketUrl("ws://127.0.0.1:8787/ws/hud");
+  require(relay.connectRelay().isOk(), "hud relay broadcast cap connect");
+
+  for (int index = 0; index < 130; ++index) {
+    relay.broadcastMessage("economy_update", {{"index", index}});
+  }
+
+  require(relay.pendingFrames().size() <= 120, "hud broadcast pending frames remain bounded");
+  require(relay.pendingFrames().front()["payload"]["index"].get<int>() >= 60,
+          "hud broadcast cap trims oldest pending messages");
+  require(relay.pendingFrames().back()["payload"]["index"].get<int>() == 129,
+          "hud broadcast cap preserves newest message");
+}
+
 void session_receipt_http_stub_posts_localhost_contract() {
   const auto tempDir = std::filesystem::temp_directory_path() /
                        ("fel_receipt_http_stub_test_" + std::to_string(getpid()));
@@ -2968,9 +3071,12 @@ auto main() -> int {
   arena_pause_resume_preserves_session();
   session_receipt_flush_keeps_queue_when_http_disabled();
   session_receipt_disk_keyed_by_session_id();
+  gameplay_manager_partial_receipt_flush_keeps_only_failed_receipts_pending();
+  gameplay_manager_tick_flush_syncs_pending_receipts();
   hud_poll_returns_tick_frame_payload();
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
+  hud_relay_broadcast_messages_are_bounded();
   session_receipt_http_stub_posts_localhost_contract();
   session_receipt_live_http_success_does_not_count_disk_queue();
   session_receipt_live_http_non_2xx_requeues_without_disk();

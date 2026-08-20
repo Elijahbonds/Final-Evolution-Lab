@@ -33,6 +33,8 @@ if [[ "${SKIP_BUILD}" -eq 0 ]]; then
     export CXX="g++"
   fi
   cmake -S . -B "${HEADLESS_DIR}" \
+    -DCMAKE_C_COMPILER="${CC:-cc}" \
+    -DCMAKE_CXX_COMPILER="${CXX:-c++}" \
     -DNEXUS_ENABLE_RENDERER=OFF \
     -DNEXUS_BUILD_RUNTIME=OFF \
     -DNEXUS_BUILD_TESTS=ON
