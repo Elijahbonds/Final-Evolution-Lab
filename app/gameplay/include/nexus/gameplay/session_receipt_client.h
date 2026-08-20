@@ -4,8 +4,9 @@
 #include "nexus/core/http_client.h"
 #include "nexus/core/result.h"
 
-#include <nlohmann/json.hpp>
 #include <cstddef>
+#include <cstdint>
+#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
 #include <vector>
