@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-FEL Smoke Test Suite — 12 Production Mode Acceptance Tests
-Tests each production mode's registration, configuration, and deep link routing.
-Run against a live or mock FEL backend.
+FEL Smoke Test Suite — NEXUS production mode acceptance tests.
+Tests each production runtime mode's registration, configuration, and deep link routing.
+Run against committed app/game registries.
 """
 import json
 import sys
@@ -33,17 +33,31 @@ def skip(msg):
 # Production modes expected to pass all gates
 # ═══════════════════════════════════════════════════════════════════════════════
 PRODUCTION_MODES = [
-    "basketball_h2h", "basketball_dunk", "basketball_3v3",
+    "basketball_h2h", "basketball_dunk", "basketball_3v3", "court_carnival",
     "karate_h2h", "karate_endless",
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
     "gymnastics", "skateboarding", "snowboarding",
+    "brain_brawl", "who_scene_it",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = []
+SWIFT_MODE_ALIASES = {
+    # iOS exposes separate IRL/3D cartridges; C++ runtime and backend receipts use basketball_dunk.
+    "basketball_dunk": ["basketball_dunk_3d"],
+}
+
+def expected_swift_raw_values(mode):
+    return [mode] + SWIFT_MODE_ALIASES.get(mode, [])
+
+def find_venue_mode_entry(modes, mode):
+    for entry in modes:
+        if entry.get("id") == mode or entry.get("nexusRuntimeModeId") == mode:
+            return entry
+    return None
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -131,13 +145,12 @@ def test_arena_settings():
 def test_venue_registry():
     print("\n── Test 4: VenueRegistry Coverage ──")
     vr = json.loads((REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Config" / "FEL_VenueRegistry.production.json").read_text())
-    mode_ids = {m["id"] for m in vr["modes"]}
     venue_keys = {v["venueKey"] for v in vr["venues"]}
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
-        if mode in mode_ids:
-            entry = next(m for m in vr["modes"] if m["id"] == mode)
+        entry = find_venue_mode_entry(vr["modes"], mode)
+        if entry is not None:
             if entry["venueKey"] in venue_keys:
                 ok(f"{mode} → venue={entry['venueKey']}")
             else:
@@ -194,9 +207,11 @@ def test_swift_enum():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
-        # Search for rawValue
-        if f'= "{mode}"' in content:
-            ok(f'{mode} has Swift enum case')
+        # Search for rawValue, allowing documented runtime aliases.
+        matched = next((raw for raw in expected_swift_raw_values(mode) if f'= "{raw}"' in content), None)
+        if matched is not None:
+            suffix = "" if matched == mode else f" via {matched}"
+            ok(f'{mode} has Swift enum case{suffix}')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
 
@@ -256,7 +271,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print("  18 NEXUS runtime modes · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()

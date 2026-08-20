@@ -18,6 +18,7 @@
 #include "nexus/gameplay/venue_volume_registry.h"
 #include "nexus/gameplay/voxel_command_parser.h"
 
+#include <cstdint>
 #include <cstddef>
 #include <nlohmann/json.hpp>
 #include <optional>
