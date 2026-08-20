@@ -109,6 +109,7 @@ private:
   [[nodiscard]] auto computePrqDelta(MatchOutcome outcome, float mriScore, float weight) const
       -> float;
   [[nodiscard]] static auto makeSessionId() -> std::string;
+  void syncPendingReceiptsFromClient();
 
   SessionReceiptClient m_receiptClient;
   std::vector<nlohmann::json> m_pendingReceipts;

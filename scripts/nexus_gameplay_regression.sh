@@ -23,14 +23,44 @@ done
 mkdir -p "${ARTIFACT_DIR}"
 cd "${ROOT}"
 
+echo "==> iOS bridge contract"
+python3 "${ROOT}/scripts/validate_ios_bridge_contract.py"
+
+echo "==> Mode registry contract"
+python3 "${ROOT}/scripts/validate_mode_registry.py"
+
+echo "==> iOS runtime launch contract"
+python3 "${ROOT}/scripts/validate_ios_runtime_launches.py"
+
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
   echo "==> Configure + build headless gameplay tests"
+  if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
+    export CC="${CC:-gcc}"
+    export CXX="g++"
+  fi
+  if [[ "${HEADLESS_DIR}" == "/" || "${HEADLESS_DIR}" == "${ROOT}" ]]; then
+    echo "error: refusing unsafe headless build directory: ${HEADLESS_DIR}" >&2
+    exit 1
+  fi
+  # Use a fresh build tree for normal regression runs. Stale generated Makefile
+  # dependency state in build-headless can erase .o/.o.d files under parallel
+  # rebuilds and block the app/game gate before gameplay tests execute.
+  rm -rf "${HEADLESS_DIR}"
   cmake -S . -B "${HEADLESS_DIR}" \
+    -DCMAKE_C_COMPILER="${CC:-cc}" \
+    -DCMAKE_CXX_COMPILER="${CXX:-c++}" \
     -DNEXUS_ENABLE_RENDERER=OFF \
     -DNEXUS_BUILD_RUNTIME=OFF \
     -DNEXUS_BUILD_TESTS=ON
-  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)" --target nexus_gameplay_test
+  JOBS="$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
+  cmake --build "${HEADLESS_DIR}" -j"${JOBS}"
 fi
+
+for test_binary in "${HEADLESS_DIR}"/nexus_*_test; do
+  if [[ -f "${test_binary}" ]]; then
+    chmod u+x "${test_binary}"
+  fi
+done
 
 GAMEPLAY_TEST="${HEADLESS_DIR}/nexus_gameplay_test"
 if [[ ! -x "${GAMEPLAY_TEST}" ]]; then
