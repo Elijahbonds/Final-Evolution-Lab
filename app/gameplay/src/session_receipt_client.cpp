@@ -109,7 +109,9 @@ auto SessionReceiptClient::flush() -> SessionReceiptDispatchResult {
     const auto delivery = deliverReceipt(receipt);
     if (delivery.isOk()) {
       ++result.delivered;
-      ++result.queued_on_disk;
+      if (m_config.persistToDisk) {
+        ++result.queued_on_disk;
+      }
       continue;
     }
 
@@ -212,9 +214,14 @@ auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Resu
     if (postResult.isErr()) {
       return postResult;
     }
+    if (postResult.value() < 200 || postResult.value() >= 300) {
+      return Result<int>::err("session receipt POST rejected with status " +
+                              std::to_string(postResult.value()));
+    }
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                    "Session receipt POST mode=" + modeId + " score=" + std::to_string(score) +
                        " status=" + std::to_string(postResult.value()));
+    return Result<int>::ok(postResult.value());
   } else {
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                    "Session receipt flush (HTTP disabled) mode=" + modeId +

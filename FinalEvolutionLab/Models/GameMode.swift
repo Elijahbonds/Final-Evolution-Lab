@@ -74,16 +74,14 @@ extension GameModeId {
     var nexusCapabilityTier: NexusCapabilityTier {
         switch self {
         case .basketballDunkContestIRL, .basketballDunkContest3D, .karateEndless, .basketballHeadToHead, .venicePickup, .courtCarnival,
-             .whoSceneIt:
+             .whoSceneIt, .brainBrawl:
+            return .prod
+        case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
             return .prod
         case .gymnastics, .skateboarding, .snowboarding, .surfing:
             return .prod
-        case .brainBrawl:
-            return .staging
-        case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
-            return .sim
         case .marketBrowse:
-            return .preview
+            return .nonGame
         }
     }
 

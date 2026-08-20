@@ -2,11 +2,54 @@
 
 #include "nexus/core/log.h"
 
+#include <atomic>
+#include <chrono>
+#include <cctype>
 #include <cstdio>
 #include <cstdlib>
+#include <exception>
+#include <filesystem>
+#include <fstream>
 #include <sstream>
 
 namespace nexus::core {
+
+namespace {
+
+[[nodiscard]] auto shellQuote(std::string_view value) -> std::string {
+  std::string quoted;
+  quoted.reserve(value.size() + 2);
+  quoted.push_back('\'');
+  for (const char ch : value) {
+    if (ch == '\'') {
+      quoted += "'\\''";
+    } else {
+      quoted.push_back(ch);
+    }
+  }
+  quoted.push_back('\'');
+  return quoted;
+}
+
+[[nodiscard]] auto trimAsciiWhitespace(std::string value) -> std::string {
+  while (!value.empty() && std::isspace(static_cast<unsigned char>(value.front())) != 0) {
+    value.erase(value.begin());
+  }
+  while (!value.empty() && std::isspace(static_cast<unsigned char>(value.back())) != 0) {
+    value.pop_back();
+  }
+  return value;
+}
+
+[[nodiscard]] auto makeReceiptPostBodyPath() -> std::filesystem::path {
+  static std::atomic<std::uint64_t> counter{0};
+  const auto now = std::chrono::steady_clock::now().time_since_epoch().count();
+  return std::filesystem::temp_directory_path() /
+         ("nexus_receipt_post_" + std::to_string(now) + "_" +
+          std::to_string(counter.fetch_add(1, std::memory_order_relaxed)) + ".json");
+}
+
+} // namespace
 
 HttpClient::HttpClient(HttpClientConfig config) : m_config(std::move(config)) {}
 
@@ -60,22 +103,54 @@ auto HttpClient::postViaCurl(std::string_view jsonBody) -> Result<int> {
     }
   }
 
+  const std::filesystem::path bodyPath = makeReceiptPostBodyPath();
+  {
+    std::ofstream bodyFile(bodyPath, std::ios::binary | std::ios::trunc);
+    if (!bodyFile.is_open()) {
+      return Result<int>::err("failed to write curl POST body temp file");
+    }
+    bodyFile.write(jsonBody.data(), static_cast<std::streamsize>(jsonBody.size()));
+    if (!bodyFile.good()) {
+      std::error_code ec;
+      std::filesystem::remove(bodyPath, ec);
+      return Result<int>::err("failed to write curl POST body");
+    }
+  }
+
   std::ostringstream curlCmd;
-  curlCmd << "curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json'";
+  curlCmd << "curl -s --max-time 10 -o /dev/null -w '%{http_code}' -X POST "
+             "-H 'Content-Type: application/json'";
   if (!m_config.authToken.empty()) {
-    curlCmd << " -H 'Authorization: Bearer " << m_config.authToken << "'";
+    curlCmd << " -H " << shellQuote("Authorization: Bearer " + m_config.authToken);
   }
   curlCmd << " -H 'X-FEL-Client: ios' -H 'User-Agent: fel-ios/1.0 (NEXUS)'";
-  curlCmd << " -d @- '" << url << "'";
+  curlCmd << " --data-binary " << shellQuote("@" + bodyPath.string()) << ' ' << shellQuote(url);
 
-  FILE* pipe = popen(curlCmd.str().c_str(), "w");
+  FILE* pipe = popen(curlCmd.str().c_str(), "r");
   if (pipe == nullptr) {
+    std::error_code ec;
+    std::filesystem::remove(bodyPath, ec);
     return Result<int>::err("failed to spawn curl for session POST");
   }
-  (void)std::fwrite(jsonBody.data(), 1, jsonBody.size(), pipe);
-  const int closeStatus = pclose(pipe);
 
-  const int statusCode = closeStatus == 0 ? 200 : 502;
+  std::string httpStatus;
+  char buffer[32]{};
+  while (std::fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+    httpStatus += buffer;
+  }
+  const int closeStatus = pclose(pipe);
+  std::error_code ec;
+  std::filesystem::remove(bodyPath, ec);
+
+  httpStatus = trimAsciiWhitespace(std::move(httpStatus));
+  int statusCode = 0;
+  try {
+    statusCode = httpStatus.empty() ? 0 : std::stoi(httpStatus);
+  } catch (const std::exception&) {
+    m_posted.push_back({url, std::string(jsonBody), 0});
+    return Result<int>::err("curl POST returned invalid HTTP status: " + httpStatus);
+  }
+
   m_posted.push_back({url, std::string(jsonBody), statusCode});
 
   if (closeStatus != 0) {
@@ -84,7 +159,8 @@ auto HttpClient::postViaCurl(std::string_view jsonBody) -> Result<int> {
     return Result<int>::err("curl POST failed with exit " + std::to_string(closeStatus));
   }
 
-  NEXUS_LOG_INFO(LogChannel::kAI, "Session POST ok url=" + url);
+  NEXUS_LOG_INFO(LogChannel::kAI,
+                 "Session POST completed url=" + url + " status=" + std::to_string(statusCode));
   return Result<int>::ok(statusCode);
 }
 
