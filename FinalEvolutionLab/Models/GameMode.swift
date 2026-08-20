@@ -579,6 +579,8 @@ struct GameModeRegistry {
             return mode(for: .basketballHeadToHead)
         case "basketball_dunk":
             return mode(for: .basketballDunkContest3D)
+        case "karate_kata":
+            return mode(for: .karateEndless)
         default:
             break
         }

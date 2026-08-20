@@ -32,6 +32,19 @@ _confirmed_scans: set[str] = set()
 _critique_requests: list[dict[str, Any]] = []
 _brain_brawl_sessions: dict[str, dict[str, Any]] = {}
 _workout_logs: list[dict[str, Any]] = []
+_multiplayer_rooms: dict[str, dict[str, Any]] = {}
+_social_challenges: list[dict[str, Any]] = []
+_avatar_config: dict[str, Any] = {
+    "body_type": "athletic",
+    "hair_style": "short",
+    "expression": "focused",
+    "shoe_style": "court",
+    "skin_tone": "#8D5524",
+    "jersey_color": "#5CE1E6",
+    "shorts_color": "#111827",
+    "shoe_color": "#FFFFFF",
+    "accessories": [],
+}
 
 ARENA_MODES = [
     ("basketball_h2h", "Street · 1v1", "Basketball", "VeniceBeach", "1v1", "3 min"),
@@ -48,10 +61,12 @@ ARENA_MODES = [
     ("volleyball", "Volleyball · Sand Court", "Court", "SandCourt", "2v2", "3 min"),
     ("gymnastics", "Gymnastics · Floor", "Performance", "TrainingFloor", "Solo", "4 min"),
     ("brain_brawl", "Academy · Brain Brawl", "Academy", "NeuroArena", "Solo", "2 min"),
+    ("who_scene_it", "Who Scene It", "Academy", "NeuroArena", "2-8", "15 min"),
+    ("court_carnival", "Court Carnival · Arcade", "Party", "VeniceBeach", "2-4", "30 min"),
     ("surfing", "Surf · Line", "Board", "VeniceBeach", "Solo", "3 min"),
     ("skateboarding", "Skate · Dojo", "Board", "Dojo", "Solo", "3 min"),
     ("snowboarding", "Snow · Line", "Board", "TrainingFloor", "Solo", "3 min"),
-    ("market_browse", "Sovereign Shop", "Academy", "Luma_Venice_Shop", "Browse", "Open"),
+    ("market_browse", "Sovereign Shop", "Shop", "Luma_Venice_Shop", "Browse", "Open"),
     ("trivia_arena", "Trivia Arena", "Academy", "NeuroArena", "Solo", "2 min"),
 ]
 
@@ -153,11 +168,32 @@ def _mode(row: tuple[str, str, str, str, str, str]) -> dict[str, Any]:
         "player_count": players,
         "duration": duration,
         "difficulty": "Cognitive" if category == "Academy" else "Adaptive",
-        "game_type": "quiz" if mode_id in {"brain_brawl", "trivia_arena"} else "reflex",
+        "game_type": "quiz" if mode_id in {"brain_brawl", "who_scene_it", "trivia_arena"} else "strategy" if mode_id == "court_carnival" else "reflex",
         "playable": mode_id != "market_browse",
-        "image_url": "/images/ue5_basketball.png" if category == "Basketball" else "/images/ue5_board.png",
+        "image_url": "/images/ue5_basketball.png" if category in {"Basketball", "Party"} else "/images/ue5_board.png",
         "description": f"{display_name} is wired through the FEL shell economy and HUD pipeline.",
     }
+
+
+def _venue_registry() -> list[dict[str, Any]]:
+    return [
+        {"venueKey": "venice_beach_court", "analyticsPolicyName": "Venice Beach - Court + Luma shop backdrop", "nexusEnvironmentAssetId": "venice_beach_court_model_fbx"},
+        {"venueKey": "venice_beach_surf", "analyticsPolicyName": "Venice Beach - Surf + Luma shop backdrop", "nexusEnvironmentAssetId": "venice_beach_court_model_fbx"},
+        {"venueKey": "venice_beach_court_tennis", "analyticsPolicyName": "Venice Beach - Tennis + Luma shop backdrop", "nexusEnvironmentAssetId": "tennis_court_environment_model_fbx"},
+        {"venueKey": "regulation_court_irl", "analyticsPolicyName": "Regulation Court (IRL camera validation)", "nexusEnvironmentAssetId": "irl_regulation_court_reference"},
+        {"venueKey": "vault_shop", "analyticsPolicyName": "Luma Venice Shop (primary scan)", "nexusEnvironmentAssetId": "luma_venice_shop_environment_model_fbx"},
+        {"venueKey": "beach_court", "analyticsPolicyName": "Beach Court - Volleyball"},
+        {"venueKey": "dojo_arena", "analyticsPolicyName": "Zen / Dojo Arena", "nexusEnvironmentAssetId": "zen_dojo_environment_model_fbx"},
+        {"venueKey": "neuro_arena", "analyticsPolicyName": "Neuro Arena", "nexusEnvironmentAssetId": "neuro_arena_environment_model_fbx"},
+        {"venueKey": "skate_park", "analyticsPolicyName": "Skate Park"},
+        {"venueKey": "mountain_slope", "analyticsPolicyName": "Mountain Slope"},
+        {"venueKey": "stadium_diamond", "analyticsPolicyName": "Stadium Diamond"},
+        {"venueKey": "stadium_field", "analyticsPolicyName": "Stadium Field"},
+        {"venueKey": "stadium_pitch", "analyticsPolicyName": "Stadium Pitch"},
+        {"venueKey": "golf_green", "analyticsPolicyName": "Golf Green"},
+        {"venueKey": "arena_floor", "analyticsPolicyName": "Arena - Gymnastics"},
+        {"venueKey": "e3ds_stadium_lobby", "analyticsPolicyName": "E3DS Stadium / Lobby shell"},
+    ]
 
 
 def _today_totals() -> dict[str, int]:
@@ -176,6 +212,17 @@ def _target() -> dict[str, int]:
 @router.get("/games/modes")
 async def game_modes() -> list[dict[str, Any]]:
     return [_mode(row) for row in ARENA_MODES]
+
+
+@router.get("/registry/venues")
+async def registry_venues() -> dict[str, Any]:
+    venues = _venue_registry()
+    return {
+        "schema": "fel-venue-registry-2",
+        "source": "local_shell",
+        "total_venues": len(venues),
+        "venues": venues,
+    }
 
 
 @router.post("/ai/chat")
@@ -499,8 +546,203 @@ async def session_state(payload: dict[str, Any] | None = None) -> dict[str, Any]
 
 
 # ─────────────────────────────────────────────────────────────
+# Dashboard compatibility shims for the guide-aligned app.main stack
+# ─────────────────────────────────────────────────────────────
+@router.get("/multiplayer/rooms")
+async def multiplayer_rooms() -> list[dict[str, Any]]:
+    return list(_multiplayer_rooms.values())
+
+
+@router.post("/multiplayer/create-room")
+async def multiplayer_create_room(payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    data = payload or {}
+    room_id = f"room_{uuid.uuid4().hex[:10]}"
+    room = {
+        "id": room_id,
+        "host_name": "FEL Athlete",
+        "game_mode": data.get("game_mode", "basketball_h2h"),
+        "max_players": int(data.get("max_players", 2)),
+        "players": ["me"],
+        "settings": {"allow_spectators": bool(data.get("allow_spectators", True))},
+        "status": "open",
+        "created_at": _now(),
+        "source": "local_shell",
+    }
+    _multiplayer_rooms[room_id] = room
+    return room
+
+
+@router.post("/multiplayer/rooms/{room_id}/join")
+async def multiplayer_join_room(room_id: str) -> dict[str, Any]:
+    room = _multiplayer_rooms.setdefault(
+        room_id,
+        {"id": room_id, "host_name": "FEL Athlete", "game_mode": "basketball_h2h", "max_players": 2, "players": [], "settings": {"allow_spectators": True}, "status": "open", "source": "local_shell"},
+    )
+    if "me" not in room["players"]:
+        room["players"].append("me")
+    return {"status": "joined", "room": room}
+
+
+@router.post("/multiplayer/rooms/{room_id}/spectate")
+async def multiplayer_spectate_room(room_id: str) -> dict[str, str]:
+    return {"status": "spectating", "room_id": room_id}
+
+
+@router.get("/analytics/dashboard")
+async def analytics_dashboard() -> dict[str, Any]:
+    submitted_brawls = sum(1 for session in _brain_brawl_sessions.values() if session.get("submitted"))
+    mode_stats = [
+        {"game_mode": "brain_brawl", "total_sessions": submitted_brawls, "total_minutes": submitted_brawls * 2, "avg_score": 75 if submitted_brawls else 0, "avg_latency_ms": 38},
+    ]
+    return {
+        "vault_sync": {"sync_target": "Local NEXUS shell", "synced": submitted_brawls, "pending_sync": 0},
+        "overview": {"total_sessions": submitted_brawls, "total_minutes": submitted_brawls * 2},
+        "mode_stats": [stat for stat in mode_stats if stat["total_sessions"] > 0],
+    }
+
+
+@router.get("/analytics/policy")
+async def analytics_policy() -> dict[str, Any]:
+    return {
+        "vault_sync_protocol": {
+            "flow": [
+                "1. Local shell captures session receipts",
+                "2. Vault sync queues private performance data",
+                "3. Backend reconciles when services are online",
+            ],
+            "private_signaling_server": {"auth": "JWT or local shell session", "data_format": "JSON session receipt"},
+            "retention": "User controlled",
+            "data_policy": {"third_party_access": "None by default"},
+        }
+    }
+
+
+@router.post("/analytics/vault-sync")
+async def analytics_vault_sync() -> dict[str, Any]:
+    return {"status": "synced", "source": "local_shell", "synced_at": _now()}
+
+
+@router.get("/social/athletes")
+async def social_athletes() -> list[dict[str, Any]]:
+    return [
+        {"user_id": "dev-athlete", "name": "FEL Athlete", "sport": "basketball", "prq_score": 75, "level": 1, "followers": []},
+        {"user_id": "coach-sim", "name": "Coach Simulator", "sport": "training", "prq_score": 82, "level": 3, "followers": []},
+    ]
+
+
+@router.get("/social/challenges")
+async def social_challenges() -> list[dict[str, Any]]:
+    return _social_challenges
+
+
+@router.get("/social/feed")
+async def social_feed() -> list[dict[str, Any]]:
+    return [{"type": "game", "user_id": "dev-athlete", "detail": "Trivia Arena", "score": 300, "created_at": _now()}]
+
+
+@router.post("/social/follow/{user_id}")
+async def social_follow(user_id: str) -> dict[str, str]:
+    return {"status": "following", "user_id": user_id}
+
+
+@router.post("/social/challenge")
+async def social_challenge(payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    data = payload or {}
+    challenge = {
+        "id": f"challenge_{uuid.uuid4().hex[:10]}",
+        "challenged_id": data.get("target_id", "coach-sim"),
+        "game_mode": data.get("game_mode", "basketball_h2h"),
+        "status": "pending",
+        "created_at": _now(),
+    }
+    _social_challenges.insert(0, challenge)
+    return challenge
+
+
+@router.get("/tournaments")
+async def tournaments() -> list[dict[str, Any]]:
+    return [
+        {
+            "id": "local-open",
+            "name": "Local Arena Open",
+            "game_mode": "basketball_h2h",
+            "format": "single_elimination",
+            "status": "registration",
+            "current_players": 1,
+            "max_players": 8,
+            "start_date": "Local shell",
+            "prize": "500 Shards",
+            "bracket": [],
+        }
+    ]
+
+
+@router.post("/tournaments/{tournament_id}/join")
+async def tournament_join(tournament_id: str) -> dict[str, str]:
+    return {"status": "joined", "tournament_id": tournament_id}
+
+
+@router.get("/avatar/config")
+async def avatar_config() -> dict[str, Any]:
+    return _avatar_config
+
+
+@router.put("/avatar/config")
+async def avatar_update(payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    _avatar_config.update(payload or {})
+    return {"status": "saved", **_avatar_config}
+
+
+@router.get("/avatar/options")
+async def avatar_options() -> dict[str, list[str]]:
+    return {
+        "body_types": ["lean", "athletic", "power"],
+        "hair_styles": ["short", "curly", "braids", "fade"],
+        "expressions": ["focused", "calm", "locked-in"],
+        "shoe_styles": ["court", "trainer", "cleat"],
+        "skin_tones": ["#8D5524", "#C68642", "#E0AC69", "#F1C27D", "#FFDBAC"],
+        "jersey_colors": ["#5CE1E6", "#FF6B6B", "#00FF9D", "#FFFFFF"],
+        "shoe_colors": ["#FFFFFF", "#5CE1E6", "#FFB800", "#111827"],
+        "accessories": ["headband", "wristband", "compression_sleeve"],
+    }
+
+
+@router.get("/referral/stats")
+async def referral_stats() -> dict[str, Any]:
+    return {"total_referrals": 0, "total_coins_earned": 0, "pending_payout": 0, "code": "FEL-SHELL"}
+
+
+@router.post("/referral/generate")
+async def referral_generate() -> dict[str, str]:
+    return {"code": "FEL-SHELL"}
+
+
+@router.post("/referral/redeem")
+async def referral_redeem(payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    return {"message": "Local shell referral accepted", "code": (payload or {}).get("code", "FEL-SHELL"), "coins_earned": 100, "xp_earned": 50}
+
+
+@router.post("/referral/payout")
+async def referral_payout() -> dict[str, str]:
+    return {"status": "queued"}
+
+
+# ─────────────────────────────────────────────────────────────
 # Brain Brawl (server-graded cognitive quiz)
 # ─────────────────────────────────────────────────────────────
+@router.post("/education/brain-brawl/launch")
+async def education_brain_brawl_launch() -> dict[str, Any]:
+    session_id = f"bb_launch_{uuid.uuid4().hex[:12]}"
+    return {
+        "session_id": session_id,
+        "mode_id": "brain_brawl",
+        "ue5_mode_id": "brain_brawl",
+        "deep_link": f"fel://arena/brain_brawl?session_id={session_id}",
+        "status": "registered",
+        "source": "local_shell",
+    }
+
+
 BRAIN_BRAWL_BANK = [
     {"question": "Which training quality is most tied to reaction drills?", "options": ["Decision speed", "Ignoring cues", "Static posture only", "No feedback"], "answer": 0, "difficulty": "Cognitive", "category": "sports_iq"},
     {"question": "What should an athlete prioritize before increasing speed?", "options": ["Movement control", "Random reps", "Skipping warmups", "Fatigue only"], "answer": 0, "difficulty": "Foundational", "category": "sports_iq"},
@@ -632,6 +874,21 @@ async def hub_status() -> dict[str, Any]:
         "telemetry": {"prq": 75.6, "combo_meter": 0, "buckets": 0, "vertical_jump": 0, "velocity_vectors": {"x": 0, "y": 0, "z": 0}},
         "active_creator_card": None,
         "server": {"version": "1.0.0", "uptime_seconds": _uptime_seconds()},
+    }
+
+
+@router.get("/streaming/status")
+async def streaming_status() -> dict[str, Any]:
+    launchable = [mode for mode in (_mode(row) for row in ARENA_MODES) if mode["playable"]]
+    return {
+        "status": "local_shell",
+        "cloud_streaming": False,
+        "hub_listening": True,
+        "runtime": "nexus",
+        "supported_modes": [mode["id"] for mode in launchable],
+        "launchable_mode_count": len(launchable),
+        "registry_total": 22,
+        "note": "Cloud pixel streaming is not configured in this shell; launch requests use the local NEXUS/web simulator path.",
     }
 
 

@@ -37,7 +37,7 @@ if [[ "${SKIP_BUILD}" -eq 0 ]]; then
     -DNEXUS_BUILD_RUNTIME=OFF \
     -DNEXUS_BUILD_TESTS=ON
   # Regression runs must not reuse stale objects after engine/gameplay ABI changes.
-  cmake --build "${HEADLESS_DIR}" --clean-first -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
+  cmake --build "${HEADLESS_DIR}" --clean-first -j"${NEXUS_CLEAN_BUILD_JOBS:-1}"
 fi
 
 GAMEPLAY_TEST="${HEADLESS_DIR}/nexus_gameplay_test"

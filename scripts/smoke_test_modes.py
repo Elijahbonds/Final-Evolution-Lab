@@ -290,6 +290,11 @@ def test_swift_non_headless_guardrails():
     else:
         ok("playableMode(forRegistryId:) excludes market_browse")
 
+    if re.search(r'case\s+"karate_kata"\s*:\s*return\s+mode\(for:\s*\.karateEndless\)', content):
+        ok("playableMode(forRegistryId:) resolves karate_kata alias")
+    else:
+        fail("playableMode(forRegistryId:) must resolve karate_kata to karate_endless")
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 7: Server.py Seeded Game Modes
 # ═══════════════════════════════════════════════════════════════════════════════

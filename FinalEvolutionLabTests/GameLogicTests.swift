@@ -247,6 +247,7 @@ struct GameLogicTests {
 
     @Test func gameGeneratorPlayableModeResolverHandlesAliases() {
         #expect(GameModeRegistry.playableMode(forRegistryId: "venice_pickup")?.id == .basketballHeadToHead)
+        #expect(GameModeRegistry.playableMode(forRegistryId: "karate_kata")?.id == .karateEndless)
         #expect(GameModeRegistry.playableMode(forRegistryId: "basketball_dunk_irl") == nil)
         #expect(GameModeRegistry.playableMode(forRegistryId: "market_browse") == nil)
         #expect(GameModeRegistry.playableMode(forRegistryId: "snowboarding")?.id == .snowboarding)
