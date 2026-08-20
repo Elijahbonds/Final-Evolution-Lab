@@ -117,6 +117,8 @@ final class NexusGameplayEngine {
     }
 
     private(set) var isLinked: Bool = false
+    private(set) var bridgeLinked: Bool = NexusGameplayBridge.isLinked
+    private(set) var physicsReady: Bool = false
     private(set) var sessionActive: Bool = false
     private(set) var hud = NexusHUDSnapshot()
     private(set) var arenaModeId: String = ""
@@ -166,7 +168,10 @@ final class NexusGameplayEngine {
     func bootstrapForCreativeCommands(readiness: Double = 72) {
         guard session == nil else { return }
         start(modeId: "basketball_dunk", readiness: readiness, userId: "creative_author")
-        sessionActive = true
+        if session != nil, physicsReady {
+            sessionActive = true
+            isLinked = true
+        }
     }
 
     struct ArenaPromptPreview: Equatable {
@@ -484,13 +489,14 @@ final class NexusGameplayEngine {
         let sessionStarted = payload["session_started"] as? Bool ?? false
         if sessionStarted {
             sessionActive = true
+            isLinked = session != nil && physicsReady
             if let modeId = spec?.modeId, !modeId.isEmpty {
                 activeModeId = modeId
             }
             refreshHUDPoll()
             FELHUDRelayClient.shared.startIfConfigured()
             proMotionTicker.start { [weak self] deltaSeconds in
-                guard let self, self.session != nil, self.sessionActive else { return }
+                guard let self, self.session != nil, self.sessionActive, self.physicsReady else { return }
                 NexusGameplayBridge.tick(self.session, deltaSeconds: deltaSeconds)
                 self.refreshHUDPollIfDue()
             }
@@ -554,13 +560,33 @@ final class NexusGameplayEngine {
     /// Boots the C++ gameplay session, syncs readiness, and starts an arena session for ``modeId``.
     func start(modeId: String, readiness: Double, userId: String = "ios_player", coopPlayerCount: Int = 1) {
         stop()
-        guard NexusGameplayBridge.isLinked else { return }
+        bridgeLinked = NexusGameplayBridge.isLinked
+        guard bridgeLinked else {
+            isLinked = false
+            lastCommandError = "NEXUS gameplay bridge is not linked"
+            return
+        }
 
-        guard let created = NexusGameplayBridge.createSession() else { return }
+        guard let created = NexusGameplayBridge.createSession() else {
+            isLinked = false
+            lastCommandError = "NEXUS gameplay session create failed"
+            return
+        }
         session = created
-        isLinked = true
         activeModeId = modeId
         lastFinalScoresJSON = nil
+        physicsReady = NexusGameplayBridge.physicsReady(session)
+        guard physicsReady else {
+            lastCommandError = "NEXUS physics world failed to initialize"
+            sessionActive = false
+            isLinked = false
+            NexusGameplayBridge.destroySession(session)
+            session = nil
+            physicsReady = false
+            activeModeId = ""
+            return
+        }
+
         NexusGameplayBridge.syncReadiness(session, readiness: Float(readiness))
 
         let startPayload: [String: Any] = [
@@ -574,6 +600,7 @@ final class NexusGameplayEngine {
         let startResponse = sendCommand(startPayload)
         if startResponse?.status == "ok" {
             sessionActive = true
+            isLinked = true
             lastCommandError = nil
             broadcastMapLoaded(modeId: modeId)
             if modeId == GameModeId.karateEndless.rawValue {
@@ -582,6 +609,12 @@ final class NexusGameplayEngine {
         } else {
             lastCommandError = startResponse?.error ?? "fel.arena.start_session failed"
             sessionActive = false
+            isLinked = false
+            NexusGameplayBridge.destroySession(session)
+            session = nil
+            physicsReady = false
+            activeModeId = ""
+            return
         }
 
         refreshHUDPoll()
@@ -589,7 +622,7 @@ final class NexusGameplayEngine {
         FELHUDRelayClient.shared.startIfConfigured()
 
         proMotionTicker.start { [weak self] deltaSeconds in
-            guard let self, self.session != nil, self.sessionActive else { return }
+            guard let self, self.session != nil, self.sessionActive, self.physicsReady else { return }
             NexusGameplayBridge.tick(self.session, deltaSeconds: deltaSeconds)
             self.refreshHUDPollIfDue()
         }
@@ -610,8 +643,7 @@ final class NexusGameplayEngine {
         }
     }
 
-    /// Pushes Swift gameplay scores into the C++ arena session (non-P0/P1 modes only).
-    /// P0/P1 modes use C++ HUD poll as source of truth — see ``GamePlayView/usesNexusScoreAuthority``.
+    /// Pushes Swift gameplay scores into the C++ arena session for modes without NEXUS score authority.
     func syncScores(player: Int, opponent: Int) {
         guard session != nil, sessionActive else { return }
         let payload: [String: Any] = [
@@ -1318,13 +1350,15 @@ final class NexusGameplayEngine {
         NexusGameplayBridge.destroySession(session)
         session = nil
         sessionActive = false
+        physicsReady = false
         activeModeId = ""
         hud = NexusHUDSnapshot()
         lastKarateActionLabel = ""
         lastKarateDamage = 0
         lastDunkScoringResult = nil
         lastEngineDunkDetailsCount = 0
-        isLinked = NexusGameplayBridge.isLinked
+        bridgeLinked = NexusGameplayBridge.isLinked
+        isLinked = false
         FELHUDRelayClient.shared.stop()
     }
 
@@ -1369,6 +1403,7 @@ final class NexusGameplayEngine {
         snapshot.sessionState = framePayload["session_state"] as? String ?? "idle"
         snapshot.elapsedSeconds = doubleValue(framePayload["elapsed_seconds"])
         sessionActive = snapshot.sessionState == "active"
+        isLinked = session != nil && physicsReady && sessionActive
 
         if let throwCatch = framePayload["throw_catch"] as? [String: Any] {
             if let phaseRaw = throwCatch["phase"] as? Int,
@@ -1608,6 +1643,10 @@ enum NexusGameplayBridge {
 
     static func destroySession(_ session: NexusGameplayHandle?) {
         nexus_gameplay_session_destroy(session)
+    }
+
+    static func physicsReady(_ session: NexusGameplayHandle?) -> Bool {
+        nexus_gameplay_session_physics_ready(session)
     }
 
     static func tick(_ session: NexusGameplayHandle?, deltaSeconds: Double) {

@@ -398,6 +398,27 @@ struct GameLogicTests {
         }
     }
 
+    @Test func nexusScoreAuthorityCoversCppOwnedModes() {
+        #expect(GameModeId.basketballDunkContest3D.usesNexusScoreAuthority)
+        #expect(GameModeId.karateEndless.usesNexusScoreAuthority)
+        #expect(!GameModeId.basketballDunkContestIRL.usesNexusScoreAuthority)
+
+        let outcomeSports: [GameModeId] = [
+            .basketball3v3,
+            .karate,
+            .baseball,
+            .football,
+            .soccer,
+            .golf,
+            .tennis,
+            .volleyball,
+        ]
+        for modeId in outcomeSports {
+            #expect(modeId.isNexusOutcomeSportMode)
+            #expect(modeId.usesNexusScoreAuthority, "\(modeId.rawValue) must mirror C++ HUD scores")
+        }
+    }
+
     @Test func productionModesRetainPrimaryAvatarInHybridOverlay() {
         for rawId in GameModeRegistry.productionModeIds {
             let modeId = GameModeId(rawValue: rawId)!

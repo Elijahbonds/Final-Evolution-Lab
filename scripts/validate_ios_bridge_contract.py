@@ -49,9 +49,19 @@ def main() -> int:
     engine_source = ENGINE_PATH.read_text()
     checks = [
         require_contains(
+            source,
+            "bool nexus_gameplay_session_physics_ready",
+            "bridge physics readiness probe",
+        ),
+        require_contains(
             view_source,
             "private var usesNexusScoreAuthority",
             "Swift score-authority gate",
+        ),
+        require_contains(
+            view_source,
+            "gameMode.id.usesNexusScoreAuthority",
+            "mode-level NEXUS score authority",
         ),
         require_contains(
             view_source,
@@ -97,6 +107,16 @@ def main() -> int:
             engine_source,
             "nexus_gameplay_session_final_scores_json(session)",
             "final scores bridge wrapper",
+        ),
+        require_contains(
+            engine_source,
+            "NexusGameplayBridge.physicsReady(session)",
+            "Swift physics readiness check",
+        ),
+        require_contains(
+            engine_source,
+            "lastCommandError = \"NEXUS physics world failed to initialize\"",
+            "player-visible physics init failure",
         ),
     ]
     if not all(checks):

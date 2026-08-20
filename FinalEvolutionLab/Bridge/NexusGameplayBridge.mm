@@ -116,6 +116,11 @@ void nexus_gameplay_session_destroy(NexusGameplayHandle handle) {
   delete static_cast<NexusGameplaySession*>(handle);
 }
 
+bool nexus_gameplay_session_physics_ready(NexusGameplayHandle handle) {
+  auto* session = static_cast<NexusGameplaySession*>(handle);
+  return session != nullptr && session->physicsReady;
+}
+
 void nexus_gameplay_session_tick(NexusGameplayHandle handle, double deltaSeconds) {
   auto* session = static_cast<NexusGameplaySession*>(handle);
   if (session == nullptr || !session->physicsReady) {

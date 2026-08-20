@@ -143,7 +143,7 @@ struct GamePlayView: View {
 
     private var isKarate: Bool { gameMode.id == .karate || gameMode.id == .karateEndless }
     private var usesNexusScoreAuthority: Bool {
-        gameMode.id == .basketballDunkContest3D || gameMode.id == .karateEndless
+        gameMode.id.usesNexusScoreAuthority
     }
     private var inputScheme: InputScheme { gameMode.id.inputScheme }
 
