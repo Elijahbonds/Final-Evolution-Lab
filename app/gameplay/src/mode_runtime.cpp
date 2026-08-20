@@ -20,7 +20,8 @@ namespace {
 } // namespace
 
 auto ModeRuntime::physicsParams() const -> ArcadePhysicsParams {
-  return ArcadePhysics::fromPRQ(PRQEngine::getScore(), PRQEngine::getNeuralDrive());
+  return ArcadePhysics::fromPRQ(PRQEngine::getScore(m_latestFitness),
+                                PRQEngine::getNeuralDrive(m_latestFitness));
 }
 
 auto ModeRuntime::parseCarnivalPad(std::string_view label) -> std::optional<CarnivalPad> {
@@ -141,6 +142,11 @@ void ModeRuntime::update(double deltaSeconds) {
   } else if (m_kind == ActiveModeKind::kOutcomeSport) {
     m_outcomeSport.update(deltaSeconds);
   }
+}
+
+void ModeRuntime::update(double deltaSeconds, const FitnessSnapshot& fitness) {
+  m_latestFitness = fitness;
+  update(deltaSeconds);
 }
 
 void ModeRuntime::onThrowCatchPulse(const ThrowCatchState& throwCatch) {
@@ -443,15 +449,19 @@ auto ModeRuntime::stateJson() const -> nlohmann::json {
   nlohmann::json payload{
       {"mode_id", m_modeId},
       {"kind", static_cast<int>(m_kind)},
-      {"prq", PRQEngine::getScore()},
-      {"prq_grade", PRQEngine::gradeLabel(PRQEngine::getGrade())},
+      {"prq", PRQEngine::getScore(m_latestFitness)},
+      {"prq_grade", PRQEngine::gradeLabel(PRQEngine::getGrade(m_latestFitness))},
   };
 
   const ArcadePhysicsParams physics = physicsParams();
   payload["arcade_physics"] = {
       {"hang_time_multiplier", physics.hangTimeMultiplier},
       {"explosive_first_step", physics.explosiveFirstStep},
+      {"combo_decay_rate_seconds", physics.comboDecayRateSeconds},
+      {"max_combo_multiplier", physics.maxComboMultiplier},
       {"critical_hit_chance", physics.criticalHitChance},
+      {"neural_burst_active", physics.neuralBurstActive},
+      {"neural_burst_multiplier", physics.neuralBurstMultiplier},
   };
 
   if (m_kind == ActiveModeKind::kDunkContest) {

@@ -48,6 +48,18 @@
       }
     },
     {
+      "id": "basketball_dunk",
+      "analyticsMode": "dunk_contest",
+      "venueKey": "venice_beach_court",
+      "displayVenue": "Venice Beach Blue Court",
+      "renderMode": "3D_UE5",
+      "nexusRuntimeModeId": "basketball_dunk",
+      "courtColor": "venice_blue",
+      "lumaScanSource": "venice_beach",
+      "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
+      "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
+    },
+    {
       "id": "basketball_dunk_irl",
       "analyticsMode": "dunk_contest_irl",
       "venueKey": "regulation_court_irl",
@@ -164,6 +176,7 @@
     { "venueKey": "stadium_field", "analyticsPolicyName": "Stadium Field" },
     { "venueKey": "stadium_pitch", "analyticsPolicyName": "Stadium Pitch" },
     { "venueKey": "golf_green", "analyticsPolicyName": "Golf Green" },
+    { "venueKey": "regulation_court_irl", "analyticsPolicyName": "Regulation Court — IRL camera mode" },
     { "venueKey": "arena_floor", "analyticsPolicyName": "Arena — Gymnastics" },
     { "venueKey": "e3ds_stadium_lobby", "analyticsPolicyName": "E3DS Stadium / Lobby shell" }
   ]

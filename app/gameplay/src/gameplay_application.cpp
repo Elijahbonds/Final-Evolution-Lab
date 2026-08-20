@@ -6,6 +6,7 @@
 #include "nexus/creative/voxel_world.h"
 #include "nexus/core/log.h"
 #include "nexus/gameplay/arena_mode_registry.h"
+#include "nexus/gameplay/prq_engine.h"
 #include "nexus/gameplay/scan_envelope_mapper.h"
 #include "nexus/generative/generative_pipeline.h"
 #include "nexus/generative/generative_types.h"
@@ -127,7 +128,7 @@ void GameplayApplication::update(double deltaSeconds,
   const auto fitness = m_fitnessData.snapshot();
   if (m_arenaSession.state().phase == ArenaSessionPhase::kActive && !m_arenaSession.state().paused) {
     m_arenaSession.update(deltaSeconds, fitness);
-    m_modeRuntime.update(deltaSeconds);
+    m_modeRuntime.update(deltaSeconds, fitness);
     syncArenaFromModeRuntime();
   }
   m_throwCatch.update(deltaSeconds, m_fitnessData.read_view(), physicsWorld);
@@ -147,7 +148,7 @@ void GameplayApplication::update(double deltaSeconds,
     }
   }
 
-  const float prqScore = fitness.frc.controlScore * 100.0F;
+  const float prqScore = PRQEngine::getScore(fitness);
   if (m_arenaSession.state().phase == ArenaSessionPhase::kActive) {
     const auto& arenaState = m_arenaSession.state();
     m_felBridge.tickVaultTelemetry(
@@ -1121,7 +1122,7 @@ auto GameplayApplication::applyBridgeCommand(std::string_view command,
     if (!mapToken.has_value() || !modeId.has_value()) {
       return response(id, "error", {}, paramError.empty() ? "map and mode_id required" : paramError);
     }
-    const float prq = m_fitnessData.snapshot().frc.controlScore * 100.0F;
+    const float prq = PRQEngine::getScore(m_fitnessData.snapshot());
     m_felBridge.broadcastMapLoaded(*mapToken, *modeId, prq);
     return response(id, "ok", {{"queued", true}});
   }
