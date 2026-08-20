@@ -6,6 +6,11 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="${ROOT}/build-full"
 cd "$ROOT"
 
+if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
+  export CC="${CC:-gcc}"
+  export CXX=g++
+fi
+
 if [[ ! -x "${BUILD_DIR}/nexus_runtime" ]]; then
   cmake -S . -B "$BUILD_DIR" -DNEXUS_ENABLE_RENDERER=ON -DNEXUS_BUILD_RUNTIME=ON
   cmake --build "$BUILD_DIR" --target nexus_runtime
