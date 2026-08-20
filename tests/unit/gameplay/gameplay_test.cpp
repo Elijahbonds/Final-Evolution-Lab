@@ -1804,6 +1804,96 @@ void flagship_outcome_sport_validate_only_integration() {
 
   require(gameplay.mode_runtime().shouldAutoEndSession(), "volleyball match completes");
 
+  const auto volleyballEnd = gameplay.handleGameplayCommand(
+      "fel.arena.end_session", {{"use_live_scores", true}}, "volleyball_end");
+  require(volleyballEnd.status == "ok", "volleyball session ends with live scores");
+  require(volleyballEnd.payload.contains("outcome"), "volleyball outcome present");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "football"}, {"user_id", "flagship_football"}},
+              "football_start")
+              .status == "ok",
+          "football session starts");
+
+  for (int i = 0; i < 3; ++i) {
+    require(gameplay.handleGameplayCommand(
+                "fel.sport.pulse",
+                {{"success", true}, {"timing", 0.9F}, {"play_type", "touchdown"}},
+                "football_touchdown")
+                .status == "ok",
+            "football touchdown pulse ok");
+    gameplay.update(0.05, physics, {});
+  }
+
+  const auto footballState =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "football_state");
+  require(footballState.payload["outcome_sport"]["player_touchdowns"].get<int>() >= 3,
+          "football tracks player touchdowns");
+  require(gameplay.mode_runtime().shouldAutoEndSession(), "football match completes");
+
+  const auto footballEnd = gameplay.handleGameplayCommand(
+      "fel.arena.end_session", {{"use_live_scores", true}}, "football_end");
+  require(footballEnd.status == "ok", "football session ends with live scores");
+  require(footballEnd.payload.contains("outcome"), "football outcome present");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "golf"}, {"user_id", "flagship_golf"}},
+              "golf_start")
+              .status == "ok",
+          "golf session starts");
+
+  for (int i = 0; i < 9; ++i) {
+    require(gameplay.handleGameplayCommand(
+                "fel.sport.pulse",
+                {{"success", true}, {"timing", 0.93F}, {"club", "putt"}},
+                "golf_putt")
+                .status == "ok",
+            "golf putt pulse ok");
+    gameplay.update(0.05, physics, {});
+  }
+
+  const auto golfState = gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "golf_state");
+  require(golfState.payload["outcome_sport"]["holes_played"].get<int>() == 9,
+          "golf tracks all nine holes");
+  require(golfState.payload["outcome_sport"]["course_par"].get<int>() == 36,
+          "golf exposes nine-hole par");
+  require(gameplay.mode_runtime().shouldAutoEndSession(), "golf round completes");
+
+  const auto golfEnd =
+      gameplay.handleGameplayCommand("fel.arena.end_session", {{"use_live_scores", true}}, "golf_end");
+  require(golfEnd.status == "ok", "golf session ends with live scores");
+  require(golfEnd.payload.contains("outcome"), "golf outcome present");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "tennis"}, {"user_id", "flagship_tennis"}},
+              "tennis_start")
+              .status == "ok",
+          "tennis session starts");
+
+  for (int i = 0; i < 4; ++i) {
+    require(gameplay.handleGameplayCommand(
+                "fel.sport.pulse",
+                {{"success", true}, {"timing", 0.93F}, {"shot_type", "ace"}},
+                "tennis_ace")
+                .status == "ok",
+            "tennis ace pulse ok");
+    gameplay.update(0.05, physics, {});
+  }
+
+  const auto tennisState =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "tennis_state");
+  require(tennisState.payload["outcome_sport"]["player_sets"].get<int>() >= 2,
+          "tennis tracks winning sets");
+  require(gameplay.mode_runtime().shouldAutoEndSession(), "tennis match completes");
+
+  const auto tennisEnd = gameplay.handleGameplayCommand(
+      "fel.arena.end_session", {{"use_live_scores", true}}, "tennis_end");
+  require(tennisEnd.status == "ok", "tennis session ends with live scores");
+  require(tennisEnd.payload.contains("outcome"), "tennis outcome present");
+
   physics.shutdown();
 }
 
