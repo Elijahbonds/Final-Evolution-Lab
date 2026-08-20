@@ -107,6 +107,9 @@ extension GameModeId {
 
     /// Playable via NEXUS headless gameplay (full simulators + outcome evaluators).
     var isNexusSprintPlayable: Bool {
+        if isIRLDunkContest {
+            return false
+        }
         switch nexusCapabilityTier {
         case .prod, .sim, .staging: return true
         case .preview, .nonGame: return false
@@ -284,7 +287,7 @@ extension GameMode {
 }
 
 struct GameModeRegistry {
-    /// Canonical production mode ids — keep in sync with `arena_mode_registry.h` and `scripts/nexus_validate_production_modes.sh`.
+    /// Canonical production app-surface ids — split dunk keeps IRL camera and 3D runtime entries distinct.
     static let productionModeIds: [String] = [
         "basketball_h2h", "basketball_dunk_irl", "basketball_dunk_3d", "basketball_3v3", "court_carnival",
         "karate_h2h", "karate_endless",
@@ -293,11 +296,10 @@ struct GameModeRegistry {
         "brain_brawl", "who_scene_it",
     ]
 
-    /// Every playable arena mode — full lineup ships available; per-mode capability
-    /// badges (prod/sim/staging) stay honest via ``GameModeId/nexusCapabilityTier``.
-    static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases).subtracting([.marketBrowse])
+    /// NEXUS headless-playable arena modes. IRL camera and shop modules remain app surfaces, not C++ sessions.
+    static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases).subtracting([.basketballDunkContestIRL, .marketBrowse])
 
-    /// All 20 mode IDs from `arena_mode_registry.cpp` — keep in sync when adding modes.
+    /// App catalog ids aligned to the registry, including split dunk and the non-game market module.
     static let arenaRegistryModeIds: [GameModeId] = [
         .basketballHeadToHead, .basketballDunkContestIRL, .basketballDunkContest3D, .basketball3v3,
         .karate, .karateEndless,

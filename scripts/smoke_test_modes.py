@@ -255,8 +255,8 @@ def test_swift_enum():
         else:
             fail(f'{mode} missing from GameMode.swift enum')
 
-def test_swift_non_game_guardrails():
-    print("\n── Test 6b: Swift Non-Game Guardrails ──")
+def test_swift_non_headless_guardrails():
+    print("\n── Test 6b: Swift Non-Headless Guardrails ──")
     swift_path = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
     content = swift_path.read_text()
 
@@ -269,6 +269,21 @@ def test_swift_non_game_guardrails():
         fail("market_browse must not be marked sprint-playable")
     else:
         ok("market_browse is not sprint-playable")
+
+    if re.search(r"if\s+isIRLDunkContest\s*\{\s*return\s+false\s*\}", content):
+        ok("basketball_dunk_irl is excluded from NEXUS headless playability")
+    else:
+        fail("basketball_dunk_irl must not start a NEXUS headless session")
+
+    if re.search(r"nexusSprintModeIds:[^\n]+subtracting\(\[\s*\.basketballDunkContestIRL,\s*\.marketBrowse\s*\]\)", content):
+        ok("nexusSprintModeIds excludes IRL dunk and market_browse")
+    else:
+        fail("nexusSprintModeIds must exclude IRL dunk and market_browse")
+
+    if "if gameMode.isNexusSprintPlayable" in (REPO_ROOT / "FinalEvolutionLab" / "Views" / "GamePlayView.swift").read_text():
+        ok("GamePlayView guards NEXUS session start by sprint playability")
+    else:
+        fail("GamePlayView must not start C++ sessions for non-headless app modes")
 
     if re.search(r'case\s+"market_browse"[^:]*:\s*return\s+mode\(for:\s*\.marketBrowse\)', content, re.DOTALL):
         fail("playableMode(forRegistryId:) must not return market_browse as launchable")
@@ -340,7 +355,7 @@ def main():
     test_venue_registry()
     test_fel_play_map()
     test_swift_enum()
-    test_swift_non_game_guardrails()
+    test_swift_non_headless_guardrails()
     test_server_seeded_modes()
     test_economy_integration()
 

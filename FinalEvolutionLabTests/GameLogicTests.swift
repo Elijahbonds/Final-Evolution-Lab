@@ -247,7 +247,8 @@ struct GameLogicTests {
 
     @Test func gameGeneratorPlayableModeResolverHandlesAliases() {
         #expect(GameModeRegistry.playableMode(forRegistryId: "venice_pickup")?.id == .basketballHeadToHead)
-        #expect(GameModeRegistry.playableMode(forRegistryId: "market_browse")?.id == .marketBrowse)
+        #expect(GameModeRegistry.playableMode(forRegistryId: "basketball_dunk_irl") == nil)
+        #expect(GameModeRegistry.playableMode(forRegistryId: "market_browse") == nil)
         #expect(GameModeRegistry.playableMode(forRegistryId: "snowboarding")?.id == .snowboarding)
     }
 
@@ -293,6 +294,8 @@ struct GameLogicTests {
         // Hint must describe real mechanics (Metal renderer is stubbed; do not overclaim tech).
         #expect(threeD.hint?.contains("swipe timing") == true)
         #expect(threeD.id.nexusRuntimeModeId == "basketball_dunk")
+        #expect(!irl.isNexusSprintPlayable)
+        #expect(threeD.isNexusSprintPlayable)
         #expect(GameModeRegistry.playableMode(forRegistryId: "basketball_dunk")?.id == .basketballDunkContest3D)
     }
 
