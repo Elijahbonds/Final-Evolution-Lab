@@ -3251,6 +3251,7 @@ struct GamePlayView: View {
         case .whoSceneIt: ["Freeze", "Spot Star", "Recall"]
         case .courtCarnival: ["Pad Hit", "Dice Roll", "Mini Win"]
         case .marketBrowse: ["Browse", "Scan", "Vault"]
+        case .movementLab: ["Learn", "Balance", "Breath"]
         }
     }
 
@@ -4072,7 +4073,7 @@ struct GamePlayView: View {
                 return action.contains("Win") ? 300 : (action.contains("Tie") ? 100 : 0)
             }
             return 50
-        case .marketBrowse:
+        case .marketBrowse, .movementLab:
             return 10
         }
     }

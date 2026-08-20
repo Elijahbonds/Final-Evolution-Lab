@@ -5,6 +5,7 @@ Tests each production mode's registration, configuration, and deep link routing.
 Run against a live or mock FEL backend.
 """
 import json
+import re
 import sys
 import os
 from pathlib import Path
@@ -50,6 +51,10 @@ IOS_IRL_MODES = ["basketball_dunk_irl"]
 
 def mode_or_ios_alias(mode):
     return IOS_UE_ALIASES.get(mode, mode)
+
+def _swift_case_name(mode):
+    parts = mode.split("_")
+    return parts[0] + "".join(part.capitalize() for part in parts[1:])
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -242,7 +247,7 @@ def test_swift_enum():
     swift_path = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
     content = swift_path.read_text()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES + IOS_IRL_MODES
+    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES + PREVIEW_MODULES + IOS_IRL_MODES
     for mode in all_modes:
         # Search for rawValue
         swift_mode = mode_or_ios_alias(mode)
@@ -253,6 +258,19 @@ def test_swift_enum():
                 ok(f'{mode} has Swift enum case')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
+
+    for module in PREVIEW_MODULES:
+        swift_module = mode_or_ios_alias(module)
+        case_name = _swift_case_name(swift_module)
+        module_block = re.search(
+            rf"GameMode\(\s*id:\s*\.{case_name},.*?releaseState:\s*\.preview,.*?capabilityTier:\s*\.nonGame",
+            content,
+            re.DOTALL,
+        )
+        if module_block:
+            ok(f'{module} surfaced as preview non-game Swift module')
+        else:
+            fail(f'{module} missing preview non-game GameMode entry')
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 7: Server.py Seeded Game Modes
