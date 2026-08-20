@@ -59,10 +59,10 @@ const FALLBACK_PROGRESS = { total_workouts: 0, total_games: 0, total_brawls: 0, 
 // XP / Shards / PRQ / MRI rewards even when the backend is unreachable.
 const SHARD_BASE_BY_OUTCOME = { win: 50, draw: 25, loss: 15 };
 const PRQ_MODE_WEIGHTS = {
-  basketball_h2h: 1.2, basketball_dunk: 1.0, basketball_3v3: 1.3,
+  basketball_h2h: 1.2, basketball_dunk: 1.0, basketball_dunk_3d: 1.0, basketball_dunk_irl: 1.5, basketball_3v3: 1.3,
   karate: 1.4, karate_h2h: 1.4, karate_endless: 1.4,
   baseball: 1.0, football: 1.5, soccer: 1.1, golf: 0.9, tennis: 1.1,
-  volleyball: 1.2, gymnastics: 1.0, brain_brawl: 0.8, surfing: 1.05,
+  volleyball: 1.2, gymnastics: 1.0, brain_brawl: 0.8, who_scene_it: 0.7, court_carnival: 0.9, trivia_arena: 0.7, surfing: 1.05,
   skateboarding: 1.0, snowboarding: 1.0, market_browse: 0.0,
 };
 function computeLocalReward({ mode_id, score, outcome, duration_seconds = 30, combo = 0, critical = 0, pacing = 0 }) {
@@ -359,7 +359,7 @@ const DashboardView = ({ setActiveTab }) => {
       <div>
         <h2 className="text-2xl font-bold mb-4" style={{fontFamily:'Barlow Condensed'}}>QUICK START</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[{t:'Play Game',d:'19 modes',icon:Gamepad2,a:'games'},{t:'AI Coach',d:'Get training plan',icon:MessageCircle,a:'ai-coach'},{t:'Brain Brawl',d:'Test your IQ',icon:Brain,a:'brain-brawl'},{t:'Streak',d:'Check in today',icon:Flame,a:'streaks'}].map((i,idx)=>(
+          {[{t:'Play Game',d:'20 modes',icon:Gamepad2,a:'games'},{t:'AI Coach',d:'Get training plan',icon:MessageCircle,a:'ai-coach'},{t:'Brain Brawl',d:'Test your IQ',icon:Brain,a:'brain-brawl'},{t:'Streak',d:'Check in today',icon:Flame,a:'streaks'}].map((i,idx)=>(
             <button key={idx} data-testid={`quick-${i.a}`} onClick={()=>setActiveTab(i.a)} className="surface-card p-5 text-left card-hover flex items-center gap-4">
               <div className="w-12 h-12 bg-cyan-400/10 flex items-center justify-center flex-shrink-0"><i.icon className="w-6 h-6 text-cyan-400" /></div>
               <div className="flex-1 min-w-0"><div className="font-bold">{i.t}</div><div className="text-sm text-zinc-500">{i.d}</div></div>
@@ -967,6 +967,16 @@ const GameModesView = () => {
   const [sessionState, setSessionState] = useState(null);
   const [launchStatus, setLaunchStatus] = useState(null); // null, 'launching', 'map_loading', 'timeout'
   const wsRef = useRef(null);
+  const launchingModeRef = useRef(null);
+  const launchStatusRef = useRef(null);
+
+  useEffect(() => {
+    launchingModeRef.current = launchingMode;
+  }, [launchingMode]);
+
+  useEffect(() => {
+    launchStatusRef.current = launchStatus;
+  }, [launchStatus]);
 
   // Fetch modes from centralized venue registry (not hardcoded)
   useEffect(() => {
@@ -1010,7 +1020,7 @@ const GameModesView = () => {
         // 10s System Re-auth (NOT browser fallback)
         // If no MapLoaded signal, trigger re-auth instead of showing placeholder
         setTimeout(() => {
-          if (launchStatus === 'map_loading' || launchingMode === mode.id) {
+          if (launchStatusRef.current === 'map_loading' || launchingModeRef.current === mode.id) {
             ws.close();
             setLaunchStatus('timeout');
             // System Re-auth: re-verify session, do NOT fall back to browser game
@@ -1095,7 +1105,7 @@ const GameModesView = () => {
     return <PlayableGame mode={playingMode} onComplete={handleGameComplete} onBack={() => setPlayingMode(null)} />;
   }
 
-  const categories = ['all','Basketball','Combat','Field','Court','Precision','Board','Performance','Academy'];
+  const categories = ['all','Basketball','Combat','Field','Court','Precision','Board','Performance','Academy','Party'];
   const filtered = filter === 'all' ? modes : modes.filter(m => m.category === filter);
 
   return (

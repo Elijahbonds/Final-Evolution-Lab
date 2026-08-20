@@ -7,6 +7,7 @@ Run against a live or mock FEL backend.
 import json
 import sys
 import os
+import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -33,17 +34,48 @@ def skip(msg):
 # Production modes expected to pass all gates
 # ═══════════════════════════════════════════════════════════════════════════════
 PRODUCTION_MODES = [
-    "basketball_h2h", "basketball_dunk", "basketball_3v3",
+    "basketball_h2h", "basketball_dunk", "basketball_3v3", "court_carnival",
     "karate_h2h", "karate_endless",
-    "baseball", "football", "soccer", "golf",
-    "tennis", "volleyball", "surfing",
-    "gymnastics", "skateboarding", "snowboarding",
+    "baseball", "football", "soccer", "golf", "tennis", "volleyball",
+    "gymnastics", "surfing", "skateboarding", "snowboarding",
+    "brain_brawl", "who_scene_it",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = []
+PREVIEW_MODULES = ["movement_lab"]
+IOS_UE_ALIASES = {"basketball_dunk": "basketball_dunk_3d"}
+IOS_IRL_MODES = ["basketball_dunk_irl"]
+IOS_RUNTIME_ALIASES = {"basketball_dunk_3d": "basketball_dunk"}
+SWIFT_ROUTE_ENTRYPOINTS = [
+    "ContentView.swift",
+    "Views/ArcadeLibraryView.swift",
+    "Views/DashboardView.swift",
+    "Views/GameModeScreenshotHarnessView.swift",
+    "Views/GameModeSelectionView.swift",
+    "Views/LabView.swift",
+    "Views/NexusGameGeneratorView.swift",
+]
+
+def mode_or_ios_alias(mode):
+    return IOS_UE_ALIASES.get(mode, mode)
+
+
+def quoted_strings(source):
+    return re.findall(r'"([^"]+)"', source)
+
+
+def extract_between(source, start_marker, end_marker):
+    start = source.find(start_marker)
+    if start < 0:
+        return ""
+    start += len(start_marker)
+    end = source.find(end_marker, start)
+    if end < 0:
+        return ""
+    return source[start:end]
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -52,6 +84,19 @@ def test_mode_manager_registry():
     print("\n── Test 1: ModeManager Registry ──")
     mgr = json.loads((REPO_ROOT / "backend" / "FEL_ModeManager.production.json").read_text())
     registry = mgr["mode_manager"]["mode_registry"]
+
+    declared_total = mgr["mode_manager"].get("total_modes")
+    declared_production = mgr["mode_manager"].get("production_modes")
+    actual_total = len(registry)
+    actual_production = sum(1 for info in registry.values() if info.get("status") == "production")
+    if declared_total == actual_total:
+        ok(f"declared total_modes={declared_total}")
+    else:
+        fail(f"declared total_modes={declared_total}, actual={actual_total}")
+    if declared_production == actual_production:
+        ok(f"declared production_modes={declared_production}")
+    else:
+        fail(f"declared production_modes={declared_production}, actual={actual_production}")
 
     for mode in PRODUCTION_MODES:
         if mode in registry:
@@ -85,6 +130,20 @@ def test_mode_manager_registry():
         else:
             fail(f"{mode} missing from registry")
 
+    for mode in PREVIEW_MODULES:
+        if mode in registry and registry[mode]["status"] == "preview":
+            ok(f"{mode} → preview module (expected)")
+        elif mode in registry:
+            fail(f"{mode} status={registry[mode]['status']}, expected preview")
+        else:
+            fail(f"{mode} missing from registry")
+
+    for mode in IOS_IRL_MODES:
+        if mode in registry and registry[mode].get("render_mode") == "IRL":
+            ok(f"{mode} → IRL camera/HealthKit mode (no UE map)")
+        else:
+            fail(f"{mode} missing or not marked render_mode=IRL")
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 2: UE Mode Maps Coverage
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -93,7 +152,7 @@ def test_ue_mode_maps():
     ue_maps = json.loads((REPO_ROOT / "backend" / "ue_mode_maps.json").read_text())
     mode_map = ue_maps["mode_to_unreal_map"]
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = [mode_or_ios_alias(mode) for mode in PRODUCTION_MODES] + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
         if mode in mode_map:
             ok(f"{mode} → {mode_map[mode]}")
@@ -104,6 +163,12 @@ def test_ue_mode_maps():
             else:
                 fail(f"{mode} missing from ue_mode_maps.json")
 
+    for mode in IOS_IRL_MODES:
+        if mode in mode_map and mode_map[mode] is None:
+            ok(f"{mode} → no UE map (IRL)")
+        else:
+            fail(f"{mode} should be present with null UE map")
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 3: ArenaSettings Coverage
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -112,7 +177,7 @@ def test_arena_settings():
     arena = json.loads((REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Content" / "FEL" / "Config" / "ArenaSettings.json").read_text())
     modes = arena["modes"]
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = [mode_or_ios_alias(mode) for mode in PRODUCTION_MODES] + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
         if mode in modes:
             cfg = modes[mode]
@@ -131,19 +196,30 @@ def test_arena_settings():
 def test_venue_registry():
     print("\n── Test 4: VenueRegistry Coverage ──")
     vr = json.loads((REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Config" / "FEL_VenueRegistry.production.json").read_text())
-    mode_ids = {m["id"] for m in vr["modes"]}
+    mode_entries = vr["modes"]
+    mode_ids = {m["id"] for m in mode_entries}
     venue_keys = {v["venueKey"] for v in vr["venues"]}
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
-        if mode in mode_ids:
-            entry = next(m for m in vr["modes"] if m["id"] == mode)
+        entry = next(
+            (m for m in mode_entries if m["id"] == mode or m.get("nexusRuntimeModeId") == mode),
+            None,
+        )
+        if entry:
             if entry["venueKey"] in venue_keys:
                 ok(f"{mode} → venue={entry['venueKey']}")
             else:
                 fail(f"{mode} references unknown venue: {entry['venueKey']}")
         else:
             fail(f"{mode} missing from VenueRegistry")
+
+    for mode in IOS_IRL_MODES:
+        entry = next((m for m in mode_entries if m["id"] == mode), None)
+        if entry and entry.get("isIRLMode") and entry["venueKey"] in venue_keys:
+            ok(f"{mode} → IRL venue={entry['venueKey']}")
+        else:
+            fail(f"{mode} missing IRL venue registry entry")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 5: DefaultGame.ini FELPlayMap
@@ -165,7 +241,7 @@ def test_fel_play_map():
                 k, v = line.strip().split("=", 1)
                 play_map[k.strip()] = v.strip()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = [mode_or_ios_alias(mode) for mode in PRODUCTION_MODES] + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
         if mode in play_map:
             path = play_map[mode]
@@ -192,13 +268,190 @@ def test_swift_enum():
     swift_path = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
     content = swift_path.read_text()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES + IOS_IRL_MODES
     for mode in all_modes:
         # Search for rawValue
-        if f'= "{mode}"' in content:
-            ok(f'{mode} has Swift enum case')
+        swift_mode = mode_or_ios_alias(mode)
+        if f'= "{swift_mode}"' in content:
+            if swift_mode != mode:
+                ok(f'{mode} represented by Swift enum case {swift_mode}')
+            else:
+                ok(f'{mode} has Swift enum case')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
+
+def test_swift_non_game_guardrails():
+    print("\n── Test 6b: Swift Non-Game Guardrails ──")
+    swift_path = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
+    content = swift_path.read_text()
+
+    if re.search(r"case\s+\.marketBrowse:\s*return\s+\.nonGame", content):
+        ok("market_browse maps to NexusCapabilityTier.nonGame")
+    else:
+        fail("market_browse must remain NexusCapabilityTier.nonGame")
+
+    if re.search(r"case\s+\.marketBrowse:\s*return\s+true", content):
+        fail("market_browse must not be marked sprint-playable")
+    else:
+        ok("market_browse is not sprint-playable")
+
+    if re.search(r'case\s+"market_browse"[^:]*:\s*return\s+mode\(for:\s*\.marketBrowse\)', content, re.DOTALL):
+        fail("playableMode(forRegistryId:) must not return market_browse as launchable")
+    else:
+        ok("playableMode(forRegistryId:) excludes market_browse")
+
+
+def test_swift_route_contract():
+    print("\n── Test 6c: Swift Route Contract ──")
+    swift_root = REPO_ROOT / "FinalEvolutionLab"
+    router_path = swift_root / "Views" / "GameModeRouter.swift"
+    router = router_path.read_text()
+
+    route_checks = [
+        ("case .basketballDunkContestIRL:", "IRLDunkView(", "IRL dunk routes to native camera flow"),
+        ("case .brainBrawl:", "BrainBrawl2DView(", "Brain Brawl routes to native 2D view"),
+        ("case .marketBrowse:", "MarketBrowseView(", "Market Browse stays out of gameplay session"),
+        ("default:", "GamePlayView(", "NEXUS runtime modes route to GamePlayView fallback"),
+        ("GamePlayView(", "generatorHudTheme: generatorHudTheme", "generated HUD theme is preserved"),
+        (
+            "GamePlayView(",
+            "skipMatchLobbyForScreenshotHarness: skipMatchLobbyForScreenshotHarness",
+            "screenshot harness skip flag is preserved",
+        ),
+    ]
+    for anchor, needle, label in route_checks:
+        anchor_index = router.find(anchor)
+        needle_index = router.find(needle, anchor_index if anchor_index >= 0 else 0)
+        if anchor_index >= 0 and needle_index >= anchor_index:
+            ok(label)
+        else:
+            fail(f"GameModeRouter missing contract: {label}")
+
+    direct_gameplay = []
+    for path in swift_root.rglob("*.swift"):
+        if path == router_path:
+            continue
+        content = path.read_text()
+        if re.search(r"\bGamePlayView\s*\(", content):
+            direct_gameplay.append(str(path.relative_to(swift_root)))
+    if direct_gameplay:
+        fail("GamePlayView direct launch bypasses GameModeRouter: " + ", ".join(sorted(direct_gameplay)))
+    else:
+        ok("all Swift launch destinations use GameModeRouter")
+
+    for rel_path in SWIFT_ROUTE_ENTRYPOINTS:
+        entry = swift_root / rel_path
+        if "GameModeRouter(" in entry.read_text():
+            ok(f"{rel_path} launches through GameModeRouter")
+        else:
+            fail(f"{rel_path} must launch through GameModeRouter")
+
+
+def test_swift_agent_launch_alias_contract():
+    print("\n── Test 6d: Swift Agent Launch Alias Contract ──")
+    swift_root = REPO_ROOT / "FinalEvolutionLab"
+    service = (swift_root / "Services" / "NEXUSAgentService.swift").read_text()
+    content_view = (swift_root / "ContentView.swift").read_text()
+    registry = (swift_root / "Models" / "GameMode.swift").read_text()
+
+    if 'case "basketball_dunk":\n            return mode(for: .basketballDunkContest3D)' in registry:
+        ok("GameModeRegistry resolves basketball_dunk runtime alias to 3D dunk")
+    else:
+        fail("GameModeRegistry must resolve basketball_dunk runtime alias to basketball_dunk_3d")
+
+    if "GameModeRegistry.playableMode(forRegistryId: modeId)" in service:
+        ok("NEXUSAgentService launch uses playable runtime alias resolver")
+    else:
+        fail("NEXUSAgentService launch must use playableMode(forRegistryId:) for mode_id")
+
+    if "GameModeRegistry.playableMode(forRegistryId: modeId)" in content_view:
+        ok("ContentView agent launch consumes resolved playable modes")
+    else:
+        fail("ContentView agent launch must use playableMode(forRegistryId:) for mode_id")
+
+    for rel_path, source in [
+        ("Services/NEXUSAgentService.swift", service),
+        ("ContentView.swift", content_view),
+    ]:
+        if "let parsed = GameModeId(rawValue: modeId)" in source:
+            fail(f"{rel_path} still rejects shared runtime aliases before launch")
+        else:
+            ok(f"{rel_path} does not parse raw GameModeId before alias launch")
+
+
+def test_swift_sprint_grid_excludes_alias_tiles():
+    print("\n── Test 6e: Swift Sprint Grid Alias Hygiene ──")
+    swift_path = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
+    content = swift_path.read_text()
+    sprint_block = extract_between(content, "static let nexusSprintModeIds: Set<GameModeId>", "/// All 20 mode IDs")
+
+    if ".venicePickup" in sprint_block and ".marketBrowse" in sprint_block:
+        ok("nexusSprintModeIds excludes venice_pickup and market_browse")
+    else:
+        fail("nexusSprintModeIds must exclude venice_pickup alias and market_browse")
+
+    if 'case "venice_pickup":\n            return mode(for: .basketballHeadToHead)' in content:
+        ok("venice_pickup remains supported as a basketball_h2h deep-link alias")
+    else:
+        fail("venice_pickup deep-link alias must resolve to basketball_h2h")
+
+
+def test_swift_cpp_registry_triangle():
+    print("\n── Test 6f: Swift/C++ Registry Triangle ──")
+    swift_source = (REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift").read_text()
+    cpp_header = (
+        REPO_ROOT / "app" / "gameplay" / "include" / "nexus" / "gameplay" / "arena_mode_registry.h"
+    ).read_text()
+    validate_script = (REPO_ROOT / "scripts" / "nexus_validate_production_modes.sh").read_text()
+    registry_source = (REPO_ROOT / "app" / "gameplay" / "src" / "arena_mode_registry.cpp").read_text()
+    metal_bridge = (REPO_ROOT / "FinalEvolutionLab" / "Bridge" / "NexusMetalBridge.mm").read_text()
+
+    swift_block = extract_between(swift_source, "static let productionModeIds: [String] = [", "]")
+    swift_ids = quoted_strings(swift_block)
+    cpp_block = extract_between(cpp_header, "kProductionModeIds[]", "};")
+    cpp_ids = quoted_strings(cpp_block)
+    validate_block = extract_between(validate_script, "PRODUCTION_MODES=(", ")")
+    validate_ids = re.findall(r"[A-Za-z0-9_]+", validate_block)
+
+    if len(swift_ids) == 19 and "basketball_dunk_irl" in swift_ids and "basketball_dunk_3d" in swift_ids:
+        ok("Swift production list carries split 3D + IRL dunk ids")
+    else:
+        fail(f"Swift production ids drifted: {swift_ids}")
+
+    if set(cpp_ids) == set(validate_ids):
+        ok("C++ production ids match runtime validate script")
+    else:
+        fail(f"C++ production ids != validate script: cpp={sorted(cpp_ids)} validate={sorted(validate_ids)}")
+
+    swift_runtime_ids = {
+        IOS_RUNTIME_ALIASES.get(mode_id, mode_id)
+        for mode_id in swift_ids
+        if mode_id not in IOS_IRL_MODES
+    }
+    if swift_runtime_ids == set(cpp_ids):
+        ok("Swift production ids reconcile to C++ runtime ids via explicit aliases")
+    else:
+        fail(f"Swift/C++ production id drift: swift_runtime={sorted(swift_runtime_ids)} cpp={sorted(cpp_ids)}")
+
+    if 'modeId == "basketball_dunk_3d"' in registry_source and 'return "basketball_dunk";' in registry_source:
+        ok("C++ arena registry aliases basketball_dunk_3d to basketball_dunk")
+    else:
+        fail("C++ arena registry must alias basketball_dunk_3d to basketball_dunk")
+
+    if 'mode == "basketball_dunk_3d"' in metal_bridge and 'return "basketball_dunk";' in metal_bridge:
+        ok("iOS Metal bridge aliases basketball_dunk_3d to basketball_dunk")
+    else:
+        fail("iOS Metal bridge must alias basketball_dunk_3d to basketball_dunk")
+
+    legacy_surfaces = [
+        REPO_ROOT / "FinalEvolutionLab" / "Views" / "IRLDunkView.swift",
+        REPO_ROOT / "backend" / "routers" / "sovereign.py",
+    ]
+    stale = [str(path.relative_to(REPO_ROOT)) for path in legacy_surfaces if "basketball_irl" in path.read_text()]
+    if stale:
+        fail("legacy basketball_irl still used in launch/result surfaces: " + ", ".join(stale))
+    else:
+        ok("IRL launch/result surfaces use canonical basketball_dunk_irl")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 7: Server.py Seeded Game Modes
@@ -252,11 +505,34 @@ def test_economy_integration():
         else:
             fail(f"PRQ weight missing for {mode}")
 
+    app_constants = (REPO_ROOT / "backend" / "app" / "utils" / "constants.py").read_text()
+    frontend_app = (REPO_ROOT / "frontend" / "src" / "App.js").read_text()
+    for mode in PRODUCTION_MODES + ["basketball_dunk_3d", "basketball_dunk_irl", "trivia_arena"]:
+        if f'"{mode}"' in app_constants:
+            ok(f"app.main PRQ weight defined for {mode}")
+        else:
+            fail(f"app.main PRQ weight missing for {mode}")
+        if re.search(rf"\b{re.escape(mode)}\s*:", frontend_app):
+            ok(f"frontend offline PRQ weight defined for {mode}")
+        else:
+            fail(f"frontend offline PRQ weight missing for {mode}")
+
+    if "'Party'" in frontend_app:
+        ok("frontend game-mode filter includes Party category")
+    else:
+        fail("frontend game-mode filter must include Party for court_carnival")
+
+    hub_dashboard = (REPO_ROOT / "frontend" / "src" / "components" / "HubDashboard.js").read_text()
+    if "production_modes: 20" in hub_dashboard and "d:'20 modes'" in frontend_app:
+        ok("frontend fallback mode counts show 20 playable shell modes")
+    else:
+        fail("frontend fallback mode counts must show 20 playable shell modes")
+
 
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print("  18 NEXUS runtime modes · split dunk iOS aliases · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()
@@ -265,6 +541,11 @@ def main():
     test_venue_registry()
     test_fel_play_map()
     test_swift_enum()
+    test_swift_non_game_guardrails()
+    test_swift_route_contract()
+    test_swift_agent_launch_alias_contract()
+    test_swift_sprint_grid_excludes_alias_tiles()
+    test_swift_cpp_registry_triangle()
     test_server_seeded_modes()
     test_economy_integration()
 

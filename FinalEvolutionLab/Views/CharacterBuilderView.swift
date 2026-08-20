@@ -615,7 +615,7 @@ struct CharacterBuilderView: View {
     }
 
     private func saveAndDeliver() {
-        // Deliver appearance JSON to Unreal via bridge
+        // Deliver appearance JSON to NEXUS renderer through the preserved bridge API.
         if let data = try? JSONSerialization.data(withJSONObject: config.toUnrealPayload(), options: [.sortedKeys]) {
             NexusBridge.shared.deliverAvatarAppearanceJSON(data)
         }

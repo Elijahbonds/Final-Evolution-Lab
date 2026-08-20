@@ -140,9 +140,9 @@ struct SettingsSheet: View {
                         } label: {
                             Label {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("Export Unity Manifest")
+                                    Text("Export Legacy Manifest")
                                         .font(.body.weight(.semibold))
-                                    Text("JSON export of PRQ, Neural Drive & game data")
+                                    Text("Preview JSON export of PRQ, Neural Drive & NEXUS game data")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -152,7 +152,7 @@ struct SettingsSheet: View {
                             }
                         }
                     } header: {
-                        Text("Unity Bridge")
+                        Text("Legacy Export (Preview)")
                     }
                 }
 

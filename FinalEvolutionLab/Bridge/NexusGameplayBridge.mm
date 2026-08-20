@@ -125,8 +125,8 @@ void nexus_gameplay_session_tick(NexusGameplayHandle handle, double deltaSeconds
   auto& perf = nexus::core::PerfMonitor::instance();
   perf.beginFrame();
   
-  session->application.update(deltaSeconds, session->physicsWorld, {});
   session->physicsWorld.step(deltaSeconds);
+  session->application.update(deltaSeconds, session->physicsWorld, {});
   
   perf.endFrame();
 }
@@ -246,7 +246,12 @@ char* nexus_gameplay_session_flush_receipts(NexusGameplayHandle handle) {
   const nlohmann::json request = {
       {"command", "fel.arena.flush_receipts"},
       {"id", "ios_flush_receipts"},
-      {"params", {{"persist_to_disk", true}}},
+      {"params",
+       {
+           {"persist_to_disk", true},
+           {"http_enabled", false},
+           {"use_stub_http", false},
+       }},
   };
   return copyJsonString(handleCommandJson(session->application, request));
 }

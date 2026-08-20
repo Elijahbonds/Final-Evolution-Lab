@@ -760,7 +760,7 @@ struct TriumphTournamentLobbyView: View {
                     }
                     
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("CREDIT CARD DETAILS (STRIPE STUB)")
+                        Text("CARD DETAILS (EARLY ACCESS PREVIEW)")
                             .font(.system(size: 11, weight: .black, design: .monospaced))
                             .foregroundStyle(.secondary)
                         
@@ -850,7 +850,7 @@ struct TriumphTournamentLobbyView: View {
                     }
                     
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("PAYPAL EMAIL / ACH STUB")
+                        Text("PAYOUT ACCOUNT (EARLY ACCESS PREVIEW)")
                             .font(.system(size: 11, weight: .black, design: .monospaced))
                             .foregroundStyle(.secondary)
                         

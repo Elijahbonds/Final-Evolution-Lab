@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.dependencies import close_resources
-from app.routers import auth, economy, games, marketplace, mechanics, payments, prq, webhooks
+from app.routers import auth, economy, games, marketplace, mechanics, payments, prq, registry, system_scan, webhooks
 from app.websockets.hud_channel import hud_ws_router
 from app.websockets.vault_channel import vault_ws_router
 
@@ -42,6 +42,8 @@ def create_app() -> FastAPI:
     app.include_router(marketplace.router, prefix=settings.api_prefix)
     app.include_router(mechanics.router, prefix=settings.api_prefix)
     app.include_router(payments.router, prefix=settings.api_prefix)
+    app.include_router(registry.router, prefix=settings.api_prefix)
+    app.include_router(system_scan.router, prefix=settings.api_prefix)
     app.include_router(webhooks.router, prefix=settings.api_prefix)
     app.include_router(vault_ws_router)
     app.include_router(hud_ws_router)

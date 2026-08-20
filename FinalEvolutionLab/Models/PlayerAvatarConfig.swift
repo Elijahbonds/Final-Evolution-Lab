@@ -226,7 +226,7 @@ extension PlayerAvatarConfig {
         )
     }
 
-    /// Full JSON payload delivered to Unreal via `receiveAvatarAppearanceJSON:`.
+    /// Full JSON payload delivered to NEXUS via the preserved avatar bridge contract.
     func toUnrealPayload() -> [String: Any] {
         [
             "type": "avatar_appearance",

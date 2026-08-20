@@ -156,8 +156,7 @@ struct ContentView: View {
         }
         .onChange(of: NEXUSAgentCoordinator.shared.pendingLaunch?.modeId) { _, modeId in
             guard let modeId,
-                  let parsed = GameModeId(rawValue: modeId),
-                  let mode = GameModeRegistry.all.first(where: { $0.id == parsed })
+                  let mode = GameModeRegistry.playableMode(forRegistryId: modeId)
             else { return }
 
             agentLaunchMode = mode
@@ -168,8 +167,7 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .nexusAgentLaunchMode)) { notification in
             guard let modeId = notification.userInfo?["mode_id"] as? String,
-                  let parsed = GameModeId(rawValue: modeId),
-                  let mode = GameModeRegistry.all.first(where: { $0.id == parsed })
+                  let mode = GameModeRegistry.playableMode(forRegistryId: modeId)
             else { return }
 
             agentLaunchMode = mode
@@ -190,10 +188,11 @@ struct ContentView: View {
         .fullScreenCover(isPresented: $showAgentLaunchedGame) {
             if let mode = agentLaunchMode {
                 NavigationStack {
-                    GamePlayView(
+                    GameModeRouter(
                         viewModel: viewModel,
                         gameMode: mode,
-                        sessionReadiness: agentLaunchReadiness
+                        sessionReadiness: agentLaunchReadiness,
+                        onDismiss: { showAgentLaunchedGame = false }
                     )
                     .toolbar {
                         ToolbarItem(placement: .topBarLeading) {
