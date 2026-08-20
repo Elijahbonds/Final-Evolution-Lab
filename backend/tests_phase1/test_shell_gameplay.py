@@ -98,6 +98,37 @@ def test_native_launch_returns_no_deeplink_on_web() -> None:
     assert state.json()["state"] == "completed"
 
 
+def test_shell_modes_follow_production_game_inventory() -> None:
+    client = TestClient(app)
+
+    response = client.get("/api/games/modes")
+
+    assert response.status_code == 200
+    modes = {mode["id"]: mode for mode in response.json()}
+    assert "karate" not in modes
+    assert {"who_scene_it", "court_carnival", "trivia_arena"} <= set(modes)
+    assert modes["who_scene_it"]["playable"] is True
+    assert modes["court_carnival"]["player_count"] == "2-4"
+    assert modes["market_browse"]["playable"] is False
+
+
+def test_app_main_exposes_production_venue_registry() -> None:
+    client = TestClient(app)
+
+    response = client.get("/api/registry/venues")
+
+    assert response.status_code == 200
+    body = response.json()
+    modes = {mode["mode_id"]: mode for mode in body["modes"]}
+    assert body["total_modes"] >= 22
+    assert modes["basketball_dunk_3d"]["map_token"] == "Venice_Beach_Court"
+    assert modes["basketball_dunk_irl"]["render_mode"] == "IRL"
+    assert modes["basketball_dunk_irl"]["map_path"] is None
+    assert modes["basketball_dunk_irl"]["launchable"] is True
+    assert modes["movement_lab"]["status"] == "preview"
+    assert modes["movement_lab"]["launchable"] is False
+
+
 def test_hub_command_center_status_renders() -> None:
     client = TestClient(app)
 

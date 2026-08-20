@@ -1,6 +1,8 @@
 """Server-authoritative FEL economy constants."""
 from __future__ import annotations
 
+from app.utils.mode_registry import mode_prq_weights
+
 XP_MIN_PER_SESSION = 10
 XP_CAP_PER_SESSION = 500
 XP_SCORE_DIVISOR = 5
@@ -17,24 +19,10 @@ SHARD_PACING_BONUS_RATE = 0.05
 SHARD_PACING_THRESHOLD = 75
 
 PRQ_MODE_WEIGHTS = {
-    "basketball_h2h": 1.2,
-    "basketball_dunk": 1.0,
-    "basketball_3v3": 1.3,
-    "karate": 1.4,
-    "karate_h2h": 1.4,
-    "karate_endless": 1.4,
-    "baseball": 1.0,
-    "football": 1.5,
-    "soccer": 1.1,
-    "golf": 0.9,
-    "tennis": 1.1,
-    "volleyball": 1.2,
-    "gymnastics": 1.0,
-    "brain_brawl": 0.8,
-    "surfing": 1.05,
-    "skateboarding": 1.0,
-    "snowboarding": 1.0,
-    "market_browse": 0.0,
+    **mode_prq_weights(),
+    # Trivia Arena is a web-shell education mode not represented in the NEXUS
+    # runtime registry, but it still produces low-impact shell receipts.
+    "trivia_arena": 0.7,
 }
 # PRQ v2.0 outcome bases (Architecture §6.1 — mirrors server.py)
 PRQ_OUTCOME_BASE = {
