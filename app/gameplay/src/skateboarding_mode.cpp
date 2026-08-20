@@ -1,5 +1,7 @@
 #include "nexus/gameplay/skateboarding_mode.h"
 
+#include "nexus/gameplay/arena_mode_registry.h"
+
 #include <algorithm>
 
 namespace nexus::gameplay {
@@ -75,7 +77,7 @@ auto SkateboardingMode::stateJson() const -> nlohmann::json {
       {"tricks_bailed", m_tricksBailed},
       {"max_bails", kMaxBails},
       {"run_complete", isRunComplete()},
-      {"release_state", "validate_only"},
+      {"release_state", ArenaModeRegistry::releaseStateLabelForMode("skateboarding")},
   };
 }
 
