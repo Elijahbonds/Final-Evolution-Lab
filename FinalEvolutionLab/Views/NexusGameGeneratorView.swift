@@ -18,6 +18,7 @@ struct NexusGameGeneratorView: View {
     @State private var gameplayLaunchId = UUID()
     @State private var lastGeneratorHudTheme: NexusGeneratorHudTheme?
     @State private var showArenaOnly = false
+    @State private var showDunkPlatform = false
     @State private var showAllTemplates = false
     @State private var forceTemplate = false
     @State private var showGenerateSuccess = false
@@ -157,6 +158,11 @@ struct NexusGameGeneratorView: View {
                             Button("Done") { showArenaOnly = false }
                         }
                     }
+            }
+        }
+        .fullScreenCover(isPresented: $showDunkPlatform) {
+            NavigationStack {
+                DunkMatchmakingView(viewModel: viewModel)
             }
         }
         .onAppear {
@@ -1236,6 +1242,12 @@ struct NexusGameGeneratorView: View {
               GameModeRegistry.playableMode(forRegistryId: rawModeId) != nil
         else {
             progressLines.append("Error: mode \(rawModeId) is not launchable")
+            return
+        }
+        if modeId.isIRLDunkContest {
+            gameplayRoute = nil
+            gameplayLaunchId = UUID()
+            showDunkPlatform = true
             return
         }
         if gameplayRoute == modeId {

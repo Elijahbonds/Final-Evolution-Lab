@@ -125,8 +125,8 @@ void nexus_gameplay_session_tick(NexusGameplayHandle handle, double deltaSeconds
   auto& perf = nexus::core::PerfMonitor::instance();
   perf.beginFrame();
   
-  session->application.update(deltaSeconds, session->physicsWorld, {});
   session->physicsWorld.step(deltaSeconds);
+  session->application.update(deltaSeconds, session->physicsWorld, {});
   
   perf.endFrame();
 }
