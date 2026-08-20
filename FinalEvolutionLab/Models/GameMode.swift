@@ -629,9 +629,10 @@ struct GameModeRegistry {
 
     /// Ingests a `FELModeManagerPayload` to dynamically update or filter shipping game modes.
     static func loadFromPayload(_ payload: FELModeManagerPayload) -> [GameMode] {
-        var loaded: [GameMode] = []
+        var loadedById: [GameModeId: GameMode] = [:]
         for (rawId, entry) in payload.modeManager.modeRegistry {
-            guard let modeId = GameModeId(rawValue: rawId) else { continue }
+            guard let base = playableMode(forRegistryId: rawId) else { continue }
+            let modeId = base.id
             let baseMode = all.first(where: { $0.id == modeId })
             let releaseState: GameMode.ReleaseState = entry.status == "production" ? .production : .preview
             
@@ -648,9 +649,11 @@ struct GameModeRegistry {
                 releaseState: releaseState,
                 capabilityTier: baseMode?.capabilityTier ?? modeId.nexusCapabilityTier
             )
-            loaded.append(mode)
+            if rawId == modeId.rawValue || loadedById[modeId] == nil {
+                loadedById[modeId] = mode
+            }
         }
-        return loaded
+        return all.compactMap { loadedById[$0.id] }
     }
 }
 

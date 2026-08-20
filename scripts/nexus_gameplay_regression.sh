@@ -29,6 +29,9 @@ python3 "${ROOT}/scripts/validate_ios_bridge_contract.py"
 echo "==> Mode registry contract"
 python3 "${ROOT}/scripts/validate_mode_registry.py"
 
+echo "==> iOS mode registry payload contract"
+python3 "${ROOT}/scripts/validate_ios_mode_registry.py"
+
 echo "==> iOS runtime launch contract"
 python3 "${ROOT}/scripts/validate_ios_runtime_launches.py"
 
