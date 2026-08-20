@@ -10,6 +10,30 @@ REGRESSION_JSON="${ARTIFACT_DIR}/gameplay_regression.json"
 REGRESSION_LOG="${ARTIFACT_DIR}/gameplay_regression_run.log"
 SKIP_BUILD=0
 
+if [[ -z "${CC:-}" ]]; then
+  export CC=gcc
+fi
+if [[ -z "${CXX:-}" ]]; then
+  export CXX=g++
+fi
+
+clear_stale_cmake_cache() {
+  local build_dir="$1"
+  local cache_file="${build_dir}/CMakeCache.txt"
+  if [[ ! -f "${cache_file}" ]]; then
+    return
+  fi
+
+  local cached_compiler
+  cached_compiler="$(awk -F= '/^CMAKE_CXX_COMPILER:FILEPATH=/{print $2}' "${cache_file}" || true)"
+  local requested_compiler
+  requested_compiler="$(command -v "${CXX}" 2>/dev/null || printf '%s' "${CXX}")"
+  if [[ -n "${cached_compiler}" && "${cached_compiler}" != "${requested_compiler}" ]]; then
+    echo "==> Removing stale ${build_dir} CMake cache (${cached_compiler} != ${requested_compiler})"
+    rm -rf "${build_dir}"
+  fi
+}
+
 for arg in "$@"; do
   case "$arg" in
     --skip-build) SKIP_BUILD=1 ;;
@@ -25,11 +49,12 @@ cd "${ROOT}"
 
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
   echo "==> Configure + build headless gameplay tests"
+  clear_stale_cmake_cache "${HEADLESS_DIR}"
   cmake -S . -B "${HEADLESS_DIR}" \
     -DNEXUS_ENABLE_RENDERER=OFF \
     -DNEXUS_BUILD_RUNTIME=OFF \
     -DNEXUS_BUILD_TESTS=ON
-  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)" --target nexus_gameplay_test
+  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 fi
 
 GAMEPLAY_TEST="${HEADLESS_DIR}/nexus_gameplay_test"
@@ -73,12 +98,14 @@ gameplay_log = Path(sys.argv[6]).read_text(errors="replace")
 ctest_log = Path(sys.argv[7]).read_text(errors="replace")
 
 sprint_modes = [
-    "basketball_dunk", "karate_endless", "basketball_h2h", "court_carnival",
-    "gymnastics", "brain_brawl", "skateboarding", "snowboarding", "surfing",
-    "who_scene_it",
+    "basketball_h2h", "basketball_dunk", "basketball_3v3", "court_carnival",
+    "karate_h2h", "karate_endless", "baseball", "football", "soccer", "golf",
+    "tennis", "volleyball", "gymnastics", "surfing", "skateboarding",
+    "snowboarding", "brain_brawl", "who_scene_it",
 ]
 
 modes_exercised = [m for m in sprint_modes if f"mode={m}" in gameplay_log or f"mode_id={m}" in gameplay_log]
+missing_modes = [m for m in sprint_modes if m not in modes_exercised]
 fail_lines = [line.strip() for line in gameplay_log.splitlines() if line.startswith("FAIL:")]
 
 payload = {
@@ -90,6 +117,7 @@ payload = {
     "sprint_live_modes_expected": len(sprint_modes),
     "sprint_live_modes_seen_in_log": len(modes_exercised),
     "sprint_live_modes": modes_exercised,
+    "sprint_live_modes_missing": missing_modes,
     "failures": fail_lines,
     "pass_banner": "PASS: nexus_gameplay_test" in gameplay_log,
     "artifacts": {
