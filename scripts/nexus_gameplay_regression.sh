@@ -32,7 +32,13 @@ if [[ "${SKIP_BUILD}" -eq 0 ]]; then
     export CC="${CC:-gcc}"
     export CXX="g++"
   fi
+  CMAKE_COMPILER_ARGS=()
+  if [[ -n "${CXX:-}" ]]; then
+    CMAKE_COMPILER_ARGS+=("-DCMAKE_CXX_COMPILER=${CXX}")
+  fi
   cmake -S . -B "${HEADLESS_DIR}" \
+    -U CMAKE_CXX_COMPILER \
+    "${CMAKE_COMPILER_ARGS[@]}" \
     -DNEXUS_ENABLE_RENDERER=OFF \
     -DNEXUS_BUILD_RUNTIME=OFF \
     -DNEXUS_BUILD_TESTS=ON

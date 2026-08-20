@@ -505,6 +505,22 @@ void gameplay_manager_evaluates_volleyball_outcome() {
           "volleyball in-progress draw");
 }
 
+void gameplay_manager_rewards_use_canonical_session_mri() {
+  using nexus::gameplay::GameplayManager;
+  using nexus::gameplay::MatchOutcome;
+
+  GameplayManager manager;
+  const auto result = manager.computeSessionResult(
+      "basketball_dunk", MatchOutcome::kWin, 1000.0F, -25.0F, 125.0F, -50.0F);
+
+  requireNear(result.arv, 0.0F, 0.001F, "session ARV clamped before receipt");
+  requireNear(result.esi, 100.0F, 0.001F, "session ESI clamped before receipt");
+  requireNear(result.pacingScore, 0.0F, 0.001F, "session pacing clamped before receipt");
+  requireNear(result.mriScore, 0.0F, 0.001F, "session MRI derived from canonical telemetry");
+  requireNear(result.xpCandidate, 200.0F, 0.001F, "XP ignores caller-supplied MRI");
+  requireNear(result.prqDeltaCandidate, 1.0F, 0.001F, "PRQ ignores caller-supplied MRI");
+}
+
 void outcome_sport_mode_mechanics_and_session_scores() {
   using nexus::gameplay::GameplayManager;
   using nexus::gameplay::MatchOutcome;
@@ -3001,6 +3017,7 @@ auto main() -> int {
   arena_mode_registry_lists_nineteen_modes();
   arena_mode_registry_production_modes_match_validate_script();
   gameplay_manager_evaluates_volleyball_outcome();
+  gameplay_manager_rewards_use_canonical_session_mri();
   outcome_sport_mode_mechanics_and_session_scores();
   karate_h2h_sport_pulse_hp_combat();
   arena_session_end_dispatches_receipt_and_bridge_messages();
