@@ -5,19 +5,25 @@ import {
   Clock, Cpu, Terminal, ChevronRight, Activity
 } from "lucide-react";
 import { API_URL } from "@/lib/apiClient";
+import { FEL_ARENA_MODES } from "@/lib/arenaModes";
 
 const API = API_URL;
 
 // ── Mode status registry ─────────────────────────────────────────
-export const MODE_STATUS = {
-  basketball_h2h: "production", basketball_dunk: "production", basketball_3v3: "production",
-  karate_h2h: "production", karate_endless: "production", baseball: "production",
-  football: "production", soccer: "production", golf: "production",
-  tennis: "staging", volleyball: "staging", gymnastics: "staging",
-  surfing: "staging", skateboarding: "staging", snowboarding: "staging",
-  brain_brawl: "preview", who_scene_it: "preview",
-  court_carnival: "preview", market_browse: "non-game-module"
-};
+const modesToStatusMap = (modes) =>
+  Object.fromEntries(
+    modes
+      .filter((mode) => mode?.id)
+      .map((mode) => [mode.id, mode.status || (mode.playable ? "production" : "preview")])
+  );
+
+export const MODE_STATUS = modesToStatusMap(FEL_ARENA_MODES);
+
+const statusCounts = (statusMap) =>
+  Object.values(statusMap).reduce((counts, status) => {
+    counts[status] = (counts[status] || 0) + 1;
+    return counts;
+  }, {});
 
 export const statusColor = (status) => {
   switch (status) {
@@ -39,7 +45,7 @@ const LOG_POOL = [
   "HealthKit read authorization confirmed",
   "Emergent WebSocket ping/pong ✓ (42ms)",
   "Avatar mesh streamed from CDN",
-  "Mode registry validated: 19 entries",
+  "Mode registry validated from canonical NEXUS catalog",
   "UE5 bridge channel open — MapLoaded acknowledged",
   "Session entropy seeded via SecureEnclave",
   "PRQ computation pipeline idle",
@@ -110,6 +116,8 @@ export const NexusConsole = ({ onClose }) => {
   // Active session
   const [session, setSession] = useState(null);
   const [sessionElapsed, setSessionElapsed] = useState(0);
+  const [modeStatuses, setModeStatuses] = useState(MODE_STATUS);
+  const [modeStatuses, setModeStatuses] = useState(MODE_STATUS);
 
   // Connection log
   const [logLines, setLogLines] = useState([
@@ -117,11 +125,25 @@ export const NexusConsole = ({ onClose }) => {
   ]);
   const logRef = useRef(null);
 
-  // Fetch from /api/nexus/status, fall back to mock if 404
+  // Fetch shell status plus the canonical mode registry; fall back to local registry if offline.
   const fetchStatus = useCallback(async () => {
-    try {
-      const r = await axios.get(`${API}/nexus/status`);
-      const d = r.data;
+    const [statusResult, modesResult] = await Promise.allSettled([
+      axios.get(`${API}/nexus/status`),
+      axios.get(`${API}/games/modes`),
+    ]);
+
+    if (modesResult.status === "fulfilled" && Array.isArray(modesResult.value.data)) {
+      const nextStatuses = modesToStatusMap(modesResult.value.data);
+      if (Object.keys(nextStatuses).length) setModeStatuses(nextStatuses);
+    }
+
+    if (statusResult.status === "fulfilled") {
+      const d = statusResult.value.data;
+      const registryModes = d.mode_registry?.modes;
+      if (Array.isArray(registryModes)) {
+        const nextStatuses = modesToStatusMap(registryModes);
+        if (Object.keys(nextStatuses).length) setModeStatuses(nextStatuses);
+      }
       setSubsystems({
         firestore: { status: d.firestore?.status || "ready", detail: d.firestore?.detail || "connected" },
         healthkit: { status: d.healthkit?.status || "authorized", detail: d.healthkit?.detail || "read access granted" },
@@ -130,8 +152,7 @@ export const NexusConsole = ({ onClose }) => {
       });
       if (d.session) setSession(d.session);
       appendLog("Status polled from /api/nexus/status");
-    } catch {
-      // Endpoint not yet implemented — use simulated data
+    } else {
       setSubsystems({
         firestore: { status: "ready",      detail: "6 active listeners" },
         healthkit: { status: "authorized", detail: "steps · HRV · sleep" },
@@ -189,6 +210,7 @@ export const NexusConsole = ({ onClose }) => {
 
   const fmtElapsed = (secs) =>
     `${String(Math.floor(secs / 60)).padStart(2,"0")}:${String(secs % 60).padStart(2,"0")}`;
+  const counts = statusCounts(modeStatuses);
 
   return (
     <div
@@ -360,14 +382,18 @@ export const NexusConsole = ({ onClose }) => {
                 <AlertCircle className="w-3 h-3" /> Mode Inventory
               </span>
               <div className="flex items-center gap-2">
+                <span className="px-1.5 py-0.5 text-[9px] font-mono bg-zinc-800 text-zinc-300">TOTAL {Object.keys(modeStatuses).length}</span>
                 <span className="px-1.5 py-0.5 text-[9px] font-mono bg-cyan-400/15 text-cyan-400">PROD</span>
                 <span className="px-1.5 py-0.5 text-[9px] font-mono bg-amber-400/15 text-amber-400">STAGING</span>
                 <span className="px-1.5 py-0.5 text-[9px] font-mono bg-zinc-700 text-zinc-400">PREVIEW</span>
                 <span className="px-1.5 py-0.5 text-[9px] font-mono bg-indigo-400/15 text-indigo-400">MODULE</span>
               </div>
             </div>
+            <div className="text-[10px] text-zinc-500 font-mono mb-2">
+              {counts.production || 0} production · {counts.preview || 0} preview · {counts["non-game-module"] || 0} module
+            </div>
             <div className="flex flex-wrap gap-1.5" data-testid="mode-status-strip">
-              {Object.entries(MODE_STATUS).map(([id, status]) => (
+              {Object.entries(modeStatuses).map(([id, status]) => (
                 <span
                   key={id}
                   data-testid={`mode-chip-${id}`}
@@ -422,9 +448,23 @@ export const NexusPage = () => {
   const logRef = useRef(null);
 
   const fetchStatus = useCallback(async () => {
-    try {
-      const r = await axios.get(`${API}/nexus/status`);
-      const d = r.data;
+    const [statusResult, modesResult] = await Promise.allSettled([
+      axios.get(`${API}/nexus/status`),
+      axios.get(`${API}/games/modes`),
+    ]);
+
+    if (modesResult.status === "fulfilled" && Array.isArray(modesResult.value.data)) {
+      const nextStatuses = modesToStatusMap(modesResult.value.data);
+      if (Object.keys(nextStatuses).length) setModeStatuses(nextStatuses);
+    }
+
+    if (statusResult.status === "fulfilled") {
+      const d = statusResult.value.data;
+      const registryModes = d.mode_registry?.modes;
+      if (Array.isArray(registryModes)) {
+        const nextStatuses = modesToStatusMap(registryModes);
+        if (Object.keys(nextStatuses).length) setModeStatuses(nextStatuses);
+      }
       setSubsystems({
         firestore: { status: d.firestore?.status || "ready", detail: d.firestore?.detail || "connected" },
         healthkit: { status: d.healthkit?.status || "authorized", detail: d.healthkit?.detail || "read access granted" },
@@ -432,7 +472,7 @@ export const NexusPage = () => {
         unreal:    { status: d.unreal?.status || "ready", detail: d.unreal?.detail || "UE5 framework loaded" },
       });
       if (d.session) setSession(d.session);
-    } catch {
+    } else {
       setSubsystems({
         firestore: { status: "ready",      detail: "6 active listeners" },
         healthkit: { status: "authorized", detail: "steps · HRV · sleep" },
@@ -482,6 +522,7 @@ export const NexusPage = () => {
 
   const fmtElapsed = (secs) =>
     `${String(Math.floor(secs / 60)).padStart(2,"0")}:${String(secs % 60).padStart(2,"0")}`;
+  const counts = statusCounts(modeStatuses);
 
   return (
     <div
@@ -570,9 +611,15 @@ export const NexusPage = () => {
 
       {/* Mode inventory */}
       <section data-testid="nexus-page-mode-inventory">
-        <div className="text-[10px] uppercase tracking-[0.35em] text-zinc-500 mb-3">Mode Inventory</div>
+        <div className="text-[10px] uppercase tracking-[0.35em] text-zinc-500 mb-3 flex items-center justify-between">
+          <span>Mode Inventory</span>
+          <span className="font-mono tracking-normal text-zinc-400">TOTAL {Object.keys(modeStatuses).length}</span>
+        </div>
+        <div className="text-[10px] text-zinc-500 font-mono mb-2">
+          {counts.production || 0} production · {counts.preview || 0} preview · {counts["non-game-module"] || 0} module
+        </div>
         <div className="flex flex-wrap gap-1.5">
-          {Object.entries(MODE_STATUS).map(([id, status]) => (
+          {Object.entries(modeStatuses).map(([id, status]) => (
             <span key={id} className={`px-2 py-0.5 text-[10px] font-mono rounded ${statusColor(status)}`}>
               {id.replace(/_/g, " ")}
             </span>

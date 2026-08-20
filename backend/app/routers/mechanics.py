@@ -11,10 +11,12 @@ persist via ``session_processor`` to Postgres (or SQLite when USE_SQLITE_DEV=tru
 """
 from __future__ import annotations
 
+import json
 import random
 import time
 import uuid
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, File, Query, UploadFile
@@ -33,27 +35,45 @@ _critique_requests: list[dict[str, Any]] = []
 _brain_brawl_sessions: dict[str, dict[str, Any]] = {}
 _workout_logs: list[dict[str, Any]] = []
 
-ARENA_MODES = [
-    ("basketball_h2h", "Street · 1v1", "Basketball", "VeniceBeach", "1v1", "3 min"),
-    ("basketball_dunk", "Dunk Contest", "Basketball", "VeniceBeach", "Solo", "5 min"),
-    ("basketball_3v3", "Street · 3v3", "Basketball", "VeniceBeach", "3v3", "8 min"),
-    ("karate", "Karate · Dojo", "Combat", "Dojo", "Solo", "3 min"),
-    ("karate_h2h", "Karate · 1v1", "Combat", "Dojo", "1v1", "3 min"),
-    ("karate_endless", "Karate · Endless", "Combat", "Dojo", "Solo", "Endless"),
-    ("baseball", "Baseball · Ballpark", "Field", "BaseballPark", "Solo", "5 min"),
-    ("football", "Football · Kick Return", "Field", "Gridiron", "Solo", "4 min"),
-    ("soccer", "Soccer · Stadium", "Field", "SoccerStadium", "Solo", "3 min"),
-    ("golf", "Golf · Links", "Precision", "Links", "Solo", "5 min"),
-    ("tennis", "Tennis · Court", "Court", "TennisCourt", "1v1", "3 min"),
-    ("volleyball", "Volleyball · Sand Court", "Court", "SandCourt", "2v2", "3 min"),
-    ("gymnastics", "Gymnastics · Floor", "Performance", "TrainingFloor", "Solo", "4 min"),
-    ("brain_brawl", "Academy · Brain Brawl", "Academy", "NeuroArena", "Solo", "2 min"),
-    ("surfing", "Surf · Line", "Board", "VeniceBeach", "Solo", "3 min"),
-    ("skateboarding", "Skate · Dojo", "Board", "Dojo", "Solo", "3 min"),
-    ("snowboarding", "Snow · Line", "Board", "TrainingFloor", "Solo", "3 min"),
-    ("market_browse", "Sovereign Shop", "Academy", "Luma_Venice_Shop", "Browse", "Open"),
-    ("trivia_arena", "Trivia Arena", "Academy", "NeuroArena", "Solo", "2 min"),
-]
+_MODE_REGISTRY_PATH = Path(__file__).resolve().parents[2] / "FEL_ModeManager.production.json"
+
+MODE_PRESENTATION: dict[str, dict[str, Any]] = {
+    "basketball_h2h": {"display_name": "Street · 1v1", "category": "Basketball", "player_count": "1v1", "duration": "3 min", "game_type": "shooting"},
+    "basketball_dunk": {"display_name": "Dunk Contest", "category": "Basketball", "player_count": "Solo", "duration": "5 min", "game_type": "timing"},
+    "basketball_dunk_3d": {"display_name": "Dunk Contest · NEXUS 3D", "category": "Basketball", "player_count": "Solo", "duration": "5 min", "game_type": "timing"},
+    "basketball_dunk_irl": {"display_name": "Dunk Contest · IRL Capture", "category": "Basketball", "player_count": "Solo", "duration": "5 min", "game_type": "capture"},
+    "basketball_3v3": {"display_name": "Street · 3v3", "category": "Basketball", "player_count": "3v3", "duration": "8 min", "game_type": "strategy"},
+    "karate_h2h": {"display_name": "Karate · 1v1", "category": "Combat", "player_count": "1v1", "duration": "3 min", "game_type": "combat"},
+    "karate_endless": {"display_name": "Karate · Endless", "category": "Combat", "player_count": "Solo", "duration": "Endless", "game_type": "endurance"},
+    "baseball": {"display_name": "Baseball · Ballpark", "category": "Field", "player_count": "Solo", "duration": "5 min", "game_type": "timing"},
+    "football": {"display_name": "Football · Kick Return", "category": "Field", "player_count": "Solo", "duration": "4 min", "game_type": "reflex"},
+    "soccer": {"display_name": "Soccer · Stadium", "category": "Field", "player_count": "Solo", "duration": "3 min", "game_type": "shooting"},
+    "golf": {"display_name": "Golf · Links", "category": "Precision", "player_count": "Solo", "duration": "5 min", "game_type": "precision"},
+    "tennis": {"display_name": "Tennis · Court", "category": "Court", "player_count": "1v1", "duration": "3 min", "game_type": "reflex"},
+    "volleyball": {"display_name": "Volleyball · Sand Court", "category": "Court", "player_count": "2v2", "duration": "3 min", "game_type": "reflex"},
+    "surfing": {"display_name": "Surf · Line", "category": "Board", "player_count": "Solo", "duration": "3 min", "game_type": "balance"},
+    "gymnastics": {"display_name": "Gymnastics · Floor", "category": "Performance", "player_count": "Solo", "duration": "4 min", "game_type": "timing"},
+    "brain_brawl": {"display_name": "Academy · Brain Brawl", "category": "Academy", "player_count": "Solo", "duration": "2 min", "game_type": "quiz"},
+    "who_scene_it": {"display_name": "Who Scene It", "category": "Academy", "player_count": "2-8", "duration": "15 min", "game_type": "quiz"},
+    "court_carnival": {"display_name": "Court Carnival · Arcade", "category": "Party", "player_count": "2-4", "duration": "30 min", "game_type": "strategy"},
+    "skateboarding": {"display_name": "Skate · Park", "category": "Board", "player_count": "Solo", "duration": "3 min", "game_type": "timing"},
+    "snowboarding": {"display_name": "Snow · Line", "category": "Board", "player_count": "Solo", "duration": "3 min", "game_type": "reflex"},
+    "market_browse": {"display_name": "Sovereign Shop", "category": "Shop", "player_count": "Browse", "duration": "Open", "game_type": "shop"},
+    "movement_lab": {"display_name": "Movement Lab · Education", "category": "Academy", "player_count": "Solo", "duration": "Tutorial", "game_type": "education"},
+}
+
+MODE_IMAGE_BY_CATEGORY = {
+    "Basketball": "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800",
+    "Combat": "https://images.unsplash.com/photo-1555597673-b21d5c935865?w=800",
+    "Field": "https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=800",
+    "Precision": "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=800",
+    "Court": "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=800",
+    "Board": "https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800",
+    "Performance": "https://images.unsplash.com/photo-1566838616631-f2618f74a6a2?w=800",
+    "Academy": "https://images.unsplash.com/photo-1559757175-5700dde675bc?w=800",
+    "Party": "https://images.unsplash.com/photo-1511882150382-421056c89033?w=800",
+    "Shop": "https://images.unsplash.com/photo-1607082349566-187342175e2f?w=800",
+}
 
 INTENTS = {
     "fascial_hydration": "Fascial Hydration",
@@ -142,21 +162,58 @@ def _now() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def _mode(row: tuple[str, str, str, str, str, str]) -> dict[str, Any]:
-    mode_id, display_name, category, venue, players, duration = row
+def _mode_registry() -> dict[str, dict[str, Any]]:
+    payload = json.loads(_MODE_REGISTRY_PATH.read_text(encoding="utf-8"))
+    return payload["mode_manager"]["mode_registry"]
+
+
+def _mode_registry_counts(registry: dict[str, dict[str, Any]] | None = None) -> dict[str, int]:
+    modes = registry or _mode_registry()
+    return {
+        "total_modes": len(modes),
+        "production_modes": sum(1 for entry in modes.values() if entry.get("status") == "production"),
+        "playable_modes": sum(
+            1
+            for mode_id, entry in modes.items()
+            if entry.get("status") == "production" and mode_id != "market_browse"
+        ),
+        "preview_modes": sum(1 for entry in modes.values() if entry.get("status") == "preview"),
+        "non_game_modules": sum(1 for entry in modes.values() if entry.get("status") == "non-game-module"),
+    }
+
+
+def _registered_venues(registry: dict[str, dict[str, Any]] | None = None) -> list[str]:
+    modes = registry or _mode_registry()
+    return sorted({entry["venue_id"] for entry in modes.values() if entry.get("venue_id")})
+
+
+def _mode(mode_id: str, registry_entry: dict[str, Any]) -> dict[str, Any]:
+    presentation = MODE_PRESENTATION.get(mode_id, {})
+    display_name = presentation.get("display_name", mode_id.replace("_", " ").title())
+    category = presentation.get("category", "Game")
+    venue = registry_entry.get("venue_id") or presentation.get("venue", "Device Camera")
+    status = registry_entry.get("status", "preview")
+    playable = status == "production" and mode_id != "market_browse"
     return {
         "id": mode_id,
         "name": display_name,
         "display_name": display_name,
         "category": category,
         "venue": venue,
-        "player_count": players,
-        "duration": duration,
+        "status": status,
+        "release_state": registry_entry.get("release_state", status),
+        "render_mode": registry_entry.get("render_mode", "3D_UE5"),
+        "nexus_runtime_mode_id": registry_entry.get("nexus_runtime_mode_id", mode_id),
+        "player_count": presentation.get("player_count", "Solo"),
+        "duration": presentation.get("duration", "Adaptive"),
         "difficulty": "Cognitive" if category == "Academy" else "Adaptive",
-        "game_type": "quiz" if mode_id in {"brain_brawl", "trivia_arena"} else "reflex",
-        "playable": mode_id != "market_browse",
-        "image_url": "/images/ue5_basketball.png" if category == "Basketball" else "/images/ue5_board.png",
-        "description": f"{display_name} is wired through the FEL shell economy and HUD pipeline.",
+        "game_type": presentation.get("game_type", "reflex"),
+        "playable": playable,
+        "image_url": MODE_IMAGE_BY_CATEGORY.get(category, MODE_IMAGE_BY_CATEGORY["Board"]),
+        "description": registry_entry.get(
+            "description",
+            f"{display_name} is aligned to the canonical NEXUS mode registry.",
+        ),
     }
 
 
@@ -175,7 +232,25 @@ def _target() -> dict[str, int]:
 
 @router.get("/games/modes")
 async def game_modes() -> list[dict[str, Any]]:
-    return [_mode(row) for row in ARENA_MODES]
+    registry = _mode_registry()
+    return [_mode(mode_id, entry) for mode_id, entry in registry.items()]
+
+
+@router.get("/nexus/status")
+async def nexus_status() -> dict[str, Any]:
+    registry = _mode_registry()
+    counts = _mode_registry_counts(registry)
+    modes = [_mode(mode_id, entry) for mode_id, entry in registry.items()]
+    return {
+        "firestore": {"status": "ready", "detail": "shell persistence online"},
+        "healthkit": {"status": "authorized", "detail": "IRL capture adapter ready"},
+        "websocket": {"status": "connected", "detail": "HUD and Vault channels registered"},
+        "unreal": {
+            "status": "ready",
+            "detail": f"{counts['playable_modes']} launchable registry modes",
+        },
+        "mode_registry": {**counts, "modes": modes},
+    }
 
 
 @router.post("/ai/chat")
@@ -617,16 +692,14 @@ def _uptime_seconds() -> int:
 
 @router.get("/hub/status")
 async def hub_status() -> dict[str, Any]:
+    registry = _mode_registry()
+    venues = _registered_venues(registry)
     return {
         "websocket": {"status": "connected", "connected_clients": [], "total_messages": 0},
         "database": {
             "status": "ready",
-            "total_venues": 12,
-            "venues": [
-                "VeniceBeach", "Dojo", "BaseballPark", "Gridiron", "SoccerStadium",
-                "Links", "TennisCourt", "SandCourt", "TrainingFloor", "NeuroArena",
-                "Luma_Venice_Shop", "SecureEnclave",
-            ],
+            "total_venues": len(venues),
+            "venues": venues,
         },
         "integrity": {"status": "ACTIVE", "hardware_auth": {"bIsHardwareAuthenticated": True, "back_camera_verified": True, "imu_visual_sync": True}},
         "telemetry": {"prq": 75.6, "combo_meter": 0, "buckets": 0, "vertical_jump": 0, "velocity_vectors": {"x": 0, "y": 0, "z": 0}},
@@ -637,7 +710,7 @@ async def hub_status() -> dict[str, Any]:
 
 @router.get("/production/health")
 async def production_health() -> dict[str, Any]:
-    return {"status": "HEALTHY", "checks": {"mode_manager": {"production_modes": 20}}}
+    return {"status": "HEALTHY", "checks": {"mode_manager": _mode_registry_counts()}}
 
 
 @router.get("/production/handshake-log")

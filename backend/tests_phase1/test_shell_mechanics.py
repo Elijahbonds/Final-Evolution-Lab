@@ -1,9 +1,14 @@
 """Shell mechanics coverage for coaching, critiques, food scanning, and game modes."""
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 from app.main import app
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_game_modes_and_ai_coach_are_available() -> None:
@@ -11,12 +16,36 @@ def test_game_modes_and_ai_coach_are_available() -> None:
 
     modes = client.get("/api/games/modes")
     chat = client.post("/api/ai/chat", json={"message": "Build a training day", "model": "gpt-5.2"})
+    registry = json.loads((REPO_ROOT / "FEL_ModeManager.production.json").read_text())["mode_manager"][
+        "mode_registry"
+    ]
+    mode_payload = modes.json()
+    mode_ids = {mode["id"] for mode in mode_payload}
 
     assert modes.status_code == 200
-    assert len(modes.json()) == 19
-    assert any(mode["id"] == "trivia_arena" for mode in modes.json())
+    assert mode_ids == set(registry)
+    assert len(mode_payload) == len(registry) == 22
+    assert "karate" not in mode_ids
+    assert "trivia_arena" not in mode_ids
+    assert any(mode["id"] == "basketball_dunk_irl" and mode["render_mode"] == "IRL" for mode in mode_payload)
+    assert any(mode["id"] == "movement_lab" and mode["status"] == "preview" for mode in mode_payload)
+    assert any(mode["id"] == "market_browse" and mode["playable"] is False for mode in mode_payload)
     assert chat.status_code == 200
     assert "FEL Coach" in chat.json()["response"]
+
+
+def test_nexus_status_reports_canonical_mode_counts() -> None:
+    client = TestClient(app)
+
+    status = client.get("/api/nexus/status")
+
+    assert status.status_code == 200
+    registry = status.json()["mode_registry"]
+    assert registry["total_modes"] == 22
+    assert registry["production_modes"] == 20
+    assert registry["preview_modes"] == 1
+    assert registry["non_game_modules"] == 1
+    assert len(registry["modes"]) == 22
 
 
 def test_biofuel_scan_confirm_logs_nutri_shards() -> None:
