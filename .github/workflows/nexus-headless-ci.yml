@@ -1,0 +1,42 @@
+name: NEXUS Headless Gameplay CI
+
+on:
+  push:
+    branches:
+      - main
+      - "cursor/**"
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  headless-gameplay:
+    name: Headless CMake + gameplay regression
+    runs-on: ubuntu-latest
+    env:
+      CC: gcc
+      CXX: g++
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure headless test matrix
+        run: |
+          cmake -S . -B build-headless \
+            -DNEXUS_ENABLE_RENDERER=OFF \
+            -DNEXUS_BUILD_RUNTIME=OFF \
+            -DNEXUS_BUILD_TESTS=ON
+
+      - name: Build all headless tests
+        run: cmake --build build-headless -j"$(nproc)"
+
+      - name: Run headless CTest matrix
+        run: ctest --test-dir build-headless --output-on-failure
+
+      - name: Run NEXUS gameplay regression artifact gate
+        run: ./scripts/nexus_gameplay_regression.sh --skip-build
+
+      - name: Validate mode and iOS descriptors
+        run: |
+          python3 scripts/smoke_test_modes.py
+          python3 scripts/validate_ios_descriptor.py
+          python3 scripts/validate_cooked_payload.py
