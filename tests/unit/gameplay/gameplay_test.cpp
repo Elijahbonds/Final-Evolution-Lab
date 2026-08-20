@@ -35,6 +35,7 @@
 #include <filesystem>
 #include <fstream>
 #include <fstream>
+#include <optional>
 #include <string>
 #include <thread>
 #include <utility>
@@ -71,6 +72,28 @@ void removeTreeBestEffort(const std::filesystem::path& root) {
 }
 
 #if defined(__unix__) || defined(__APPLE__)
+[[nodiscard]] auto requestContentLength(const std::string& request) -> std::optional<std::size_t> {
+  const std::string headerName = "Content-Length:";
+  auto headerStart = request.find(headerName);
+  if (headerStart == std::string::npos) {
+    return std::nullopt;
+  }
+  headerStart += headerName.size();
+  while (headerStart < request.size() && request[headerStart] == ' ') {
+    ++headerStart;
+  }
+  const auto headerEnd = request.find("\r\n", headerStart);
+  if (headerEnd == std::string::npos || headerEnd == headerStart) {
+    return std::nullopt;
+  }
+  try {
+    return static_cast<std::size_t>(
+        std::stoul(request.substr(headerStart, headerEnd - headerStart)));
+  } catch (...) {
+    return std::nullopt;
+  }
+}
+
 class SingleResponseHttpServer {
 public:
   explicit SingleResponseHttpServer(int statusCode) {
@@ -93,11 +116,28 @@ public:
             "read receipt test HTTP socket port");
     m_port = ntohs(address.sin_port);
 
-    m_thread = std::thread([serverSocket, statusCode]() {
+    m_thread = std::thread([this, serverSocket, statusCode]() {
       const int clientSocket = ::accept(serverSocket, nullptr, nullptr);
       if (clientSocket >= 0) {
-        char requestBuffer[2048];
-        (void)::recv(clientSocket, requestBuffer, sizeof(requestBuffer), 0);
+        std::string request;
+        std::array<char, 2048> requestBuffer{};
+        while (true) {
+          const ssize_t bytesRead =
+              ::recv(clientSocket, requestBuffer.data(), requestBuffer.size(), 0);
+          if (bytesRead <= 0) {
+            break;
+          }
+          request.append(requestBuffer.data(), static_cast<std::size_t>(bytesRead));
+          const auto bodyStart = request.find("\r\n\r\n");
+          if (bodyStart != std::string::npos) {
+            const auto contentLength = requestContentLength(request);
+            if (!contentLength ||
+                request.size() >= bodyStart + 4 + contentLength.value()) {
+              break;
+            }
+          }
+        }
+        m_request = std::move(request);
         const std::string body = "{}";
         const std::string response = "HTTP/1.1 " + std::to_string(statusCode) +
                                      " NEXUS\r\nContent-Type: application/json\r\n"
@@ -112,6 +152,10 @@ public:
   }
 
   ~SingleResponseHttpServer() {
+    wait();
+  }
+
+  void wait() {
     if (m_thread.joinable()) {
       m_thread.join();
     }
@@ -121,9 +165,18 @@ public:
     return "http://127.0.0.1:" + std::to_string(m_port) + "/api/games/session";
   }
 
+  [[nodiscard]] auto requestBody() const -> std::string {
+    const auto bodyStart = m_request.find("\r\n\r\n");
+    if (bodyStart == std::string::npos) {
+      return {};
+    }
+    return m_request.substr(bodyStart + 4);
+  }
+
 private:
   std::uint16_t m_port{0};
   std::thread m_thread;
+  std::string m_request;
 };
 
 [[nodiscard]] auto curlAvailable() -> bool {
@@ -2233,6 +2286,56 @@ void session_receipt_live_http_success_does_not_count_disk_queue() {
 #endif
 }
 
+void gameplay_manager_live_receipt_posts_backend_contract_payload() {
+#if defined(__unix__) || defined(__APPLE__)
+  if (!curlAvailable()) {
+    std::fprintf(stderr, "SKIP: curl unavailable for gameplay manager contract POST test\n");
+    return;
+  }
+
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_live_contract_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  SingleResponseHttpServer server(204);
+  nexus::gameplay::GameplayManager manager;
+  manager.setReceiptClientConfig({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  manager.dispatchSessionReceipt(makeTestSessionResult("live_contract_session", "karate_endless", 15.0F));
+
+  const auto flush = manager.flushPendingReceipts();
+  require(flush.attempted == 1, "contract POST attempts receipt");
+  require(flush.delivered == 1, "contract POST delivers receipt");
+  require(manager.pendingReceipts().empty(), "contract POST clears manager queue after 2xx");
+  server.wait();
+
+  const nlohmann::json posted = nlohmann::json::parse(server.requestBody(), nullptr, false);
+  require(!posted.is_discarded(), "contract POST body parses as JSON");
+  require(posted["mode_id"].get<std::string>() == "karate_endless", "contract mode_id posted");
+  require(posted["score"].get<int>() == 15, "contract score posted as integer");
+  require(posted["outcome"].get<std::string>() == "win", "contract outcome posted");
+  require(posted["duration_seconds"].get<int>() == 60, "contract duration_seconds posted");
+  require(posted["completed"].get<bool>(), "contract completed posted");
+  require(posted.contains("combo_count"), "contract combo_count posted");
+  require(posted.contains("critical_count"), "contract critical_count posted");
+  require(posted.contains("pacing_score"), "contract pacing_score posted");
+  require(posted.contains("mri_score"), "contract mri_score posted");
+  require(posted.contains("arv"), "contract arv posted");
+  require(posted.contains("esi"), "contract esi posted");
+  require(posted["telemetry"]["session_id"].get<std::string>() == "live_contract_session",
+          "contract telemetry session_id posted");
+  require(!std::filesystem::exists(tempDir), "contract HTTP-only POST does not create disk queue");
+#else
+  std::fprintf(stderr, "SKIP: gameplay manager contract POST test requires POSIX sockets\n");
+#endif
+}
+
 void session_receipt_live_http_non_2xx_requeues_without_disk() {
 #if defined(__unix__) || defined(__APPLE__)
   if (!curlAvailable()) {
@@ -3201,6 +3304,7 @@ auto main() -> int {
   hud_relay_broadcast_messages_are_bounded();
   session_receipt_http_stub_posts_localhost_contract();
   session_receipt_live_http_success_does_not_count_disk_queue();
+  gameplay_manager_live_receipt_posts_backend_contract_payload();
   session_receipt_live_http_non_2xx_requeues_without_disk();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
