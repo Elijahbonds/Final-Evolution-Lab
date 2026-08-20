@@ -462,7 +462,10 @@ struct GamePlayView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .onAppear {
             sceneViewportReady = false
-            nexusEngine.start(modeId: gameMode.id.nexusRuntimeModeId, readiness: sessionReadiness)
+            let runtimeModeId = gameMode.id.nexusRuntimeModeId
+            if gameMode.isNexusSprintPlayable, !runtimeModeId.isEmpty {
+                nexusEngine.start(modeId: runtimeModeId, readiness: sessionReadiness)
+            }
             FELSoundscapeEngine.shared.start(for: gameMode.id)
             FELHaptics.prepare()
             if skipMatchLobbyForScreenshotHarness {

@@ -2,27 +2,30 @@
 
 #include "nexus/core/log.h"
 
+#include <utility>
+
 namespace nexus::gameplay {
 
 namespace {
 
-nexus::core::WebSocketClient makeRelayClient(std::string url, bool useStubTransport) {
+nexus::core::WebSocketClient makeRelayClient(const HudRelayConfig& config) {
   return nexus::core::WebSocketClient{
       nexus::core::WebSocketClientConfig{
-          .url = std::move(url),
-          .autoReconnect = true,
-          .useStubTransport = useStubTransport,
+          .url = config.websocketUrl,
+          .autoReconnect = config.autoReconnect,
+          .useStubTransport = config.useStubTransport,
       },
   };
 }
 
 } // namespace
 
-HudRelayService::HudRelayService()
-    : m_relay(makeRelayClient(m_websocketUrl, true)) {}
+HudRelayService::HudRelayService(HudRelayConfig config)
+    : m_config(std::move(config)),
+      m_relay(makeRelayClient(m_config)) {}
 
 auto HudRelayService::connectRelay() -> nexus::Result<void> {
-  m_relay.setUrl(m_websocketUrl);
+  m_relay.setUrl(m_config.websocketUrl);
   return m_relay.connect();
 }
 
@@ -39,8 +42,8 @@ auto HudRelayService::lastRelayError() const -> const nexus::core::WebSocketErro
 }
 
 void HudRelayService::setWebSocketUrl(std::string url) {
-  m_websocketUrl = std::move(url);
-  m_relay.setUrl(m_websocketUrl);
+  m_config.websocketUrl = std::move(url);
+  m_relay.setUrl(m_config.websocketUrl);
 }
 
 void HudRelayService::emitTickFrame(const nlohmann::json& framePayload) {
