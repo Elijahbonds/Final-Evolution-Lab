@@ -49,7 +49,8 @@ struct GameModeSelectionView: View {
                 GamePlayView(
                     viewModel: viewModel,
                     gameMode: mode,
-                    sessionReadiness: sessionReadiness
+                    sessionReadiness: sessionReadiness,
+                    coopPlayerCount: mode.id == .karateEndless ? karateCoopPlayerCount : 1
                 )
                 .id(gameplayLaunchId)
             }

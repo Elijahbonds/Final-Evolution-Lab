@@ -10,12 +10,12 @@
 
 | Phase | Theme | Status | Command |
 |-------|-------|--------|---------|
-| 1 | Headless engine + gameplay compile | **pass** | `ctest --test-dir build-headless` → 4/4 |
+| 1 | Headless engine + gameplay compile | **pass** | `ctest --test-dir build-headless` → 11/11 |
 | 2 | Full renderer + `nexus_runtime` | **pass** | `cmake -B build-full -DNEXUS_ENABLE_RENDERER=ON && cmake --build build-full` |
 | 3 | Mobile mesh LOD gate | **pass** | `./scripts/nexus_mobile_mesh_gate.sh` (WARN: sidecar naming vs manifest bases) |
 | 4 | Spec v1 integration smoke | **pass** | `./scripts/smoke_v1.sh --skip-build` |
 | 5 | iOS NEXUS static libs | **pass** | `./scripts/build-nexus-ios.sh` → `build-ios/*.a` |
-| 6 | Full build gate | **pass** | `./scripts/nexus_build_gate.sh` → headless 4/4 + full 5/5 ctest |
+| 6 | Full build gate | **pass** | `./scripts/nexus_build_gate.sh` → headless 11/11 + full 13/13 ctest |
 | 7 | Runtime smoke | **pass** | `bench_nexus_runtime.sh`, `smoke_v1.sh`, `smoke_gameplay_session.sh` |
 | 8 | iOS TestFlight packaging | **partial** | Dry-run OK; **no** `FEL.xcarchive`, **no** IPA, **no** `GoogleService-Info.plist` |
 | 9 | Docs (this file) | **pass** | Honest status — no fake “shipped” claims |
@@ -24,6 +24,11 @@
 **Pass 2 score: 9/10 green** (phase 8 blocked on Firebase plist + code signing + manual archive).
 
 Machine-readable report: `build/nexus-pass2-report.json`
+
+Current Linux cloud note: the checked-in CI workflow is `.github/workflows/nexus-headless-ci.yml`
+(headless CMake/CTest + gameplay regression + Python validators). Full renderer
+validation still requires Vulkan + SDL3 development packages before
+`./scripts/nexus_build_gate.sh` can reach the 13-test renderer matrix.
 
 ### What is NOT shipped
 
@@ -76,7 +81,7 @@ ALLOW_GOOGLE_SERVICE_PLACEHOLDER=1 ./scripts/archive-ios-testflight.sh --dry-run
 ```bash
 cd /Users/elijahbonds/Final-Evolution-Lab
 
-# Headless gate (no SDL3/Vulkan) — gameplay + protocol tests
+# Full gate (requires SDL3/Vulkan for renderer phase)
 ./scripts/nexus_build_gate.sh
 
 # Or headless only:

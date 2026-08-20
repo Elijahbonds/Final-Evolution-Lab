@@ -1,6 +1,6 @@
 {
   "schema": "fel-venue-registry-2",
-  "notes": "Production venue + Luma/Meshy asset wiring. Dual dunk modes: basketball_dunk_3d (NEXUS C++ basketball_dunk) + basketball_dunk_irl (IRL; reconciled from claude branch basketball_irl). NEXUS runtime mesh/backdrop: assets/nexus/manifests/nexus_asset_manifest.json.",
+  "notes": "Production venue + Luma/Meshy asset wiring. Dual dunk modes: basketball_dunk_3d (NEXUS C++ basketball_dunk) + basketball_dunk_irl (IRL; reconciled from legacy IRL dunk branch). NEXUS runtime mesh/backdrop: assets/nexus/manifests/nexus_asset_manifest.json.",
   "nexus_manifest_ref": "assets/nexus/manifests/nexus_asset_manifest.json",
   "luma_scan_pipeline": {
     "tool": "Luma AI",
@@ -56,7 +56,7 @@
       "isIRLMode": true,
       "healthKitTracked": true,
       "rimHeightInches": 120,
-      "modeNote": "IRL H2H dunk contest — phone camera, Vision pose, WDA/FIBA judges. No UE5 venue map; reconciled from claude branch basketball_irl.",
+      "modeNote": "IRL H2H dunk contest — phone camera, Vision pose, WDA/FIBA judges. No UE5 venue map; reconciled from legacy IRL dunk branch.",
       "meshyAssets": {
         "uiHUD": "MESHY_hud_irl_basketball",
         "avatarSlot": "MESHY_athlete_basketball_dunk_irl"
@@ -149,6 +149,11 @@
       "analyticsPolicyName": "Venice Beach — Tennis + Luma shop backdrop",
       "nexusEnvironmentAssetId": "tennis_court_environment_model_fbx",
       "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
+    },
+    {
+      "venueKey": "regulation_court_irl",
+      "analyticsPolicyName": "Regulation Court (IRL camera validation)",
+      "nexusEnvironmentAssetId": "irl_regulation_court_reference"
     },
     {
       "venueKey": "vault_shop",

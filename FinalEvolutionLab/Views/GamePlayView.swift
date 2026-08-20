@@ -12,6 +12,8 @@ struct GamePlayView: View {
     let viewModel: LabViewModel
     let gameMode: GameMode
     let sessionReadiness: Double
+    /// Local co-op roster selected before launch; forwarded to NEXUS for karate endless wave scaling.
+    var coopPlayerCount: Int = 1
     /// HUD theme from NEXUS Game Generator customizer — flows into live gameplay chrome.
     var generatorHudTheme: NexusGeneratorHudTheme? = nil
     /// When true (screenshot harness only), skips multiplayer lobby + countdown so START MATCH + scene chrome are visible immediately.
@@ -142,6 +144,9 @@ struct GamePlayView: View {
     private enum FootballPhase { case `catch`, run }
 
     private var isKarate: Bool { gameMode.id == .karate || gameMode.id == .karateEndless }
+    private var usesNexusScoreAuthority: Bool {
+        gameMode.id == .basketballDunkContest3D || gameMode.id == .karateEndless
+    }
     private var inputScheme: InputScheme { gameMode.id.inputScheme }
 
     private var usesAcademyRhythmOverlay: Bool {
@@ -462,7 +467,11 @@ struct GamePlayView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .onAppear {
             sceneViewportReady = false
-            nexusEngine.start(modeId: gameMode.id.nexusRuntimeModeId, readiness: sessionReadiness)
+            nexusEngine.start(
+                modeId: gameMode.id.nexusRuntimeModeId,
+                readiness: sessionReadiness,
+                coopPlayerCount: coopPlayerCount
+            )
             FELSoundscapeEngine.shared.start(for: gameMode.id)
             FELHaptics.prepare()
             if skipMatchLobbyForScreenshotHarness {
@@ -481,9 +490,18 @@ struct GamePlayView: View {
                 FELGameplayEventBus.postWaveCompleted()
             }
         }
+        .onChange(of: nexusEngine.hud) { _, _ in
+            applyNexusHudAuthority()
+        }
+        .onChange(of: score) { _, _ in
+            syncNexusScoresIfNeeded()
+        }
+        .onChange(of: opponentScore) { _, _ in
+            syncNexusScoresIfNeeded()
+        }
         .onDisappear {
             sceneViewportReady = false
-            nexusEngine.stop()
+            stopNexusSessionForCurrentScores()
             FELSoundscapeEngine.shared.stop()
             matchLobbyComplete = false
             multipeerService.stop()
@@ -3567,6 +3585,73 @@ struct GamePlayView: View {
         }
     }
 
+    private func applyNexusHudAuthority() {
+        guard usesNexusScoreAuthority, nexusEngine.isLinked else { return }
+        let player = Int(nexusEngine.hud.playerScore.rounded(.toNearestOrAwayFromZero))
+        let opponent = Int(nexusEngine.hud.opponentScore.rounded(.toNearestOrAwayFromZero))
+        if score != player { score = player }
+        if opponentScore != opponent { opponentScore = opponent }
+        if gameMode.id == .karateEndless, combo != nexusEngine.hud.combo {
+            combo = nexusEngine.hud.combo
+            maxCombo = max(maxCombo, combo)
+        }
+        if nexusEngine.hud.matchComplete, isActive {
+            endGame()
+        }
+    }
+
+    private func syncNexusScoresIfNeeded() {
+        guard nexusEngine.isLinked, !usesNexusScoreAuthority else { return }
+        nexusEngine.syncScores(player: score, opponent: opponentScore)
+    }
+
+    private func stopNexusSessionForCurrentScores() {
+        let skipScoreSync = usesNexusScoreAuthority && nexusEngine.isLinked
+        nexusEngine.stop(playerScore: score, opponentScore: opponentScore, skipScoreSync: skipScoreSync)
+    }
+
+    private func routeNexusAction(action: String, success: Bool, timing: Float = 0.85) {
+        guard nexusEngine.isLinked else { return }
+
+        switch gameMode.id {
+        case .basketballHeadToHead, .venicePickup:
+            _ = nexusEngine.pickupAction(action: action, success: success, timing: timing)
+        case .karateEndless:
+            let mapped = NexusGameplayEngine.nexusKarateActionName(for: action) ?? "light_strike"
+            _ = nexusEngine.arenaModeInput(action: mapped)
+        case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
+            let params = NexusGameplayEngine.sportPulseParams(
+                modeId: gameMode.id,
+                uiAction: action,
+                success: success,
+                timing: timing
+            )
+            _ = nexusEngine.sportPulse(success: success, timing: timing, extraParams: params)
+        case .gymnastics, .skateboarding, .snowboarding, .surfing:
+            _ = nexusEngine.boardAcademyAction(
+                modeId: gameMode.id,
+                uiAction: action,
+                timing: timing,
+                success: success,
+                comboMultiplier: max(1, combo)
+            )
+        case .brainBrawl:
+            _ = nexusEngine.brainAnswer(correct: success)
+        case .whoSceneIt:
+            _ = nexusEngine.sceneAnswer(correct: success)
+        case .courtCarnival:
+            if action.localizedCaseInsensitiveContains("dice") {
+                _ = nexusEngine.carnivalRollDice()
+            } else {
+                _ = nexusEngine.carnivalTriggerPad(pad: "trick_shot", timing: timing)
+            }
+        case .marketBrowse:
+            _ = nexusEngine.arenaModeInput(action: action)
+        case .basketballDunkContest3D, .basketballDunkContestIRL:
+            break
+        }
+    }
+
     private func performAction(_ action: String) {
         guard isActive else { return }
         playerActionCount += 1
@@ -3594,10 +3679,13 @@ struct GamePlayView: View {
         let isCritical = success && Double.random(in: 0...1) < physics.criticalHitChance
         let basePoints = pointsForAction(action, success: success)
         let finalPoints = success ? physics.adjustedPoints(base: basePoints, combo: combo, isCritical: isCritical) : 0
+        routeNexusAction(action: action, success: success, timing: success ? 0.9 : 0.35)
 
         if success {
             withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) {
-                score += finalPoints
+                if !usesNexusScoreAuthority {
+                    score += finalPoints
+                }
                 combo += 1
                 maxCombo = max(maxCombo, combo)
                 lastActionIsCritical = isCritical
@@ -3671,7 +3759,7 @@ struct GamePlayView: View {
             sessionReadiness: sessionReadiness,
             playerPRQ: playerPRQ
         )
-        if !multipeerService.isConnected, Double.random(in: 0...1) < ddaChance {
+        if !usesNexusScoreAuthority, !multipeerService.isConnected, Double.random(in: 0...1) < ddaChance {
             delayedOpponentScoreGeneration += 1
             let generation = delayedOpponentScoreGeneration
             let aiDelay = dda.aiReactionSpeed(playerScore: score, aiScore: opponentScore)
@@ -3774,6 +3862,9 @@ struct GamePlayView: View {
 
     private func startDunkApproach() {
         guard isActive, dunkEngine.phase == .idle else { return }
+        if nexusEngine.isLinked {
+            _ = nexusEngine.dunkChargeBegin()
+        }
         withAnimation(.spring(response: 0.2)) {
             dunkEngine.startApproach()
             lastAction = "HOLD TO SPRINT!"
@@ -3797,6 +3888,9 @@ struct GamePlayView: View {
     private func releaseDunkSprint() {
         guard dunkEngine.phase == .approach else { return }
         dunkTimerTask?.cancel()
+        if nexusEngine.isLinked {
+            _ = nexusEngine.dunkChargeRelease(power: Float(dunkEngine.sprintCharge))
+        }
         withAnimation(.spring(response: 0.2)) {
             dunkEngine.releaseSprint()
         }
@@ -3824,6 +3918,14 @@ struct GamePlayView: View {
         withAnimation(.spring(response: 0.2)) {
             dunkEngine.confirmLaunch()
             lastAction = inGreen ? "PERFECT LAUNCH!" : "LAUNCHED"
+        }
+        if nexusEngine.isLinked {
+            Task {
+                try? await Task.sleep(for: .milliseconds(180))
+                guard isActive, isDunkContest else { return }
+                _ = nexusEngine.dunkApexTap()
+                applyNexusHudAuthority()
+            }
         }
         triggerScreenShake(intensity: inGreen ? 0.4 : 0.2)
         FELGameplayEventBus.postScored()
@@ -3860,6 +3962,9 @@ struct GamePlayView: View {
     private func confirmDunkLanding() {
         guard dunkEngine.phase == .airborne || dunkEngine.phase == .landing else { return }
         dunkTimerTask?.cancel()
+        if nexusEngine.isLinked {
+            _ = nexusEngine.dunkApexTap()
+        }
         withAnimation(.spring(response: 0.15)) {
             dunkEngine.confirmLanding()
         }
@@ -3879,7 +3984,9 @@ struct GamePlayView: View {
         withAnimation(.spring(response: 0.3)) {
             lastJudgeScores = (result.j1, result.j2, result.j3)
             crowdMessage = result.message
-            score += result.total
+            if !usesNexusScoreAuthority {
+                score += result.total
+            }
             dunkEngine.roundScores.append((round: dunkEngine.round, score: result.total, message: result.message))
         }
 
@@ -4143,6 +4250,7 @@ struct GamePlayView: View {
         let baseChance = inSweetSpot ? blendedBase + 0.15 : blendedBase * chargeValue
         let success = Double.random(in: 0...1) < baseChance
         let action = actionsForMode.first ?? "Action"
+        routeNexusAction(action: action, success: success, timing: Float(chargeValue))
 
         if success {
             let isCritical = Double.random(in: 0...1) < physics.criticalHitChance
@@ -4150,7 +4258,9 @@ struct GamePlayView: View {
             let finalPoints = physics.adjustedPoints(base: basePoints, combo: combo, isCritical: isCritical)
 
             withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) {
-                score += finalPoints
+                if !usesNexusScoreAuthority {
+                    score += finalPoints
+                }
                 combo += 1
                 maxCombo = max(maxCombo, combo)
                 lastActionIsCritical = isCritical
@@ -4198,7 +4308,7 @@ struct GamePlayView: View {
             }
         }
 
-        if gameMode.id != .football, !multipeerService.isConnected {
+        if gameMode.id != .football, !usesNexusScoreAuthority, !multipeerService.isConnected {
             let ddaChance = DynamicDifficulty.opponentSuccessChance(
                 baseChance: 0.55,
                 playerScore: score,

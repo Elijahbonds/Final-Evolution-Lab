@@ -2,6 +2,7 @@
 
 > Branch: `anti-gravity-fel` · Spec: `FEL_NEXUS_Cursor_Spec_v1.pdf` · DoD baseline: **5/9**
 > Renderer state: Vulkan scene graph, Venice mobile mesh, frustum cull, PBR stub, lighting/post-process frame graph stubs.
+> Current CI note: `.github/workflows/nexus-headless-ci.yml` is the checked-in Linux CI gate; a full renderer CI workflow is still needed for Vulkan/SDL3 coverage.
 
 ## Progress
 
@@ -18,7 +19,7 @@
 | 9 | Animation (skeletal/GPU skinning stub→real) | complete |
 | 10 | Performance ship gate (draw budget, profiling) | complete |
 
-**Pass result:** 10/10 phases delivered + **Premium Quality pass** (see rubric). See [NEXUS_Performance_Targets.md](./NEXUS_Performance_Targets.md) and [NEXUS_Premium_Quality_Rubric.md](./NEXUS_Premium_Quality_Rubric.md).
+**Pass result:** 10/10 phase seams delivered + **Premium Quality pass** (see rubric), with the extension gaps below still open for retail parity. See [NEXUS_Performance_Targets.md](./NEXUS_Performance_Targets.md) and [NEXUS_Premium_Quality_Rubric.md](./NEXUS_Premium_Quality_Rubric.md).
 
 ---
 
@@ -57,7 +58,7 @@
 **Goal:** CI and local scripts prove headless (no renderer) and full GPU builds both compile and pass ctest.
 
 **Deliverables:**
-- `.github/workflows/nexus-ci.yml` — matrix: headless + renderer
+- `.github/workflows/nexus-headless-ci.yml` — checked-in headless Linux CI gate; full renderer CI matrix still pending
 - `scripts/nexus_build_gate.sh` — local gate mirroring CI
 
 **Acceptance test:**

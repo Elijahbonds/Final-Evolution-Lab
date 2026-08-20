@@ -129,6 +129,7 @@ final class NexusGameplayEngine {
         return FELPremiumCopy.humanizeCommandError(lastCommandError)
     }
     private(set) var lastEndSessionStatus: String?
+    private(set) var lastFinalScoresJSON: String?
     private(set) var lastFlushDelivered: Int = 0
     private(set) var lastDunkTimingGrade: String = ""
     private(set) var dunkChargePower: Double = 0
@@ -559,6 +560,7 @@ final class NexusGameplayEngine {
         session = created
         isLinked = true
         activeModeId = modeId
+        lastFinalScoresJSON = nil
         NexusGameplayBridge.syncReadiness(session, readiness: Float(readiness))
 
         let startPayload: [String: Any] = [
@@ -573,6 +575,7 @@ final class NexusGameplayEngine {
         if startResponse?.status == "ok" {
             sessionActive = true
             lastCommandError = nil
+            broadcastMapLoaded(modeId: modeId)
             if modeId == GameModeId.karateEndless.rawValue {
                 _ = karateConfigureCoop(playerCount: coopPlayerCount)
             }
@@ -589,6 +592,21 @@ final class NexusGameplayEngine {
             guard let self, self.session != nil, self.sessionActive else { return }
             NexusGameplayBridge.tick(self.session, deltaSeconds: deltaSeconds)
             self.refreshHUDPollIfDue()
+        }
+    }
+
+    private func broadcastMapLoaded(modeId: String) {
+        let mapToken = venueToken.isEmpty ? modeId : venueToken
+        let response = sendCommand([
+            "command": "fel.bridge.broadcast_map_loaded",
+            "id": "ios_map_loaded",
+            "params": [
+                "map": mapToken,
+                "mode_id": modeId,
+            ],
+        ])
+        if response?.status != "ok" {
+            lastCommandError = response?.error ?? "fel.bridge.broadcast_map_loaded failed"
         }
     }
 
@@ -1266,7 +1284,6 @@ final class NexusGameplayEngine {
     func stop(playerScore: Int = 0, opponentScore: Int = 0, skipScoreSync: Bool = false) {
         proMotionTicker.stop()
         lastHudPollTime = 0
-        sessionActive = false
 
         if session != nil {
             if !skipScoreSync {
@@ -1280,6 +1297,8 @@ final class NexusGameplayEngine {
             ) {
                 lastEndSessionStatus = NexusCommandResponse.parse(endRaw)?.status
             }
+
+            lastFinalScoresJSON = NexusGameplayBridge.finalScoresJSON(session)
 
             if let flushRaw = NexusGameplayBridge.flushReceipts(session) {
                 if let response = NexusCommandResponse.parse(flushRaw),
@@ -1617,6 +1636,14 @@ enum NexusGameplayBridge {
 
     static func flushReceipts(_ session: NexusGameplayHandle?) -> String? {
         guard let cString = nexus_gameplay_session_flush_receipts(session) else {
+            return nil
+        }
+        defer { nexus_gameplay_session_free_string(cString) }
+        return String(cString: cString)
+    }
+
+    static func finalScoresJSON(_ session: NexusGameplayHandle?) -> String? {
+        guard let cString = nexus_gameplay_session_final_scores_json(session) else {
             return nil
         }
         defer { nexus_gameplay_session_free_string(cString) }
