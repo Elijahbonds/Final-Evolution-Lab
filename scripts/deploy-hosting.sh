@@ -11,7 +11,7 @@ DRY_RUN="${DRY_RUN:-0}"
 
 build_dashboard() {
   echo "▸ Building CRA dashboard (frontend/)…"
-  (cd frontend && npm install --legacy-peer-deps && npm run build)
+  (cd frontend && npm ci --legacy-peer-deps && npm run build)
 }
 
 build_vite_site() {
