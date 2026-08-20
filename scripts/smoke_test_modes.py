@@ -7,6 +7,7 @@ Run against a live or mock FEL backend.
 import json
 import sys
 import os
+import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -254,6 +255,26 @@ def test_swift_enum():
         else:
             fail(f'{mode} missing from GameMode.swift enum')
 
+def test_swift_non_game_guardrails():
+    print("\n── Test 6b: Swift Non-Game Guardrails ──")
+    swift_path = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
+    content = swift_path.read_text()
+
+    if re.search(r"case\s+\.marketBrowse:\s*return\s+\.nonGame", content):
+        ok("market_browse maps to NexusCapabilityTier.nonGame")
+    else:
+        fail("market_browse must remain NexusCapabilityTier.nonGame")
+
+    if re.search(r"case\s+\.marketBrowse:\s*return\s+true", content):
+        fail("market_browse must not be marked sprint-playable")
+    else:
+        ok("market_browse is not sprint-playable")
+
+    if re.search(r'case\s+"market_browse"[^:]*:\s*return\s+mode\(for:\s*\.marketBrowse\)', content, re.DOTALL):
+        fail("playableMode(forRegistryId:) must not return market_browse as launchable")
+    else:
+        ok("playableMode(forRegistryId:) excludes market_browse")
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 7: Server.py Seeded Game Modes
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -319,6 +340,7 @@ def main():
     test_venue_registry()
     test_fel_play_map()
     test_swift_enum()
+    test_swift_non_game_guardrails()
     test_server_seeded_modes()
     test_economy_integration()
 
