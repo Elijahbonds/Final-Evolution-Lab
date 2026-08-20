@@ -5,8 +5,15 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
+  export CC="${CC:-gcc}"
+  export CXX="g++"
+fi
+
 echo "==> Phase 1: headless build (NEXUS_ENABLE_RENDERER=OFF)"
 cmake -S . -B build-headless \
+  -DCMAKE_C_COMPILER="${CC:-cc}" \
+  -DCMAKE_CXX_COMPILER="${CXX:-c++}" \
   -DNEXUS_ENABLE_RENDERER=OFF \
   -DNEXUS_BUILD_RUNTIME=OFF \
   -DNEXUS_BUILD_TESTS=ON
@@ -15,6 +22,8 @@ ctest --test-dir build-headless --output-on-failure
 
 echo "==> Phase 1: full renderer build (NEXUS_ENABLE_RENDERER=ON)"
 cmake -S . -B build-full \
+  -DCMAKE_C_COMPILER="${CC:-cc}" \
+  -DCMAKE_CXX_COMPILER="${CXX:-c++}" \
   -DNEXUS_ENABLE_RENDERER=ON \
   -DNEXUS_BUILD_RUNTIME=ON \
   -DNEXUS_BUILD_TESTS=ON

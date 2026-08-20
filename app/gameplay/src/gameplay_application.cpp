@@ -125,6 +125,7 @@ void GameplayApplication::update(double deltaSeconds,
       [](const ai::AgentResponse& agentResponse) { return agentResponse.status == "error"; }));
 
   const auto fitness = m_fitnessData.snapshot();
+  m_modeRuntime.setFitnessSnapshot(fitness);
   if (m_arenaSession.state().phase == ArenaSessionPhase::kActive && !m_arenaSession.state().paused) {
     m_arenaSession.update(deltaSeconds, fitness);
     m_modeRuntime.update(deltaSeconds);
@@ -556,6 +557,7 @@ auto GameplayApplication::applyFitnessCommand(std::string_view command,
   }
 
   const auto snapshot = m_fitnessData.snapshot();
+  m_modeRuntime.setFitnessSnapshot(snapshot);
   NEXUS_LOG_INFO(LogChannel::kAI, "Fitness metrics updated from agent command");
   nlohmann::json payload = fitnessSnapshotToJson(snapshot);
   payload["hud"] = {
@@ -601,6 +603,7 @@ auto GameplayApplication::applyScanGenerateCommand(std::string_view command,
   }
 
   const auto fitnessSnapshot = m_fitnessData.snapshot();
+  m_modeRuntime.setFitnessSnapshot(fitnessSnapshot);
   nlohmann::json commandsApplied = nlohmann::json::array({
       "fel.fitness.update",
       "fel.creative.fill_region",
@@ -1069,7 +1072,9 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
     if (params.contains("auth_token")) {
       config.authToken = params.value("auth_token", config.authToken);
     }
-    config.persistToDisk = params.value("persist_to_disk", true);
+    config.persistToDisk = params.value("persist_to_disk", config.persistToDisk);
+    config.httpEnabled = params.value("http_enabled", config.httpEnabled);
+    config.useStubHttpTransport = params.value("use_stub_http", config.useStubHttpTransport);
     m_gameplayManager.setReceiptClientConfig(std::move(config));
     const auto flushResult = m_gameplayManager.flushPendingReceipts();
     return response(id, "ok",
@@ -1079,6 +1084,8 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
                         {"requeued", flushResult.requeued},
                         {"queued_on_disk", flushResult.queued_on_disk},
                         {"queue_directory", m_gameplayManager.receiptQueueDirectory()},
+                        {"http_enabled", m_gameplayManager.receiptClientConfig().httpEnabled},
+                        {"use_stub_http", m_gameplayManager.receiptClientConfig().useStubHttpTransport},
                     });
   }
 
