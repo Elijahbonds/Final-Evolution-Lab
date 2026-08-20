@@ -23,13 +23,21 @@ done
 mkdir -p "${ARTIFACT_DIR}"
 cd "${ROOT}"
 
+if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
+  export CXX="$(command -v g++)"
+  if [[ -z "${CC:-}" ]] && command -v gcc >/dev/null 2>&1; then
+    export CC="$(command -v gcc)"
+  fi
+fi
+
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
   echo "==> Configure + build headless gameplay tests"
-  cmake -S . -B "${HEADLESS_DIR}" \
+  cmake --fresh -S . -B "${HEADLESS_DIR}" \
     -DNEXUS_ENABLE_RENDERER=OFF \
     -DNEXUS_BUILD_RUNTIME=OFF \
-    -DNEXUS_BUILD_TESTS=ON
-  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)" --target nexus_gameplay_test
+    -DNEXUS_BUILD_TESTS=ON \
+    -DCMAKE_CXX_COMPILER="${CXX:-c++}"
+  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 fi
 
 GAMEPLAY_TEST="${HEADLESS_DIR}/nexus_gameplay_test"

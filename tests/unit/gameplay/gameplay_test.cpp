@@ -30,6 +30,7 @@
 #include <cstdlib>
 #include <array>
 #include <chrono>
+#include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -38,6 +39,8 @@
 #include <thread>
 #include <vector>
 
+#include <netinet/in.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 namespace {
@@ -63,6 +66,79 @@ void removeTreeBestEffort(const std::filesystem::path& root) {
     std::this_thread::sleep_for(std::chrono::milliseconds(10 * (attempt + 1)));
   }
 }
+
+class LocalHttpStatusServer {
+public:
+  explicit LocalHttpStatusServer(int statusCode) : m_statusCode(statusCode) {
+    m_serverFd = ::socket(AF_INET, SOCK_STREAM, 0);
+    require(m_serverFd >= 0, "local HTTP server socket created");
+    int reuse = 1;
+    (void)::setsockopt(m_serverFd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+
+    sockaddr_in address{};
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    address.sin_port = 0;
+    require(::bind(m_serverFd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == 0,
+            "local HTTP server bind");
+    require(::listen(m_serverFd, 1) == 0, "local HTTP server listen");
+
+    socklen_t length = sizeof(address);
+    require(::getsockname(m_serverFd, reinterpret_cast<sockaddr*>(&address), &length) == 0,
+            "local HTTP server getsockname");
+    m_port = ntohs(address.sin_port);
+    m_thread = std::thread([this]() { serveOneRequest(); });
+  }
+
+  ~LocalHttpStatusServer() {
+    if (m_thread.joinable()) {
+      poke();
+      m_thread.join();
+    }
+    if (m_serverFd >= 0) {
+      ::close(m_serverFd);
+    }
+  }
+
+  [[nodiscard]] auto url() const -> std::string {
+    return "http://127.0.0.1:" + std::to_string(m_port) + "/api/games/session";
+  }
+
+private:
+  void poke() const {
+    const int clientFd = ::socket(AF_INET, SOCK_STREAM, 0);
+    if (clientFd < 0) {
+      return;
+    }
+    sockaddr_in address{};
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    address.sin_port = htons(m_port);
+    (void)::connect(clientFd, reinterpret_cast<sockaddr*>(&address), sizeof(address));
+    ::close(clientFd);
+  }
+
+  void serveOneRequest() const {
+    const int clientFd = ::accept(m_serverFd, nullptr, nullptr);
+    if (clientFd < 0) {
+      return;
+    }
+
+    std::array<char, 1024> buffer{};
+    (void)::read(clientFd, buffer.data(), buffer.size());
+
+    const std::string statusText = m_statusCode >= 200 && m_statusCode < 300 ? "OK" : "ERROR";
+    const std::string response = "HTTP/1.1 " + std::to_string(m_statusCode) + " " +
+                                 statusText + "\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+    (void)::write(clientFd, response.data(), response.size());
+    ::close(clientFd);
+  }
+
+  int m_statusCode{200};
+  int m_serverFd{-1};
+  std::uint16_t m_port{0};
+  std::thread m_thread;
+};
 
 void fitness_data_snapshots_are_thread_safe() {
   nexus::gameplay::ThreadSafeFitnessData fitness;
@@ -1921,12 +1997,68 @@ void session_receipt_http_stub_posts_localhost_contract() {
   client.enqueue(receipt);
   const auto flush = client.flush();
   require(flush.delivered == 1, "stub HTTP flush delivers receipt");
+  require(flush.queued_on_disk == 0, "stub HTTP-only flush does not claim disk queue");
   require(client.pendingCount() == 0, "receipt cleared after stub POST");
   require(client.postedRequests().size() == 1, "one stub POST recorded");
   require(client.postedRequests().front().url.find("/api/games/session") != std::string::npos,
           "POST targets session contract path");
   require(client.postedRequests().front().body.find("karate_endless") != std::string::npos,
           "POST body includes mode_id");
+}
+
+void session_receipt_live_http_204_clears_without_disk_queue() {
+  LocalHttpStatusServer server(204);
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_http_204_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  client.enqueue({{"mode_id", "basketball_dunk"}, {"score", 21}, {"completed", true}});
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "live HTTP 204 attempts receipt");
+  require(flush.delivered == 1, "live HTTP 204 delivers receipt");
+  require(flush.requeued == 0, "live HTTP 204 does not requeue");
+  require(flush.queued_on_disk == 0, "live HTTP 204 without persistence does not queue on disk");
+  require(client.pendingCount() == 0, "live HTTP 204 clears receipt");
+  require(client.postedRequests().size() == 1, "live HTTP 204 records POST");
+  require(client.postedRequests().front().statusCode == 204, "live HTTP 204 records actual status");
+
+  removeTreeBestEffort(tempDir);
+}
+
+void session_receipt_live_http_503_requeues_without_disk_queue() {
+  LocalHttpStatusServer server(503);
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_http_503_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+      .maxRetries = 2,
+  });
+
+  client.enqueue({{"mode_id", "basketball_dunk"}, {"score", 12}, {"completed", true}});
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "live HTTP 503 attempts receipt");
+  require(flush.delivered == 0, "live HTTP 503 does not deliver receipt");
+  require(flush.requeued == 1, "live HTTP 503 requeues receipt");
+  require(flush.queued_on_disk == 0, "live HTTP 503 without persistence does not queue on disk");
+  require(client.pendingCount() == 1, "live HTTP 503 keeps receipt pending");
+  require(client.postedRequests().size() == 1, "live HTTP 503 records POST");
+  require(client.postedRequests().front().statusCode == 503, "live HTTP 503 records actual status");
+
+  removeTreeBestEffort(tempDir);
 }
 
 struct TextGenTempWorkspace {
@@ -2747,6 +2879,8 @@ auto main() -> int {
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_live_http_204_clears_without_disk_queue();
+  session_receipt_live_http_503_requeues_without_disk_queue();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
