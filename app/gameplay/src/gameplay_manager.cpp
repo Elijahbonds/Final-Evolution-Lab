@@ -21,6 +21,17 @@ constexpr int32_t kShardDraw = 25;
 constexpr int32_t kShardLoss = 15;
 constexpr int32_t kXpCap = 500;
 
+[[nodiscard]] auto clampPercent(float value) -> float {
+  return std::clamp(value, 0.0F, 100.0F);
+}
+
+[[nodiscard]] auto deriveSessionMri(float arv, float esi, float pacingScore) -> float {
+  const float safeArv = clampPercent(arv);
+  const float safeEsi = clampPercent(esi);
+  const float safePacing = clampPercent(pacingScore);
+  return safeArv * 0.40F + (100.0F - safeEsi) * 0.35F + safePacing * 0.25F;
+}
+
 [[nodiscard]] auto compareScores(float player, float opponent) -> MatchOutcome {
   if (player > opponent) {
     return MatchOutcome::kWin;
@@ -76,22 +87,22 @@ auto GameplayManager::makeSessionId() -> std::string {
 
 auto GameplayManager::computeSessionResult(std::string_view modeId,
                                            MatchOutcome outcome,
-                                           float mriScore,
+                                           float /*mriScore*/,
                                            float arv,
                                            float esi,
                                            float pacingScore) const -> SessionResult {
   SessionResult result;
   result.modeId = std::string(modeId);
   result.outcome = outcome;
-  result.arv = arv;
-  result.esi = esi;
-  result.pacingScore = pacingScore;
-  result.mriScore = arv * 0.40F + (100.0F - esi) * 0.35F + pacingScore * 0.25F;
+  result.arv = clampPercent(arv);
+  result.esi = clampPercent(esi);
+  result.pacingScore = clampPercent(pacingScore);
+  result.mriScore = deriveSessionMri(result.arv, result.esi, result.pacingScore);
   result.completed = true;
   const float weight = modeWeight(modeId);
-  result.xpCandidate = static_cast<float>(computeXp(outcome, mriScore, weight));
-  result.shardsCandidate = static_cast<float>(computeShards(outcome, pacingScore));
-  result.prqDeltaCandidate = computePrqDelta(outcome, mriScore, weight);
+  result.xpCandidate = static_cast<float>(computeXp(outcome, result.mriScore, weight));
+  result.shardsCandidate = static_cast<float>(computeShards(outcome, result.pacingScore));
+  result.prqDeltaCandidate = computePrqDelta(outcome, result.mriScore, weight);
   result.sessionId = makeSessionId();
   result.venueId = ArenaModeRegistry::venueTokenForMode(modeId);
   result.resultType = std::string(matchOutcomeToString(outcome));
@@ -149,10 +160,7 @@ void GameplayManager::setReceiptClientConfig(SessionReceiptClientConfig config) 
 }
 
 auto GameplayManager::receiptClientConfig() const -> SessionReceiptClientConfig {
-  SessionReceiptClientConfig config;
-  config.queueDirectory = m_receiptClient.queueDirectory();
-  config.persistToDisk = true;
-  return config;
+  return m_receiptClient.config();
 }
 
 auto GameplayManager::receiptQueueDirectory() const -> std::string {

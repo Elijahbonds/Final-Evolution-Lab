@@ -63,7 +63,7 @@ MODE_MANAGER: Dict[str, Any] = _load_json(
                 {"id": "brain_brawl", "name": "Brain Brawl", "render_mode": "2D", "max_players": 2},
                 {"id": "court_carnival", "name": "Court Carnival", "render_mode": "2D", "max_players": 1},
                 {"id": "who_scene_it", "name": "Who Scene It", "render_mode": "2D", "max_players": 2},
-                {"id": "basketball_irl", "name": "IRL Dunk", "render_mode": "IRL", "max_players": 1},
+                {"id": "basketball_dunk_irl", "name": "IRL Dunk", "render_mode": "IRL", "max_players": 1},
                 {"id": "dunk_competition", "name": "Dunk Competition", "render_mode": "3D_UE5", "max_players": 2},
             ]
         }
