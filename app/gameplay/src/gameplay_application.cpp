@@ -53,6 +53,25 @@ auto integerParam(const nlohmann::json& params,
   return Result<int>::ok(found->get<int>());
 }
 
+auto boolParam(const nlohmann::json& params,
+               std::string_view name,
+               bool defaultValue,
+               std::string& errorOut) -> std::optional<bool> {
+  if (!params.is_object()) {
+    errorOut = "parameter object required";
+    return std::nullopt;
+  }
+  const auto found = params.find(std::string(name));
+  if (found == params.end()) {
+    return defaultValue;
+  }
+  if (!found->is_boolean()) {
+    errorOut = std::string(name) + " parameter must be a boolean";
+    return std::nullopt;
+  }
+  return found->get<bool>();
+}
+
 auto stringParam(const nlohmann::json& params,
                  std::string_view name,
                  std::string defaultValue,
@@ -1061,18 +1080,41 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
 
   if (command == "fel.arena.flush_receipts") {
     nexus::gameplay::SessionReceiptClientConfig config = m_gameplayManager.receiptClientConfig();
-    if (params.contains("queue_directory")) {
-      config.queueDirectory = params.value("queue_directory", config.queueDirectory);
+    std::string paramError;
+    const auto queueDirectory =
+        stringParam(params, "queue_directory", config.queueDirectory, paramError);
+    if (!queueDirectory.has_value()) {
+      return response(id, "error", {}, paramError);
     }
-    if (params.contains("base_url")) {
-      config.baseUrl = params.value("base_url", config.baseUrl);
+    const auto baseUrl = stringParam(params, "base_url", config.baseUrl, paramError);
+    if (!baseUrl.has_value()) {
+      return response(id, "error", {}, paramError);
     }
-    if (params.contains("auth_token")) {
-      config.authToken = params.value("auth_token", config.authToken);
+    const auto authToken = stringParam(params, "auth_token", config.authToken, paramError);
+    if (!authToken.has_value()) {
+      return response(id, "error", {}, paramError);
     }
-    config.persistToDisk = params.value("persist_to_disk", config.persistToDisk);
-    config.httpEnabled = params.value("http_enabled", config.httpEnabled);
-    config.useStubHttpTransport = params.value("use_stub_http", config.useStubHttpTransport);
+    const auto persistToDisk =
+        boolParam(params, "persist_to_disk", config.persistToDisk, paramError);
+    if (!persistToDisk.has_value()) {
+      return response(id, "error", {}, paramError);
+    }
+    const auto httpEnabled = boolParam(params, "http_enabled", config.httpEnabled, paramError);
+    if (!httpEnabled.has_value()) {
+      return response(id, "error", {}, paramError);
+    }
+    const auto useStubHttp =
+        boolParam(params, "use_stub_http", config.useStubHttpTransport, paramError);
+    if (!useStubHttp.has_value()) {
+      return response(id, "error", {}, paramError);
+    }
+
+    config.queueDirectory = *queueDirectory;
+    config.baseUrl = *baseUrl;
+    config.authToken = *authToken;
+    config.persistToDisk = *persistToDisk;
+    config.httpEnabled = *httpEnabled;
+    config.useStubHttpTransport = *useStubHttp;
     m_gameplayManager.setReceiptClientConfig(std::move(config));
     const auto flushResult = m_gameplayManager.flushPendingReceipts();
     return response(id, "ok",

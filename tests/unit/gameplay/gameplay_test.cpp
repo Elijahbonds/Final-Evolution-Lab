@@ -851,6 +851,39 @@ void session_receipt_flush_keeps_queue_when_http_disabled() {
   require(!configFlush.payload["use_stub_http"].get<bool>(), "flush command applies use_stub_http");
 }
 
+void session_receipt_flush_rejects_malformed_config_without_dropping_receipts() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk"}, {"user_id", "flush_bad_config_user"}},
+              "flush_bad_config_start")
+              .status == "ok",
+          "session starts before malformed flush");
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.end_session",
+              {{"player_score", 21.0F}, {"opponent_score", 10.0F}},
+              "flush_bad_config_end")
+              .status == "ok",
+          "session ends before malformed flush");
+
+  const auto malformedFlush = gameplay.handleGameplayCommand(
+      "fel.arena.flush_receipts",
+      {{"persist_to_disk", "yes"}, {"http_enabled", false}},
+      "flush_bad_config");
+  require(malformedFlush.status == "error", "malformed flush config returns error");
+  require(malformedFlush.error.find("persist_to_disk") != std::string::npos,
+          "malformed flush error names invalid field");
+
+  const auto receipts =
+      gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "bad_config_receipts");
+  require(receipts.status == "ok", "pending receipts query ok after malformed flush");
+  require(receipts.payload["receipts"].size() == 1,
+          "malformed flush leaves pending receipt queued");
+}
+
 void session_receipt_disk_keyed_by_session_id() {
   const auto tempDir = std::filesystem::temp_directory_path() /
                        ("fel_receipt_dedup_test_" + std::to_string(getpid()));
@@ -2974,6 +3007,7 @@ auto main() -> int {
   dunk_contest_lifecycle_generates_win_receipt();
   arena_pause_resume_preserves_session();
   session_receipt_flush_keeps_queue_when_http_disabled();
+  session_receipt_flush_rejects_malformed_config_without_dropping_receipts();
   session_receipt_disk_keyed_by_session_id();
   hud_poll_returns_tick_frame_payload();
   fel_bridge_websocket_stub_sends_outbound();
