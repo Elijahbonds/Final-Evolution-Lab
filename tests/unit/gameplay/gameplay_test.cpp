@@ -2733,10 +2733,14 @@ void flagship_modes_emit_post_ready_receipts() {
   nexus::physics::PhysicsWorld physics;
   require(physics.init({}).isOk(), "physics init");
 
-  const std::array<std::string, 5> modes = {
+  const std::array<std::string, 7> modes = {
       "basketball_dunk", "karate_endless", "basketball_h2h", "basketball_3v3",
-      "court_carnival"};
+      "court_carnival", "brain_brawl", "who_scene_it"};
   for (const auto& modeId : modes) {
+    const auto mode = nexus::gameplay::ArenaModeRegistry::find(modeId);
+    require(mode.has_value(), "receipt-chain mode registered for " + modeId);
+    require(mode->scoringEnabled, "production receipt-chain mode is scoring enabled for " + modeId);
+
     require(gameplay.handleGameplayCommand(
                 "fel.arena.start_session",
                 {{"mode_id", modeId}, {"user_id", "receipt_chain"}},

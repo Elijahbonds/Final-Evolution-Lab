@@ -246,7 +246,12 @@ char* nexus_gameplay_session_flush_receipts(NexusGameplayHandle handle) {
   const nlohmann::json request = {
       {"command", "fel.arena.flush_receipts"},
       {"id", "ios_flush_receipts"},
-      {"params", {{"persist_to_disk", true}}},
+      {"params",
+       {
+           {"persist_to_disk", true},
+           {"http_enabled", false},
+           {"use_stub_http", false},
+       }},
   };
   return copyJsonString(handleCommandJson(session->application, request));
 }

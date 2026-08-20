@@ -295,7 +295,10 @@ struct GameModeRegistry {
 
     /// Every playable arena mode — full lineup ships available; per-mode capability
     /// badges (prod/sim/staging) stay honest via ``GameModeId/nexusCapabilityTier``.
-    static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases).subtracting([.marketBrowse])
+    static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases).subtracting([
+        .marketBrowse,
+        .venicePickup, // Deep-link alias for basketball_h2h; do not duplicate the grid tile.
+    ])
 
     /// All 20 mode IDs from `arena_mode_registry.cpp` — keep in sync when adding modes.
     static let arenaRegistryModeIds: [GameModeId] = [

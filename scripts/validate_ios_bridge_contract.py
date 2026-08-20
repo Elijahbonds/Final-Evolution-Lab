@@ -45,6 +45,24 @@ def main() -> int:
         )
         return 1
 
+    flush_match = re.search(
+        r"char\*\s+nexus_gameplay_session_flush_receipts\s*\([^)]*\)\s*\{(?P<body>.*?)\n\}",
+        source,
+        re.DOTALL,
+    )
+    if not flush_match:
+        print(f"FAIL: could not find nexus_gameplay_session_flush_receipts in {BRIDGE_PATH}", file=sys.stderr)
+        return 1
+    flush_body = flush_match.group("body")
+    for needle, label in [
+        ('{"persist_to_disk", true}', "disk receipt persistence"),
+        ('{"http_enabled", false}', "iOS-owned HTTP receipt upload"),
+        ('{"use_stub_http", false}', "iOS receipt flush without C++ stub HTTP"),
+    ]:
+        if needle not in flush_body:
+            print(f"FAIL: iOS receipt flush must set {label}: {needle}", file=sys.stderr)
+            return 1
+
     view_source = GAMEPLAY_VIEW_PATH.read_text()
     engine_source = ENGINE_PATH.read_text()
     checks = [
