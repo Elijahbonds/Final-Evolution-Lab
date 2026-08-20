@@ -12,9 +12,15 @@
 
 namespace nexus::gameplay {
 
+struct HudRelayConfig {
+  std::string websocketUrl{"ws://127.0.0.1:8787/ws/hud"};
+  bool autoReconnect{true};
+  bool useStubTransport{true};
+};
+
 class HudRelayService {
 public:
-  HudRelayService();
+  explicit HudRelayService(HudRelayConfig config = {});
 
   auto connectRelay() -> nexus::Result<void>;
   void disconnectRelay();
@@ -31,8 +37,9 @@ public:
   void clearPendingFrames();
 
 private:
-  std::string m_websocketUrl{"ws://127.0.0.1:8787/ws/hud"};
-  bool m_useStubTransport{true};
+  void trimPendingFrames();
+
+  HudRelayConfig m_config;
   nexus::core::WebSocketClient m_relay;
   nlohmann::json m_latestFrame{nlohmann::json::object()};
   std::uint64_t m_frameSequence{0};

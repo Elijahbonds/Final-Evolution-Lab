@@ -13,8 +13,10 @@ def test_game_modes_and_ai_coach_are_available() -> None:
     chat = client.post("/api/ai/chat", json={"message": "Build a training day", "model": "gpt-5.2"})
 
     assert modes.status_code == 200
-    assert len(modes.json()) == 19
-    assert any(mode["id"] == "trivia_arena" for mode in modes.json())
+    ids = {mode["id"] for mode in modes.json()}
+    assert len(ids) == 21
+    assert {"basketball_dunk_3d", "basketball_dunk_irl", "who_scene_it", "court_carnival"} <= ids
+    assert "trivia_arena" not in ids
     assert chat.status_code == 200
     assert "FEL Coach" in chat.json()["response"]
 

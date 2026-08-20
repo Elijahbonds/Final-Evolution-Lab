@@ -69,9 +69,9 @@ enum NexusBackendClient {
         }
     }
 
-    /// `true` when TestFlight preview plist lane — POST is intentionally skipped.
+    /// `true` when TestFlight preview plist lane — POST is skipped unless an explicit backend token is present.
     static var isPreviewLane: Bool {
-        FirebaseBootstrap.isPreviewMode
+        FirebaseBootstrap.isPreviewMode && resolvedBackendAuthToken == nil
     }
 
     /// `true` when a backend auth token or Firebase ID token can be attached (Phase 7 — Firebase optional).

@@ -202,6 +202,11 @@ struct GamePlayView: View {
         gameMode.id.is3DDunkContest
     }
 
+    /// P0 C++ runtime modes publish authoritative scoring through `fel.hud.poll`.
+    private var usesNexusScoreAuthority: Bool {
+        gameMode.id.is3DDunkContest || gameMode.id == .karateEndless
+    }
+
     private var isBlacktop: Bool {
         gameMode.id == .basketballHeadToHead || gameMode.id == .basketball3v3
     }
@@ -462,7 +467,10 @@ struct GamePlayView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .onAppear {
             sceneViewportReady = false
-            nexusEngine.start(modeId: gameMode.id.nexusRuntimeModeId, readiness: sessionReadiness)
+            let runtimeModeId = gameMode.id.nexusRuntimeModeId
+            if gameMode.isNexusSprintPlayable, !runtimeModeId.isEmpty {
+                nexusEngine.start(modeId: runtimeModeId, readiness: sessionReadiness)
+            }
             FELSoundscapeEngine.shared.start(for: gameMode.id)
             FELHaptics.prepare()
             if skipMatchLobbyForScreenshotHarness {
@@ -471,10 +479,27 @@ struct GamePlayView: View {
             }
         }
         .onChange(of: multipeerService.lastReceivedScore) { _, newScore in
-            guard multipeerService.isConnected else { return }
+            guard multipeerService.isConnected, !usesNexusScoreAuthority else { return }
             withAnimation(.spring(response: 0.2)) {
                 opponentScore = newScore
             }
+        }
+        .onChange(of: nexusEngine.hud.playerScore) { _, newScore in
+            guard usesNexusScoreAuthority else { return }
+            score = Int(newScore.rounded())
+        }
+        .onChange(of: nexusEngine.hud.opponentScore) { _, newScore in
+            guard usesNexusScoreAuthority else { return }
+            opponentScore = Int(newScore.rounded())
+        }
+        .onChange(of: nexusEngine.hud.combo) { _, newCombo in
+            guard usesNexusScoreAuthority else { return }
+            combo = newCombo
+            maxCombo = max(maxCombo, newCombo)
+        }
+        .onChange(of: nexusEngine.hud.matchComplete) { _, isComplete in
+            guard usesNexusScoreAuthority, isComplete, isActive else { return }
+            endGame()
         }
         .onChange(of: nexusEngine.hud.karateWave) { oldWave, newWave in
             if gameMode.id == .karateEndless, newWave > oldWave, oldWave > 0 {
@@ -483,7 +508,11 @@ struct GamePlayView: View {
         }
         .onDisappear {
             sceneViewportReady = false
-            nexusEngine.stop()
+            nexusEngine.stop(
+                playerScore: score,
+                opponentScore: opponentScore,
+                skipScoreSync: usesNexusScoreAuthority
+            )
             FELSoundscapeEngine.shared.stop()
             matchLobbyComplete = false
             multipeerService.stop()
@@ -3248,6 +3277,7 @@ struct GamePlayView: View {
         case .whoSceneIt: ["Freeze", "Spot Star", "Recall"]
         case .courtCarnival: ["Pad Hit", "Dice Roll", "Mini Win"]
         case .marketBrowse: ["Browse", "Scan", "Vault"]
+        case .movementLab: ["Learn", "Balance", "Breath"]
         }
     }
 
@@ -4069,7 +4099,7 @@ struct GamePlayView: View {
                 return action.contains("Win") ? 300 : (action.contains("Tie") ? 100 : 0)
             }
             return 50
-        case .marketBrowse:
+        case .marketBrowse, .movementLab:
             return 10
         }
     }

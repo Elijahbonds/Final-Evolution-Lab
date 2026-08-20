@@ -248,6 +248,7 @@ struct GameLogicTests {
     @Test func gameGeneratorPlayableModeResolverHandlesAliases() {
         #expect(GameModeRegistry.playableMode(forRegistryId: "venice_pickup")?.id == .basketballHeadToHead)
         #expect(GameModeRegistry.playableMode(forRegistryId: "market_browse")?.id == .marketBrowse)
+        #expect(GameModeRegistry.playableMode(forRegistryId: "movement_lab")?.id == .movementLab)
         #expect(GameModeRegistry.playableMode(forRegistryId: "snowboarding")?.id == .snowboarding)
     }
 
@@ -267,6 +268,7 @@ struct GameLogicTests {
             #expect(mode.felPreviewLabel == nil)
         }
         #expect(!GameModeRegistry.productionModeIds.contains("market_browse"))
+        #expect(!GameModeRegistry.productionModeIds.contains("movement_lab"))
         #expect(!GameModeRegistry.productionModeIds.contains("venice_pickup"))
     }
 
@@ -411,10 +413,33 @@ struct GameLogicTests {
 
     @Test func previewModesExposeHonestGameplayPreviewLabels() {
         let previewModes = GameModeRegistry.all.filter { $0.releaseState == .preview }
-        #expect(previewModes.contains { $0.id == .marketBrowse })
+        #expect(previewModes.contains { $0.id == .movementLab })
         for mode in previewModes {
             #expect(mode.felPreviewLabel?.hasPrefix("Early Access · ") == true)
         }
+    }
+
+    @Test func marketBrowseIsNonGameLibraryModule() {
+        let mode = GameModeRegistry.mode(for: .marketBrowse)
+        #expect(mode.releaseState == .nonGame)
+        #expect(mode.capabilityTier == .nonGame)
+        #expect(!mode.isLaunchableInCurrentBuild)
+        #expect(!mode.isNexusSprintPlayable)
+        #expect(GameModeRegistry.arenaRegistryModeIds.contains(.marketBrowse))
+        #expect(mode.felPreviewLabel == nil)
+        #expect(mode.felHonestTierLabel?.hasPrefix("Library · ") == true)
+    }
+
+    @Test func movementLabIsPreviewEducationOnly() {
+        let mode = GameModeRegistry.mode(for: .movementLab)
+        #expect(mode.releaseState == .preview)
+        #expect(mode.capabilityTier == .nonGame)
+        #expect(!mode.isLaunchableInCurrentBuild)
+        #expect(!mode.isNexusSprintPlayable)
+        #expect(GameModeRegistry.arenaRegistryModeIds.contains(.movementLab))
+        #expect(!GameModeRegistry.nexusSprintModeIds.contains(.movementLab))
+        #expect(PRQ.modeWeight(for: .movementLab) == 0.0)
+        #expect(GameModeRules.forMode(.movementLab).rewardEligibleMinActions == 0)
     }
 
     @Test func generatedGameSpecParsesAdapterMetadata() {

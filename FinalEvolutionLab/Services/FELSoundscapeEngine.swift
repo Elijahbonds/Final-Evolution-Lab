@@ -278,7 +278,7 @@ final class FELSoundscapeEngine: @unchecked Sendable {
             return .outdoorVenice
         case .karate, .karateEndless:
             return .indoorDojo
-        case .brainBrawl, .whoSceneIt:
+        case .brainBrawl, .whoSceneIt, .movementLab:
             return .indoorDojo
         default:
             return .packedStadium
