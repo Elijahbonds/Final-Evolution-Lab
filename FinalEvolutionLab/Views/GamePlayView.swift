@@ -2006,6 +2006,10 @@ struct GamePlayView: View {
         
         selectedFilmChoice = index
         FELGameplayEventBus.postBuzzIn()
+        if nexusEngine.isLinked {
+            let buzzTiming = Float(max(0, min(1, filmQuestionTimer / 8.0)))
+            _ = nexusEngine.sceneBuzzIn(timing: buzzTiming)
+        }
         let question = FilmQuestion.filmQuestions[min(roundNumber - 1, 5)]
         let isCorrect = index == question.correctIndex
         

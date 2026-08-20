@@ -75,6 +75,21 @@ def main() -> int:
         ),
         require_contains(
             view_source,
+            "nexusEngine.sceneBuzzIn(timing:",
+            "Who Scene It buzz-in bridge command",
+        ),
+        require_contains(
+            engine_source,
+            "\"command\": \"fel.scene.buzz_in\"",
+            "Who Scene It C++ buzz-in command payload",
+        ),
+        require_contains(
+            view_source,
+            "nexusEngine.sceneAnswer(correct:",
+            "Who Scene It answer bridge command",
+        ),
+        require_contains(
+            view_source,
             "nexusEngine.dunkChargeBegin()",
             "dunk charge begin bridge command",
         ),
