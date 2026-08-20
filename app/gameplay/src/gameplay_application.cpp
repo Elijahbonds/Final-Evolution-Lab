@@ -6,6 +6,7 @@
 #include "nexus/creative/voxel_world.h"
 #include "nexus/core/log.h"
 #include "nexus/gameplay/arena_mode_registry.h"
+#include "nexus/gameplay/prq_engine.h"
 #include "nexus/gameplay/scan_envelope_mapper.h"
 #include "nexus/generative/generative_pipeline.h"
 #include "nexus/generative/generative_types.h"
@@ -125,6 +126,7 @@ void GameplayApplication::update(double deltaSeconds,
       [](const ai::AgentResponse& agentResponse) { return agentResponse.status == "error"; }));
 
   const auto fitness = m_fitnessData.snapshot();
+  m_modeRuntime.setFitnessSnapshot(fitness);
   if (m_arenaSession.state().phase == ArenaSessionPhase::kActive && !m_arenaSession.state().paused) {
     m_arenaSession.update(deltaSeconds, fitness);
     m_modeRuntime.update(deltaSeconds);
@@ -147,7 +149,7 @@ void GameplayApplication::update(double deltaSeconds,
     }
   }
 
-  const float prqScore = fitness.frc.controlScore * 100.0F;
+  const float prqScore = PRQEngine::getScore(fitness);
   if (m_arenaSession.state().phase == ArenaSessionPhase::kActive) {
     const auto& arenaState = m_arenaSession.state();
     m_felBridge.tickVaultTelemetry(
@@ -556,6 +558,7 @@ auto GameplayApplication::applyFitnessCommand(std::string_view command,
   }
 
   const auto snapshot = m_fitnessData.snapshot();
+  m_modeRuntime.setFitnessSnapshot(snapshot);
   NEXUS_LOG_INFO(LogChannel::kAI, "Fitness metrics updated from agent command");
   nlohmann::json payload = fitnessSnapshotToJson(snapshot);
   payload["hud"] = {
@@ -1069,7 +1072,9 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
     if (params.contains("auth_token")) {
       config.authToken = params.value("auth_token", config.authToken);
     }
-    config.persistToDisk = params.value("persist_to_disk", true);
+    config.persistToDisk = params.value("persist_to_disk", config.persistToDisk);
+    config.httpEnabled = params.value("http_enabled", config.httpEnabled);
+    config.useStubHttpTransport = params.value("use_stub_http", config.useStubHttpTransport);
     m_gameplayManager.setReceiptClientConfig(std::move(config));
     const auto flushResult = m_gameplayManager.flushPendingReceipts();
     return response(id, "ok",
@@ -1079,6 +1084,8 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
                         {"requeued", flushResult.requeued},
                         {"queued_on_disk", flushResult.queued_on_disk},
                         {"queue_directory", m_gameplayManager.receiptQueueDirectory()},
+                        {"http_enabled", m_gameplayManager.receiptClientConfig().httpEnabled},
+                        {"use_stub_http", m_gameplayManager.receiptClientConfig().useStubHttpTransport},
                     });
   }
 
@@ -1121,7 +1128,7 @@ auto GameplayApplication::applyBridgeCommand(std::string_view command,
     if (!mapToken.has_value() || !modeId.has_value()) {
       return response(id, "error", {}, paramError.empty() ? "map and mode_id required" : paramError);
     }
-    const float prq = m_fitnessData.snapshot().frc.controlScore * 100.0F;
+    const float prq = PRQEngine::getScore(m_fitnessData.snapshot());
     m_felBridge.broadcastMapLoaded(*mapToken, *modeId, prq);
     return response(id, "ok", {{"queued", true}});
   }
@@ -1303,8 +1310,14 @@ void GameplayApplication::emitHudTickFrame() {
   const auto& arena = m_arenaSession.state();
   const auto& throwCatch = m_throwCatch.state();
   const auto fitness = m_fitnessData.snapshot();
+  const float prqScore = PRQEngine::getScore(fitness);
+  const float neuralDrive = PRQEngine::getNeuralDrive(fitness);
+  const auto prqGrade = PRQEngine::getGrade(prqScore);
   nlohmann::json framePayload{
       {"mode_id", arena.modeId.empty() ? m_modeRuntime.activeModeId() : arena.modeId},
+      {"prq", prqScore},
+      {"prq_grade", std::string(PRQEngine::gradeLabel(prqGrade))},
+      {"neural_drive", neuralDrive},
       {"score", arena.playerScore},
       {"opponent_score", arena.opponentScore},
       {"combo", arena.comboCount},
@@ -1315,6 +1328,9 @@ void GameplayApplication::emitHudTickFrame() {
            {"frc_composite", fitness.frcComposite},
            {"iap_composite", fitness.iapComposite},
            {"power_readiness", fitness.powerReadiness},
+           {"prq_score", prqScore},
+           {"prq_grade", std::string(PRQEngine::gradeLabel(prqGrade))},
+           {"neural_drive", neuralDrive},
            {"breath_phase", fitness.iap.breathPhase},
        }},
       {"throw_catch", ThrowCatchPhysicsController::stateToJson(throwCatch)},
