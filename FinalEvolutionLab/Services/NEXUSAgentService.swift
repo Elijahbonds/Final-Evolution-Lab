@@ -433,13 +433,9 @@ final class NEXUSAgentService {
             return failure(.launchMode, "Missing mode_id")
         }
 
-        guard let parsed = GameModeId(rawValue: modeId) else {
+        guard let mode = GameModeRegistry.playableMode(forRegistryId: modeId) else {
             let valid = GameModeRegistry.arenaRegistryModeIds.map(\.rawValue).joined(separator: ", ")
             return failure(.launchMode, "Unknown mode_id '\(modeId)'. Valid: \(valid)")
-        }
-
-        guard let mode = GameModeRegistry.all.first(where: { $0.id == parsed }) else {
-            return failure(.launchMode, "Mode registry missing \(modeId)")
         }
 
         if mode.releaseState == .preview && !Config.showPreviewGameModes {
@@ -455,6 +451,7 @@ final class NEXUSAgentService {
             object: nil,
             userInfo: [
                 "mode_id": modeId,
+                "resolved_mode_id": mode.id.rawValue,
                 "mode_name": mode.name,
                 "readiness": readiness,
             ]
@@ -463,9 +460,10 @@ final class NEXUSAgentService {
         return NEXUSAgentToolResult(
             tool: .launchMode,
             success: true,
-            summary: "Playtest: launching \(mode.name) (\(modeId))",
+            summary: "Playtest: launching \(mode.name) (\(mode.id.rawValue))",
             payload: [
-                "mode_id": modeId,
+                "mode_id": mode.id.rawValue,
+                "registry_mode_id": modeId,
                 "mode_name": mode.name,
                 "readiness": readiness,
                 "preview_label": mode.isNexusSprintPlayable ? "sprint_playable" : "preview_or_p2",

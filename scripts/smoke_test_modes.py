@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-FEL Smoke Test Suite — 12 Production Mode Acceptance Tests
-Tests each production mode's registration, configuration, and deep link routing.
+FEL Smoke Test Suite — NEXUS Production Mode Acceptance Tests
+Tests each canonical NEXUS runtime mode's registration, configuration, and deep link routing.
 Run against a live or mock FEL backend.
 """
 import json
@@ -38,12 +38,22 @@ PRODUCTION_MODES = [
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
     "gymnastics", "skateboarding", "snowboarding",
+    "brain_brawl", "who_scene_it", "court_carnival",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = []
+
+# C++ runtime ids are canonical for gameplay receipts and validation. Swift/iOS can expose
+# split app-facing ids as long as they resolve back to a canonical runtime id.
+NEXUS_RUNTIME_ALIASES = {
+    "basketball_dunk": {
+        "swift_raw_value": "basketball_dunk_3d",
+        "venue_registry_id": "basketball_dunk_3d",
+    },
+}
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -51,7 +61,20 @@ PREVIEW_MODES = ["who_scene_it", "court_carnival"]
 def test_mode_manager_registry():
     print("\n── Test 1: ModeManager Registry ──")
     mgr = json.loads((REPO_ROOT / "backend" / "FEL_ModeManager.production.json").read_text())
+    declared_total = mgr["mode_manager"].get("total_modes")
+    declared_production = mgr["mode_manager"].get("production_modes")
     registry = mgr["mode_manager"]["mode_registry"]
+
+    actual_total = len(registry)
+    actual_production = sum(1 for info in registry.values() if info.get("status") == "production")
+    if declared_total == actual_total:
+        ok(f"declared total_modes matches registry ({actual_total})")
+    else:
+        fail(f"declared total_modes={declared_total}, actual={actual_total}")
+    if declared_production == actual_production:
+        ok(f"declared production_modes matches registry ({actual_production})")
+    else:
+        fail(f"declared production_modes={declared_production}, actual={actual_production}")
 
     for mode in PRODUCTION_MODES:
         if mode in registry:
@@ -142,6 +165,13 @@ def test_venue_registry():
                 ok(f"{mode} → venue={entry['venueKey']}")
             else:
                 fail(f"{mode} references unknown venue: {entry['venueKey']}")
+        elif mode in NEXUS_RUNTIME_ALIASES:
+            alias = NEXUS_RUNTIME_ALIASES[mode]["venue_registry_id"]
+            entry = next((m for m in vr["modes"] if m["id"] == alias), None)
+            if entry and entry.get("nexusRuntimeModeId") == mode and entry["venueKey"] in venue_keys:
+                ok(f"{mode} → venue={entry['venueKey']} via alias {alias}")
+            else:
+                fail(f"{mode} missing from VenueRegistry aliases")
         else:
             fail(f"{mode} missing from VenueRegistry")
 
@@ -197,6 +227,12 @@ def test_swift_enum():
         # Search for rawValue
         if f'= "{mode}"' in content:
             ok(f'{mode} has Swift enum case')
+        elif mode in NEXUS_RUNTIME_ALIASES:
+            swift_raw = NEXUS_RUNTIME_ALIASES[mode]["swift_raw_value"]
+            if f'= "{swift_raw}"' in content and f'case "{mode}":' in content:
+                ok(f'{mode} resolves to Swift enum alias {swift_raw}')
+            else:
+                fail(f'{mode} missing Swift alias resolver for {swift_raw}')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
 
@@ -256,7 +292,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print("  18 NEXUS runtime modes · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()
