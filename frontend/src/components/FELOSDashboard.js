@@ -7,7 +7,7 @@ import {
   Share2, Download, Copy, X
 } from "lucide-react";
 import { BioFuelStripe, BioFuelScanner, BioFuelCookbook, BioFuelDoorDash } from "./BioFuel";
-import { API_URL } from "@/lib/apiClient";
+import { API_URL, BACKEND_URL } from "@/lib/apiClient";
 
 const API = API_URL;
 
@@ -34,7 +34,7 @@ const FALLBACK_FEL_OS = {
     metrics: { strength: 75, speed: 75, power: 75, mental: 75 },
   },
   cards: { owned_count: 0, lifetime_purchases: 0, recent: [] },
-  arena: { modes_played: 0, vault_sessions: 0, ue5_bridge: "ready" },
+  arena: { modes_played: 0, vault_sessions: 0, ue5_bridge: "ready", launchable_modes: 20 },
   academy: {
     overall_completion_pct: 0,
     lessons_completed: 0,
@@ -94,7 +94,7 @@ const FALLBACK_TRACKS = {
   arena: {
     track_id: "arena",
     title: "Arena IQ",
-    subtitle: "Decision making across 19 game modes",
+    subtitle: "Decision making across 20 launchable app modes",
     description: "Study scoring, session receipts, and how PRQ/economy rewards are earned.",
     category: "Academy",
     level: "Gameplay",
@@ -369,7 +369,13 @@ const CardsQuadrant = ({ cards, onOpen }) => (
 );
 
 const ArenaQuadrant = ({ arena, onOpen }) => (
-  <QuadrantShell icon={Gamepad2} label="Arena · 19 Modes" accent="border-orange-400/30" onOpen={onOpen} testId="quadrant-arena">
+  <QuadrantShell
+    icon={Gamepad2}
+    label={`Arena · ${arena.launchable_modes ?? 20} Modes`}
+    accent="border-orange-400/30"
+    onOpen={onOpen}
+    testId="quadrant-arena"
+  >
     <div className="grid grid-cols-2 gap-3 text-sm">
       <Stat label="Modes Played" value={arena.modes_played} accent="text-orange-400" />
       <Stat label="Hub sessions" value={arena.vault_sessions} />
