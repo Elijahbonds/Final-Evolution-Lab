@@ -9,6 +9,15 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 BRIDGE_PATH = REPO_ROOT / "FinalEvolutionLab" / "Bridge" / "NexusGameplayBridge.mm"
+GAMEPLAY_VIEW_PATH = REPO_ROOT / "FinalEvolutionLab" / "Views" / "GamePlayView.swift"
+ENGINE_PATH = REPO_ROOT / "FinalEvolutionLab" / "Services" / "NexusGameplayEngine.swift"
+
+
+def require_contains(source: str, needle: str, label: str) -> bool:
+    if needle in source:
+        return True
+    print(f"FAIL: missing {label}: {needle}", file=sys.stderr)
+    return False
 
 
 def main() -> int:
@@ -36,7 +45,82 @@ def main() -> int:
         )
         return 1
 
-    print("PASS: iOS bridge tick order matches engine contract")
+    view_source = GAMEPLAY_VIEW_PATH.read_text()
+    engine_source = ENGINE_PATH.read_text()
+    checks = [
+        require_contains(
+            view_source,
+            "private var usesNexusScoreAuthority",
+            "Swift score-authority gate",
+        ),
+        require_contains(
+            view_source,
+            ".onChange(of: nexusEngine.hud)",
+            "HUD-to-Swift score authority binding",
+        ),
+        require_contains(
+            view_source,
+            "nexusEngine.syncScores(player: score, opponent: opponentScore)",
+            "Swift-to-NEXUS score sync",
+        ),
+        require_contains(
+            view_source,
+            "nexusEngine.stop(playerScore: score, opponentScore: opponentScore, skipScoreSync: skipScoreSync)",
+            "session end with real scores",
+        ),
+        require_contains(
+            view_source,
+            "routeNexusAction(action: action, success: success",
+            "gameplay action routing to NEXUS",
+        ),
+        require_contains(
+            view_source,
+            "nexusEngine.dunkChargeBegin()",
+            "dunk charge begin bridge command",
+        ),
+        require_contains(
+            view_source,
+            "nexusEngine.dunkChargeRelease(power:",
+            "dunk charge release bridge command",
+        ),
+        require_contains(
+            view_source,
+            "nexusEngine.dunkApexTap()",
+            "dunk apex tap bridge command",
+        ),
+        require_contains(
+            engine_source,
+            "\"command\": \"fel.bridge.broadcast_map_loaded\"",
+            "map-loaded bridge broadcast",
+        ),
+        require_contains(
+            engine_source,
+            "nexus_gameplay_session_final_scores_json(session)",
+            "final scores bridge wrapper",
+        ),
+    ]
+    if not all(checks):
+        return 1
+
+    stop_match = re.search(
+        r"func\s+stop\s*\([^)]*\)\s*\{(?P<body>.*?)\n    \}",
+        engine_source,
+        re.DOTALL,
+    )
+    if not stop_match:
+        print(f"FAIL: could not find stop() in {ENGINE_PATH}", file=sys.stderr)
+        return 1
+    stop_body = stop_match.group("body")
+    score_sync = stop_body.find("syncScores(player: playerScore, opponent: opponentScore)")
+    session_inactive = stop_body.find("sessionActive = false")
+    if score_sync == -1:
+        print("FAIL: stop() must sync final Swift scores before end_arena", file=sys.stderr)
+        return 1
+    if session_inactive != -1 and session_inactive < score_sync:
+        print("FAIL: stop() marks session inactive before final score sync", file=sys.stderr)
+        return 1
+
+    print("PASS: iOS bridge tick order and Swift gameplay handoff match engine contract")
     return 0
 
 
