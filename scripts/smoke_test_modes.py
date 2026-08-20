@@ -48,6 +48,7 @@ PREVIEW_MODES = []
 PREVIEW_MODULES = ["movement_lab"]
 IOS_UE_ALIASES = {"basketball_dunk": "basketball_dunk_3d"}
 IOS_IRL_MODES = ["basketball_dunk_irl"]
+IOS_RUNTIME_ALIASES = {"basketball_dunk_3d": "basketball_dunk"}
 SWIFT_ROUTE_ENTRYPOINTS = [
     "ContentView.swift",
     "Views/ArcadeLibraryView.swift",
@@ -60,6 +61,21 @@ SWIFT_ROUTE_ENTRYPOINTS = [
 
 def mode_or_ios_alias(mode):
     return IOS_UE_ALIASES.get(mode, mode)
+
+
+def quoted_strings(source):
+    return re.findall(r'"([^"]+)"', source)
+
+
+def extract_between(source, start_marker, end_marker):
+    start = source.find(start_marker)
+    if start < 0:
+        return ""
+    start += len(start_marker)
+    end = source.find(end_marker, start)
+    if end < 0:
+        return ""
+    return source[start:end]
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -330,6 +346,64 @@ def test_swift_route_contract():
         else:
             fail(f"{rel_path} must launch through GameModeRouter")
 
+
+def test_swift_cpp_registry_triangle():
+    print("\n── Test 6d: Swift/C++ Registry Triangle ──")
+    swift_source = (REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift").read_text()
+    cpp_header = (
+        REPO_ROOT / "app" / "gameplay" / "include" / "nexus" / "gameplay" / "arena_mode_registry.h"
+    ).read_text()
+    validate_script = (REPO_ROOT / "scripts" / "nexus_validate_production_modes.sh").read_text()
+    registry_source = (REPO_ROOT / "app" / "gameplay" / "src" / "arena_mode_registry.cpp").read_text()
+    metal_bridge = (REPO_ROOT / "FinalEvolutionLab" / "Bridge" / "NexusMetalBridge.mm").read_text()
+
+    swift_block = extract_between(swift_source, "static let productionModeIds: [String] = [", "]")
+    swift_ids = quoted_strings(swift_block)
+    cpp_block = extract_between(cpp_header, "kProductionModeIds[]", "};")
+    cpp_ids = quoted_strings(cpp_block)
+    validate_block = extract_between(validate_script, "PRODUCTION_MODES=(", ")")
+    validate_ids = re.findall(r"[A-Za-z0-9_]+", validate_block)
+
+    if len(swift_ids) == 19 and "basketball_dunk_irl" in swift_ids and "basketball_dunk_3d" in swift_ids:
+        ok("Swift production list carries split 3D + IRL dunk ids")
+    else:
+        fail(f"Swift production ids drifted: {swift_ids}")
+
+    if set(cpp_ids) == set(validate_ids):
+        ok("C++ production ids match runtime validate script")
+    else:
+        fail(f"C++ production ids != validate script: cpp={sorted(cpp_ids)} validate={sorted(validate_ids)}")
+
+    swift_runtime_ids = {
+        IOS_RUNTIME_ALIASES.get(mode_id, mode_id)
+        for mode_id in swift_ids
+        if mode_id not in IOS_IRL_MODES
+    }
+    if swift_runtime_ids == set(cpp_ids):
+        ok("Swift production ids reconcile to C++ runtime ids via explicit aliases")
+    else:
+        fail(f"Swift/C++ production id drift: swift_runtime={sorted(swift_runtime_ids)} cpp={sorted(cpp_ids)}")
+
+    if 'modeId == "basketball_dunk_3d"' in registry_source and 'return "basketball_dunk";' in registry_source:
+        ok("C++ arena registry aliases basketball_dunk_3d to basketball_dunk")
+    else:
+        fail("C++ arena registry must alias basketball_dunk_3d to basketball_dunk")
+
+    if 'mode == "basketball_dunk_3d"' in metal_bridge and 'return "basketball_dunk";' in metal_bridge:
+        ok("iOS Metal bridge aliases basketball_dunk_3d to basketball_dunk")
+    else:
+        fail("iOS Metal bridge must alias basketball_dunk_3d to basketball_dunk")
+
+    legacy_surfaces = [
+        REPO_ROOT / "FinalEvolutionLab" / "Views" / "IRLDunkView.swift",
+        REPO_ROOT / "backend" / "routers" / "sovereign.py",
+    ]
+    stale = [str(path.relative_to(REPO_ROOT)) for path in legacy_surfaces if "basketball_irl" in path.read_text()]
+    if stale:
+        fail("legacy basketball_irl still used in launch/result surfaces: " + ", ".join(stale))
+    else:
+        ok("IRL launch/result surfaces use canonical basketball_dunk_irl")
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 7: Server.py Seeded Game Modes
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -397,6 +471,7 @@ def main():
     test_swift_enum()
     test_swift_non_game_guardrails()
     test_swift_route_contract()
+    test_swift_cpp_registry_triangle()
     test_server_seeded_modes()
     test_economy_integration()
 
