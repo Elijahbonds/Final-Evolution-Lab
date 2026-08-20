@@ -2085,8 +2085,8 @@ void flagship_who_scene_it_validate_only_integration() {
   physics.shutdown();
 }
 
-void fel_bridge_websocket_stub_sends_outbound() {
-  nexus::gameplay::FelBridgeService bridge({.useStubTransport = true});
+void fel_bridge_default_stub_sends_outbound() {
+  nexus::gameplay::FelBridgeService bridge;
   bridge.setWebSocketUrl("ws://127.0.0.1:8787/ws/vault");
   require(bridge.connectTransport().isOk(), "fel bridge transport connect");
   bridge.notifyVenueTravel("Venice_Beach_Court", "basketball_dunk");
@@ -2109,8 +2109,8 @@ void fel_bridge_websocket_stub_sends_outbound() {
           "fel bridge POST body includes mode_id");
 }
 
-void hud_relay_websocket_stub_emits_frames() {
-  nexus::gameplay::HudRelayService relay({.useStubTransport = true});
+void hud_relay_default_stub_emits_frames() {
+  nexus::gameplay::HudRelayService relay;
   relay.setWebSocketUrl("ws://127.0.0.1:8787/ws/hud");
   require(relay.connectRelay().isOk(), "hud relay connect");
   relay.emitTickFrame({{"prq", 72.5F}, {"mode_id", "basketball_dunk"}});
@@ -3107,8 +3107,8 @@ auto main() -> int {
   gameplay_manager_partial_receipt_flush_keeps_only_failed_receipts_pending();
   gameplay_manager_tick_flush_syncs_pending_receipts();
   hud_poll_returns_tick_frame_payload();
-  fel_bridge_websocket_stub_sends_outbound();
-  hud_relay_websocket_stub_emits_frames();
+  fel_bridge_default_stub_sends_outbound();
+  hud_relay_default_stub_emits_frames();
   hud_relay_broadcast_messages_are_bounded();
   session_receipt_http_stub_posts_localhost_contract();
   session_receipt_http_success_removes_persisted_queue_file();

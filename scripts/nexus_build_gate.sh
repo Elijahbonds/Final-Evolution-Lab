@@ -11,7 +11,7 @@ if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
 fi
 
 echo "==> Phase 1: headless build (NEXUS_ENABLE_RENDERER=OFF)"
-cmake -S . -B build-headless \
+cmake --fresh -S . -B build-headless \
   -DCMAKE_C_COMPILER="${CC:-cc}" \
   -DCMAKE_CXX_COMPILER="${CXX:-c++}" \
   -DNEXUS_ENABLE_RENDERER=OFF \
@@ -21,7 +21,7 @@ cmake --build build-headless -j"$(sysctl -n hw.ncpu 2>/dev/null || echo 4)"
 ctest --test-dir build-headless --output-on-failure
 
 echo "==> Phase 1: full renderer build (NEXUS_ENABLE_RENDERER=ON)"
-cmake -S . -B build-full \
+cmake --fresh -S . -B build-full \
   -DCMAKE_C_COMPILER="${CC:-cc}" \
   -DCMAKE_CXX_COMPILER="${CXX:-c++}" \
   -DNEXUS_ENABLE_RENDERER=ON \

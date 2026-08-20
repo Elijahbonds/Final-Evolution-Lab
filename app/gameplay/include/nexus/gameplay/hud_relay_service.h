@@ -15,7 +15,7 @@ namespace nexus::gameplay {
 struct HudRelayConfig {
   std::string websocketUrl{"ws://127.0.0.1:8787/ws/hud"};
   bool autoReconnect{true};
-  bool useStubTransport{false};
+  bool useStubTransport{true};
 };
 
 class HudRelayService {
