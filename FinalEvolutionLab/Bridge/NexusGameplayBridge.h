@@ -9,7 +9,7 @@ extern "C" {
 
 typedef void *NexusGameplayHandle;
 
-/// Returns true when the NEXUS gameplay static libraries are linked into the app target.
+/// Returns true when the NEXUS gameplay libraries can create a physics-ready probe session.
 bool nexus_gameplay_bridge_is_linked(void);
 
 NexusGameplayHandle _Nullable nexus_gameplay_session_create(void);

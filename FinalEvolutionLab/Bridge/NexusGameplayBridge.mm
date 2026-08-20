@@ -101,7 +101,15 @@ auto handleCommandJson(nexus::gameplay::GameplayApplication& application,
 } // namespace
 
 bool nexus_gameplay_bridge_is_linked(void) {
-  return true;
+  static const bool linked = [] {
+    try {
+      auto probe = std::make_unique<NexusGameplaySession>();
+      return probe != nullptr && probe->physicsReady;
+    } catch (...) {
+      return false;
+    }
+  }();
+  return linked;
 }
 
 NexusGameplayHandle nexus_gameplay_session_create(void) {

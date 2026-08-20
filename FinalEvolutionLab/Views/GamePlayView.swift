@@ -369,6 +369,7 @@ struct GamePlayView: View {
                     modeAttributeLabel: prqAttributeLabel,
                     modeAttributeValue: prqAttributeValue,
                     onReturn: {
+                        stopNexusSessionForCurrentScores()
                         finalizeResults()
                         dismiss()
                     }
@@ -498,6 +499,9 @@ struct GamePlayView: View {
         .onDisappear {
             sceneViewportReady = false
             stopNexusSessionForCurrentScores()
+            if showResults {
+                finalizeResults()
+            }
             FELSoundscapeEngine.shared.stop()
             matchLobbyComplete = false
             multipeerService.stop()
@@ -3634,12 +3638,17 @@ struct GamePlayView: View {
         case .brainBrawl:
             _ = nexusEngine.brainAnswer(correct: success)
         case .whoSceneIt:
+            _ = nexusEngine.sceneBuzzIn(timing: timing)
             _ = nexusEngine.sceneAnswer(correct: success)
         case .courtCarnival:
             if action.localizedCaseInsensitiveContains("dice") {
                 _ = nexusEngine.carnivalRollDice()
             } else {
-                _ = nexusEngine.carnivalTriggerPad(pad: "trick_shot", timing: timing)
+                let activePad = nexusEngine.hud.carnivalActivePad
+                _ = nexusEngine.carnivalTriggerPad(
+                    pad: activePad.isEmpty ? "trick_shot" : activePad,
+                    timing: timing
+                )
             }
         case .marketBrowse:
             _ = nexusEngine.arenaModeInput(action: action)
@@ -3676,6 +3685,7 @@ struct GamePlayView: View {
         let basePoints = pointsForAction(action, success: success)
         let finalPoints = success ? physics.adjustedPoints(base: basePoints, combo: combo, isCritical: isCritical) : 0
         routeNexusAction(action: action, success: success, timing: success ? 0.9 : 0.35)
+        applyNexusHudAuthority()
 
         if success {
             withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) {
@@ -3958,9 +3968,6 @@ struct GamePlayView: View {
     private func confirmDunkLanding() {
         guard dunkEngine.phase == .airborne || dunkEngine.phase == .landing else { return }
         dunkTimerTask?.cancel()
-        if nexusEngine.isLinked {
-            _ = nexusEngine.dunkApexTap()
-        }
         withAnimation(.spring(response: 0.15)) {
             dunkEngine.confirmLanding()
         }
@@ -4247,6 +4254,7 @@ struct GamePlayView: View {
         let success = Double.random(in: 0...1) < baseChance
         let action = actionsForMode.first ?? "Action"
         routeNexusAction(action: action, success: success, timing: Float(chargeValue))
+        applyNexusHudAuthority()
 
         if success {
             let isCritical = Double.random(in: 0...1) < physics.criticalHitChance
@@ -4494,6 +4502,37 @@ struct GamePlayView: View {
         return (strings.randomElement() ?? strings[0]).uppercased()
     }
 
+    private func nexusFinalScoresForPersistence() -> (player: Int, opponent: Int)? {
+        guard usesNexusScoreAuthority,
+              let raw = nexusEngine.lastFinalScoresJSON,
+              let data = raw.data(using: .utf8),
+              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let payload = root["payload"] as? [String: Any]
+        else {
+            return nil
+        }
+
+        let scores = payload["final_scores"] as? [String: Any]
+            ?? payload["last_result"] as? [String: Any]
+            ?? payload
+        guard let player = nexusScoreInt(scores["player_score"] ?? scores["score"]) else {
+            return nil
+        }
+        let opponent = nexusScoreInt(scores["opponent_score"]) ?? opponentScore
+        return (player, opponent)
+    }
+
+    private func nexusScoreInt(_ value: Any?) -> Int? {
+        if let number = value as? Int { return number }
+        if let number = value as? Double { return Int(number.rounded(.toNearestOrAwayFromZero)) }
+        if let number = value as? Float { return Int(number.rounded(.toNearestOrAwayFromZero)) }
+        if let number = value as? NSNumber { return Int(number.doubleValue.rounded(.toNearestOrAwayFromZero)) }
+        if let text = value as? String, let number = Double(text) {
+            return Int(number.rounded(.toNearestOrAwayFromZero))
+        }
+        return nil
+    }
+
     private func finalizeResults() {
         if finalizedMatchSessionId == matchSessionId { return }
 
@@ -4521,12 +4560,14 @@ struct GamePlayView: View {
             return isTimerBased ? gameRules.matchDurationSeconds : roundNumber * 5
         }()
 
+        let persistedScores = nexusFinalScoresForPersistence() ?? (score, opponentScore)
+
         let result = GameSessionResult(
             id: "local:\(matchSessionId.uuidString)",
             gameModeId: gameMode.id.rawValue,
             date: Date(),
-            score: score,
-            opponentScore: opponentScore,
+            score: persistedScores.player,
+            opponentScore: persistedScores.opponent,
             shardsEarned: shardsReward,
             prqBonus: prqReward,
             isMultiplayer: multipeerService.isConnected,
@@ -4544,8 +4585,8 @@ struct GamePlayView: View {
             await GameplaySessionReceiptCoordinator.shared.submitNativeSessionReceipt(
                 matchSessionId: matchSessionId,
                 gameModeId: gameMode.id.rawValue,
-                playerScore: score,
-                opponentScore: opponentScore,
+                playerScore: persistedScores.player,
+                opponentScore: persistedScores.opponent,
                 durationSeconds: elapsedSeconds,
                 comboCount: maxCombo,
                 criticalCount: criticalHits,

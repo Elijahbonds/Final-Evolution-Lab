@@ -127,8 +127,9 @@ extension GameModeId {
     }
 
     /// Modes where C++ NEXUS owns the session score and Swift mirrors HUD state.
+    /// IRL camera-only and non-game surfaces stay Swift/local until they have a runtime session.
     var usesNexusScoreAuthority: Bool {
-        is3DDunkContest || self == .karateEndless || isNexusOutcomeSportMode
+        isNexusSprintPlayable
     }
 
     /// Dedicated board/academy simulators — `GymnasticsMode`, `SkateboardingMode`, etc. (not `fel.sport.pulse`).

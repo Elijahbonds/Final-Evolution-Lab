@@ -1277,6 +1277,13 @@ final class NexusGameplayEngine {
         if prefix == "brain" {
             hud.brainPlayerCorrect = intValue(payload["player_correct"])
             hud.brainOpponentCorrect = intValue(payload["opponent_correct"])
+            hud.playerScore = Double(hud.brainPlayerCorrect)
+            hud.opponentScore = Double(hud.brainOpponentCorrect)
+        } else if prefix == "scene" {
+            hud.brainPlayerCorrect = intValue(payload["correct_count"])
+            hud.brainOpponentCorrect = intValue(payload["opponent_correct"])
+            hud.playerScore = Double(hud.brainPlayerCorrect)
+            hud.opponentScore = Double(hud.brainOpponentCorrect)
         }
         hud.cognitiveScore = doubleValue(payload["cognitive_score"])
         hud.cognitiveStreak = intValue(payload["current_streak"])
@@ -1469,6 +1476,8 @@ final class NexusGameplayEngine {
            let brain = modeState["brain_brawl"] as? [String: Any] {
             snapshot.brainPlayerCorrect = intValue(brain["player_correct"])
             snapshot.brainOpponentCorrect = intValue(brain["opponent_correct"])
+            snapshot.playerScore = Double(snapshot.brainPlayerCorrect)
+            snapshot.opponentScore = Double(snapshot.brainOpponentCorrect)
             snapshot.cognitiveScore = doubleValue(brain["cognitive_score"])
             snapshot.cognitiveStreak = intValue(brain["current_streak"])
             snapshot.cognitivePhase = intValue(brain["phase"])
@@ -1482,6 +1491,8 @@ final class NexusGameplayEngine {
            let scene = modeState["who_scene_it"] as? [String: Any] {
             snapshot.brainPlayerCorrect = intValue(scene["correct_count"])
             snapshot.brainOpponentCorrect = intValue(scene["opponent_correct"])
+            snapshot.playerScore = Double(snapshot.brainPlayerCorrect)
+            snapshot.opponentScore = Double(snapshot.brainOpponentCorrect)
             snapshot.cognitiveScore = doubleValue(scene["cognitive_score"])
             snapshot.cognitiveStreak = intValue(scene["current_streak"])
             snapshot.cognitivePhase = intValue(scene["phase"])

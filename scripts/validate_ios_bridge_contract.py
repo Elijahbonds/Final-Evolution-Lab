@@ -54,6 +54,11 @@ def main() -> int:
             "bridge physics readiness probe",
         ),
         require_contains(
+            source,
+            "auto probe = std::make_unique<NexusGameplaySession>()",
+            "bridge linked probe creates a real session",
+        ),
+        require_contains(
             view_source,
             "private var usesNexusScoreAuthority",
             "Swift score-authority gate",
@@ -99,6 +104,16 @@ def main() -> int:
             "dunk apex tap bridge command",
         ),
         require_contains(
+            view_source,
+            "nexusEngine.sceneBuzzIn(timing: timing)",
+            "Who Scene It buzz-in bridge command",
+        ),
+        require_contains(
+            view_source,
+            "nexusFinalScoresForPersistence()",
+            "NEXUS final-score persistence handoff",
+        ),
+        require_contains(
             engine_source,
             "\"command\": \"fel.bridge.broadcast_map_loaded\"",
             "map-loaded bridge broadcast",
@@ -138,6 +153,25 @@ def main() -> int:
         return 1
     if session_inactive != -1 and session_inactive < score_sync:
         print("FAIL: stop() marks session inactive before final score sync", file=sys.stderr)
+        return 1
+
+    if len(re.findall(r"nexusEngine\.dunkApexTap\(\)", view_source)) != 1:
+        print("FAIL: dunk apex tap must be sent exactly once per 3D dunk attempt", file=sys.stderr)
+        return 1
+
+    return_handler = re.search(
+        r"onReturn:\s*\{\s*(?P<body>.*?)\n\s*\}",
+        view_source,
+        re.DOTALL,
+    )
+    if not return_handler:
+        print("FAIL: could not find ResultScreen onReturn handler", file=sys.stderr)
+        return 1
+    return_body = return_handler.group("body")
+    stop_idx = return_body.find("stopNexusSessionForCurrentScores()")
+    finalize_idx = return_body.find("finalizeResults()")
+    if stop_idx == -1 or finalize_idx == -1 or stop_idx > finalize_idx:
+        print("FAIL: result return must stop NEXUS before finalizing persisted results", file=sys.stderr)
         return 1
 
     print("PASS: iOS bridge tick order and Swift gameplay handoff match engine contract")
