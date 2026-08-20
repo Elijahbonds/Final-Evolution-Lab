@@ -175,7 +175,7 @@ def test_venue_registry():
     mode_ids = {m["id"] for m in mode_entries}
     venue_keys = {v["venueKey"] for v in vr["venues"]}
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES + NON_GAME_MODULES
     for mode in all_modes:
         entry = next(
             (m for m in mode_entries if m["id"] == mode or m.get("nexusRuntimeModeId") == mode),
@@ -243,7 +243,7 @@ def test_swift_enum():
     swift_path = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
     content = swift_path.read_text()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES + IOS_IRL_MODES
+    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES + PREVIEW_MODULES + NON_GAME_MODULES + IOS_IRL_MODES
     for mode in all_modes:
         # Search for rawValue
         swift_mode = mode_or_ios_alias(mode)
@@ -260,20 +260,25 @@ def test_swift_non_game_guardrails():
     swift_path = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
     content = swift_path.read_text()
 
-    if re.search(r"case\s+\.marketBrowse:\s*return\s+\.nonGame", content):
-        ok("market_browse maps to NexusCapabilityTier.nonGame")
-    else:
-        fail("market_browse must remain NexusCapabilityTier.nonGame")
+    non_game_cases = {
+        "market_browse": "marketBrowse",
+        "movement_lab": "movementLab",
+    }
+    for raw_id, swift_case in non_game_cases.items():
+        if re.search(rf"case\s+[^:]*\.{swift_case}[^:]*:\s*return\s+\.nonGame", content):
+            ok(f"{raw_id} maps to NexusCapabilityTier.nonGame")
+        else:
+            fail(f"{raw_id} must remain NexusCapabilityTier.nonGame")
 
-    if re.search(r"case\s+\.marketBrowse:\s*return\s+true", content):
-        fail("market_browse must not be marked sprint-playable")
-    else:
-        ok("market_browse is not sprint-playable")
+        if re.search(rf"case\s+[^:]*\.{swift_case}[^:]*:\s*return\s+true", content):
+            fail(f"{raw_id} must not be marked sprint-playable")
+        else:
+            ok(f"{raw_id} is not sprint-playable")
 
-    if re.search(r'case\s+"market_browse"[^:]*:\s*return\s+mode\(for:\s*\.marketBrowse\)', content, re.DOTALL):
-        fail("playableMode(forRegistryId:) must not return market_browse as launchable")
-    else:
-        ok("playableMode(forRegistryId:) excludes market_browse")
+        if re.search(rf'case\s+"{raw_id}"[^:]*:\s*return\s+mode\(for:\s*\.{swift_case}\)', content, re.DOTALL):
+            fail(f"playableMode(forRegistryId:) must not return {raw_id} as launchable")
+        else:
+            ok(f"playableMode(forRegistryId:) excludes {raw_id}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 7: Server.py Seeded Game Modes
@@ -283,7 +288,7 @@ def test_server_seeded_modes():
     server_path = REPO_ROOT / "backend" / "server.py"
     content = server_path.read_text()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES + PREVIEW_MODULES + NON_GAME_MODULES
     for mode in all_modes:
         if f'"id":"{mode}"' in content or f'"id": "{mode}"' in content:
             ok(f"{mode} in server seeded modes")

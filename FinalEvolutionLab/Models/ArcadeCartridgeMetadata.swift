@@ -230,5 +230,12 @@ nonisolated struct ArcadeCartridgeMetadata: Sendable {
             genre: .brain,
             yearStamp: "'24"
         ),
+        .movementLab: ArcadeCartridgeMetadata(
+            modeId: .movementLab,
+            classicTitle: "Movement Lab",
+            tagline: "Body IQ · Anatomy · Breath Mechanics",
+            genre: .brain,
+            yearStamp: "'26"
+        ),
     ]
 }

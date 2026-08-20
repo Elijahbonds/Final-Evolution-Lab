@@ -29,6 +29,8 @@ nonisolated enum GameModeId: String, Codable, Sendable, CaseIterable, Identifiab
     case courtCarnival = "court_carnival"
     /// Module library browser.
     case marketBrowse = "market_browse"
+    /// Preview education module — Body IQ / Movement Lab, not a scoring game session.
+    case movementLab = "movement_lab"
 
     var id: String { rawValue }
 }
@@ -82,7 +84,7 @@ extension GameModeId {
             return .prod
         case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
             return .sim
-        case .marketBrowse:
+        case .marketBrowse, .movementLab:
             return .nonGame
         }
     }
@@ -163,7 +165,7 @@ extension GameModeId {
             return .filmQuiz
         case .courtCarnival:
             return .partyBoard
-        case .marketBrowse:
+        case .marketBrowse, .movementLab:
             return .dragTap
         }
     }
@@ -295,15 +297,15 @@ struct GameModeRegistry {
 
     /// Every playable arena mode — full lineup ships available; per-mode capability
     /// badges (prod/sim/staging) stay honest via ``GameModeId/nexusCapabilityTier``.
-    static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases).subtracting([.marketBrowse])
+    static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases).subtracting([.marketBrowse, .movementLab])
 
-    /// All 20 mode IDs from `arena_mode_registry.cpp` — keep in sync when adding modes.
+    /// Swift-visible registry IDs — NEXUS arena games plus preview/non-game modules from ModeManager.
     static let arenaRegistryModeIds: [GameModeId] = [
         .basketballHeadToHead, .basketballDunkContestIRL, .basketballDunkContest3D, .basketball3v3,
         .karate, .karateEndless,
         .baseball, .football, .soccer, .golf, .tennis, .volleyball,
         .gymnastics, .surfing, .skateboarding, .snowboarding,
-        .brainBrawl, .whoSceneIt, .courtCarnival, .marketBrowse,
+        .brainBrawl, .whoSceneIt, .courtCarnival, .marketBrowse, .movementLab,
     ]
 
     static var nexusSprintModes: [GameMode] {
@@ -559,6 +561,18 @@ struct GameModeRegistry {
             hint: "Browse the vault · scan venues · shop collectibles",
             releaseState: .preview
         ),
+        GameMode(
+            id: .movementLab,
+            name: "Movement Lab",
+            subtitle: "Body IQ · Anatomy Academy",
+            sport: .academy,
+            iconName: "figure.flexibility",
+            accentColor: Theme.elitePurple,
+            multiplayerType: .solo,
+            environmentName: "Movement Education Lab",
+            hint: "Preview education module · movement snacks · drawing-in · anatomy literacy · no PRQ scoring",
+            releaseState: .preview
+        ),
     ]
 
     static func mode(for id: GameModeId) -> GameMode {
@@ -602,7 +616,7 @@ struct GameModeRegistry {
         catalogModes.filter { $0.sport == sport }
     }
 
-    /// All 20 arena modes — always listed in the mode picker with honest prod/staging/preview badges.
+    /// Registry-backed catalog entries — hidden for preview/non-game modules unless preview modes are enabled.
     static var catalogModes: [GameMode] {
         all.filter { arenaRegistryModeIds.contains($0.id) }
     }

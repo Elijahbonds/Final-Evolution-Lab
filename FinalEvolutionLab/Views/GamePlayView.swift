@@ -3259,7 +3259,7 @@ struct GamePlayView: View {
         case .brainBrawl: ["Focus", "Pattern", "Counter"]
         case .whoSceneIt: ["Freeze", "Spot Star", "Recall"]
         case .courtCarnival: ["Pad Hit", "Dice Roll", "Mini Win"]
-        case .marketBrowse: ["Browse", "Scan", "Vault"]
+        case .marketBrowse, .movementLab: ["Browse", "Scan", "Learn"]
         }
     }
 
@@ -3639,7 +3639,7 @@ struct GamePlayView: View {
             } else {
                 _ = nexusEngine.carnivalTriggerPad(pad: "trick_shot", timing: timing)
             }
-        case .marketBrowse:
+        case .marketBrowse, .movementLab:
             _ = nexusEngine.arenaModeInput(action: action)
         case .basketballDunkContest3D, .basketballDunkContestIRL:
             break
@@ -4170,7 +4170,7 @@ struct GamePlayView: View {
                 return action.contains("Win") ? 300 : (action.contains("Tie") ? 100 : 0)
             }
             return 50
-        case .marketBrowse:
+        case .marketBrowse, .movementLab:
             return 10
         }
     }

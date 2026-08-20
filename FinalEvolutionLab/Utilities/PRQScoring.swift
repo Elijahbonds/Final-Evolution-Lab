@@ -79,7 +79,7 @@ nonisolated enum PRQ: Sendable {
         case .surfing, .skateboarding, .snowboarding: 1.05
         case .brainBrawl, .whoSceneIt: 1.1
         case .courtCarnival: 1.15
-        case .marketBrowse: 0.0
+        case .marketBrowse, .movementLab: 0.0
         }
     }
 
@@ -100,7 +100,7 @@ nonisolated enum PRQ: Sendable {
         case .surfing, .skateboarding, .snowboarding: modeBase = 0.36
         case .brainBrawl, .whoSceneIt: modeBase = 0.42
         case .courtCarnival: modeBase = 0.40
-        case .marketBrowse: modeBase = 0.0
+        case .marketBrowse, .movementLab: modeBase = 0.0
         }
         return modeBase + normalized * (0.90 - modeBase)
     }
@@ -123,6 +123,7 @@ nonisolated enum PRQ: Sendable {
         case .brainBrawl, .whoSceneIt: "Cognitive Flex"
         case .courtCarnival: "Versatility"
         case .marketBrowse: "Library IQ"
+        case .movementLab: "Body IQ"
         }
     }
 
@@ -143,7 +144,7 @@ nonisolated enum PRQ: Sendable {
         case .surfing, .skateboarding, .snowboarding: modeScale = 0.76
         case .brainBrawl, .whoSceneIt: modeScale = 0.82
         case .courtCarnival: modeScale = 0.84
-        case .marketBrowse: modeScale = 0.0
+        case .marketBrowse, .movementLab: modeScale = 0.0
         }
         return (modeScale * normalized * 100).rounded() / 100
     }

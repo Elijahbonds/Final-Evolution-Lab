@@ -1100,6 +1100,7 @@ PRQ_MODE_WEIGHTS = {
     "surfing": 1.05,       "skateboarding": 1.0,   "snowboarding": 1.0,
     "gymnastics": 1.0,     "brain_brawl": 0.8,
     "who_scene_it": 0.7,   "court_carnival": 0.9,
+    "market_browse": 0.0,  "movement_lab": 0.0,
 }
 
 SHARD_WIN, SHARD_DRAW, SHARD_LOSS = 50, 25, 15
@@ -1334,6 +1335,7 @@ def get_seeded_game_modes():
         {"id":"skateboarding","name":"Skateboarding","display_name":"Skate · Park","venue":"Skate Park","category":"Board","description":"Land trick combos","image_url":"/images/ue5_board.png","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"timing"},
         {"id":"snowboarding","name":"Snowboarding","display_name":"Snow · Line","venue":"Mountain","category":"Board","description":"Navigate slopes","image_url":"/images/ue5_board.png","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"reflex"},
         {"id":"market_browse","name":"Module Library","display_name":"Module Library","venue":"Marketplace","category":"Shop","description":"Browse and purchase","image_url":"/images/ue5_board.png","player_count":"1","duration":"Unlimited","difficulty":"None","playable":False,"game_type":"shop"},
+        {"id":"movement_lab","name":"Movement Lab","display_name":"Body IQ · Movement Lab","venue":"Movement Lab","category":"Academy","description":"Preview anatomy and movement education module; non-scoring and non-medical","image_url":"/images/ue5_board.png","player_count":"1","duration":"Self-paced","difficulty":"Preview","playable":False,"game_type":"education"},
         {"id":"who_scene_it","name":"Who Scene It","display_name":"Who Scene It","venue":"Neuro Arena","category":"Academy","description":"Sports & entertainment trivia with Creator Card multimedia clips","image_url":"/images/ue5_soccer.png","player_count":"2-8","duration":"15 min","difficulty":"Variable","playable":True,"game_type":"quiz"},
         {"id":"court_carnival","name":"Court Carnival","display_name":"Court Carnival · Arcade","venue":"Venice Beach","category":"Party","description":"Venice Beach mini-game mash-up with Creator Card avatars and rotating challenges across venues","image_url":"/images/ue5_basketball.png","player_count":"2-4","duration":"30 min","difficulty":"Variable","playable":True,"game_type":"strategy"},
         {"id":"trivia_arena","name":"Trivia Arena","display_name":"Trivia Arena · Academy","venue":"Neuro Arena","category":"Academy","description":"Spin the wheel and test your knowledge across 8 academic and sports categories","image_url":"/images/ue5_soccer.png","player_count":"1-4","duration":"10 min","difficulty":"Variable","playable":True,"game_type":"quiz"}
