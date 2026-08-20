@@ -1095,13 +1095,17 @@ void arena_mode_input_routes_production_runtime_modes() {
     const auto action = gameplay.handleGameplayCommand(
         "fel.arena.mode_input", probe.params, "mode_input_action");
     require(action.status == "ok", std::string("mode_input action ok for ") + probe.modeId);
-    require_json_object(action.payload, "mode_input action payload");
+    require(action.payload.is_object(), "mode_input action payload must be object");
 
     gameplay.update(0.05, physics, {});
     const auto modeState =
         gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "mode_input_state");
     require(modeState.status == "ok", std::string("mode_input state ok for ") + probe.modeId);
-    require_nested_object(modeState.payload, probe.nestedStateKey, "mode_input runtime state");
+    require(modeState.payload.is_object(), "mode_input runtime state must be object");
+    require(modeState.payload.contains(probe.nestedStateKey),
+            std::string("mode_input runtime state missing ") + probe.nestedStateKey);
+    require(modeState.payload[probe.nestedStateKey].is_object(),
+            std::string("mode_input runtime nested state object for ") + probe.modeId);
 
     const auto hud = gameplay.handleGameplayQuery("fel.hud.poll", {}, "mode_input_hud");
     require(hud.status == "ok", std::string("mode_input hud ok for ") + probe.modeId);
