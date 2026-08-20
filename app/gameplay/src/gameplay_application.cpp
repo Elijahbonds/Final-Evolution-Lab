@@ -11,6 +11,7 @@
 #include "nexus/generative/generative_types.h"
 
 #include <algorithm>
+#include <cctype>
 #include <optional>
 #include <span>
 #include <string>
@@ -76,6 +77,153 @@ auto response(std::string_view id,
               nlohmann::json payload,
               std::string error = {}) -> ai::AgentResponse {
   return {std::string(id), std::move(status), std::move(payload), std::move(error)};
+}
+
+struct ArenaModeInputRoute {
+  std::string command;
+  nlohmann::json params;
+};
+
+[[nodiscard]] auto lowerAscii(std::string value) -> std::string {
+  for (char& ch : value) {
+    ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+  }
+  return value;
+}
+
+[[nodiscard]] auto isOutcomeSportRuntimeMode(std::string_view modeId) -> bool {
+  return modeId == "basketball_3v3" || modeId == "karate_h2h" || modeId == "baseball" ||
+         modeId == "football" || modeId == "soccer" || modeId == "golf" ||
+         modeId == "tennis" || modeId == "volleyball";
+}
+
+[[nodiscard]] auto paramsWithAction(const nlohmann::json& params,
+                                    std::string action) -> nlohmann::json {
+  nlohmann::json routed = params;
+  routed["action"] = std::move(action);
+  return routed;
+}
+
+[[nodiscard]] auto routeArenaModeInput(std::string_view activeModeId,
+                                       const nlohmann::json& params)
+    -> std::optional<ArenaModeInputRoute> {
+  const std::string action = lowerAscii(params.value("action", ""));
+  if (action.empty()) {
+    return std::nullopt;
+  }
+  const bool activeOutcomeSport = isOutcomeSportRuntimeMode(activeModeId);
+
+  if (action == "charge_begin" || action == "charge" || action == "start_charge") {
+    return ArenaModeInputRoute{"fel.dunk.charge_begin", params};
+  }
+  if (action == "charge_release" || action == "release" || action == "release_charge") {
+    return ArenaModeInputRoute{"fel.dunk.charge_release", params};
+  }
+  if (action == "apex_tap" || action == "apex" || action == "dunk" || action == "finish") {
+    return ArenaModeInputRoute{"fel.dunk.apex_tap", params};
+  }
+
+  if (!activeOutcomeSport &&
+      (action == "strike" || action == "light_strike" || action == "punch")) {
+    return ArenaModeInputRoute{"fel.karate.action", paramsWithAction(params, "light_strike")};
+  }
+  if (!activeOutcomeSport && (action == "heavy_strike" || action == "kick")) {
+    return ArenaModeInputRoute{"fel.karate.action", paramsWithAction(params, "heavy_strike")};
+  }
+  if (!activeOutcomeSport && (action == "block" || action == "dodge" || action == "counter")) {
+    return ArenaModeInputRoute{"fel.karate.action", paramsWithAction(params, action)};
+  }
+
+  if (activeModeId == "basketball_h2h" || activeModeId == "venice_pickup") {
+    if (action == "shoot" || action == "drive" || action == "crossover" ||
+        action == "pass" || action == "catch" || action == "rebound") {
+      return ArenaModeInputRoute{"fel.pickup.action", paramsWithAction(params, action)};
+    }
+  }
+
+  if (activeModeId == "court_carnival") {
+    if (action == "roll_dice" || action == "dice") {
+      return ArenaModeInputRoute{"fel.carnival.roll_dice", nlohmann::json::object()};
+    }
+    if (action == "carnival_pad" || action == "pad" || action == "trick_shot" ||
+        action == "hot_potato" || action == "rhythm_board" || action == "atw_landmark") {
+      nlohmann::json routed = params;
+      if (!routed.contains("pad")) {
+        routed["pad"] = (action == "carnival_pad" || action == "pad") ? "trick_shot" : action;
+      }
+      return ArenaModeInputRoute{"fel.carnival.trigger_pad", std::move(routed)};
+    }
+  }
+
+  if (activeModeId == "gymnastics") {
+    if (action == "tap" || action == "rhythm_tap" || action == "gymnastics_tap") {
+      return ArenaModeInputRoute{"fel.gymnastics.tap", params};
+    }
+    if (action == "deduct" || action == "deduction" || action == "fall") {
+      return ArenaModeInputRoute{"fel.gymnastics.deduct", params};
+    }
+  }
+
+  if (activeModeId == "brain_brawl" &&
+      (action == "answer" || action == "brain_answer" || action == "quiz_answer")) {
+    return ArenaModeInputRoute{"fel.brain.answer", params};
+  }
+
+  if (activeModeId == "skateboarding") {
+    if (action == "trick" || action == "land_trick" || action == "ollie" ||
+        action == "kickflip" || action == "grind") {
+      return ArenaModeInputRoute{"fel.skate.trick", params};
+    }
+    if (action == "bail") {
+      return ArenaModeInputRoute{"fel.skate.bail", nlohmann::json::object()};
+    }
+  }
+
+  if (activeModeId == "snowboarding") {
+    if (action == "carve") {
+      return ArenaModeInputRoute{"fel.snow.carve", params};
+    }
+    if (action == "jump" || action == "air") {
+      return ArenaModeInputRoute{"fel.snow.jump", params};
+    }
+    if (action == "butter") {
+      return ArenaModeInputRoute{"fel.snow.butter", params};
+    }
+    if (action == "wipeout") {
+      return ArenaModeInputRoute{"fel.snow.wipeout", nlohmann::json::object()};
+    }
+  }
+
+  if (activeModeId == "surfing") {
+    if (action == "carve") {
+      return ArenaModeInputRoute{"fel.surf.carve", params};
+    }
+    if (action == "aerial" || action == "air") {
+      return ArenaModeInputRoute{"fel.surf.aerial", params};
+    }
+    if (action == "wipeout") {
+      return ArenaModeInputRoute{"fel.surf.wipeout", nlohmann::json::object()};
+    }
+  }
+
+  if (activeModeId == "who_scene_it") {
+    if (action == "buzz" || action == "buzz_in") {
+      return ArenaModeInputRoute{"fel.scene.buzz_in", params};
+    }
+    if (action == "answer" || action == "scene_answer") {
+      return ArenaModeInputRoute{"fel.scene.answer", params};
+    }
+  }
+
+  if (activeOutcomeSport &&
+      (action == "pulse" || action == "shoot" || action == "score" ||
+       action == "serve" || action == "swing" || action == "kick" ||
+       action == "play" || action == "heavy_strike" || action == "block" ||
+       action == "counter")) {
+    return ArenaModeInputRoute{"fel.sport.pulse", paramsWithAction(params, action)};
+  }
+
+  return std::nullopt;
 }
 
 [[nodiscard]] auto applyValidatedScalar(float& field,
@@ -1023,42 +1171,19 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
   }
 
   if (command == "fel.arena.mode_input") {
+    const auto route = routeArenaModeInput(m_arenaSession.state().modeId, params);
+    if (route.has_value()) {
+      return handleGameplayCommand(route->command, route->params, id);
+    }
     const std::string action = params.value("action", "");
-    if (action == "charge_begin") {
-      return handleGameplayCommand("fel.dunk.charge_begin", params, id);
-    }
-    if (action == "charge_release") {
-      return handleGameplayCommand("fel.dunk.charge_release", params, id);
-    }
-    if (action == "apex_tap") {
-      return handleGameplayCommand("fel.dunk.apex_tap", params, id);
-    }
-    if (action == "strike" || action == "light_strike") {
-      return handleGameplayCommand("fel.karate.action", {{"action", "light_strike"}}, id);
-    }
-    if (action == "heavy_strike") {
-      return handleGameplayCommand("fel.karate.action", {{"action", "heavy_strike"}}, id);
-    }
-    if (action == "block") {
-      return handleGameplayCommand("fel.karate.action", {{"action", "block"}}, id);
-    }
-    if (action == "dodge") {
-      return handleGameplayCommand("fel.karate.action", {{"action", "dodge"}}, id);
-    }
-    if (action == "counter") {
-      return handleGameplayCommand("fel.karate.action", {{"action", "counter"}}, id);
-    }
-    if (action == "carnival_pad") {
-      return handleGameplayCommand(
-          "fel.carnival.trigger_pad",
-          {{"pad", params.value("pad", "trick_shot")},
-           {"timing", params.value("timing", 0.85F)}},
-          id);
-    }
-    if (action == "roll_dice") {
-      return handleGameplayCommand("fel.carnival.roll_dice", {}, id);
-    }
-    return response(id, "error", {}, "unsupported mode_input action");
+    const std::string activeMode = m_arenaSession.state().modeId.empty()
+                                       ? "none"
+                                       : m_arenaSession.state().modeId;
+    return response(
+        id,
+        "error",
+        {},
+        "unsupported mode_input action '" + action + "' for active mode '" + activeMode + "'");
   }
 
   if (command == "fel.arena.flush_receipts") {

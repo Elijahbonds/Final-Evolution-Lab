@@ -1048,6 +1048,70 @@ void karate_mode_input_strike_advances_wave() {
   physics.shutdown();
 }
 
+void arena_mode_input_routes_production_runtime_modes() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  nexus::physics::PhysicsWorld physics;
+  require(physics.init({}).isOk(), "mode_input physics init");
+
+  struct ModeInputProbe {
+    const char* modeId;
+    nlohmann::json params;
+    const char* nestedStateKey;
+  };
+
+  const std::array<ModeInputProbe, 11> probes{{
+      {"basketball_dunk", {{"action", "charge_begin"}}, "dunk"},
+      {"karate_endless", {{"action", "heavy_strike"}}, "karate"},
+      {"basketball_h2h", {{"action", "shoot"}, {"timing", 0.96F}, {"success", true}},
+       "pickup"},
+      {"court_carnival", {{"action", "carnival_pad"}, {"pad", "trick_shot"}, {"timing", 0.9F}},
+       "carnival"},
+      {"gymnastics", {{"action", "tap"}, {"timing", 0.92F}, {"difficulty", 0.75F}},
+       "gymnastics"},
+      {"brain_brawl",
+       {{"action", "answer"}, {"correct", true}, {"response_time", 4.5F}, {"category", "BodyIQ"}},
+       "brain_brawl"},
+      {"skateboarding", {{"action", "trick"}, {"difficulty", 0.85F}, {"combo_multiplier", 2}},
+       "skateboarding"},
+      {"snowboarding", {{"action", "carve"}, {"timing", 0.93F}, {"line_difficulty", 0.75F}},
+       "snowboarding"},
+      {"surfing", {{"action", "carve"}, {"timing", 0.94F}, {"wave_difficulty", 0.8F}},
+       "surfing"},
+      {"who_scene_it", {{"action", "buzz_in"}, {"timing", 0.91F}}, "who_scene_it"},
+      {"basketball_3v3", {{"action", "shoot"}, {"success", true}, {"timing", 0.9F}},
+       "outcome_sport"},
+  }};
+
+  for (const ModeInputProbe& probe : probes) {
+    require(gameplay.handleGameplayCommand(
+                "fel.arena.start_session",
+                {{"mode_id", probe.modeId}, {"user_id", "mode_input_agent"}},
+                "mode_input_start")
+                .status == "ok",
+            std::string("mode_input start ok for ") + probe.modeId);
+
+    const auto action = gameplay.handleGameplayCommand(
+        "fel.arena.mode_input", probe.params, "mode_input_action");
+    require(action.status == "ok", std::string("mode_input action ok for ") + probe.modeId);
+    require_json_object(action.payload, "mode_input action payload");
+
+    gameplay.update(0.05, physics, {});
+    const auto modeState =
+        gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "mode_input_state");
+    require(modeState.status == "ok", std::string("mode_input state ok for ") + probe.modeId);
+    require_nested_object(modeState.payload, probe.nestedStateKey, "mode_input runtime state");
+
+    const auto hud = gameplay.handleGameplayQuery("fel.hud.poll", {}, "mode_input_hud");
+    require(hud.status == "ok", std::string("mode_input hud ok for ") + probe.modeId);
+    require(hud.payload["payload"]["mode_state"].contains(probe.nestedStateKey),
+            std::string("mode_input hud nested state for ") + probe.modeId);
+  }
+
+  physics.shutdown();
+}
+
 void mode_runtime_tracks_dunk_combo_metrics() {
   nexus::gameplay::ModeRuntime runtime;
   require(runtime.setMode("basketball_dunk").isOk(), "dunk mode set");
@@ -3081,6 +3145,7 @@ auto main() -> int {
   session_receipt_live_http_success_does_not_count_disk_queue();
   session_receipt_live_http_non_2xx_requeues_without_disk();
   karate_mode_input_strike_advances_wave();
+  arena_mode_input_routes_production_runtime_modes();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
   exercise_demo_pipeline_maps_production_modes();
