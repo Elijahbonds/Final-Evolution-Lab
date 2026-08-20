@@ -79,7 +79,7 @@ extension GameModeId {
         case .gymnastics, .skateboarding, .snowboarding, .surfing:
             return .prod
         case .brainBrawl:
-            return .staging
+            return .prod
         case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
             return .sim
         case .marketBrowse:
@@ -303,7 +303,7 @@ struct GameModeRegistry {
     /// badges (prod/sim/staging) stay honest via ``GameModeId/nexusCapabilityTier``.
     static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases).subtracting([.marketBrowse])
 
-    /// All 20 mode IDs from `arena_mode_registry.cpp` — keep in sync when adding modes.
+    /// All app-facing arena IDs, including split dunk modes and the marketplace module.
     static let arenaRegistryModeIds: [GameModeId] = [
         .basketballHeadToHead, .basketballDunkContestIRL, .basketballDunkContest3D, .basketball3v3,
         .karate, .karateEndless,
