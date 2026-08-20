@@ -18,7 +18,7 @@ struct FelBridgeConfig {
   bool focusKeepaliveEnabled{false};
   float keepaliveIntervalSeconds{0.5F};
   bool autoReconnect{true};
-  bool useStubTransport{true};
+  bool useStubTransport{false};
 };
 
 class FelBridgeService {

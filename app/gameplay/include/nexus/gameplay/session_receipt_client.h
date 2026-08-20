@@ -19,7 +19,7 @@ struct SessionReceiptClientConfig {
   std::string authToken;
   bool persistToDisk{true};
   bool httpEnabled{true};
-  bool useStubHttpTransport{true};
+  bool useStubHttpTransport{false};
   float flushIntervalSeconds{5.0F};
   std::size_t maxRetries{5};
 };
@@ -42,6 +42,7 @@ public:
   [[nodiscard]] auto pendingCount() const -> std::size_t;
   [[nodiscard]] auto pendingReceipts() const -> std::span<const nlohmann::json>;
   [[nodiscard]] auto postedRequests() const -> std::span<const nexus::core::HttpPostRecord>;
+  [[nodiscard]] auto config() const -> const SessionReceiptClientConfig&;
   [[nodiscard]] auto queueDirectory() const -> const std::string&;
   void clearPending();
 
