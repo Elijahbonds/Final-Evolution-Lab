@@ -98,6 +98,11 @@ def main() -> int:
             "nexus_gameplay_session_final_scores_json(session)",
             "final scores bridge wrapper",
         ),
+        require_contains(
+            engine_source,
+            "NexusGameplayBridge.flushReceipts(session)",
+            "receipt flush before native session teardown",
+        ),
     ]
     if not all(checks):
         return 1
@@ -112,9 +117,17 @@ def main() -> int:
         return 1
     stop_body = stop_match.group("body")
     score_sync = stop_body.find("syncScores(player: playerScore, opponent: opponentScore)")
+    receipt_flush = stop_body.find("NexusGameplayBridge.flushReceipts(session)")
+    destroy_session = stop_body.find("NexusGameplayBridge.destroySession(session)")
     session_inactive = stop_body.find("sessionActive = false")
     if score_sync == -1:
         print("FAIL: stop() must sync final Swift scores before end_arena", file=sys.stderr)
+        return 1
+    if receipt_flush == -1:
+        print("FAIL: stop() must flush receipts before native session teardown", file=sys.stderr)
+        return 1
+    if destroy_session != -1 and destroy_session < receipt_flush:
+        print("FAIL: stop() destroys native session before receipt flush", file=sys.stderr)
         return 1
     if session_inactive != -1 and session_inactive < score_sync:
         print("FAIL: stop() marks session inactive before final score sync", file=sys.stderr)

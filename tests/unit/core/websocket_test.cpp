@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <thread>
 
@@ -21,6 +22,37 @@ void require(bool condition, const char* message) {
     std::exit(1);
   }
 }
+
+class ScopedEnvVar {
+public:
+  ScopedEnvVar(std::string key, std::optional<std::string> value)
+      : m_key(std::move(key)) {
+    if (const char* previous = std::getenv(m_key.c_str())) {
+      m_previous = std::string(previous);
+    }
+    set(value);
+  }
+
+  ~ScopedEnvVar() {
+    set(m_previous);
+  }
+
+private:
+  void set(const std::optional<std::string>& value) const {
+#if defined(_WIN32)
+    _putenv_s(m_key.c_str(), value.value_or("").c_str());
+#else
+    if (value.has_value()) {
+      setenv(m_key.c_str(), value->c_str(), 1);
+    } else {
+      unsetenv(m_key.c_str());
+    }
+#endif
+  }
+
+  std::string m_key;
+  std::optional<std::string> m_previous;
+};
 
 #if defined(__unix__) || defined(__APPLE__)
 class SingleResponseHttpServer {
@@ -182,6 +214,48 @@ void http_live_post_records_server_status() {
 #endif
 }
 
+void receipt_env_url_forces_live_http_transport() {
+#if defined(__unix__) || defined(__APPLE__)
+  if (!curlAvailable()) {
+    std::fprintf(stderr, "SKIP: curl unavailable for receipt env URL test\n");
+    return;
+  }
+
+  SingleResponseHttpServer server(204);
+  ScopedEnvVar receiptUrl("NEXUS_RECEIPT_URL", server.url());
+  ScopedEnvVar stubOverride("NEXUS_RECEIPT_USE_STUB", std::nullopt);
+  nexus::core::HttpClient client({
+      .url = "http://127.0.0.1:8000/api/games/session",
+      .useStubTransport = true,
+  });
+
+  const auto result = client.post(R"({"mode_id":"basketball_dunk","score":10})");
+  require(result.isOk(), "receipt env URL live post ok");
+  require(result.value() == 204, "receipt env URL preserves live status");
+  require(client.postedRequests().size() == 1, "receipt env URL recorded live request");
+  require(client.postedRequests().front().statusCode == 204,
+          "receipt env URL bypassed stub transport");
+#else
+  std::fprintf(stderr, "SKIP: receipt env URL test requires POSIX sockets\n");
+#endif
+}
+
+void receipt_env_stub_override_keeps_local_transport() {
+  ScopedEnvVar receiptUrl("NEXUS_RECEIPT_URL", "http://127.0.0.1:1/api/games/session");
+  ScopedEnvVar stubOverride("NEXUS_RECEIPT_USE_STUB", "1");
+  nexus::core::HttpClient client({
+      .url = "http://127.0.0.1:8000/api/games/session",
+      .useStubTransport = false,
+  });
+
+  const auto result = client.post(R"({"mode_id":"basketball_dunk","score":10})");
+  require(result.isOk(), "receipt stub override post ok");
+  require(result.value() == 200, "receipt stub override status 200");
+  require(client.postedRequests().size() == 1, "receipt stub override recorded request");
+  require(client.postedRequests().front().url.find("127.0.0.1:1") != std::string::npos,
+          "receipt stub override still honors configured URL");
+}
+
 } // namespace
 
 auto main() -> int {
@@ -193,6 +267,8 @@ auto main() -> int {
   auto_reconnect_on_send_when_disconnected();
   http_stub_post_records_session_contract();
   http_live_post_records_server_status();
+  receipt_env_url_forces_live_http_transport();
+  receipt_env_stub_override_keeps_local_transport();
   std::fprintf(stderr, "PASS: nexus_realtime_test\n");
   return 0;
 }

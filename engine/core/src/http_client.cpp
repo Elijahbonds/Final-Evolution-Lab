@@ -60,6 +60,52 @@ std::atomic_uint64_t g_tempFileCounter{0};
   return status;
 }
 
+[[nodiscard]] auto envValue(std::string_view key) -> std::optional<std::string> {
+  if (const char* value = std::getenv(std::string(key).c_str())) {
+    if (value[0] != '\0') {
+      return std::string(value);
+    }
+  }
+  return std::nullopt;
+}
+
+[[nodiscard]] auto envFlagValue(std::string_view key) -> std::optional<bool> {
+  const auto value = envValue(key);
+  if (!value.has_value()) {
+    return std::nullopt;
+  }
+
+  std::string normalized;
+  normalized.reserve(value->size());
+  for (const char ch : *value) {
+    normalized.push_back(static_cast<char>(
+        std::tolower(static_cast<unsigned char>(ch))));
+  }
+
+  if (normalized == "1" || normalized == "true" || normalized == "yes" ||
+      normalized == "on") {
+    return true;
+  }
+  if (normalized == "0" || normalized == "false" || normalized == "no" ||
+      normalized == "off") {
+    return false;
+  }
+  return std::nullopt;
+}
+
+[[nodiscard]] auto effectiveUseStubTransport(const HttpClientConfig& config) -> bool {
+  if (const auto forcedStub = envFlagValue("NEXUS_RECEIPT_USE_STUB")) {
+    return *forcedStub;
+  }
+
+  // A configured receipt URL means production/integration code expects a real POST.
+  if (envValue("NEXUS_RECEIPT_URL").has_value()) {
+    return false;
+  }
+
+  return config.useStubTransport;
+}
+
 } // namespace
 
 HttpClient::HttpClient(HttpClientConfig config) : m_config(std::move(config)) {}
@@ -72,7 +118,7 @@ auto HttpClient::post(std::string_view jsonBody) -> Result<int> {
     }
   }
 
-  if (m_config.useStubTransport) {
+  if (effectiveUseStubTransport(m_config)) {
     m_posted.push_back({url, std::string(jsonBody), 200});
     NEXUS_LOG_INFO(LogChannel::kAI,
                    "HTTP stub POST url=" + url + " bytes=" + std::to_string(jsonBody.size()));
