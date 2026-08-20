@@ -31,13 +31,19 @@
 #include <array>
 #include <chrono>
 #include <cstdlib>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <fstream>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
+#if defined(__unix__) || defined(__APPLE__)
+#include <netinet/in.h>
+#include <sys/socket.h>
+#endif
 #include <unistd.h>
 
 namespace {
@@ -62,6 +68,91 @@ void removeTreeBestEffort(const std::filesystem::path& root) {
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(10 * (attempt + 1)));
   }
+}
+
+#if defined(__unix__) || defined(__APPLE__)
+class SingleResponseHttpServer {
+public:
+  explicit SingleResponseHttpServer(int statusCode) {
+    const int serverSocket = ::socket(AF_INET, SOCK_STREAM, 0);
+    require(serverSocket >= 0, "create receipt test HTTP socket");
+
+    const int reuse = 1;
+    (void)::setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+
+    sockaddr_in address{};
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    address.sin_port = 0;
+    require(::bind(serverSocket, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == 0,
+            "bind receipt test HTTP socket");
+    require(::listen(serverSocket, 1) == 0, "listen receipt test HTTP socket");
+
+    socklen_t length = sizeof(address);
+    require(::getsockname(serverSocket, reinterpret_cast<sockaddr*>(&address), &length) == 0,
+            "read receipt test HTTP socket port");
+    m_port = ntohs(address.sin_port);
+
+    m_thread = std::thread([serverSocket, statusCode]() {
+      const int clientSocket = ::accept(serverSocket, nullptr, nullptr);
+      if (clientSocket >= 0) {
+        char requestBuffer[2048];
+        (void)::recv(clientSocket, requestBuffer, sizeof(requestBuffer), 0);
+        const std::string body = "{}";
+        const std::string response = "HTTP/1.1 " + std::to_string(statusCode) +
+                                     " NEXUS\r\nContent-Type: application/json\r\n"
+                                     "Content-Length: " +
+                                     std::to_string(body.size()) +
+                                     "\r\nConnection: close\r\n\r\n" + body;
+        (void)::send(clientSocket, response.data(), response.size(), 0);
+        (void)::close(clientSocket);
+      }
+      (void)::close(serverSocket);
+    });
+  }
+
+  ~SingleResponseHttpServer() {
+    if (m_thread.joinable()) {
+      m_thread.join();
+    }
+  }
+
+  [[nodiscard]] auto url() const -> std::string {
+    return "http://127.0.0.1:" + std::to_string(m_port) + "/api/games/session";
+  }
+
+private:
+  std::uint16_t m_port{0};
+  std::thread m_thread;
+};
+
+[[nodiscard]] auto curlAvailable() -> bool {
+  return std::system("command -v curl >/dev/null 2>&1") == 0;
+}
+#endif
+
+[[nodiscard]] auto makeTestSessionResult(std::string sessionId,
+                                         std::string modeId = "basketball_dunk",
+                                         float score = 21.0F) -> nexus::gameplay::SessionResult {
+  nexus::gameplay::SessionResult result{};
+  result.userId = "receipt_sync_user";
+  result.sessionId = std::move(sessionId);
+  result.modeId = std::move(modeId);
+  result.venueId = "venice_beach";
+  result.outcome = nexus::gameplay::MatchOutcome::kWin;
+  result.score = score;
+  result.opponentScore = 10.0F;
+  result.durationSeconds = 60.0F;
+  result.completed = true;
+  result.resultType = "win";
+  result.arv = 75.0F;
+  result.esi = 20.0F;
+  result.pacingScore = 80.0F;
+  result.mriScore = 75.0F;
+  result.xpCandidate = 250.0F;
+  result.shardsCandidate = 50.0F;
+  result.prqDeltaCandidate = 1.5F;
+  return result;
 }
 
 void fitness_data_snapshots_are_thread_safe() {
@@ -762,7 +853,9 @@ void session_receipt_flush_keeps_queue_when_http_disabled() {
           "session ends");
 
   const auto flush = gameplay.handleGameplayCommand(
-      "fel.arena.flush_receipts", {{"persist_to_disk", true}}, "flush");
+      "fel.arena.flush_receipts",
+      {{"persist_to_disk", true}, {"http_enabled", false}, {"use_stub_http", false}},
+      "flush");
   require(flush.status == "ok", "flush command ok");
   require(flush.payload["delivered"].get<std::size_t>() >= 1, "receipt delivered to disk queue");
   require(!flush.payload["queue_directory"].get<std::string>().empty(), "queue directory returned");
@@ -770,6 +863,14 @@ void session_receipt_flush_keeps_queue_when_http_disabled() {
   const auto receipts =
       gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "flush_receipts");
   require(receipts.payload["receipts"].size() == 0, "receipt cleared after successful flush");
+
+  const auto configFlush = gameplay.handleGameplayCommand(
+      "fel.arena.flush_receipts",
+      {{"persist_to_disk", false}, {"http_enabled", false}, {"use_stub_http", false}},
+      "flush_config");
+  require(configFlush.status == "ok", "flush config command ok");
+  require(!configFlush.payload["http_enabled"].get<bool>(), "flush command applies http_enabled");
+  require(!configFlush.payload["use_stub_http"].get<bool>(), "flush command applies use_stub_http");
 }
 
 void session_receipt_disk_keyed_by_session_id() {
@@ -780,7 +881,7 @@ void session_receipt_disk_keyed_by_session_id() {
   std::filesystem::create_directories(tempDir, ec);
 
   nexus::gameplay::SessionReceiptClient client(
-      {.queueDirectory = tempDir.string(), .persistToDisk = true});
+      {.queueDirectory = tempDir.string(), .persistToDisk = true, .httpEnabled = false});
 
   nlohmann::json receipt = {
       {"mode_id", "karate_endless"},
@@ -813,6 +914,68 @@ void session_receipt_disk_keyed_by_session_id() {
   require(loaded["score"].get<int>() == 99, "re-flush overwrites receipt contents");
 
   removeTreeBestEffort(tempDir);
+}
+
+void gameplay_manager_partial_receipt_flush_keeps_only_failed_receipts_pending() {
+#if defined(__unix__) || defined(__APPLE__)
+  if (!curlAvailable()) {
+    std::fprintf(stderr, "SKIP: curl unavailable for gameplay manager partial receipt flush test\n");
+    return;
+  }
+
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_manager_partial_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  SingleResponseHttpServer server(204);
+  nexus::gameplay::GameplayManager manager;
+  manager.setReceiptClientConfig({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  manager.dispatchSessionReceipt(makeTestSessionResult("delivered_session", "basketball_dunk", 21.0F));
+  manager.dispatchSessionReceipt(makeTestSessionResult("retry_session", "karate_endless", 8.0F));
+  require(manager.pendingReceipts().size() == 2, "manager starts with two pending receipts");
+
+  const auto flush = manager.flushPendingReceipts();
+  require(flush.attempted == 2, "partial manager flush attempts both receipts");
+  require(flush.delivered == 1, "partial manager flush delivers first receipt");
+  require(flush.requeued == 1, "partial manager flush requeues failed receipt");
+  require(manager.pendingReceipts().size() == 1, "manager pending mirrors receipt client retry queue");
+  require(manager.pendingReceipts().front()["telemetry"]["session_id"].get<std::string>() ==
+              "retry_session",
+          "manager keeps only failed receipt pending");
+  require(!std::filesystem::exists(tempDir), "partial HTTP-only manager flush does not create disk queue");
+#else
+  std::fprintf(stderr, "SKIP: gameplay manager partial receipt flush test requires POSIX sockets\n");
+#endif
+}
+
+void gameplay_manager_tick_flush_syncs_pending_receipts() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_manager_tick_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::GameplayManager manager;
+  manager.setReceiptClientConfig({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = "http://127.0.0.1:8000/api/games/session",
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = true,
+      .flushIntervalSeconds = 0.1F,
+  });
+  manager.dispatchSessionReceipt(makeTestSessionResult("tick_flush_session"));
+  require(manager.pendingReceipts().size() == 1, "tick flush test starts pending");
+
+  manager.tickReceiptClient(0.2);
+
+  require(manager.pendingReceipts().empty(), "tick-triggered receipt flush clears manager pending");
+  require(!std::filesystem::exists(tempDir), "stub tick flush does not create disk queue");
 }
 
 void hud_poll_returns_tick_frame_payload() {
@@ -881,6 +1044,74 @@ void karate_mode_input_strike_advances_wave() {
       gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "karate_state");
   require(modeState.status == "ok", "karate mode state ok");
   require(modeState.payload["karate"]["score"].get<int>() > 0, "karate score increased");
+
+  physics.shutdown();
+}
+
+void arena_mode_input_routes_production_runtime_modes() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  nexus::physics::PhysicsWorld physics;
+  require(physics.init({}).isOk(), "mode_input physics init");
+
+  struct ModeInputProbe {
+    const char* modeId;
+    nlohmann::json params;
+    const char* nestedStateKey;
+  };
+
+  const std::array<ModeInputProbe, 11> probes{{
+      {"basketball_dunk", {{"action", "charge_begin"}}, "dunk"},
+      {"karate_endless", {{"action", "heavy_strike"}}, "karate"},
+      {"basketball_h2h", {{"action", "shoot"}, {"timing", 0.96F}, {"success", true}},
+       "pickup"},
+      {"court_carnival", {{"action", "carnival_pad"}, {"pad", "trick_shot"}, {"timing", 0.9F}},
+       "carnival"},
+      {"gymnastics", {{"action", "tap"}, {"timing", 0.92F}, {"difficulty", 0.75F}},
+       "gymnastics"},
+      {"brain_brawl",
+       {{"action", "answer"}, {"correct", true}, {"response_time", 4.5F}, {"category", "BodyIQ"}},
+       "brain_brawl"},
+      {"skateboarding", {{"action", "trick"}, {"difficulty", 0.85F}, {"combo_multiplier", 2}},
+       "skateboarding"},
+      {"snowboarding", {{"action", "carve"}, {"timing", 0.93F}, {"line_difficulty", 0.75F}},
+       "snowboarding"},
+      {"surfing", {{"action", "carve"}, {"timing", 0.94F}, {"wave_difficulty", 0.8F}},
+       "surfing"},
+      {"who_scene_it", {{"action", "buzz_in"}, {"timing", 0.91F}}, "who_scene_it"},
+      {"basketball_3v3", {{"action", "shoot"}, {"success", true}, {"timing", 0.9F}},
+       "outcome_sport"},
+  }};
+
+  for (const ModeInputProbe& probe : probes) {
+    require(gameplay.handleGameplayCommand(
+                "fel.arena.start_session",
+                {{"mode_id", probe.modeId}, {"user_id", "mode_input_agent"}},
+                "mode_input_start")
+                .status == "ok",
+            std::string("mode_input start ok for ") + probe.modeId);
+
+    const auto action = gameplay.handleGameplayCommand(
+        "fel.arena.mode_input", probe.params, "mode_input_action");
+    require(action.status == "ok", std::string("mode_input action ok for ") + probe.modeId);
+    require(action.payload.is_object(), "mode_input action payload must be object");
+
+    gameplay.update(0.05, physics, {});
+    const auto modeState =
+        gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "mode_input_state");
+    require(modeState.status == "ok", std::string("mode_input state ok for ") + probe.modeId);
+    require(modeState.payload.is_object(), "mode_input runtime state must be object");
+    require(modeState.payload.contains(probe.nestedStateKey),
+            std::string("mode_input runtime state missing ") + probe.nestedStateKey);
+    require(modeState.payload[probe.nestedStateKey].is_object(),
+            std::string("mode_input runtime nested state object for ") + probe.modeId);
+
+    const auto hud = gameplay.handleGameplayQuery("fel.hud.poll", {}, "mode_input_hud");
+    require(hud.status == "ok", std::string("mode_input hud ok for ") + probe.modeId);
+    require(hud.payload["payload"]["mode_state"].contains(probe.nestedStateKey),
+            std::string("mode_input hud nested state for ") + probe.modeId);
+  }
 
   physics.shutdown();
 }
@@ -954,10 +1185,79 @@ void physics_intent_queue_is_consumed_on_step() {
   physics.shutdown();
 }
 
-void prq_stub_returns_sprint_defaults() {
+void prq_uses_sprint_defaults_until_fitness_arrives() {
   require(nexus::gameplay::PRQEngine::getScore() == 75.0F, "prq sprint default");
   require(nexus::gameplay::PRQEngine::getGrade() == nexus::gameplay::PRQGrade::kPrimed,
           "prq grade primed");
+
+  nexus::gameplay::FitnessSnapshot coldStart{};
+  require(nexus::gameplay::PRQEngine::scoreForSnapshot(coldStart) == 75.0F,
+          "cold-start snapshot uses sprint default");
+  require(nexus::gameplay::PRQEngine::neuralDriveForSnapshot(coldStart) == 60.0F,
+          "cold-start neural drive uses sprint default");
+}
+
+void prq_derives_readiness_from_fitness_snapshot() {
+  nexus::gameplay::ThreadSafeFitnessData fitness;
+  fitness.update({0.9F, 0.85F, 0.8F}, {0.95F, 0.9F, 1});
+
+  const auto snapshot = fitness.snapshot();
+  const float prq = nexus::gameplay::PRQEngine::scoreForSnapshot(snapshot);
+  const float neuralDrive = nexus::gameplay::PRQEngine::neuralDriveForSnapshot(snapshot);
+  require(prq > 89.0F, "high fitness produces elite PRQ");
+  require(neuralDrive > 90.0F, "high fitness produces neural burst drive");
+  require(nexus::gameplay::PRQEngine::gradeForScore(prq) ==
+              nexus::gameplay::PRQGrade::kElite,
+          "high fitness maps to elite PRQ grade");
+
+  fitness.update({0.05F, 0.1F, 0.05F}, {0.1F, 0.1F, -1});
+  const auto recovery = fitness.snapshot();
+  require(nexus::gameplay::PRQEngine::scoreForSnapshot(recovery) < 40.0F,
+          "low fitness produces recovering PRQ");
+  require(nexus::gameplay::PRQEngine::neuralDriveForSnapshot(recovery) < neuralDrive,
+          "low fitness lowers neural drive");
+}
+
+void mode_runtime_prq_state_tracks_live_fitness() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk"}, {"user_id", "prq_fitness"}},
+              "prq_session")
+              .status == "ok",
+          "prq mode session starts");
+
+  auto modeState = gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "prq_default");
+  require(modeState.payload["prq"].get<float>() == 75.0F, "default mode PRQ before fitness");
+  require(modeState.payload["prq_source"].get<std::string>() == "sprint_default",
+          "default PRQ source is explicit");
+
+  const auto fitness = gameplay.handleGameplayCommand(
+      "fel.fitness.update",
+      {{"frc_mobility", 0.9F},
+       {"frc_active_range", 0.85F},
+       {"frc_control", 0.8F},
+       {"iap_engagement", 0.95F},
+       {"iap_confidence", 0.9F},
+       {"breath_phase", 1}},
+      "prq_fitness_update");
+  require(fitness.status == "ok", "fitness update for PRQ ok");
+
+  modeState = gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "prq_live");
+  require(modeState.payload["prq"].get<float>() > 89.0F, "mode PRQ follows fitness snapshot");
+  require(modeState.payload["prq_grade"].get<std::string>() == "ELITE",
+          "mode PRQ grade follows fitness snapshot");
+  require(modeState.payload["prq_source"].get<std::string>() == "fitness_snapshot",
+          "mode PRQ source follows fitness");
+  require(modeState.payload["fitness_revision"].get<std::uint64_t>() == 1,
+          "mode state reports fitness revision");
+  require(modeState.payload["neural_drive"].get<float>() > 90.0F,
+          "mode state reports fitness neural drive");
+  require(modeState.payload["arcade_physics"]["neural_burst_active"].get<bool>(),
+          "fitness neural drive enables burst physics");
 }
 
 void arcade_physics_maps_prq_75() {
@@ -1853,7 +2153,7 @@ void flagship_who_scene_it_validate_only_integration() {
 }
 
 void fel_bridge_websocket_stub_sends_outbound() {
-  nexus::gameplay::FelBridgeService bridge;
+  nexus::gameplay::FelBridgeService bridge({.useStubTransport = true});
   bridge.setWebSocketUrl("ws://127.0.0.1:8787/ws/vault");
   require(bridge.connectTransport().isOk(), "fel bridge transport connect");
   bridge.notifyVenueTravel("Venice_Beach_Court", "basketball_dunk");
@@ -1877,7 +2177,7 @@ void fel_bridge_websocket_stub_sends_outbound() {
 }
 
 void hud_relay_websocket_stub_emits_frames() {
-  nexus::gameplay::HudRelayService relay;
+  nexus::gameplay::HudRelayService relay({.useStubTransport = true});
   relay.setWebSocketUrl("ws://127.0.0.1:8787/ws/hud");
   require(relay.connectRelay().isOk(), "hud relay connect");
   relay.emitTickFrame({{"prq", 72.5F}, {"mode_id", "basketball_dunk"}});
@@ -1887,6 +2187,22 @@ void hud_relay_websocket_stub_emits_frames() {
   require(!relay.sentTransportFrames().empty(), "hud relay stub sent WS frame");
   require(relay.sentTransportFrames().front().find("fel.hud.frame") != std::string::npos,
           "hud relay WS payload type");
+}
+
+void hud_relay_broadcast_messages_are_bounded() {
+  nexus::gameplay::HudRelayService relay({.useStubTransport = true});
+  relay.setWebSocketUrl("ws://127.0.0.1:8787/ws/hud");
+  require(relay.connectRelay().isOk(), "hud relay broadcast cap connect");
+
+  for (int index = 0; index < 130; ++index) {
+    relay.broadcastMessage("economy_update", {{"index", index}});
+  }
+
+  require(relay.pendingFrames().size() <= 120, "hud broadcast pending frames remain bounded");
+  require(relay.pendingFrames().front()["payload"]["index"].get<int>() >= 60,
+          "hud broadcast cap trims oldest pending messages");
+  require(relay.pendingFrames().back()["payload"]["index"].get<int>() == 129,
+          "hud broadcast cap preserves newest message");
 }
 
 void session_receipt_http_stub_posts_localhost_contract() {
@@ -1927,6 +2243,112 @@ void session_receipt_http_stub_posts_localhost_contract() {
           "POST targets session contract path");
   require(client.postedRequests().front().body.find("karate_endless") != std::string::npos,
           "POST body includes mode_id");
+}
+
+void session_receipt_http_continues_when_disk_persist_fails() {
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = "/dev/null/fel_receipt_unwritable",
+      .baseUrl = "http://127.0.0.1:8000/api/games/session",
+      .persistToDisk = true,
+      .httpEnabled = true,
+      .useStubHttpTransport = true,
+  });
+
+  client.enqueue({
+      {"mode_id", "brain_brawl"},
+      {"score", 3},
+      {"telemetry", {{"session_id", "persist_fails_http_continues"}}},
+  });
+
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "persist-fail HTTP fallback attempted");
+  require(flush.delivered == 1, "persist-fail HTTP fallback delivered");
+  require(flush.requeued == 0, "persist-fail HTTP fallback not requeued");
+  require(flush.queued_on_disk == 0, "persist-fail HTTP fallback does not count disk queue");
+  require(client.pendingCount() == 0, "persist-fail HTTP fallback clears pending receipt");
+  require(client.postedRequests().size() == 1, "persist-fail HTTP fallback records POST");
+  require(client.postedRequests().front().body.find("brain_brawl") != std::string::npos,
+          "persist-fail HTTP fallback posts receipt body");
+}
+
+void session_receipt_live_http_success_does_not_count_disk_queue() {
+#if defined(__unix__) || defined(__APPLE__)
+  if (!curlAvailable()) {
+    std::fprintf(stderr, "SKIP: curl unavailable for live receipt success test\n");
+    return;
+  }
+
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_live_success_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  SingleResponseHttpServer server(204);
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  client.enqueue({
+      {"mode_id", "basketball_dunk"},
+      {"score", 21},
+      {"telemetry", {{"session_id", "live_success_session"}}},
+  });
+
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "live success flush attempted");
+  require(flush.delivered == 1, "live success flush delivered");
+  require(flush.requeued == 0, "live success flush not requeued");
+  require(flush.queued_on_disk == 0, "HTTP-only success does not count disk queue");
+  require(client.pendingCount() == 0, "HTTP-only success clears pending receipt");
+  require(client.postedRequests().size() == 1, "live success POST recorded");
+  require(client.postedRequests().front().statusCode == 204, "live success status recorded");
+  require(!std::filesystem::exists(tempDir), "HTTP-only success does not create disk queue");
+#else
+  std::fprintf(stderr, "SKIP: live receipt success test requires POSIX sockets\n");
+#endif
+}
+
+void session_receipt_live_http_non_2xx_requeues_without_disk() {
+#if defined(__unix__) || defined(__APPLE__)
+  if (!curlAvailable()) {
+    std::fprintf(stderr, "SKIP: curl unavailable for live receipt retry test\n");
+    return;
+  }
+
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_live_retry_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  SingleResponseHttpServer server(503);
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  client.enqueue({
+      {"mode_id", "basketball_dunk"},
+      {"score", 8},
+      {"telemetry", {{"session_id", "live_retry_session"}}},
+  });
+
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "live non-2xx flush attempted");
+  require(flush.delivered == 0, "live non-2xx flush not delivered");
+  require(flush.requeued == 1, "live non-2xx flush requeued");
+  require(flush.queued_on_disk == 0, "HTTP-only retry does not count disk queue");
+  require(client.pendingCount() == 1, "live non-2xx keeps pending receipt");
+  require(client.postedRequests().size() == 1, "live non-2xx POST recorded");
+  require(client.postedRequests().front().statusCode == 503, "live non-2xx status recorded");
+  require(!std::filesystem::exists(tempDir), "HTTP-only retry does not create disk queue");
+#else
+  std::fprintf(stderr, "SKIP: live receipt retry test requires POSIX sockets\n");
+#endif
 }
 
 struct TextGenTempWorkspace {
@@ -2720,6 +3142,102 @@ void karate_h2h_session_end_dispatches_receipt() {
       "karate h2h receipt includes outcome_sport state");
 }
 
+void brain_brawl_session_end_dispatches_receipt() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  const auto mode = nexus::gameplay::ArenaModeRegistry::find("brain_brawl");
+  require(mode.has_value(), "brain brawl registered");
+  require(mode->scoringEnabled, "brain brawl scoring enabled");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "brain_brawl"}, {"user_id", "brain_receipt"}},
+              "brain_receipt_start")
+              .status == "ok",
+          "brain brawl receipt session starts");
+
+  for (int i = 0; i < 3 && !gameplay.mode_runtime().shouldAutoEndSession(); ++i) {
+    const auto answer = gameplay.handleGameplayCommand(
+        "fel.brain.answer",
+        {{"correct", true}, {"response_time", 4.0F}, {"category", "BodyIQ"}},
+        "brain_receipt_answer");
+    require(answer.status == "ok", "brain brawl answer for receipt");
+  }
+
+  require(gameplay.mode_runtime().shouldAutoEndSession(), "brain brawl match complete");
+
+  const auto end = gameplay.handleGameplayCommand(
+      "fel.arena.end_session",
+      {{"use_live_scores", true}},
+      "brain_receipt_end");
+  require(end.status == "ok", "brain brawl session ends");
+  require(end.payload["outcome"].get<std::string>() == "win", "brain brawl win outcome");
+
+  const auto receipts =
+      gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "brain_receipts");
+  require(!receipts.payload["receipts"].empty(), "brain brawl receipt queued");
+  require(receipts.payload["receipts"].back()["mode_id"].get<std::string>() == "brain_brawl",
+          "brain brawl receipt mode id");
+  require(receipts.payload["receipts"].back()["score"].get<int>() >= 3,
+          "brain brawl receipt score from C++ state");
+  require(receipts.payload["receipts"].back()["telemetry"]["mode_specific"]["brain_brawl"].is_object(),
+          "brain brawl receipt includes mode_specific state");
+}
+
+void who_scene_it_session_end_dispatches_receipt() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  const auto mode = nexus::gameplay::ArenaModeRegistry::find("who_scene_it");
+  require(mode.has_value(), "who scene it registered");
+  require(mode->scoringEnabled, "who scene it scoring enabled");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "who_scene_it"}, {"user_id", "scene_receipt"}},
+              "scene_receipt_start")
+              .status == "ok",
+          "who scene it receipt session starts");
+
+  for (int i = 0; i < 7 && !gameplay.mode_runtime().shouldAutoEndSession(); ++i) {
+    require(gameplay.handleGameplayCommand(
+                "fel.scene.buzz_in",
+                {{"timing", 0.94F}},
+                "scene_receipt_buzz")
+                .status == "ok",
+            "who scene it buzz for receipt");
+    require(gameplay.handleGameplayCommand(
+                "fel.scene.answer",
+                {{"correct", true}, {"response_time", 4.0F}, {"category", "ClassicFilm"}},
+                "scene_receipt_answer")
+                .status == "ok",
+            "who scene it answer for receipt");
+  }
+
+  require(gameplay.mode_runtime().shouldAutoEndSession(), "who scene it match complete");
+
+  const auto end = gameplay.handleGameplayCommand(
+      "fel.arena.end_session",
+      {{"use_live_scores", true}},
+      "scene_receipt_end");
+  require(end.status == "ok", "who scene it session ends");
+  require(end.payload["outcome"].get<std::string>() == "win", "who scene it win outcome");
+
+  const auto receipts =
+      gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "scene_receipts");
+  require(!receipts.payload["receipts"].empty(), "who scene it receipt queued");
+  require(receipts.payload["receipts"].back()["mode_id"].get<std::string>() == "who_scene_it",
+          "who scene it receipt mode id");
+  require(receipts.payload["receipts"].back()["score"].get<int>() >= 7,
+          "who scene it receipt score from C++ state");
+  require(
+      receipts.payload["receipts"].back()["telemetry"]["mode_specific"]["who_scene_it"].is_object(),
+      "who scene it receipt includes mode_specific state");
+}
+
 } // namespace
 
 auto main() -> int {
@@ -2743,18 +3261,27 @@ auto main() -> int {
   arena_pause_resume_preserves_session();
   session_receipt_flush_keeps_queue_when_http_disabled();
   session_receipt_disk_keyed_by_session_id();
+  gameplay_manager_partial_receipt_flush_keeps_only_failed_receipts_pending();
+  gameplay_manager_tick_flush_syncs_pending_receipts();
   hud_poll_returns_tick_frame_payload();
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
+  hud_relay_broadcast_messages_are_bounded();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_http_continues_when_disk_persist_fails();
+  session_receipt_live_http_success_does_not_count_disk_queue();
+  session_receipt_live_http_non_2xx_requeues_without_disk();
   karate_mode_input_strike_advances_wave();
+  arena_mode_input_routes_production_runtime_modes();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
   exercise_demo_pipeline_maps_production_modes();
   physics_intent_queue_is_consumed_on_step();
   engine_tick_runs_physics_before_gameplay_update();
   gameplay_update_drains_agent_commands_before_throw_catch();
-  prq_stub_returns_sprint_defaults();
+  prq_uses_sprint_defaults_until_fitness_arrives();
+  prq_derives_readiness_from_fitness_snapshot();
+  mode_runtime_prq_state_tracks_live_fitness();
   arcade_physics_maps_prq_75();
   dunk_contest_charge_release_scores();
   karate_endless_wave_spawns();
@@ -2785,6 +3312,8 @@ auto main() -> int {
   basketball_3v3_session_end_dispatches_receipt();
   court_carnival_session_end_dispatches_receipt();
   karate_h2h_session_end_dispatches_receipt();
+  brain_brawl_session_end_dispatches_receipt();
+  who_scene_it_session_end_dispatches_receipt();
   text_prompt_adapter_maps_beach_arena_prompt();
   gameplay_from_text_executes_mixed_plan();
   agent_router_routes_from_text_to_gameplay();
