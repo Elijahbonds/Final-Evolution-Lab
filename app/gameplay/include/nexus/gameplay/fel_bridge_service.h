@@ -5,6 +5,7 @@
 #include "nexus/core/result.h"
 #include "nexus/core/websocket_client.h"
 
+#include <cstdint>
 #include <nlohmann/json.hpp>
 #include <string>
 #include <string_view>
