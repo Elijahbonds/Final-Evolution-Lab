@@ -1319,6 +1319,8 @@ def get_seeded_game_modes():
     return [
         {"id":"basketball_h2h","name":"Street 1v1","display_name":"Street · 1v1","venue":"Venice Beach","category":"Basketball","description":"Head-to-head street basketball","image_url":"/images/ue5_basketball.png","player_count":"1v1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"shooting"},
         {"id":"basketball_dunk","name":"Dunk Contest","display_name":"Dunk Contest","venue":"Venice Beach","category":"Basketball","description":"Execute dunks with timing precision","image_url":"/images/ue5_basketball.png","player_count":"1","duration":"5 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
+        {"id":"basketball_dunk_3d","name":"3D H2H Dunk Contest","display_name":"3D H2H Dunk Contest","venue":"Venice Beach","category":"Basketball","description":"NEXUS runtime dunk contest on the Venice blue court","image_url":"/images/ue5_basketball.png","player_count":"1v1","duration":"5 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
+        {"id":"basketball_dunk_irl","name":"IRL H2H Dunk Contest","display_name":"IRL H2H Dunk Contest","venue":"Regulation Court","category":"Basketball","description":"Real-phone camera dunk battle with proctored regulation-rim checks","image_url":"/images/ue5_basketball.png","player_count":"1v1","duration":"Live","difficulty":"Advanced","playable":True,"game_type":"irl"},
         {"id":"basketball_3v3","name":"Street 3v3","display_name":"Street · 3v3","venue":"Venice Beach","category":"Basketball","description":"Team-based street basketball","image_url":"/images/ue5_basketball.png","player_count":"3v3","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"strategy"},
         {"id":"karate_h2h","name":"Karate 1v1","display_name":"Karate · 1v1","venue":"Dojo","category":"Combat","description":"Strike, block, counter","image_url":"/images/ue5_dojo.png","player_count":"1v1","duration":"5 min","difficulty":"Intermediate","playable":True,"game_type":"combat"},
         {"id":"karate_endless","name":"Karate Endless","display_name":"Karate · Endless","venue":"Dojo","category":"Combat","description":"Survive endless waves","image_url":"/images/ue5_dojo.png","player_count":"1","duration":"Unlimited","difficulty":"Expert","playable":True,"game_type":"endurance"},
@@ -1335,8 +1337,7 @@ def get_seeded_game_modes():
         {"id":"snowboarding","name":"Snowboarding","display_name":"Snow · Line","venue":"Mountain","category":"Board","description":"Navigate slopes","image_url":"/images/ue5_board.png","player_count":"1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"reflex"},
         {"id":"market_browse","name":"Module Library","display_name":"Module Library","venue":"Marketplace","category":"Shop","description":"Browse and purchase","image_url":"/images/ue5_board.png","player_count":"1","duration":"Unlimited","difficulty":"None","playable":False,"game_type":"shop"},
         {"id":"who_scene_it","name":"Who Scene It","display_name":"Who Scene It","venue":"Neuro Arena","category":"Academy","description":"Sports & entertainment trivia with Creator Card multimedia clips","image_url":"/images/ue5_soccer.png","player_count":"2-8","duration":"15 min","difficulty":"Variable","playable":True,"game_type":"quiz"},
-        {"id":"court_carnival","name":"Court Carnival","display_name":"Court Carnival · Arcade","venue":"Venice Beach","category":"Party","description":"Venice Beach mini-game mash-up with Creator Card avatars and rotating challenges across venues","image_url":"/images/ue5_basketball.png","player_count":"2-4","duration":"30 min","difficulty":"Variable","playable":True,"game_type":"strategy"},
-        {"id":"trivia_arena","name":"Trivia Arena","display_name":"Trivia Arena · Academy","venue":"Neuro Arena","category":"Academy","description":"Spin the wheel and test your knowledge across 8 academic and sports categories","image_url":"/images/ue5_soccer.png","player_count":"1-4","duration":"10 min","difficulty":"Variable","playable":True,"game_type":"quiz"}
+        {"id":"court_carnival","name":"Court Carnival","display_name":"Court Carnival · Arcade","venue":"Venice Beach","category":"Party","description":"Venice Beach mini-game mash-up with Creator Card avatars and rotating challenges across venues","image_url":"/images/ue5_basketball.png","player_count":"2-4","duration":"30 min","difficulty":"Variable","playable":True,"game_type":"strategy"}
     ]
 
 @api_router.get("/cards")
@@ -2286,16 +2287,22 @@ async def get_vault_status():
     """LOCAL HUB MODE — No E3DS cloud. Data feed + Live Connection Preview."""
     mode_maps = {
         "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
+        "basketball_dunk_3d": "Venice_Beach_Court", "basketball_dunk_irl": None,
         "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
         "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
         "football": "Gridiron_Stadium", "soccer": "Soccer_Stadium",
         "golf": "Links_Course", "tennis": "Tennis_Court",
         "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
         "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope", "brain_brawl": "Neuro_Arena"
+        "snowboarding": "Mountain_Slope", "brain_brawl": "Neuro_Arena",
+        "who_scene_it": "Neuro_Arena", "court_carnival": "Venice_Beach_Court",
     }
     
-    conn = await db.streaming_connections.find_one({"active": True})
+    try:
+        conn = await db.streaming_connections.find_one({"active": True})
+    except Exception as exc:
+        logger.warning("Streaming connection lookup unavailable; serving local vault defaults: %s", exc)
+        conn = None
     if conn:
         available = True
         stream_url = conn["stream_url"]

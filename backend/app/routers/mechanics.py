@@ -36,8 +36,9 @@ _workout_logs: list[dict[str, Any]] = []
 ARENA_MODES = [
     ("basketball_h2h", "Street · 1v1", "Basketball", "VeniceBeach", "1v1", "3 min"),
     ("basketball_dunk", "Dunk Contest", "Basketball", "VeniceBeach", "Solo", "5 min"),
+    ("basketball_dunk_3d", "3D H2H Dunk Contest", "Basketball", "VeniceBeach", "1v1", "5 min"),
+    ("basketball_dunk_irl", "IRL H2H Dunk Contest", "Basketball", "RegulationCourtIRL", "1v1", "Live"),
     ("basketball_3v3", "Street · 3v3", "Basketball", "VeniceBeach", "3v3", "8 min"),
-    ("karate", "Karate · Dojo", "Combat", "Dojo", "Solo", "3 min"),
     ("karate_h2h", "Karate · 1v1", "Combat", "Dojo", "1v1", "3 min"),
     ("karate_endless", "Karate · Endless", "Combat", "Dojo", "Solo", "Endless"),
     ("baseball", "Baseball · Ballpark", "Field", "BaseballPark", "Solo", "5 min"),
@@ -48,11 +49,12 @@ ARENA_MODES = [
     ("volleyball", "Volleyball · Sand Court", "Court", "SandCourt", "2v2", "3 min"),
     ("gymnastics", "Gymnastics · Floor", "Performance", "TrainingFloor", "Solo", "4 min"),
     ("brain_brawl", "Academy · Brain Brawl", "Academy", "NeuroArena", "Solo", "2 min"),
+    ("who_scene_it", "Who Scene It", "Academy", "NeuroArena", "2-8", "15 min"),
+    ("court_carnival", "Court Carnival", "Party", "VeniceBeach", "2-4", "30 min"),
     ("surfing", "Surf · Line", "Board", "VeniceBeach", "Solo", "3 min"),
     ("skateboarding", "Skate · Dojo", "Board", "Dojo", "Solo", "3 min"),
     ("snowboarding", "Snow · Line", "Board", "TrainingFloor", "Solo", "3 min"),
     ("market_browse", "Sovereign Shop", "Academy", "Luma_Venice_Shop", "Browse", "Open"),
-    ("trivia_arena", "Trivia Arena", "Academy", "NeuroArena", "Solo", "2 min"),
 ]
 
 INTENTS = {
@@ -144,6 +146,7 @@ def _now() -> str:
 
 def _mode(row: tuple[str, str, str, str, str, str]) -> dict[str, Any]:
     mode_id, display_name, category, venue, players, duration = row
+    game_type = "quiz" if mode_id in {"brain_brawl", "who_scene_it"} else "strategy" if mode_id == "court_carnival" else "reflex"
     return {
         "id": mode_id,
         "name": display_name,
@@ -153,7 +156,7 @@ def _mode(row: tuple[str, str, str, str, str, str]) -> dict[str, Any]:
         "player_count": players,
         "duration": duration,
         "difficulty": "Cognitive" if category == "Academy" else "Adaptive",
-        "game_type": "quiz" if mode_id in {"brain_brawl", "trivia_arena"} else "reflex",
+        "game_type": game_type,
         "playable": mode_id != "market_browse",
         "image_url": "/images/ue5_basketball.png" if category == "Basketball" else "/images/ue5_board.png",
         "description": f"{display_name} is wired through the FEL shell economy and HUD pipeline.",

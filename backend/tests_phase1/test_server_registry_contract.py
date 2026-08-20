@@ -39,3 +39,22 @@ def test_production_resolver_keeps_irl_mode_launchable_without_ue_map() -> None:
     assert by_mode["basketball_dunk_irl"]["map_path"] is None
     assert by_mode["basketball_dunk_irl"]["map_token"] == "regulation_court_irl"
     assert by_mode["basketball_h2h"]["map_path"].endswith("/Venice_Beach_Court")
+
+
+def test_streaming_status_returns_registry_maps_without_database(monkeypatch) -> None:
+    class FailingStreamingConnections:
+        async def find_one(self, *_args, **_kwargs):
+            raise RuntimeError("database unavailable")
+
+    monkeypatch.setattr(server.db, "streaming_connections", FailingStreamingConnections())
+    client = TestClient(server.app)
+
+    response = client.get("/api/streaming/status")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["available"] is False
+    assert body["mode_maps"]["basketball_dunk_3d"] == "Venice_Beach_Court"
+    assert body["mode_maps"]["basketball_dunk_irl"] is None
+    assert body["mode_maps"]["who_scene_it"] == "Neuro_Arena"
+    assert body["mode_maps"]["court_carnival"] == "Venice_Beach_Court"
