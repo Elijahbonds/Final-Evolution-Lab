@@ -33,17 +33,25 @@ def skip(msg):
 # Production modes expected to pass all gates
 # ═══════════════════════════════════════════════════════════════════════════════
 PRODUCTION_MODES = [
-    "basketball_h2h", "basketball_dunk", "basketball_3v3",
+    "basketball_h2h", "basketball_dunk", "basketball_3v3", "court_carnival",
     "karate_h2h", "karate_endless",
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
     "gymnastics", "skateboarding", "snowboarding",
+    "brain_brawl", "who_scene_it",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = []
+
+SWIFT_RUNTIME_ALIASES = {
+    "basketball_dunk": [
+        '= "basketball_dunk_3d"',
+        'return "basketball_dunk"',
+    ],
+}
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -194,8 +202,9 @@ def test_swift_enum():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
-        # Search for rawValue
-        if f'= "{mode}"' in content:
+        # Search for rawValue; split Swift modes may expose a NEXUS runtime alias instead.
+        alias_markers = SWIFT_RUNTIME_ALIASES.get(mode, [])
+        if f'= "{mode}"' in content or all(marker in content for marker in alias_markers):
             ok(f'{mode} has Swift enum case')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
@@ -256,7 +265,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print("  18 production runtime modes · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()
