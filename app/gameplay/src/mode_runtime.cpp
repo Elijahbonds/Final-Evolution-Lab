@@ -20,7 +20,8 @@ namespace {
 } // namespace
 
 auto ModeRuntime::physicsParams() const -> ArcadePhysicsParams {
-  return ArcadePhysics::fromPRQ(PRQEngine::getScore(), PRQEngine::getNeuralDrive());
+  return ArcadePhysics::fromPRQ(PRQEngine::scoreForSnapshot(m_fitnessSnapshot),
+                                PRQEngine::neuralDriveForSnapshot(m_fitnessSnapshot));
 }
 
 auto ModeRuntime::parseCarnivalPad(std::string_view label) -> std::optional<CarnivalPad> {
@@ -44,8 +45,9 @@ auto ModeRuntime::setMode(std::string_view modeId) -> Result<void> {
   if (!config.has_value()) {
     return Result<void>::err("unknown mode_id");
   }
+  const std::string_view activeModeId = config->id;
 
-  m_modeId = std::string(modeId);
+  m_modeId = std::string(activeModeId);
   m_dunk.reset();
   m_karate.reset();
   m_pickup.reset();
@@ -60,32 +62,32 @@ auto ModeRuntime::setMode(std::string_view modeId) -> Result<void> {
   m_lastThrowPulseCount = 0;
   m_browseItemsViewed = 0;
 
-  if (modeId == "basketball_dunk") {
+  if (activeModeId == "basketball_dunk") {
     m_kind = ActiveModeKind::kDunkContest;
-  } else if (modeId == "karate_endless" || modeId == "karate_kata") {
+  } else if (activeModeId == "karate_endless") {
     m_kind = ActiveModeKind::kKarateEndless;
-  } else if (modeId == "basketball_h2h" || modeId == "venice_pickup") {
+  } else if (activeModeId == "basketball_h2h") {
     m_kind = ActiveModeKind::kVenicePickup;
-  } else if (modeId == "court_carnival") {
+  } else if (activeModeId == "court_carnival") {
     m_kind = ActiveModeKind::kCourtCarnival;
-  } else if (modeId == "gymnastics") {
+  } else if (activeModeId == "gymnastics") {
     m_kind = ActiveModeKind::kGymnastics;
-  } else if (modeId == "brain_brawl") {
+  } else if (activeModeId == "brain_brawl") {
     m_kind = ActiveModeKind::kBrainBrawl;
-  } else if (modeId == "skateboarding") {
+  } else if (activeModeId == "skateboarding") {
     m_kind = ActiveModeKind::kSkateboarding;
-  } else if (modeId == "snowboarding") {
+  } else if (activeModeId == "snowboarding") {
     m_kind = ActiveModeKind::kSnowboarding;
-  } else if (modeId == "surfing") {
+  } else if (activeModeId == "surfing") {
     m_kind = ActiveModeKind::kSurfing;
-  } else if (modeId == "who_scene_it") {
+  } else if (activeModeId == "who_scene_it") {
     m_kind = ActiveModeKind::kWhoSceneIt;
-  } else if (modeId == "market_browse") {
+  } else if (activeModeId == "market_browse") {
     m_kind = ActiveModeKind::kMarketBrowse;
     m_browseItemsViewed = 0;
-  } else if (isOutcomeSportMode(modeId)) {
+  } else if (isOutcomeSportMode(activeModeId)) {
     m_kind = ActiveModeKind::kOutcomeSport;
-    m_outcomeSport.reset(modeId);
+    m_outcomeSport.reset(activeModeId);
   } else if (config->releaseState == ArenaReleaseState::kProduction ||
              config->releaseState == ArenaReleaseState::kStaging) {
     m_kind = ActiveModeKind::kComingSoon;
@@ -114,6 +116,10 @@ void ModeRuntime::reset() {
   m_outcomeSport.reset();
   m_lastThrowPulseCount = 0;
   m_browseItemsViewed = 0;
+}
+
+void ModeRuntime::setFitnessSnapshot(FitnessSnapshot snapshot) {
+  m_fitnessSnapshot = snapshot;
 }
 
 void ModeRuntime::update(double deltaSeconds) {
@@ -440,11 +446,16 @@ auto ModeRuntime::handleCommand(std::string_view command, const nlohmann::json& 
 }
 
 auto ModeRuntime::stateJson() const -> nlohmann::json {
+  const float prqScore = PRQEngine::scoreForSnapshot(m_fitnessSnapshot);
+  const float neuralDrive = PRQEngine::neuralDriveForSnapshot(m_fitnessSnapshot);
   nlohmann::json payload{
       {"mode_id", m_modeId},
       {"kind", static_cast<int>(m_kind)},
-      {"prq", PRQEngine::getScore()},
-      {"prq_grade", PRQEngine::gradeLabel(PRQEngine::getGrade())},
+      {"prq", prqScore},
+      {"prq_grade", PRQEngine::gradeLabel(PRQEngine::gradeForScore(prqScore))},
+      {"prq_source", m_fitnessSnapshot.revision == 0 ? "sprint_default" : "fitness_snapshot"},
+      {"fitness_revision", m_fitnessSnapshot.revision},
+      {"neural_drive", neuralDrive},
   };
 
   const ArcadePhysicsParams physics = physicsParams();
@@ -452,6 +463,8 @@ auto ModeRuntime::stateJson() const -> nlohmann::json {
       {"hang_time_multiplier", physics.hangTimeMultiplier},
       {"explosive_first_step", physics.explosiveFirstStep},
       {"critical_hit_chance", physics.criticalHitChance},
+      {"neural_burst_active", physics.neuralBurstActive},
+      {"neural_burst_multiplier", physics.neuralBurstMultiplier},
   };
 
   if (m_kind == ActiveModeKind::kDunkContest) {

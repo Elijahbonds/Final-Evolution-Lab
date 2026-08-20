@@ -185,7 +185,7 @@ constexpr std::array<ArenaModeConfig, 19> kModes{{
      .inputScheme = "rhythm_tap",
      .modeWeight = 1.0F,
      .defaultMatchDurationSeconds = 300.0F,
-     .scoringEnabled = false,
+     .scoringEnabled = true,
      .releaseState = ArenaReleaseState::kProduction},
     {.id = "who_scene_it",
      .displayName = "Who Scene It",
@@ -196,7 +196,7 @@ constexpr std::array<ArenaModeConfig, 19> kModes{{
      .inputScheme = "film_quiz",
      .modeWeight = 1.1F,
      .defaultMatchDurationSeconds = 120.0F,
-     .scoringEnabled = false,
+     .scoringEnabled = true,
      .releaseState = ArenaReleaseState::kProduction},
     {.id = "court_carnival",
      .displayName = "Court Carnival",
@@ -223,6 +223,9 @@ constexpr std::array<ArenaModeConfig, 19> kModes{{
 }};
 
 [[nodiscard]] auto resolveModeId(std::string_view modeId) -> std::string_view {
+  if (modeId == "basketball_dunk_3d") {
+    return "basketball_dunk";
+  }
   if (modeId == "venice_pickup") {
     return "basketball_h2h";
   }
