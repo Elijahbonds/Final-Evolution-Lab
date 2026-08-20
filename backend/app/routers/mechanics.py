@@ -20,6 +20,8 @@ from typing import Any
 from fastapi import APIRouter, File, Query, UploadFile
 from pydantic import BaseModel, Field
 
+from app.utils.mode_registry import build_venue_registry_payload
+
 router = APIRouter(tags=["mechanics"])
 
 NUTRI_SHARDS_PER_SCAN = 12
@@ -37,7 +39,6 @@ ARENA_MODES = [
     ("basketball_h2h", "Street · 1v1", "Basketball", "VeniceBeach", "1v1", "3 min"),
     ("basketball_dunk", "Dunk Contest", "Basketball", "VeniceBeach", "Solo", "5 min"),
     ("basketball_3v3", "Street · 3v3", "Basketball", "VeniceBeach", "3v3", "8 min"),
-    ("karate", "Karate · Dojo", "Combat", "Dojo", "Solo", "3 min"),
     ("karate_h2h", "Karate · 1v1", "Combat", "Dojo", "1v1", "3 min"),
     ("karate_endless", "Karate · Endless", "Combat", "Dojo", "Solo", "Endless"),
     ("baseball", "Baseball · Ballpark", "Field", "BaseballPark", "Solo", "5 min"),
@@ -52,6 +53,8 @@ ARENA_MODES = [
     ("skateboarding", "Skate · Dojo", "Board", "Dojo", "Solo", "3 min"),
     ("snowboarding", "Snow · Line", "Board", "TrainingFloor", "Solo", "3 min"),
     ("market_browse", "Sovereign Shop", "Academy", "Luma_Venice_Shop", "Browse", "Open"),
+    ("who_scene_it", "Who Scene It", "Academy", "NeuroArena", "2-8", "15 min"),
+    ("court_carnival", "Court Carnival · Arcade", "Party", "VeniceBeach", "2-4", "30 min"),
     ("trivia_arena", "Trivia Arena", "Academy", "NeuroArena", "Solo", "2 min"),
 ]
 
@@ -176,6 +179,11 @@ def _target() -> dict[str, int]:
 @router.get("/games/modes")
 async def game_modes() -> list[dict[str, Any]]:
     return [_mode(row) for row in ARENA_MODES]
+
+
+@router.get("/registry/venues")
+async def registry_venues() -> dict[str, Any]:
+    return build_venue_registry_payload()
 
 
 @router.post("/ai/chat")
@@ -637,7 +645,7 @@ async def hub_status() -> dict[str, Any]:
 
 @router.get("/production/health")
 async def production_health() -> dict[str, Any]:
-    return {"status": "HEALTHY", "checks": {"mode_manager": {"production_modes": 19}}}
+    return {"status": "HEALTHY", "checks": {"mode_manager": {"production_modes": 20}}}
 
 
 @router.get("/production/handshake-log")

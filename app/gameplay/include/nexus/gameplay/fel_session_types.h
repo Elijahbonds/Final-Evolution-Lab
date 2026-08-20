@@ -1,5 +1,6 @@
 // NEXUS port of archived FEL session types
 #pragma once
+#include <cstdint>
 
 #include <nlohmann/json.hpp>
 #include <string>

@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - GameModeRouter
 // Central dispatch view: routes any GameModeId to the correct dedicated view.
-// IMPORTANT: .marketBrowse routes to MarketBrowseView — NOT through game session flow.
+// IMPORTANT: non-game modules route outside gameplay — no PRQ delta, receipt, or shards per round.
 
 struct GameModeRouter: View {
     let gameMode: GameMode
@@ -13,7 +13,7 @@ struct GameModeRouter: View {
         routedView
             .onDisappear {
                 // End the NexusEngine session when the game view is dismissed.
-                // endSession() is a no-op if no session is live (e.g. .marketBrowse).
+                // endSession() is a no-op if no session is live (e.g. non-game modules).
                 NexusEngine.shared.endSession()
             }
     }
@@ -62,6 +62,9 @@ struct GameModeRouter: View {
         case .marketBrowse:
             // Not a game session — no PRQ delta, no session receipt, no shards per round.
             MarketBrowseView(viewModel: viewModel)
+        case .movementLab:
+            // Preview education module — shares Body IQ surface; never starts NEXUS scoring runtime.
+            BodyIQEducationLabView(viewModel: viewModel)
         }
     }
 }

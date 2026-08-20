@@ -45,6 +45,9 @@ struct GameModeSelectionView: View {
                     onDismiss: { gameplayRoute = nil }
                 )
                 .id(gameplayLaunchId)
+            } else if modeId == .movementLab {
+                BodyIQEducationLabView(viewModel: viewModel)
+                    .id(gameplayLaunchId)
             } else if let mode = GameModeRegistry.all.first(where: { $0.id == modeId }) {
                 GamePlayView(
                     viewModel: viewModel,

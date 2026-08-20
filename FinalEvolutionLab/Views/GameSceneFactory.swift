@@ -84,7 +84,7 @@ struct GameSceneFactory {
 
     static func primaryGameplayAvatarName(for mode: GameModeId) -> String {
         switch mode {
-        case .basketballHeadToHead, .venicePickup, .marketBrowse: return "player1"
+        case .basketballHeadToHead, .venicePickup, .marketBrowse, .movementLab: return "player1"
         case .basketballDunkContest3D, .basketballDunkContestIRL: return "dunker"
         case .basketball3v3: return "blue1"
         case .karate, .karateEndless: return "fighter1"
@@ -242,7 +242,7 @@ struct GameSceneFactory {
             return buildWhoSceneItScene()
         case .courtCarnival:
             return buildCourtCarnivalScene()
-        case .marketBrowse:
+        case .marketBrowse, .movementLab:
             return buildMarketBrowseScene()
         }
     }
