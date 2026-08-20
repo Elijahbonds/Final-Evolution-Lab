@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// PR / docs-only: launch app with argument `-ScreenshotHarness` to capture Arena grid + every ``GameMode`` gameplay shell without stepping through multiplayer lobby.
+/// PR / docs-only: launch app with argument `-ScreenshotHarness` to capture Arena grid + every ``GameMode`` destination without stepping through multiplayer lobby.
 struct GameModeScreenshotHarnessView: View {
     @State private var viewModel = LabViewModel()
     @State private var modeIndex = 0
@@ -90,7 +90,7 @@ struct GameModeScreenshotHarnessView: View {
     }
 
     private var gameplayHarnessColumn: some View {
-        GamePlayView(
+        GameModeRouter(
             viewModel: viewModel,
             gameMode: modes[modeIndex],
             sessionReadiness: 72,

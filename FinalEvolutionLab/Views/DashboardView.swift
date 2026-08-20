@@ -114,7 +114,12 @@ struct DashboardView: View {
         }
         .navigationDestination(isPresented: $navigateToArenaGame) {
             if let mode = pendingArenaMode {
-                GamePlayView(viewModel: viewModel, gameMode: mode, sessionReadiness: sessionReadiness)
+                GameModeRouter(
+                    viewModel: viewModel,
+                    gameMode: mode,
+                    sessionReadiness: sessionReadiness,
+                    onDismiss: { navigateToArenaGame = false }
+                )
             }
         }
         .navigationDestination(isPresented: $showBodyIQLab) {

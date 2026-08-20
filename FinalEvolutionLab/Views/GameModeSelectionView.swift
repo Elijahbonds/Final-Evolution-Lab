@@ -38,18 +38,12 @@ struct GameModeSelectionView: View {
         .scrollIndicators(.hidden)
         .background(Theme.deepBlack)
         .navigationDestination(item: $gameplayRoute) { modeId in
-            if modeId == .brainBrawl {
-                BrainBrawl2DView(
-                    viewModel: viewModel,
-                    gameMode: GameModeRegistry.mode(for: .brainBrawl),
-                    onDismiss: { gameplayRoute = nil }
-                )
-                .id(gameplayLaunchId)
-            } else if let mode = GameModeRegistry.all.first(where: { $0.id == modeId }) {
-                GamePlayView(
+            if let mode = GameModeRegistry.all.first(where: { $0.id == modeId }) {
+                GameModeRouter(
                     viewModel: viewModel,
                     gameMode: mode,
-                    sessionReadiness: sessionReadiness
+                    sessionReadiness: sessionReadiness,
+                    onDismiss: { gameplayRoute = nil }
                 )
                 .id(gameplayLaunchId)
             }
@@ -127,8 +121,14 @@ struct GameModeSelectionView: View {
                             FELHaptics.modeSelect()
                             SaveSystem.saveLastSelectedArenaModeId(mode.id.rawValue)
                             pendingMode = mode
-                            Task { @MainActor in
-                                await launchSelectedMode()
+                            if mode.id.isIRLDunkContest {
+                                showDunkPlatform = true
+                            } else if mode.id == .karateEndless {
+                                showKarateCoopLobby = true
+                            } else {
+                                Task { @MainActor in
+                                    await launchSelectedMode()
+                                }
                             }
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {

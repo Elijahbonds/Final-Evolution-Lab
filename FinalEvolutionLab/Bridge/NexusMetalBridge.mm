@@ -47,6 +47,9 @@ std::string normalizeRuntimeModeId(const char *modeId) {
   if (mode == "venice_pickup") {
     return "basketball_h2h";
   }
+  if (mode == "basketball_dunk_3d") {
+    return "basketball_dunk";
+  }
   return mode;
 }
 
