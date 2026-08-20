@@ -48,6 +48,18 @@
       }
     },
     {
+      "id": "basketball_dunk",
+      "analyticsMode": "dunk_contest",
+      "venueKey": "venice_beach_court",
+      "displayVenue": "Venice Beach Court",
+      "renderMode": "NEXUS",
+      "nexusRuntimeModeId": "basketball_dunk",
+      "legacyAliasOf": "basketball_dunk_3d",
+      "lumaScanSource": "venice_beach",
+      "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
+      "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
+    },
+    {
       "id": "basketball_dunk_irl",
       "analyticsMode": "dunk_contest_irl",
       "venueKey": "regulation_court_irl",
@@ -149,6 +161,11 @@
       "analyticsPolicyName": "Venice Beach — Tennis + Luma shop backdrop",
       "nexusEnvironmentAssetId": "tennis_court_environment_model_fbx",
       "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
+    },
+    {
+      "venueKey": "regulation_court_irl",
+      "analyticsPolicyName": "Regulation Court — IRL camera / HealthKit tracked",
+      "nexusEnvironmentAssetId": "irl_camera_overlay"
     },
     {
       "venueKey": "vault_shop",

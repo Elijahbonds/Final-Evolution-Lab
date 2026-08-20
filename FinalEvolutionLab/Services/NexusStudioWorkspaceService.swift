@@ -246,11 +246,18 @@ final class NexusStudioWorkspaceService {
     }
 
     static func resolveRepoRoot() -> URL? {
-        if let env = ProcessInfo.processInfo.environment["FEL_NEXUS_REPO_ROOT"]?
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-           !env.isEmpty,
-           FileManager.default.fileExists(atPath: env) {
-            return URL(fileURLWithPath: env, isDirectory: true)
+        for key in ["NEXUS_REPO_ROOT", "FEL_NEXUS_REPO_ROOT"] {
+            if let env = ProcessInfo.processInfo.environment[key]?
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+               !env.isEmpty,
+               FileManager.default.fileExists(atPath: env) {
+                return URL(fileURLWithPath: env, isDirectory: true)
+            }
+        }
+
+        let bridgeRoot = NEXUSCursorBridge.resolvedRepoRootPath()
+        if FileManager.default.fileExists(atPath: bridgeRoot) {
+            return URL(fileURLWithPath: bridgeRoot, isDirectory: true)
         }
 
         #if DEBUG
@@ -286,7 +293,7 @@ enum NexusStudioError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .repoUnavailable:
-            "NEXUS repo root not found. Set FEL_NEXUS_REPO_ROOT or run from a DEBUG build with ~/Final-Evolution-Lab."
+            "NEXUS repo root not found. Set NEXUS_REPO_ROOT or FEL_NEXUS_REPO_ROOT, or run from a checkout containing NEXUS_ONLY_PIVOT.md."
         case .fileNotFound(let path):
             "File not found: \(path)"
         case .sandboxUnavailable:

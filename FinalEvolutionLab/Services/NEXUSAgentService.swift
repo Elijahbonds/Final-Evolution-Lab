@@ -30,7 +30,7 @@ final class NEXUSAgentService {
     ## Tool policy
     - You may ONLY act through registered tools. No arbitrary shell, network fetches, or file writes.
     - Cursor MCP and this chat share the same registry (`Config/nexus_cursor_tool_registry.json`).
-    - Primary surface tools: `list_modes`, `playtest`, `build_gate`, `agent_command`.
+    - Primary surface tools mirror `Config/nexus_cursor_tool_registry.json`: `list_modes`, `playtest`, `nexus_scan_playtest`, `build_gate`, `agent_command`, `read_state`, `list_artifacts`, `studio_open_file`, `studio_run_playtest`.
     - `build_gate` / `run_build_gate` whitelists `scripts/nexus_build_gate.sh` and validate-only scripts.
     - `playtest` / `launch_mode` navigates Arena gameplay for a registered `GameModeId`.
     - `agent_command` routes whitelisted sub-tools (`read_file`, `creative_command`, `scan_to_generate`, …).
@@ -90,6 +90,69 @@ final class NEXUSAgentService {
                         "description": "full_gate → nexus_build_gate.sh; validate_only → nexus_validate_production_modes.sh",
                     ],
                 ],
+            ]
+        ),
+        NEXUSAgentToolDefinition(
+            name: .nexusScanPlaytest,
+            description: "Generate a NEXUS playtest plan from the current or simulated scan envelope.",
+            parametersSchema: [
+                "type": "object",
+                "properties": [
+                    "use_simulated": [
+                        "type": "boolean",
+                        "description": "Use ScanCaptureService.simulatedEnvelope() when envelope omitted (default true).",
+                    ],
+                    "envelope": [
+                        "type": "object",
+                        "description": "Optional ScanEnvelope JSON.",
+                    ],
+                ],
+            ]
+        ),
+        NEXUSAgentToolDefinition(
+            name: .readState,
+            description: "Read NEXUS repo state: delivery matrix excerpt and latest local playtest artifacts.",
+            parametersSchema: [
+                "type": "object",
+                "properties": [:],
+            ]
+        ),
+        NEXUSAgentToolDefinition(
+            name: .listArtifacts,
+            description: "List local NEXUS playtest and Cursor artifact files under the repo artifacts directory.",
+            parametersSchema: [
+                "type": "object",
+                "properties": [:],
+            ]
+        ),
+        NEXUSAgentToolDefinition(
+            name: .studioOpenFile,
+            description: "Surface a repo-relative source path for Studio IDE navigation (same as open_ide_file).",
+            parametersSchema: [
+                "type": "object",
+                "properties": [
+                    "path": ["type": "string", "description": "Repo-relative file path"],
+                    "line": ["type": "integer", "description": "Optional 1-based line hint"],
+                ],
+                "required": ["path"],
+            ]
+        ),
+        NEXUSAgentToolDefinition(
+            name: .studioRunPlaytest,
+            description: "Launch an arena game mode from the Studio Run panel (same as playtest).",
+            parametersSchema: [
+                "type": "object",
+                "properties": [
+                    "mode_id": [
+                        "type": "string",
+                        "description": "GameModeId raw value, e.g. basketball_dunk or karate_endless",
+                    ],
+                    "readiness": [
+                        "type": "number",
+                        "description": "Session readiness 0–100 (default 75).",
+                    ],
+                ],
+                "required": ["mode_id"],
             ]
         ),
         NEXUSAgentToolDefinition(
@@ -248,6 +311,10 @@ final class NEXUSAgentService {
         switch toolCall.name.canonical {
         case .listModes:
             return listModes(arguments: toolCall.arguments)
+        case .readState:
+            return readState()
+        case .listArtifacts:
+            return listArtifacts()
         case .readFile:
             return readFile(arguments: toolCall.arguments)
         case .runBuildGate:
@@ -264,7 +331,7 @@ final class NEXUSAgentService {
             return openIDEFile(arguments: toolCall.arguments)
         case .agentCommand:
             return await agentCommand(arguments: toolCall.arguments)
-        case .buildGate, .playtest:
+        case .buildGate, .playtest, .nexusScanPlaytest, .studioOpenFile, .studioRunPlaytest:
             return failure(toolCall.name, "Alias should have been canonicalized")
         }
     }
@@ -325,6 +392,83 @@ final class NEXUSAgentService {
                 "sprint_p0_p1": GameModeRegistry.nexusSprintModeIds.map(\.rawValue),
             ]
         )
+    }
+
+    private func readState() -> NEXUSAgentToolResult {
+        let repoRoot = NEXUSCursorBridge.resolvedRepoRootPath()
+        let stateFiles = [
+            "NEXUS_DELIVERY_MATRIX.md",
+            "NEXUS_RESUME.md",
+            "artifacts/playtest/gameplay_regression.json",
+            "artifacts/playtest/latest.json",
+        ]
+
+        var excerpts: [String: String] = [:]
+        for relative in stateFiles {
+            guard case .success(let url) = resolveRepoPath(relative),
+                  FileManager.default.fileExists(atPath: url.path),
+                  let text = try? String(contentsOf: url, encoding: .utf8)
+            else { continue }
+            excerpts[relative] = String(text.prefix(4_000))
+        }
+
+        return NEXUSAgentToolResult(
+            tool: .readState,
+            success: true,
+            summary: "Read NEXUS state from \(excerpts.count) local file(s)",
+            payload: [
+                "repo_root": repoRoot,
+                "files": excerpts,
+                "artifacts": artifactRows(),
+            ]
+        )
+    }
+
+    private func listArtifacts() -> NEXUSAgentToolResult {
+        let rows = artifactRows()
+        return NEXUSAgentToolResult(
+            tool: .listArtifacts,
+            success: true,
+            summary: "Found \(rows.count) local artifact file(s)",
+            payload: ["artifacts": rows]
+        )
+    }
+
+    private func artifactRows() -> [[String: Any]] {
+        let relativeRoots = [
+            "artifacts/playtest",
+            "artifacts/cursor-nexus",
+        ]
+        var rows: [[String: Any]] = []
+        let fileManager = FileManager.default
+
+        for root in relativeRoots {
+            guard case .success(let rootURL) = resolveRepoPath(root),
+                  let enumerator = fileManager.enumerator(
+                      at: rootURL,
+                      includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey, .contentModificationDateKey],
+                      options: [.skipsHiddenFiles]
+                  )
+            else { continue }
+
+            for case let url as URL in enumerator {
+                let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey, .contentModificationDateKey])
+                guard values?.isRegularFile == true else { continue }
+                let relative = url.path.replacingOccurrences(
+                    of: rootURL.deletingLastPathComponent().deletingLastPathComponent().path + "/",
+                    with: ""
+                )
+                rows.append([
+                    "path": relative,
+                    "bytes": values?.fileSize ?? 0,
+                    "modified_at": values?.contentModificationDate?.ISO8601Format() ?? "",
+                ])
+            }
+        }
+
+        return rows.sorted { lhs, rhs in
+            (lhs["modified_at"] as? String ?? "") > (rhs["modified_at"] as? String ?? "")
+        }
     }
 
     private func readFile(arguments: [String: Any]) -> NEXUSAgentToolResult {
