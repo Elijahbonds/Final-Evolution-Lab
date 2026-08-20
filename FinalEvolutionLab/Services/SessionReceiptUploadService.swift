@@ -205,6 +205,11 @@ enum SessionReceiptUploadService {
            let modeId = telemetry["mode_id"] as? String {
             body["mode_id"] = modeId
         }
+        if let modeId = body["mode_id"] as? String,
+           let normalized = GameModeId.fromNexusRuntimeModeId(modeId)?.nexusReceiptModeId,
+           !normalized.isEmpty {
+            body["mode_id"] = normalized
+        }
 
         if body["score"] == nil, let playerScore = body["player_score"] {
             body["score"] = playerScore
@@ -267,7 +272,8 @@ enum SessionReceiptUploadService {
             return .invalidJSON
         }
 
-        let outcome = await NexusBackendClient.postSessionReceipt(body: rawBody)
+        let requestBody = normalizedReceiptBody(from: rawBody)
+        let outcome = await NexusBackendClient.postSessionReceipt(body: requestBody)
 
         switch outcome {
         case .previewQueuedLocally:
@@ -282,7 +288,7 @@ enum SessionReceiptUploadService {
         case .success(let responseJSON):
             try? FileManager.default.removeItem(at: fileURL)
             log.info("Uploaded receipt \(fileURL.lastPathComponent, privacy: .public)")
-            await ingestServerResponse(responseJSON, requestBody: normalizedReceiptBody(from: rawBody))
+            await ingestServerResponse(responseJSON, requestBody: requestBody)
             return .success
         }
     }

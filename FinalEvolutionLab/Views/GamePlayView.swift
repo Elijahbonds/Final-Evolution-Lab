@@ -486,7 +486,7 @@ struct GamePlayView: View {
         }
         .onDisappear {
             sceneViewportReady = false
-            nexusEngine.stop()
+            nexusEngine.stop(playerScore: score, opponentScore: opponentScore)
             FELSoundscapeEngine.shared.stop()
             matchLobbyComplete = false
             multipeerService.stop()
@@ -4395,12 +4395,15 @@ struct GamePlayView: View {
     private func finalizeResults() {
         if finalizedMatchSessionId == matchSessionId { return }
 
+        let receiptModeId = gameMode.id.nexusReceiptModeId
+        nexusEngine.stop(playerScore: score, opponentScore: opponentScore)
+
         CrashReporter.setGameMode(id: gameMode.id.rawValue)
         if shardsReward > 0 {
             viewModel.profile.pendingUnverifiedShardCredits += shardsReward
             Task {
                 await TrainingLabSocialBridge.shared.recordShardLedgerForArenaSession(
-                    gameModeId: gameMode.id.rawValue,
+                    gameModeId: receiptModeId,
                     deltaShards: shardsReward,
                     sessionId: matchSessionId.uuidString
                 )
@@ -4441,7 +4444,7 @@ struct GamePlayView: View {
         Task {
             await GameplaySessionReceiptCoordinator.shared.submitNativeSessionReceipt(
                 matchSessionId: matchSessionId,
-                gameModeId: gameMode.id.rawValue,
+                gameModeId: receiptModeId,
                 playerScore: score,
                 opponentScore: opponentScore,
                 durationSeconds: elapsedSeconds,

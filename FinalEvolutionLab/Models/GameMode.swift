@@ -108,6 +108,23 @@ extension GameModeId {
         }
     }
 
+    /// Mode id sent to backend receipt/economy endpoints.
+    var nexusReceiptModeId: String {
+        let runtimeModeId = nexusRuntimeModeId
+        return runtimeModeId.isEmpty ? rawValue : runtimeModeId
+    }
+
+    static func fromNexusRuntimeModeId(_ modeId: String) -> GameModeId? {
+        switch modeId {
+        case "basketball_dunk":
+            return .basketballDunkContest3D
+        case GameModeId.basketballHeadToHead.rawValue:
+            return .basketballHeadToHead
+        default:
+            return GameModeId(rawValue: modeId)
+        }
+    }
+
     /// Playable via NEXUS headless gameplay (full simulators + outcome evaluators).
     var isNexusSprintPlayable: Bool {
         if isIRLDunkContest { return false }

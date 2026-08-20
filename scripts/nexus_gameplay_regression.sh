@@ -26,6 +26,7 @@ BUILD_JOBS="$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 
 echo "==> iOS bridge contract"
 python3 "${ROOT}/scripts/validate_ios_bridge_contract.py"
+python3 "${ROOT}/scripts/validate_ios_receipt_contract.py"
 
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
   echo "==> Configure + build headless gameplay tests"
