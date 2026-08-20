@@ -954,10 +954,35 @@ void physics_intent_queue_is_consumed_on_step() {
   physics.shutdown();
 }
 
-void prq_stub_returns_sprint_defaults() {
+void prq_defaults_preserve_sprint_tuning_until_fitness_arrives() {
   require(nexus::gameplay::PRQEngine::getScore() == 75.0F, "prq sprint default");
   require(nexus::gameplay::PRQEngine::getGrade() == nexus::gameplay::PRQGrade::kPrimed,
           "prq grade primed");
+}
+
+void prq_derives_score_and_neural_drive_from_fitness_snapshot() {
+  nexus::gameplay::ThreadSafeFitnessData fitness;
+  fitness.update(
+      {.mobilityScore = 0.9F, .activeRangeScore = 0.9F, .controlScore = 0.9F},
+      {.engagementScore = 0.9F, .confidence = 0.8F, .breathPhase = 1});
+
+  const auto elite = fitness.snapshot();
+  require(nexus::gameplay::PRQEngine::getScore(elite) > 80.0F,
+          "elite fitness snapshot raises PRQ score");
+  require(nexus::gameplay::PRQEngine::getNeuralDrive(elite) > 80.0F,
+          "elite IAP snapshot raises neural drive");
+  require(nexus::gameplay::PRQEngine::getGrade(elite) == nexus::gameplay::PRQGrade::kElite,
+          "elite snapshot maps to elite grade");
+
+  fitness.update(
+      {.mobilityScore = 0.1F, .activeRangeScore = 0.1F, .controlScore = 0.1F},
+      {.engagementScore = 0.2F, .confidence = 0.1F, .breathPhase = -1});
+  const auto recovering = fitness.snapshot();
+  require(nexus::gameplay::PRQEngine::getScore(recovering) < 40.0F,
+          "low readiness snapshot lowers PRQ score");
+  require(nexus::gameplay::PRQEngine::getGrade(recovering) ==
+              nexus::gameplay::PRQGrade::kRecovering,
+          "low readiness snapshot maps to recovering grade");
 }
 
 void arcade_physics_maps_prq_75() {
@@ -966,6 +991,47 @@ void arcade_physics_maps_prq_75() {
   require(params.hangTimeMultiplier > 2.3F, "hang time multiplier at PRQ 75");
   require(params.explosiveFirstStep > 0.82F && params.explosiveFirstStep < 0.83F,
           "explosive first step at PRQ 75");
+}
+
+void gameplay_mode_state_uses_live_fitness_prq() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  auto fitness = gameplay.handleGameplayCommand(
+      "fel.fitness.update",
+      {
+          {"frc_mobility", 0.9F},
+          {"frc_active_range", 0.9F},
+          {"frc_control", 0.9F},
+          {"iap_engagement", 0.9F},
+          {"iap_confidence", 0.8F},
+          {"breath_phase", 1},
+      },
+      "fitness_elite");
+  require(fitness.status == "ok", "elite fitness update ok");
+
+  auto start = gameplay.handleGameplayCommand(
+      "fel.arena.start_session",
+      {{"mode_id", "basketball_dunk"}, {"user_id", "test"}},
+      "start_elite_dunk");
+  require(start.status == "ok", "elite dunk session starts");
+
+  nexus::physics::PhysicsWorld physics;
+  require(physics.init({}).isOk(), "physics init");
+  gameplay.update(1.0 / 60.0, physics, {});
+
+  const auto modeState =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "elite_mode_state");
+  require(modeState.status == "ok", "elite mode state query ok");
+  require(modeState.payload["prq"].get<float>() > 80.0F,
+          "mode state reports live fitness PRQ");
+  require(modeState.payload["prq_grade"].get<std::string>() == "ELITE",
+          "mode state reports live PRQ grade");
+  require(modeState.payload["arcade_physics"]["neural_burst_active"].get<bool>(),
+          "mode physics activates neural burst from live IAP");
+
+  physics.shutdown();
 }
 
 void dunk_contest_charge_release_scores() {
@@ -2754,8 +2820,10 @@ auto main() -> int {
   physics_intent_queue_is_consumed_on_step();
   engine_tick_runs_physics_before_gameplay_update();
   gameplay_update_drains_agent_commands_before_throw_catch();
-  prq_stub_returns_sprint_defaults();
+  prq_defaults_preserve_sprint_tuning_until_fitness_arrives();
+  prq_derives_score_and_neural_drive_from_fitness_snapshot();
   arcade_physics_maps_prq_75();
+  gameplay_mode_state_uses_live_fitness_prq();
   dunk_contest_charge_release_scores();
   karate_endless_wave_spawns();
   karate_endless_local_coop_wave_survival();
