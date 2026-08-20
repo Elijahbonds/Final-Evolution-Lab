@@ -38,14 +38,14 @@ if [[ "${SKIP_BUILD}" -eq 0 ]]; then
     export CC="${CC:-gcc}"
     export CXX="g++"
   fi
-  cmake -S . -B "${HEADLESS_DIR}" \
+  cmake --fresh -S . -B "${HEADLESS_DIR}" \
     -DCMAKE_C_COMPILER="${CC:-cc}" \
     -DCMAKE_CXX_COMPILER="${CXX:-c++}" \
     -DNEXUS_ENABLE_RENDERER=OFF \
     -DNEXUS_BUILD_RUNTIME=OFF \
     -DNEXUS_BUILD_TESTS=ON
   # Regression runs must not reuse stale objects after engine/gameplay ABI changes.
-  cmake --build "${HEADLESS_DIR}" --clean-first -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
+  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 fi
 
 for test_binary in "${HEADLESS_DIR}"/nexus_*_test; do
