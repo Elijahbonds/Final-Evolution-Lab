@@ -33,17 +33,40 @@ def skip(msg):
 # Production modes expected to pass all gates
 # ═══════════════════════════════════════════════════════════════════════════════
 PRODUCTION_MODES = [
-    "basketball_h2h", "basketball_dunk", "basketball_3v3",
+    "basketball_h2h", "basketball_dunk", "basketball_3v3", "court_carnival",
     "karate_h2h", "karate_endless",
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
     "gymnastics", "skateboarding", "snowboarding",
+    "brain_brawl", "who_scene_it",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = []
+
+SWIFT_MODE_ALIASES = {
+    "basketball_dunk": ["basketball_dunk_3d"],
+}
+
+VENUE_MODE_ALIASES = {
+    "basketball_dunk": ["basketball_dunk_3d"],
+}
+
+def has_swift_mode(content, mode):
+    aliases = SWIFT_MODE_ALIASES.get(mode, [])
+    return any(f'= "{candidate}"' in content for candidate in [mode, *aliases])
+
+def has_venue_mode(mode_ids, mode_entries, mode):
+    if mode in mode_ids:
+        return mode
+    for candidate in VENUE_MODE_ALIASES.get(mode, []):
+        if candidate in mode_ids:
+            entry = mode_entries[candidate]
+            if entry.get("nexusRuntimeModeId") == mode:
+                return candidate
+    return None
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -131,15 +154,18 @@ def test_arena_settings():
 def test_venue_registry():
     print("\n── Test 4: VenueRegistry Coverage ──")
     vr = json.loads((REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Config" / "FEL_VenueRegistry.production.json").read_text())
-    mode_ids = {m["id"] for m in vr["modes"]}
+    mode_entries = {m["id"]: m for m in vr["modes"]}
+    mode_ids = set(mode_entries)
     venue_keys = {v["venueKey"] for v in vr["venues"]}
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
-        if mode in mode_ids:
-            entry = next(m for m in vr["modes"] if m["id"] == mode)
+        resolved = has_venue_mode(mode_ids, mode_entries, mode)
+        if resolved:
+            entry = mode_entries[resolved]
             if entry["venueKey"] in venue_keys:
-                ok(f"{mode} → venue={entry['venueKey']}")
+                alias_note = f" via {resolved}" if resolved != mode else ""
+                ok(f"{mode}{alias_note} → venue={entry['venueKey']}")
             else:
                 fail(f"{mode} references unknown venue: {entry['venueKey']}")
         else:
@@ -194,8 +220,7 @@ def test_swift_enum():
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
-        # Search for rawValue
-        if f'= "{mode}"' in content:
+        if has_swift_mode(content, mode):
             ok(f'{mode} has Swift enum case')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
@@ -256,7 +281,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print("  18 production runtime modes · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()

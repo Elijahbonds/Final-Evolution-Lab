@@ -293,6 +293,27 @@ auto ArenaModeRegistry::legacyUeMapAliasForMode(std::string_view modeId) -> std:
   return {};
 }
 
+auto ArenaModeRegistry::releaseStateLabel(ArenaReleaseState releaseState) -> std::string_view {
+  switch (releaseState) {
+  case ArenaReleaseState::kProduction:
+    return "production";
+  case ArenaReleaseState::kStaging:
+    return "staging";
+  case ArenaReleaseState::kPreview:
+    return "preview";
+  case ArenaReleaseState::kNonGameModule:
+    return "non_game_module";
+  }
+  return "unknown";
+}
+
+auto ArenaModeRegistry::releaseStateLabelForMode(std::string_view modeId) -> std::string {
+  if (const ArenaModeConfig* found = lookup(modeId)) {
+    return std::string(releaseStateLabel(found->releaseState));
+  }
+  return "unknown";
+}
+
 auto ArenaModeRegistry::modeToJson(const ArenaModeConfig& config) -> nlohmann::json {
   return {
       {"mode_id", std::string(config.id)},

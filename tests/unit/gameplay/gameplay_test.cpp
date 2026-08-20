@@ -53,6 +53,12 @@ void require(bool condition, const std::string& message) {
   require(condition, message.c_str());
 }
 
+void requireProductionReleaseState(const nlohmann::json& payload, const char* context) {
+  require(payload.contains("release_state"), std::string(context) + " includes release_state");
+  require(payload["release_state"].get<std::string>() == "production",
+          std::string(context) + " reports production release_state");
+}
+
 void removeTreeBestEffort(const std::filesystem::path& root) {
   for (int attempt = 0; attempt < 5; ++attempt) {
     std::error_code ec;
@@ -1558,6 +1564,7 @@ void flagship_gymnastics_validate_only_integration() {
   require(tap.payload["gymnastics"].is_object(), "gymnastics nested mode envelope");
   require(tap.payload["tap"]["grade"].get<std::string>() == "perfect", "gymnastics perfect tap");
   require(tap.payload["gymnastics"]["judge_score"].get<float>() > 0.0F, "gymnastics judge score");
+  requireProductionReleaseState(tap.payload, "gymnastics tap");
 
   for (int step = 0; step < 5; ++step) {
     gameplay.handleGameplayCommand(
@@ -1637,6 +1644,7 @@ void flagship_skateboarding_validate_only_integration() {
       "fel.skate.trick", {{"difficulty", 0.85F}, {"combo_multiplier", 3}}, "skate_trick");
   require(trick.status == "ok", "skateboarding trick land");
   require(trick.payload["trick_score"].get<int>() > 0, "skateboarding score");
+  requireProductionReleaseState(trick.payload, "skateboarding trick");
 
   int guard = 0;
   while (gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "skate_state")
@@ -1683,10 +1691,12 @@ void flagship_snowboarding_validate_only_integration() {
   require(carve.status == "ok", "snowboarding carve");
   require(carve.payload["agent_envelope"]["command"].get<std::string>() == "fel.snow.carve",
           "snow carve agent envelope");
+  requireProductionReleaseState(carve.payload, "snowboarding carve");
 
   auto jump = gameplay.handleGameplayCommand(
       "fel.snow.jump", {{"air_difficulty", 0.9F}, {"combo_multiplier", 3}}, "snow_jump");
   require(jump.status == "ok", "snowboarding jump");
+  requireProductionReleaseState(jump.payload, "snowboarding jump");
 
   const auto modeState =
       gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "snow_final");
@@ -1731,6 +1741,7 @@ void flagship_surfing_validate_only_integration() {
   require(carve.status == "ok", "surfing carve");
   require(carve.payload["carve"]["grade"].get<std::string>() == "perfect", "surf perfect carve");
   require(carve.payload["wave_score"].get<int>() > 0, "surfing wave score advances");
+  requireProductionReleaseState(carve.payload, "surfing carve");
 
   for (int i = 0; i < 8 && !gameplay.mode_runtime().shouldAutoEndSession(); ++i) {
     const auto aerial = gameplay.handleGameplayCommand(
@@ -1776,6 +1787,7 @@ void flagship_outcome_sport_validate_only_integration() {
     const auto pulse = gameplay.handleGameplayCommand(
         "fel.sport.pulse", {{"success", true}, {"timing", 0.9F}}, "baseball_pulse");
     require(pulse.status == "ok", "baseball sport pulse ok");
+    requireProductionReleaseState(pulse.payload, "baseball sport pulse");
     gameplay.update(0.05, physics, {});
   }
 
@@ -1795,10 +1807,10 @@ void flagship_outcome_sport_validate_only_integration() {
     if (gameplay.mode_runtime().shouldAutoEndSession()) {
       break;
     }
-    require(gameplay.handleGameplayCommand(
-                "fel.sport.pulse", {{"success", true}, {"timing", 0.88F}}, "volleyball_pulse")
-                .status == "ok",
-            "volleyball sport pulse ok");
+    const auto pulse = gameplay.handleGameplayCommand(
+        "fel.sport.pulse", {{"success", true}, {"timing", 0.88F}}, "volleyball_pulse");
+    require(pulse.status == "ok", "volleyball sport pulse ok");
+    requireProductionReleaseState(pulse.payload, "volleyball sport pulse");
     gameplay.update(0.05, physics, {});
   }
 
@@ -1831,6 +1843,7 @@ void flagship_who_scene_it_validate_only_integration() {
   require(buzz.payload["buzz"]["won_buzz"].get<bool>(), "player wins buzz");
   require(buzz.payload["agent_envelope"]["command"].get<std::string>() == "fel.scene.buzz_in",
           "scene buzz agent envelope");
+  requireProductionReleaseState(buzz.payload, "who scene it buzz");
 
   for (int step = 0; step < 7; ++step) {
     gameplay.handleGameplayCommand("fel.scene.buzz_in", {{"timing", 0.9F}}, "scene_buzz_chain");
@@ -1839,6 +1852,7 @@ void flagship_who_scene_it_validate_only_integration() {
         {{"correct", true}, {"response_time", 4.0F}, {"category", "ClassicFilm"}},
         "scene_answer");
     require(answer.status == "ok", "who scene it answer");
+    requireProductionReleaseState(answer.payload, "who scene it answer");
     gameplay.update(0.05, physics, {});
   }
 
