@@ -36,11 +36,20 @@ jobs:
           import json
           with open('./backend/FEL_ModeManager.production.json') as f:
               d = json.load(f)
-          modes = d['mode_manager']['modes']
-          print(f'Mode registry: {len(modes)} modes')
-          prod = [m for m in modes if m.get('status') == 'production']
-          print(f'Production: {len(prod)} | Staging: {len(modes) - len(prod)}')
-          assert len(modes) >= 17, 'Expected 17+ modes'
+          registry = d['mode_manager']['mode_registry']
+          runtime_modes = [
+              'basketball_h2h', 'basketball_dunk', 'basketball_3v3', 'court_carnival',
+              'karate_h2h', 'karate_endless',
+              'baseball', 'football', 'soccer', 'golf', 'tennis', 'volleyball',
+              'gymnastics', 'surfing', 'skateboarding', 'snowboarding',
+              'brain_brawl', 'who_scene_it',
+          ]
+          print(f'Mode registry: {len(registry)} entries')
+          prod = [mode for mode in runtime_modes if registry.get(mode, {}).get('status') == 'production']
+          print(f'Runtime production: {len(prod)} / {len(runtime_modes)}')
+          assert len(prod) == len(runtime_modes), 'Expected all NEXUS runtime modes to be production'
+          assert registry.get('market_browse', {}).get('status') == 'non-game-module', 'market_browse must remain non-game-module'
+          assert registry.get('movement_lab', {}).get('status') == 'preview', 'movement_lab must remain preview'
           print('✓ Mode registry valid')
           "
 

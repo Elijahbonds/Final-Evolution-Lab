@@ -41,24 +41,31 @@ jobs:
           python3 - <<'EOF'
           import json, sys
           data = json.load(open('backend/FEL_ModeManager.production.json'))
-          modes = data['mode_manager']['modes']
+          registry = data['mode_manager']['mode_registry']
+          runtime_modes = [
+              'basketball_h2h', 'basketball_dunk', 'basketball_3v3', 'court_carnival',
+              'karate_h2h', 'karate_endless',
+              'baseball', 'football', 'soccer', 'golf', 'tennis', 'volleyball',
+              'gymnastics', 'surfing', 'skateboarding', 'snowboarding',
+              'brain_brawl', 'who_scene_it',
+          ]
           errors = []
-          for m in modes:
-              rm = m.get('render_mode', 'MISSING')
-              if rm == 'MISSING':
-                  errors.append(f"{m['id']}: render_mode field missing")
-              print(f"  {m['id']:35} render_mode={rm:8} irl={m.get('irl_mode',False)}")
-          h2h  = next(m for m in modes if m['id'] == 'basketball_h2h')
-          bb   = next(m for m in modes if m['id'] == 'brain_brawl')
-          dunk = next(m for m in modes if m['id'] == 'basketball_dunk')
-          assert h2h['render_mode']  == '3D_UE5',  f"basketball_h2h must be 3D_UE5"
-          assert h2h['irl_mode']     == False,      "basketball_h2h must have irl_mode=false"
-          assert bb['render_mode']   == '2D',       f"brain_brawl must be 2D"
-          assert dunk['render_mode'] == '3D_UE5',   f"basketball_dunk must be 3D_UE5"
-          assert 'Venice' in dunk.get('venue_display', ''), "basketball_dunk venue must mention Venice Beach"
+          for mode in runtime_modes:
+              info = registry.get(mode)
+              if info is None:
+                  errors.append(f"{mode}: missing from mode_registry")
+                  continue
+              status = info.get('status', 'MISSING')
+              print(f"  {mode:35} status={status:18} venue={info.get('venue_id')}")
+              if status != 'production':
+                  errors.append(f"{mode}: expected production status, got {status}")
+          if registry.get('market_browse', {}).get('status') != 'non-game-module':
+              errors.append('market_browse must remain non-game-module')
+          if registry.get('movement_lab', {}).get('status') != 'preview':
+              errors.append('movement_lab must remain preview')
           if errors:
               [print(f"ERROR: {e}") for e in errors]; sys.exit(1)
-          print("All render mode assertions passed")
+          print(f"All {len(runtime_modes)} NEXUS runtime production modes validated")
           EOF
 
       - name: Run smoke tests
