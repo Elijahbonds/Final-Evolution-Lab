@@ -6,6 +6,7 @@
 #include "nexus/creative/voxel_world.h"
 #include "nexus/core/log.h"
 #include "nexus/gameplay/arena_mode_registry.h"
+#include "nexus/gameplay/prq_engine.h"
 #include "nexus/gameplay/scan_envelope_mapper.h"
 #include "nexus/generative/generative_pipeline.h"
 #include "nexus/generative/generative_types.h"
@@ -50,6 +51,25 @@ auto integerParam(const nlohmann::json& params,
     return Result<int>::err("fitness integer parameter has invalid type");
   }
   return Result<int>::ok(found->get<int>());
+}
+
+auto boolParam(const nlohmann::json& params,
+               std::string_view name,
+               bool defaultValue,
+               std::string& errorOut) -> std::optional<bool> {
+  if (!params.is_object()) {
+    errorOut = "parameter object required";
+    return std::nullopt;
+  }
+  const auto found = params.find(std::string(name));
+  if (found == params.end()) {
+    return defaultValue;
+  }
+  if (!found->is_boolean()) {
+    errorOut = std::string(name) + " parameter must be a boolean";
+    return std::nullopt;
+  }
+  return found->get<bool>();
 }
 
 auto stringParam(const nlohmann::json& params,
@@ -147,7 +167,7 @@ void GameplayApplication::update(double deltaSeconds,
     }
   }
 
-  const float prqScore = fitness.frc.controlScore * 100.0F;
+  const float prqScore = PRQEngine::getScore(fitness);
   if (m_arenaSession.state().phase == ArenaSessionPhase::kActive) {
     const auto& arenaState = m_arenaSession.state();
     m_felBridge.tickVaultTelemetry(
@@ -1060,16 +1080,41 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
 
   if (command == "fel.arena.flush_receipts") {
     nexus::gameplay::SessionReceiptClientConfig config = m_gameplayManager.receiptClientConfig();
-    if (params.contains("queue_directory")) {
-      config.queueDirectory = params.value("queue_directory", config.queueDirectory);
+    std::string paramError;
+    const auto queueDirectory =
+        stringParam(params, "queue_directory", config.queueDirectory, paramError);
+    if (!queueDirectory.has_value()) {
+      return response(id, "error", {}, paramError);
     }
-    if (params.contains("base_url")) {
-      config.baseUrl = params.value("base_url", config.baseUrl);
+    const auto baseUrl = stringParam(params, "base_url", config.baseUrl, paramError);
+    if (!baseUrl.has_value()) {
+      return response(id, "error", {}, paramError);
     }
-    if (params.contains("auth_token")) {
-      config.authToken = params.value("auth_token", config.authToken);
+    const auto authToken = stringParam(params, "auth_token", config.authToken, paramError);
+    if (!authToken.has_value()) {
+      return response(id, "error", {}, paramError);
     }
-    config.persistToDisk = params.value("persist_to_disk", true);
+    const auto persistToDisk =
+        boolParam(params, "persist_to_disk", config.persistToDisk, paramError);
+    if (!persistToDisk.has_value()) {
+      return response(id, "error", {}, paramError);
+    }
+    const auto httpEnabled = boolParam(params, "http_enabled", config.httpEnabled, paramError);
+    if (!httpEnabled.has_value()) {
+      return response(id, "error", {}, paramError);
+    }
+    const auto useStubHttp =
+        boolParam(params, "use_stub_http", config.useStubHttpTransport, paramError);
+    if (!useStubHttp.has_value()) {
+      return response(id, "error", {}, paramError);
+    }
+
+    config.queueDirectory = *queueDirectory;
+    config.baseUrl = *baseUrl;
+    config.authToken = *authToken;
+    config.persistToDisk = *persistToDisk;
+    config.httpEnabled = *httpEnabled;
+    config.useStubHttpTransport = *useStubHttp;
     m_gameplayManager.setReceiptClientConfig(std::move(config));
     const auto flushResult = m_gameplayManager.flushPendingReceipts();
     return response(id, "ok",
@@ -1079,6 +1124,8 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
                         {"requeued", flushResult.requeued},
                         {"queued_on_disk", flushResult.queued_on_disk},
                         {"queue_directory", m_gameplayManager.receiptQueueDirectory()},
+                        {"http_enabled", m_gameplayManager.receiptClientConfig().httpEnabled},
+                        {"use_stub_http", m_gameplayManager.receiptClientConfig().useStubHttpTransport},
                     });
   }
 
@@ -1121,7 +1168,7 @@ auto GameplayApplication::applyBridgeCommand(std::string_view command,
     if (!mapToken.has_value() || !modeId.has_value()) {
       return response(id, "error", {}, paramError.empty() ? "map and mode_id required" : paramError);
     }
-    const float prq = m_fitnessData.snapshot().frc.controlScore * 100.0F;
+    const float prq = PRQEngine::getScore(m_fitnessData.snapshot());
     m_felBridge.broadcastMapLoaded(*mapToken, *modeId, prq);
     return response(id, "ok", {{"queued", true}});
   }
@@ -1303,8 +1350,14 @@ void GameplayApplication::emitHudTickFrame() {
   const auto& arena = m_arenaSession.state();
   const auto& throwCatch = m_throwCatch.state();
   const auto fitness = m_fitnessData.snapshot();
+  const float prqScore = PRQEngine::getScore(fitness);
+  const float neuralDrive = PRQEngine::getNeuralDrive(fitness);
+  const auto prqGrade = PRQEngine::getGrade(prqScore);
   nlohmann::json framePayload{
       {"mode_id", arena.modeId.empty() ? m_modeRuntime.activeModeId() : arena.modeId},
+      {"prq", prqScore},
+      {"prq_grade", std::string(PRQEngine::gradeLabel(prqGrade))},
+      {"neural_drive", neuralDrive},
       {"score", arena.playerScore},
       {"opponent_score", arena.opponentScore},
       {"combo", arena.comboCount},
@@ -1315,6 +1368,9 @@ void GameplayApplication::emitHudTickFrame() {
            {"frc_composite", fitness.frcComposite},
            {"iap_composite", fitness.iapComposite},
            {"power_readiness", fitness.powerReadiness},
+           {"prq_score", prqScore},
+           {"prq_grade", std::string(PRQEngine::gradeLabel(prqGrade))},
+           {"neural_drive", neuralDrive},
            {"breath_phase", fitness.iap.breathPhase},
        }},
       {"throw_catch", ThrowCatchPhysicsController::stateToJson(throwCatch)},
