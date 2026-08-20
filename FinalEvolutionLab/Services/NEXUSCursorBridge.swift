@@ -11,8 +11,10 @@ enum NEXUSCursorBridge {
     static let mcpSurfaceTools: [String] = [
         "list_modes",
         "playtest",
+        "nexus_scan_playtest",
         "build_gate",
         "agent_command",
+        "read_state",
         "list_artifacts",
         "studio_open_file",
         "studio_run_playtest",
@@ -25,6 +27,9 @@ enum NEXUSCursorBridge {
                !value.isEmpty {
                 return value
             }
+        }
+        if let discovered = discoverRepoRoot() {
+            return discovered
         }
         return "/Users/elijahbonds/Final-Evolution-Lab"
     }
@@ -122,6 +127,35 @@ enum NEXUSCursorBridge {
               let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else { return nil }
         return object
+    }
+
+    private static func discoverRepoRoot() -> String? {
+        let fileManager = FileManager.default
+        let candidates = [
+            URL(fileURLWithPath: fileManager.currentDirectoryPath, isDirectory: true),
+            URL(fileURLWithPath: #filePath).deletingLastPathComponent(),
+        ]
+
+        for candidate in candidates {
+            if let root = firstAncestorContainingRepoMarker(from: candidate) {
+                return root.path
+            }
+        }
+        return nil
+    }
+
+    private static func firstAncestorContainingRepoMarker(from startURL: URL) -> URL? {
+        let fileManager = FileManager.default
+        var current = startURL.standardizedFileURL
+        while current.path != current.deletingLastPathComponent().path {
+            let pivot = current.appendingPathComponent("NEXUS_ONLY_PIVOT.md").path
+            let registry = current.appendingPathComponent(registryRelativePath).path
+            if fileManager.fileExists(atPath: pivot) || fileManager.fileExists(atPath: registry) {
+                return current
+            }
+            current.deleteLastPathComponent()
+        }
+        return nil
     }
 }
 

@@ -1,7 +1,7 @@
 {
   "schema": "nexus-cursor-bridge-1",
   "repo_root": {
-    "default": "/Users/elijahbonds/Final-Evolution-Lab",
+    "default": ".",
     "env_vars": [
       "NEXUS_REPO_ROOT",
       "FEL_NEXUS_REPO_ROOT"

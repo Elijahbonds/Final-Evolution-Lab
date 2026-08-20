@@ -48,19 +48,35 @@ nonisolated enum NEXUSAgentToolName: String, CaseIterable, Codable, Sendable {
     case generateGame = "generate_game"
     case openIDEFile = "open_ide_file"
     case agentCommand = "agent_command"
+    case nexusScanPlaytest = "nexus_scan_playtest"
+    case readState = "read_state"
+    case listArtifacts = "list_artifacts"
+    case studioOpenFile = "studio_open_file"
+    case studioRunPlaytest = "studio_run_playtest"
 
     /// Canonical executor used by `NEXUSAgentService` (MCP aliases collapse here).
     var canonical: NEXUSAgentToolName {
         switch self {
         case .buildGate: return .runBuildGate
         case .playtest: return .launchMode
+        case .nexusScanPlaytest: return .scanToGenerate
+        case .studioOpenFile: return .openIDEFile
+        case .studioRunPlaytest: return .launchMode
         default: return self
         }
     }
 
     /// MCP-exposed tool names (Cursor + in-app chat primary surface).
     static let mcpSurfaceTools: [NEXUSAgentToolName] = [
-        .listModes, .playtest, .buildGate, .agentCommand,
+        .listModes,
+        .playtest,
+        .nexusScanPlaytest,
+        .buildGate,
+        .agentCommand,
+        .readState,
+        .listArtifacts,
+        .studioOpenFile,
+        .studioRunPlaytest,
     ]
 
     /// Quick-run chips shown in Agent chat (whitelisted only).
@@ -84,6 +100,11 @@ nonisolated enum NEXUSAgentToolName: String, CaseIterable, Codable, Sendable {
         case .generateGame: return "Generate Game"
         case .openIDEFile: return "Open IDE File"
         case .agentCommand: return "Agent Command"
+        case .nexusScanPlaytest: return "Scan Playtest"
+        case .readState: return "Read State"
+        case .listArtifacts: return "Artifacts"
+        case .studioOpenFile: return "Studio Open"
+        case .studioRunPlaytest: return "Studio Run"
         }
     }
 }
