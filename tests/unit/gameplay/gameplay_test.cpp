@@ -941,6 +941,10 @@ void hud_poll_returns_tick_frame_payload() {
   requireNear(hud.payload["payload"]["fitness"]["prq_score"].get<float>(), 60.75F, 0.01F,
               "hud fitness embeds measured prq");
   require(hud.payload["payload"]["mode_state"].contains("dunk"), "hud mode_state dunk nested");
+  requireNear(hud.payload["payload"]["mode_state"]["prq"].get<float>(), 60.75F, 0.01F,
+              "hud mode_state uses measured prq");
+  requireNear(hud.payload["payload"]["mode_state"]["arcade_physics"]["critical_hit_chance"].get<float>(),
+              0.224F, 0.001F, "hud mode_state physics uses measured prq");
 
   physics.shutdown();
 }
@@ -1028,6 +1032,38 @@ void mode_runtime_tracks_dunk_combo_metrics() {
   require(runtime.comboCount() >= 0, "combo count available");
   require(runtime.criticalCount() >= 0, "critical count available");
   require(runtime.modeSpecificPayload().contains("dunk_details"), "dunk details payload");
+}
+
+void mode_runtime_uses_measured_prq_for_state_and_physics() {
+  nexus::gameplay::ThreadSafeFitnessData fitness;
+  fitness.update({0.9F, 0.8F, 0.7F}, {0.6F, 0.5F, 1});
+
+  nexus::gameplay::ModeRuntime runtime;
+  require(runtime.setMode("basketball_dunk").isOk(), "measured dunk mode set");
+  runtime.setFitnessSnapshot(fitness.snapshot());
+
+  const auto state = runtime.stateJson();
+  requireNear(state["prq"].get<float>(), 60.75F, 0.01F,
+              "mode runtime state uses measured prq");
+  require(state["prq_grade"].get<std::string>() == "PRIMED",
+          "mode runtime state uses measured grade");
+  requireNear(state["neural_drive"].get<float>(), 52.5F, 0.01F,
+              "mode runtime state uses measured neural drive");
+  requireNear(state["arcade_physics"]["hang_time_multiplier"].get<float>(), 2.3035F, 0.001F,
+              "mode runtime physics uses measured prq");
+  requireNear(state["arcade_physics"]["critical_hit_chance"].get<float>(), 0.224F, 0.001F,
+              "mode runtime critical chance uses measured prq");
+
+  require(runtime.handleCommand("fel.dunk.charge_begin", {}).isOk(), "measured charge");
+  require(runtime.handleCommand("fel.dunk.charge_release", {{"power", 0.9F}}).isOk(),
+          "measured release");
+  for (int step = 0; step < 8; ++step) {
+    runtime.update(0.05);
+  }
+  const auto apex = runtime.handleCommand("fel.dunk.apex_tap", {});
+  require(apex.isOk(), "measured apex");
+  requireNear(apex.value()["physics_feedback"]["hang_time_multiplier"].get<float>(), 2.3035F,
+              0.001F, "dunk physics feedback uses measured prq");
 }
 
 void venue_volume_overlap_triggers_travel() {
@@ -2991,6 +3027,7 @@ auto main() -> int {
   prq_engine_uses_baseline_until_fitness_metrics_arrive();
   prq_engine_scores_measured_fitness_snapshot();
   arcade_physics_maps_prq_75();
+  mode_runtime_uses_measured_prq_for_state_and_physics();
   dunk_contest_charge_release_scores();
   karate_endless_wave_spawns();
   karate_endless_local_coop_wave_survival();

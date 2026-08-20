@@ -126,6 +126,7 @@ void GameplayApplication::update(double deltaSeconds,
       [](const ai::AgentResponse& agentResponse) { return agentResponse.status == "error"; }));
 
   const auto fitness = m_fitnessData.snapshot();
+  m_modeRuntime.setFitnessSnapshot(fitness);
   if (m_arenaSession.state().phase == ArenaSessionPhase::kActive && !m_arenaSession.state().paused) {
     m_arenaSession.update(deltaSeconds, fitness);
     m_modeRuntime.update(deltaSeconds);
@@ -557,6 +558,7 @@ auto GameplayApplication::applyFitnessCommand(std::string_view command,
   }
 
   const auto snapshot = m_fitnessData.snapshot();
+  m_modeRuntime.setFitnessSnapshot(snapshot);
   NEXUS_LOG_INFO(LogChannel::kAI, "Fitness metrics updated from agent command");
   nlohmann::json payload = fitnessSnapshotToJson(snapshot);
   payload["hud"] = {
