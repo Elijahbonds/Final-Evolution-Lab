@@ -108,8 +108,8 @@ extension GameModeId {
     /// Playable via NEXUS headless gameplay (full simulators + outcome evaluators).
     var isNexusSprintPlayable: Bool {
         switch self {
-        case .marketBrowse:
-            return true
+        case .basketballDunkContestIRL, .marketBrowse:
+            return false
         default:
             break
         }
@@ -301,7 +301,7 @@ struct GameModeRegistry {
 
     /// Every playable arena mode — full lineup ships available; per-mode capability
     /// badges (prod/sim/staging) stay honest via ``GameModeId/nexusCapabilityTier``.
-    static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases).subtracting([.marketBrowse])
+    static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases.filter(\.isNexusSprintPlayable))
 
     /// All 20 mode IDs from `arena_mode_registry.cpp` — keep in sync when adding modes.
     static let arenaRegistryModeIds: [GameModeId] = [

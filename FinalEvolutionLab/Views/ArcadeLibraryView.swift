@@ -474,12 +474,21 @@ struct ArcadeLibraryView: View {
     private func launchSelectedMode() async {
         guard let mode = pendingMode else { return }
         sessionReadiness = viewModel.effectiveMetrics.neuralDrive
-        await pushGameplayRoute(mode.id)
+        await routePlayableSurface(for: mode)
     }
 
     @MainActor
     private func launchNexusGameplay() async {
         guard let mode = pendingMode else { return }
+        await routePlayableSurface(for: mode)
+    }
+
+    @MainActor
+    private func routePlayableSurface(for mode: GameMode) async {
+        if mode.id.isIRLDunkContest {
+            showDunkPlatform = true
+            return
+        }
         await pushGameplayRoute(mode.id)
     }
 

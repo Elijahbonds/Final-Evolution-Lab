@@ -9,6 +9,7 @@ struct ContentView: View {
     @State private var agentLaunchMode: GameMode?
     @State private var agentLaunchReadiness: Double = 75
     @State private var showAgentLaunchedGame = false
+    @State private var showAgentDunkPlatform = false
     @State private var showNexusStudio = false
     @State private var router = NexusDeepLinkRouter.shared
     @ObservedObject private var shareCoordinator = SocialShareCoordinator.shared
@@ -156,28 +157,21 @@ struct ContentView: View {
         }
         .onChange(of: NEXUSAgentCoordinator.shared.pendingLaunch?.modeId) { _, modeId in
             guard let modeId,
-                  let parsed = GameModeId(rawValue: modeId),
-                  let mode = GameModeRegistry.all.first(where: { $0.id == parsed })
+                  let mode = GameModeRegistry.playableMode(forRegistryId: modeId)
             else { return }
 
-            agentLaunchMode = mode
-            agentLaunchReadiness = NEXUSAgentCoordinator.shared.pendingLaunchReadiness
+            presentAgentLaunchedMode(mode, readiness: NEXUSAgentCoordinator.shared.pendingLaunchReadiness)
             NEXUSAgentCoordinator.shared.pendingLaunch = nil
-            selectedTab = .social
-            showAgentLaunchedGame = true
         }
         .onReceive(NotificationCenter.default.publisher(for: .nexusAgentLaunchMode)) { notification in
             guard let modeId = notification.userInfo?["mode_id"] as? String,
-                  let parsed = GameModeId(rawValue: modeId),
-                  let mode = GameModeRegistry.all.first(where: { $0.id == parsed })
+                  let mode = GameModeRegistry.playableMode(forRegistryId: modeId)
             else { return }
 
-            agentLaunchMode = mode
-            agentLaunchReadiness = (notification.userInfo?["readiness"] as? Double)
+            let readiness = (notification.userInfo?["readiness"] as? Double)
                 ?? (notification.userInfo?["readiness"] as? NSNumber)?.doubleValue
                 ?? 75
-            selectedTab = .social
-            showAgentLaunchedGame = true
+            presentAgentLaunchedMode(mode, readiness: readiness)
         }
         .onReceive(NotificationCenter.default.publisher(for: .nexusStudioOpen)) { _ in
             showNexusStudio = true
@@ -203,6 +197,11 @@ struct ContentView: View {
                 }
             }
         }
+        .fullScreenCover(isPresented: $showAgentDunkPlatform) {
+            NavigationStack {
+                DunkMatchmakingView(viewModel: viewModel)
+            }
+        }
         .overlay(alignment: .topTrailing) {
             FELOverlayView()
                 .padding(.top, 50)
@@ -212,6 +211,20 @@ struct ContentView: View {
         }
         .onOpenURL { url in
             _ = router.handle(url: url)
+        }
+    }
+
+    @MainActor
+    private func presentAgentLaunchedMode(_ mode: GameMode, readiness: Double) {
+        agentLaunchMode = mode
+        agentLaunchReadiness = readiness
+        selectedTab = .social
+        if mode.id.isIRLDunkContest {
+            showAgentLaunchedGame = false
+            showAgentDunkPlatform = true
+        } else {
+            showAgentDunkPlatform = false
+            showAgentLaunchedGame = true
         }
     }
 
