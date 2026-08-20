@@ -84,7 +84,7 @@ struct GameSceneFactory {
 
     static func primaryGameplayAvatarName(for mode: GameModeId) -> String {
         switch mode {
-        case .basketballHeadToHead, .venicePickup, .marketBrowse: return "player1"
+        case .basketballHeadToHead, .venicePickup, .marketBrowse, .movementLab: return "player1"
         case .basketballDunkContest3D, .basketballDunkContestIRL: return "dunker"
         case .basketball3v3: return "blue1"
         case .karate, .karateEndless: return "fighter1"
@@ -244,6 +244,8 @@ struct GameSceneFactory {
             return buildCourtCarnivalScene()
         case .marketBrowse:
             return buildMarketBrowseScene()
+        case .movementLab:
+            return buildMovementLabScene()
         }
     }
 
@@ -264,6 +266,21 @@ struct GameSceneFactory {
         }
 
         PremiumViewpointConfig.applyToScene(scene, for: .marketBrowse)
+        return scene
+    }
+
+    // MARK: - Movement Lab (preview education module)
+
+    private static func buildMovementLabScene() -> SCNScene {
+        let scene = SCNScene()
+        scene.background.contents = UIColor(red: 0.015, green: 0.025, blue: 0.045, alpha: 1)
+
+        addCamera(to: scene, position: SCNVector3(0.2, 2.4, 5.0), lookAt: SCNVector3(0, 1.2, 0))
+        addLighting(to: scene, tint: UIColor(red: 0.38, green: 0.84, blue: 1.0, alpha: 1))
+        addPlayerAvatar(to: scene, at: SCNVector3(0, 0, 0.25), color: UIColor(red: 0.38, green: 0.84, blue: 1.0, alpha: 1), name: "player1")
+        addFloor(to: scene, color: UIColor(red: 0.04, green: 0.07, blue: 0.10, alpha: 1), reflectivity: 0.08)
+
+        PremiumViewpointConfig.applyToScene(scene, for: .movementLab)
         return scene
     }
 
