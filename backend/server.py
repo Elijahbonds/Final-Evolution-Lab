@@ -27,6 +27,9 @@ from routers import education_tracks as education_tracks_router
 from routers import system_scan as system_scan_router
 from routers import pass_image as pass_image_router
 from routers import biofuel as biofuel_router
+from app.schemas.session_receipt import SessionEconomyOut, SessionReceiptIn
+from app.services.anticheat_validator import anti_cheat_validator
+from app.services.economy_engine import economy_engine
 
 # PayPal config
 paypalrestsdk.configure({
@@ -1164,21 +1167,26 @@ def _compute_shard_reward(
 
 
 @api_router.post("/games/session")
-async def create_game_session(data: Dict[str, Any], user: User = Depends(get_current_user)):
+async def create_game_session(receipt: SessionReceiptIn, user: User = Depends(get_current_user)):
     """
     P1 Economy Integration — complete session receipt.
     Commits XP (hard-capped at 500), shards (base + combo + crit + pacing 5%),
     and PRQ delta (outcome-based × mode weight + bonuses) before returning JSON.
     """
-    mode_id        = data.get("mode_id",         "basketball_h2h")
-    score          = int(data.get("score",        0))
-    duration       = int(data.get("duration_seconds", 0))
-    completed      = bool(data.get("completed",   False))
-    outcome        = data.get("outcome",          "loss")   # "win" | "draw" | "loss"
-    combo_count    = int(data.get("combo_count",  0))
-    critical_count = int(data.get("critical_count", 0))
-    pacing_score   = int(data.get("pacing_score",  0))      # 0-100; ≥75 triggers 5% shard bonus
-    mri_score      = float(data.get("mri_score",  50.0))    # 0-100 from MentalResiliencyEngine
+    validation = anti_cheat_validator.validate(receipt)
+    if not validation.accepted:
+        raise HTTPException(status_code=422, detail=validation.reason)
+
+    economy = economy_engine.compute_session(receipt)
+    mode_id        = receipt.mode_id
+    score          = receipt.score
+    duration       = receipt.duration_seconds
+    completed      = receipt.completed
+    outcome        = receipt.outcome
+    combo_count    = receipt.combo_count
+    critical_count = receipt.critical_count
+    pacing_score   = receipt.pacing_score
+    mri_score      = economy.mri
 
     # ── Core session record ────────────────────────────────────────────────
     s = {
@@ -1196,24 +1204,17 @@ async def create_game_session(data: Dict[str, Any], user: User = Depends(get_cur
         "created_at":       datetime.now(timezone.utc).isoformat(),
     }
 
-    # ── PRQ delta (outcome × mode weight + bonuses) ────────────────────────
-    prq_delta = _compute_prq_delta(
-        mode_id, score, duration, completed,
-        outcome=outcome,
-        combo_count=combo_count,
-        critical_count=critical_count,
-        mri_score=mri_score,
-    )
+    # ── Server-authoritative economy from shared Phase 1 formulas ──────────
+    prq_delta = economy.prq_delta
     s["prq_delta"] = prq_delta
 
-    # ── Shard reward (base + combo + crit + 5% pacing bonus) ──────────────
-    shards_earned = _compute_shard_reward(outcome, combo_count, critical_count, pacing_score)
+    shards_earned = economy.shards
     s["shards_earned"] = shards_earned
     s["pacing_bonus_applied"] = pacing_score >= 75
 
     # ── XP with hard 500/session cap ──────────────────────────────────────
     raw_xp = max(10, score // 5)
-    xp     = min(raw_xp, XP_CAP_PER_SESSION)   # HARD CAP: never exceeds 500
+    xp     = economy.xp
     s["xp_earned"] = xp
     s["xp_capped"] = raw_xp > XP_CAP_PER_SESSION
 
@@ -1268,9 +1269,22 @@ async def create_game_session(data: Dict[str, Any], user: User = Depends(get_cur
     })
 
     # ── Full session receipt returned to client ───────────────────────────
-    receipt = {k: v for k, v in s.items() if k != "_id"}
+    session = {k: v for k, v in s.items() if k != "_id"}
+    economy_out = SessionEconomyOut(
+        xp=xp,
+        shards=shards_earned,
+        prq_delta=prq_delta,
+        mri=mri_score,
+        pacing_bonus_applied=pacing_score >= 75,
+    ).model_dump()
     return {
-        "session":         receipt,
+        "session_id":      s["id"],
+        "user_id":         user.user_id,
+        "mode_id":         mode_id,
+        "score":           score,
+        "persisted":       True,
+        "economy":         economy_out,
+        "session":         session,
         "xp_earned":       xp,
         "xp_capped":       raw_xp > XP_CAP_PER_SESSION,
         "xp_cap":          XP_CAP_PER_SESSION,
