@@ -26,6 +26,12 @@ cd "${ROOT}"
 echo "==> iOS bridge contract"
 python3 "${ROOT}/scripts/validate_ios_bridge_contract.py"
 
+echo "==> Mode registry contract"
+python3 "${ROOT}/scripts/validate_mode_registry.py"
+
+echo "==> iOS runtime launch contract"
+python3 "${ROOT}/scripts/validate_ios_runtime_launches.py"
+
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
   echo "==> Configure + build headless gameplay tests"
   if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
@@ -41,6 +47,12 @@ if [[ "${SKIP_BUILD}" -eq 0 ]]; then
   # Regression runs must not reuse stale objects after engine/gameplay ABI changes.
   cmake --build "${HEADLESS_DIR}" --clean-first -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 fi
+
+for test_binary in "${HEADLESS_DIR}"/nexus_*_test; do
+  if [[ -f "${test_binary}" ]]; then
+    chmod u+x "${test_binary}"
+  fi
+done
 
 GAMEPLAY_TEST="${HEADLESS_DIR}/nexus_gameplay_test"
 if [[ ! -x "${GAMEPLAY_TEST}" ]]; then
