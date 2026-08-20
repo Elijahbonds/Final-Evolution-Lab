@@ -247,7 +247,9 @@ struct GameLogicTests {
 
     @Test func gameGeneratorPlayableModeResolverHandlesAliases() {
         #expect(GameModeRegistry.playableMode(forRegistryId: "venice_pickup")?.id == .basketballHeadToHead)
-        #expect(GameModeRegistry.playableMode(forRegistryId: "market_browse")?.id == .marketBrowse)
+        #expect(GameModeRegistry.playableMode(forRegistryId: "karate_kata")?.id == .karateEndless)
+        #expect(GameModeRegistry.playableMode(forRegistryId: "basketball_dunk_irl") == nil)
+        #expect(GameModeRegistry.playableMode(forRegistryId: "market_browse") == nil)
         #expect(GameModeRegistry.playableMode(forRegistryId: "snowboarding")?.id == .snowboarding)
     }
 
@@ -293,6 +295,8 @@ struct GameLogicTests {
         // Hint must describe real mechanics (Metal renderer is stubbed; do not overclaim tech).
         #expect(threeD.hint?.contains("swipe timing") == true)
         #expect(threeD.id.nexusRuntimeModeId == "basketball_dunk")
+        #expect(!irl.isNexusSprintPlayable)
+        #expect(threeD.isNexusSprintPlayable)
         #expect(GameModeRegistry.playableMode(forRegistryId: "basketball_dunk")?.id == .basketballDunkContest3D)
     }
 
@@ -392,6 +396,27 @@ struct GameLogicTests {
         for modeId in sports {
             #expect(modeId.inputScheme != .charge, "\(modeId.rawValue) must not use charge PS2 layout")
             #expect(modeId.isNexusOutcomeSportMode)
+        }
+    }
+
+    @Test func nexusScoreAuthorityCoversCppOwnedModes() {
+        #expect(GameModeId.basketballDunkContest3D.usesNexusScoreAuthority)
+        #expect(GameModeId.karateEndless.usesNexusScoreAuthority)
+        #expect(!GameModeId.basketballDunkContestIRL.usesNexusScoreAuthority)
+
+        let outcomeSports: [GameModeId] = [
+            .basketball3v3,
+            .karate,
+            .baseball,
+            .football,
+            .soccer,
+            .golf,
+            .tennis,
+            .volleyball,
+        ]
+        for modeId in outcomeSports {
+            #expect(modeId.isNexusOutcomeSportMode)
+            #expect(modeId.usesNexusScoreAuthority, "\(modeId.rawValue) must mirror C++ HUD scores")
         }
     }
 

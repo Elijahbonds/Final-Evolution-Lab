@@ -5,7 +5,7 @@ import {
   Clock, Cpu, Terminal, ChevronRight, Activity
 } from "lucide-react";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
 const API = `${BACKEND_URL}/api`;
 
 // ── Mode status registry ─────────────────────────────────────────
@@ -13,10 +13,10 @@ export const MODE_STATUS = {
   basketball_h2h: "production", basketball_dunk: "production", basketball_3v3: "production",
   karate_h2h: "production", karate_endless: "production", baseball: "production",
   football: "production", soccer: "production", golf: "production",
-  tennis: "staging", volleyball: "staging", gymnastics: "staging",
-  surfing: "staging", skateboarding: "staging", snowboarding: "staging",
-  brain_brawl: "preview", who_scene_it: "preview",
-  court_carnival: "preview", market_browse: "non-game-module"
+  tennis: "production", volleyball: "production", gymnastics: "production",
+  surfing: "production", skateboarding: "production", snowboarding: "production",
+  brain_brawl: "production", who_scene_it: "production",
+  court_carnival: "production", market_browse: "non-game-module"
 };
 
 export const statusColor = (status) => {
@@ -39,8 +39,8 @@ const LOG_POOL = [
   "HealthKit read authorization confirmed",
   "Emergent WebSocket ping/pong ✓ (42ms)",
   "Avatar mesh streamed from CDN",
-  "Mode registry validated: 19 entries",
-  "UE5 bridge channel open — MapLoaded acknowledged",
+  "Mode registry validated: 22 entries",
+  "NEXUS bridge channel open — RuntimeReady acknowledged",
   "Session entropy seeded via SecureEnclave",
   "PRQ computation pipeline idle",
   "BioFuel sync interval triggered (Firestore)",
@@ -126,7 +126,7 @@ export const NexusConsole = ({ onClose }) => {
         firestore: { status: d.firestore?.status || "ready", detail: d.firestore?.detail || "connected" },
         healthkit: { status: d.healthkit?.status || "authorized", detail: d.healthkit?.detail || "read access granted" },
         websocket: { status: d.websocket?.status || "connected", detail: d.websocket?.detail || "emergent bridge live" },
-        unreal:    { status: d.unreal?.status || "ready", detail: d.unreal?.detail || "UE5 framework loaded" },
+        unreal:    { status: d.unreal?.status || "ready", detail: d.unreal?.detail || "NEXUS runtime loaded" },
       });
       if (d.session) setSession(d.session);
       appendLog("Status polled from /api/nexus/status");
@@ -136,7 +136,7 @@ export const NexusConsole = ({ onClose }) => {
         firestore: { status: "ready",      detail: "6 active listeners" },
         healthkit: { status: "authorized", detail: "steps · HRV · sleep" },
         websocket: { status: "connected",  detail: "ws://emergent · 38ms" },
-        unreal:    { status: "loading",    detail: "awaiting MapLoaded signal" },
+        unreal:    { status: "loading",    detail: "awaiting RuntimeReady signal" },
       });
     }
   }, []);
@@ -290,7 +290,7 @@ export const NexusConsole = ({ onClose }) => {
               />
               <SubsystemTile
                 icon={Layers}
-                name="Unreal Framework"
+                name="NEXUS Runtime"
                 status={subsystems.unreal.status}
                 detail={subsystems.unreal.detail}
                 testId="subsystem-unreal"
@@ -429,7 +429,7 @@ export const NexusPage = () => {
         firestore: { status: d.firestore?.status || "ready", detail: d.firestore?.detail || "connected" },
         healthkit: { status: d.healthkit?.status || "authorized", detail: d.healthkit?.detail || "read access granted" },
         websocket: { status: d.websocket?.status || "connected", detail: d.websocket?.detail || "emergent bridge live" },
-        unreal:    { status: d.unreal?.status || "ready", detail: d.unreal?.detail || "UE5 framework loaded" },
+        unreal:    { status: d.unreal?.status || "ready", detail: d.unreal?.detail || "NEXUS runtime loaded" },
       });
       if (d.session) setSession(d.session);
     } catch {
@@ -437,7 +437,7 @@ export const NexusPage = () => {
         firestore: { status: "ready",      detail: "6 active listeners" },
         healthkit: { status: "authorized", detail: "steps · HRV · sleep" },
         websocket: { status: "connected",  detail: "ws://emergent · 38ms" },
-        unreal:    { status: "loading",    detail: "awaiting MapLoaded signal" },
+        unreal:    { status: "loading",    detail: "awaiting RuntimeReady signal" },
       });
     }
   }, []);
@@ -528,7 +528,7 @@ export const NexusPage = () => {
           <SubsystemTile icon={Database}  name="Firestore"        status={subsystems.firestore.status}  detail={subsystems.firestore.detail}  testId="page-subsystem-firestore" />
           <SubsystemTile icon={Heart}     name="HealthKit"        status={subsystems.healthkit.status}  detail={subsystems.healthkit.detail}  testId="page-subsystem-healthkit" />
           <SubsystemTile icon={Wifi}      name="Emergent WS"      status={subsystems.websocket.status}  detail={subsystems.websocket.detail}  testId="page-subsystem-websocket" />
-          <SubsystemTile icon={Layers}    name="Unreal Framework" status={subsystems.unreal.status}     detail={subsystems.unreal.detail}     testId="page-subsystem-unreal" />
+          <SubsystemTile icon={Layers}    name="NEXUS Runtime"    status={subsystems.unreal.status}     detail={subsystems.unreal.detail}     testId="page-subsystem-unreal" />
         </div>
       </section>
 

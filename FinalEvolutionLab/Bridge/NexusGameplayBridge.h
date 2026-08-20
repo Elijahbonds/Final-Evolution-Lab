@@ -15,6 +15,9 @@ bool nexus_gameplay_bridge_is_linked(void);
 NexusGameplayHandle _Nullable nexus_gameplay_session_create(void);
 void nexus_gameplay_session_destroy(NexusGameplayHandle _Nullable handle);
 
+/// Returns true when the session's physics world initialized and ticks can advance gameplay.
+bool nexus_gameplay_session_physics_ready(NexusGameplayHandle _Nullable handle);
+
 /// Advances throw-catch + fitness gameplay logic (fixed-step friendly delta in seconds).
 void nexus_gameplay_session_tick(NexusGameplayHandle _Nullable handle, double deltaSeconds);
 

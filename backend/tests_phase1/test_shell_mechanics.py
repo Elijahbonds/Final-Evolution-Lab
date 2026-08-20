@@ -13,10 +13,43 @@ def test_game_modes_and_ai_coach_are_available() -> None:
     chat = client.post("/api/ai/chat", json={"message": "Build a training day", "model": "gpt-5.2"})
 
     assert modes.status_code == 200
-    assert len(modes.json()) == 19
+    assert len(modes.json()) == 21
     assert any(mode["id"] == "trivia_arena" for mode in modes.json())
+    assert any(mode["id"] == "who_scene_it" for mode in modes.json())
+    assert any(mode["id"] == "court_carnival" and mode["category"] == "Party" for mode in modes.json())
     assert chat.status_code == 200
     assert "FEL Coach" in chat.json()["response"]
+
+
+def test_cutover_dashboard_routes_are_shell_safe() -> None:
+    client = TestClient(app)
+
+    streaming = client.get("/api/streaming/status")
+    venues = client.get("/api/registry/venues")
+    brain_launch = client.post("/api/education/brain-brawl/launch")
+    room = client.post("/api/multiplayer/create-room", json={"game_mode": "basketball_h2h"})
+    rooms = client.get("/api/multiplayer/rooms")
+    analytics = client.get("/api/analytics/dashboard")
+    social = client.get("/api/social/athletes")
+    tournaments = client.get("/api/tournaments")
+    avatar = client.get("/api/avatar/config")
+
+    assert streaming.status_code == 200
+    assert streaming.json()["runtime"] == "nexus"
+    assert streaming.json()["cloud_streaming"] is False
+    assert "court_carnival" in streaming.json()["supported_modes"]
+    assert venues.status_code == 200
+    assert venues.json()["total_venues"] >= 16
+    assert brain_launch.status_code == 200
+    assert brain_launch.json()["ue5_mode_id"] == "brain_brawl"
+    assert room.status_code == 200
+    assert rooms.status_code == 200
+    assert rooms.json()[0]["id"] == room.json()["id"]
+    assert analytics.status_code == 200
+    assert analytics.json()["vault_sync"]["sync_target"] == "Local NEXUS shell"
+    assert social.status_code == 200
+    assert tournaments.status_code == 200
+    assert avatar.status_code == 200
 
 
 def test_biofuel_scan_confirm_logs_nutri_shards() -> None:

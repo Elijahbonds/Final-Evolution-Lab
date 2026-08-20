@@ -1091,7 +1091,9 @@ async def get_game_mode(mode_id: str):
 
 ## ── PRQ Mode Weights & Economy Constants ───────────────────────────────────
 PRQ_MODE_WEIGHTS = {
-    "basketball_h2h": 1.2, "basketball_dunk": 1.0, "basketball_3v3": 1.3,
+    "basketball_h2h": 1.2, "basketball_dunk": 1.0,
+    "basketball_dunk_3d": 1.0, "basketball_dunk_irl": 1.5,
+    "basketball_3v3": 1.3,
     "karate_h2h": 1.4,     "karate_endless": 1.4,
     "baseball": 1.0,       "football": 1.5,       "soccer": 1.1,
     "golf": 0.9,           "tennis": 1.1,          "volleyball": 1.2,
@@ -1670,24 +1672,26 @@ async def get_progress(user: User = Depends(get_current_user)):
 @api_router.get("/registry/venues")
 async def get_venue_registry():
     """Centralized venue registry — apps fetch this on launch, no hardcoded links"""
-    venues = VENUE_REGISTRY.get("venues", {})
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     ws_url = os.environ.get("HUB_GAME_WS_URL", "wss://finalevolutiongroup.com/ws/vault")
 
     result = []
     for mode_id, config in registry.items():
-        map_path = config.get("map")
-        if not map_path:
+        target = _resolve_mode_launch_target(mode_id, config)
+        if not target:
             continue
-        venue_key = map_path.split("/")[-1]
-        venue_data = venues.get(venue_key, {})
         result.append({
             "mode_id": mode_id,
-            "deep_link": f"finalevolution://launch?map={venue_key}&mode={mode_id}",
-            "map_path": map_path,
-            "venue_token": venue_key,
-            "venue_display": venue_data.get("display_name", venue_key.replace("_", " ")),
-            "category": venue_data.get("category", "Unknown"),
+            "deep_link": f"finalevolution://launch?map={target['map_token']}&mode={mode_id}",
+            "map_path": target["map_path"],
+            "map_token": target["map_token"],
+            "venue_token": target["map_token"],
+            "venue_key": target["venue_key"],
+            "venue_display": target["venue_display"],
+            "category": target["category"],
+            "render_mode": target["render_mode"],
+            "is_irl_mode": target["is_irl_mode"],
+            "launchable": target["launchable"],
             "binary": config.get("binary", ""),
             "status": config.get("status", "staging"),
             "gamemode_class": config.get("gamemode_class", "")
@@ -2430,42 +2434,24 @@ async def launch_vault_mode(data: Dict[str, Any], user: User = Depends(get_curre
     if mode_config.get("status") not in ("production", "staging"):
         raise HTTPException(status_code=403, detail=f"Mode '{mode_id}' is not in production or staging status.")
 
-    map_path = mode_config.get("map")
-    venue_key = None
-    
-    # Load from ue_mode_maps.json if map is not present in mode_config
-    if not map_path:
-        ue_maps_path = ROOT_DIR / "ue_mode_maps.json"
-        if ue_maps_path.exists():
-            with open(ue_maps_path) as f:
-                ue_maps_data = json.load(f)
-                mode_to_map = ue_maps_data.get("mode_to_unreal_map", {})
-                venue_key = mode_to_map.get(mode_id)
-        
-        if venue_key:
-            # Look up in VENUE_REGISTRY
-            venues = VENUE_REGISTRY.get("venues", {})
-            venue_config = venues.get(venue_key) or venues.get(venue_key.lower())
-            if venue_config:
-                map_path = venue_config.get("map_path")
-            if not map_path:
-                map_path = f"/Game/FEL/Maps/{venue_key}"
-                
-    if not map_path:
+    target = _resolve_mode_launch_target(mode_id, mode_config)
+    if not target or (not target["map_path"] and not target["is_irl_mode"]):
         raise HTTPException(status_code=400, detail=f"Mode {mode_id} is a non-game module and cannot be launched")
 
-    if not venue_key:
-        venue_key = map_path.split("/")[-1]
+    map_path = target["map_path"]
+    map_token = target["map_token"]
+    venue_key = target["venue_key"]
 
-    gamemode_class = mode_config.get("gamemode_class", f"BP_GameMode_{venue_key}")
-    binary = mode_config.get("binary", f"FEL_{venue_key}")
+    gamemode_class = mode_config.get("gamemode_class", f"BP_GameMode_{map_token}")
+    binary = mode_config.get("binary", f"FEL_{map_token}")
     status = mode_config.get("status", "production")
 
     # Create live session in Vault Hub
     session_id = f"sess_{uuid.uuid4().hex[:12]}"
     session = {
         "id": session_id, "user_id": user.user_id, "mode_id": mode_id,
-        "venue": venue_key, "map_path": map_path,
+        "venue": map_token, "venue_key": venue_key, "map_path": map_path,
+        "render_mode": target["render_mode"], "is_irl_mode": target["is_irl_mode"],
         "gamemode_class": gamemode_class,
         "binary": binary,
         "status": "launching",  # launching → map_loading → active → completed
@@ -2477,18 +2463,23 @@ async def launch_vault_mode(data: Dict[str, Any], user: User = Depends(get_curre
     # Broadcast to all vault bridge clients
     await vault_bridge.broadcast({
         "type": "mode_launch", "session_id": session_id, "mode_id": mode_id,
-        "venue": venue_key, "map_path": map_path, "user_id": user.user_id
+        "venue": map_token, "venue_key": venue_key, "map_path": map_path,
+        "render_mode": target["render_mode"], "is_irl_mode": target["is_irl_mode"],
+        "user_id": user.user_id
     }, encrypt=False)
 
     # Generate deep link for native iOS launch
-    deep_link = f"finalevolution://launch?map={venue_key}&mode={mode_id}&session={session_id}"
+    deep_link = f"finalevolution://launch?map={map_token}&mode={mode_id}&session={session_id}"
 
     return {
         "session_id": session_id,
         "mode_id": mode_id,
-        "venue": venue_key,
-        "map": venue_key,
+        "venue": map_token,
+        "venue_key": venue_key,
+        "map": map_token,
         "map_path": map_path,
+        "render_mode": target["render_mode"],
+        "is_irl_mode": target["is_irl_mode"],
         "gamemode_class": gamemode_class,
         "binary": binary,
         "status": status,
@@ -2499,7 +2490,7 @@ async def launch_vault_mode(data: Dict[str, Any], user: User = Depends(get_curre
         "command": {
             "cmd": "ueapp04",
             "value": {
-                "ServerTravel": venue_key
+                "ServerTravel": map_token
             }
         }
     }
@@ -2574,27 +2565,28 @@ async def get_active_sessions(user: User = Depends(get_current_user)):
 
 @api_router.get("/modes/mapped")
 async def get_all_mapped_modes():
-    """All 17 modes with deep links and venue mapping — confirms playability"""
+    """All production launch modes with deep links and venue mapping."""
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mapped = []
     for mode_id, config in registry.items():
-        map_path = config.get("map")
-        if not map_path:
+        target = _resolve_mode_launch_target(mode_id, config)
+        if not target or not target["launchable"]:
             continue
-        venue_key = map_path.split("/")[-1]
-        venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
-        deep_link = f"finalevolution://launch?map={venue_key}&mode={mode_id}"
+        deep_link = f"finalevolution://launch?map={target['map_token']}&mode={mode_id}"
         mapped.append({
             "mode_id": mode_id,
             "deep_link": deep_link,
-            "map_path": map_path,
-            "map_token": venue_key,
+            "map_path": target["map_path"],
+            "map_token": target["map_token"],
+            "venue_key": target["venue_key"],
+            "render_mode": target["render_mode"],
+            "is_irl_mode": target["is_irl_mode"],
             "gamemode_class": config.get("gamemode_class", ""),
             "binary": config.get("binary", ""),
             "production_status": config.get("status", "staging"),
-            "venue_display": venue_data.get("display_name", venue_key),
-            "category": venue_data.get("category", "Unknown"),
-            "db_collection": venue_data.get("db_collection", ""),
+            "venue_display": target["venue_display"],
+            "category": target["category"],
+            "db_collection": target["db_collection"],
             "linked": True
         })
     return {
@@ -3172,6 +3164,89 @@ if mode_path.exists():
     with open(mode_path) as f:
         MODE_MANAGER = json.load(f)
     logger.info(f"Loaded mode manager: {len(MODE_MANAGER.get('mode_manager', {}).get('mode_registry', {}))} modes")
+
+UE_MODE_MAPS = {}
+ue_maps_path = ROOT_DIR / "ue_mode_maps.json"
+if ue_maps_path.exists():
+    with open(ue_maps_path) as f:
+        UE_MODE_MAPS = json.load(f).get("mode_to_unreal_map", {})
+    logger.info(f"Loaded UE mode maps: {len(UE_MODE_MAPS)} entries")
+
+
+def _venue_mode_metadata(mode_id: str) -> Dict[str, Any]:
+    for mode in VENUE_REGISTRY.get("modes", []):
+        if isinstance(mode, dict) and (
+            mode.get("id") == mode_id or mode.get("nexusRuntimeModeId") == mode_id
+        ):
+            return mode
+    return {}
+
+
+def _venue_data_for_key(venue_key: Optional[str]) -> Dict[str, Any]:
+    if not venue_key:
+        return {}
+    venues = VENUE_REGISTRY.get("venues", {})
+    candidates = [venue_key, venue_key.lower(), venue_key.replace(" ", "_"), venue_key.replace(" ", "_").lower()]
+    for candidate in candidates:
+        if candidate in venues:
+            return venues[candidate]
+    return {}
+
+
+def _resolve_mode_launch_target(mode_id: str, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Resolve current registry schema into a client launch target.
+
+    The NEXUS mode manager now stores ``venue_id`` while UE map tokens live in
+    ``ue_mode_maps.json``. IRL modes intentionally have a null UE map but still
+    need a launchable app payload.
+    """
+    if not isinstance(config, dict):
+        return None
+
+    status = config.get("status", "staging")
+    mode_metadata = _venue_mode_metadata(mode_id)
+    ue_map_token = UE_MODE_MAPS.get(mode_id)
+    map_path = config.get("map") or config.get("map_path")
+
+    if not map_path and ue_map_token:
+        map_path = f"/Game/FEL/Maps/{ue_map_token}"
+
+    venue_key = (
+        mode_metadata.get("venueKey")
+        or ue_map_token
+        or config.get("venue_id")
+        or (map_path.split("/")[-1] if map_path else None)
+    )
+    map_token = ue_map_token or venue_key
+    render_mode = (
+        config.get("render_mode")
+        or mode_metadata.get("renderMode")
+        or ("IRL" if mode_metadata.get("isIRLMode") else "3D_UE5")
+    )
+    is_irl_mode = render_mode == "IRL" or bool(mode_metadata.get("isIRLMode"))
+    venue_data = _venue_data_for_key(venue_key) or _venue_data_for_key(map_token)
+
+    if not map_token:
+        return None
+
+    return {
+        "mode_id": mode_id,
+        "status": status,
+        "map_path": map_path,
+        "map_token": map_token,
+        "venue_key": venue_key,
+        "venue_display": (
+            mode_metadata.get("displayVenue")
+            or venue_data.get("display_name")
+            or venue_data.get("analyticsPolicyName")
+            or str(venue_key).replace("_", " ")
+        ),
+        "category": venue_data.get("category", "Unknown"),
+        "db_collection": venue_data.get("db_collection", f"sessions_{str(venue_key or map_token).lower()}"),
+        "render_mode": render_mode,
+        "is_irl_mode": is_irl_mode,
+        "launchable": status in ("production", "staging") and status != "non-game-module" and bool(map_path or is_irl_mode),
+    }
 
 # Vault connection state
 vault_state = {
@@ -3837,22 +3912,24 @@ async def get_production_modes():
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     modes = []
     for mode_id, config in registry.items():
-        map_path = config.get("map")
-        if not map_path:
+        target = _resolve_mode_launch_target(mode_id, config)
+        if not target or config.get("status") != "production":
             continue
-        venue_key = map_path.split("/")[-1]
-        venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
         # Check for live session data in venue collection
-        collection = venue_data.get("db_collection", f"sessions_{venue_key.lower()}")
+        collection = target["db_collection"]
         live_sessions = await db[collection].count_documents({})
         modes.append({
             "mode_id": mode_id,
-            "map_path": map_path,
+            "map_path": target["map_path"],
+            "map_token": target["map_token"],
             "gamemode_class": config.get("gamemode_class", ""),
             "binary": config.get("binary", ""),
             "status": config.get("status", "staging"),
-            "venue": venue_key,
-            "venue_display": venue_data.get("display_name", venue_key),
+            "venue": target["map_token"],
+            "venue_key": target["venue_key"],
+            "venue_display": target["venue_display"],
+            "render_mode": target["render_mode"],
+            "is_irl_mode": target["is_irl_mode"],
             "live_sessions": live_sessions,
             "db_collection": collection,
             "data_source": "FEL_ModeManager.production.json"
