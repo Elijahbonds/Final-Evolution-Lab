@@ -30,20 +30,28 @@ def skip(msg):
     print(f"  ⏭  {msg}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Production modes expected to pass all gates
+# Production NEXUS runtime modes expected to pass all gameplay gates.
+# Split iOS IDs are validated as aliases where appropriate but do not replace
+# the canonical C++ runtime IDs used by receipts, economy, and headless tests.
 # ═══════════════════════════════════════════════════════════════════════════════
 PRODUCTION_MODES = [
-    "basketball_h2h", "basketball_dunk", "basketball_3v3",
+    "basketball_h2h", "basketball_dunk", "basketball_3v3", "court_carnival",
     "karate_h2h", "karate_endless",
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
     "gymnastics", "skateboarding", "snowboarding",
+    "brain_brawl", "who_scene_it",
 ]
 
+IOS_ALIAS_MODES = ["basketball_dunk_3d", "basketball_dunk_irl"]
 NON_GAME_MODULES = ["market_browse"]
+PREVIEW_MODULES = ["movement_lab"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+UE_MAPPED_MODES = PRODUCTION_MODES + ["basketball_dunk_3d"]
+IRL_MODES_WITHOUT_UE_MAP = ["basketball_dunk_irl"]
+ARENA_SETTINGS_MODES = UE_MAPPED_MODES
+VENUE_REGISTRY_MODES = PRODUCTION_MODES + IOS_ALIAS_MODES
+SWIFT_ENUM_MODES = PRODUCTION_MODES + IOS_ALIAS_MODES
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -63,15 +71,15 @@ def test_mode_manager_registry():
         else:
             fail(f"{mode} missing from ModeManager registry")
 
-    for mode in STAGING_MODES:
-        if mode in registry and registry[mode]["status"] == "staging":
-            ok(f"{mode} → staging (expected)")
+    for mode in IOS_ALIAS_MODES:
+        if mode in registry and registry[mode]["status"] == "production":
+            ok(f"{mode} → production alias")
         elif mode in registry:
-            fail(f"{mode} status={registry[mode]['status']}, expected staging")
+            fail(f"{mode} status={registry[mode]['status']}, expected production alias")
         else:
             fail(f"{mode} missing from registry")
 
-    for mode in PREVIEW_MODES:
+    for mode in PREVIEW_MODULES:
         if mode in registry and registry[mode]["status"] == "preview":
             ok(f"{mode} → preview (expected)")
         else:
@@ -93,16 +101,19 @@ def test_ue_mode_maps():
     ue_maps = json.loads((REPO_ROOT / "backend" / "ue_mode_maps.json").read_text())
     mode_map = ue_maps["mode_to_unreal_map"]
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in UE_MAPPED_MODES:
         if mode in mode_map:
             ok(f"{mode} → {mode_map[mode]}")
         else:
-            if mode == "market_browse":
-                # market_browse may not have a UE map (it's a shop module)
-                ok(f"{mode} → present in ue_mode_maps")
-            else:
-                fail(f"{mode} missing from ue_mode_maps.json")
+            fail(f"{mode} missing from ue_mode_maps.json")
+
+    for mode in IRL_MODES_WITHOUT_UE_MAP:
+        if mode in mode_map and mode_map[mode] is None:
+            ok(f"{mode} → no UE map (IRL mode)")
+        elif mode in mode_map:
+            fail(f"{mode} should have null UE map, got {mode_map[mode]}")
+        else:
+            fail(f"{mode} missing from ue_mode_maps.json")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 3: ArenaSettings Coverage
@@ -112,8 +123,7 @@ def test_arena_settings():
     arena = json.loads((REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Content" / "FEL" / "Config" / "ArenaSettings.json").read_text())
     modes = arena["modes"]
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in ARENA_SETTINGS_MODES:
         if mode in modes:
             cfg = modes[mode]
             has_level = "unrealOpenLevelPackage" in cfg
@@ -134,8 +144,7 @@ def test_venue_registry():
     mode_ids = {m["id"] for m in vr["modes"]}
     venue_keys = {v["venueKey"] for v in vr["venues"]}
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in VENUE_REGISTRY_MODES:
         if mode in mode_ids:
             entry = next(m for m in vr["modes"] if m["id"] == mode)
             if entry["venueKey"] in venue_keys:
@@ -165,8 +174,7 @@ def test_fel_play_map():
                 k, v = line.strip().split("=", 1)
                 play_map[k.strip()] = v.strip()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in UE_MAPPED_MODES:
         if mode in play_map:
             path = play_map[mode]
             # Verify path uses /Venues/ convention
@@ -175,14 +183,7 @@ def test_fel_play_map():
             else:
                 fail(f"{mode} deep link path doesn't use /Venues/ convention: {path}")
         else:
-            if mode in ("market_browse",):
-                # market_browse has its own path format
-                if mode in play_map:
-                    ok(f"{mode} → {play_map[mode]}")
-                else:
-                    fail(f"{mode} missing from FELPlayMap")
-            else:
-                fail(f"{mode} missing from FELPlayMap")
+            fail(f"{mode} missing from FELPlayMap")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 6: Swift GameMode Enum
@@ -192,10 +193,11 @@ def test_swift_enum():
     swift_path = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
     content = swift_path.read_text()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in SWIFT_ENUM_MODES:
         # Search for rawValue
-        if f'= "{mode}"' in content:
+        if mode == "basketball_dunk" and f'= "basketball_dunk_3d"' in content:
+            ok(f'{mode} routes through Swift split dunk enum')
+        elif f'= "{mode}"' in content:
             ok(f'{mode} has Swift enum case')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
@@ -208,8 +210,7 @@ def test_server_seeded_modes():
     server_path = REPO_ROOT / "backend" / "server.py"
     content = server_path.read_text()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in PRODUCTION_MODES:
         if f'"id":"{mode}"' in content or f'"id": "{mode}"' in content:
             ok(f"{mode} in server seeded modes")
         else:
@@ -256,7 +257,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print("  18 runtime modes + iOS aliases · 8 categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()

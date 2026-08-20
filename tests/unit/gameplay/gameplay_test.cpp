@@ -933,6 +933,19 @@ void exercise_demo_pipeline_maps_production_modes() {
   require(mapping.has_value(), "dunk demo mapping exists");
   require(mapping->moduleId == "mod2", "dunk maps to mod2");
   require(mapping->montagePath.find("mod2") != std::string::npos, "montage path contains mod2");
+
+  const auto allMappings = nexus::gameplay::ExerciseDemoPipeline::allProductionMappings();
+  require(allMappings["count"].get<std::size_t>() == nexus::gameplay::kProductionModeCount,
+          "academy demo mapping count covers all production modes");
+  for (std::string_view modeId : nexus::gameplay::kProductionModeIds) {
+    const auto modeMapping = nexus::gameplay::ExerciseDemoPipeline::mappingForMode(modeId);
+    require(modeMapping.has_value(),
+            std::string("academy demo mapping exists: ") + std::string(modeId));
+    require(!modeMapping->moduleId.empty(),
+            std::string("academy demo module id exists: ") + std::string(modeId));
+    require(modeMapping->montagePath.find("/Game/FEL/Academy/Modules/") == 0,
+            std::string("academy demo montage path exists: ") + std::string(modeId));
+  }
 }
 
 void physics_intent_queue_is_consumed_on_step() {
