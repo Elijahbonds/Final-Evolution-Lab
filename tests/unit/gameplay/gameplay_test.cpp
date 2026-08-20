@@ -1028,10 +1028,79 @@ void physics_intent_queue_is_consumed_on_step() {
   physics.shutdown();
 }
 
-void prq_stub_returns_sprint_defaults() {
+void prq_uses_sprint_defaults_until_fitness_arrives() {
   require(nexus::gameplay::PRQEngine::getScore() == 75.0F, "prq sprint default");
   require(nexus::gameplay::PRQEngine::getGrade() == nexus::gameplay::PRQGrade::kPrimed,
           "prq grade primed");
+
+  nexus::gameplay::FitnessSnapshot coldStart{};
+  require(nexus::gameplay::PRQEngine::scoreForSnapshot(coldStart) == 75.0F,
+          "cold-start snapshot uses sprint default");
+  require(nexus::gameplay::PRQEngine::neuralDriveForSnapshot(coldStart) == 60.0F,
+          "cold-start neural drive uses sprint default");
+}
+
+void prq_derives_readiness_from_fitness_snapshot() {
+  nexus::gameplay::ThreadSafeFitnessData fitness;
+  fitness.update({0.9F, 0.85F, 0.8F}, {0.95F, 0.9F, 1});
+
+  const auto snapshot = fitness.snapshot();
+  const float prq = nexus::gameplay::PRQEngine::scoreForSnapshot(snapshot);
+  const float neuralDrive = nexus::gameplay::PRQEngine::neuralDriveForSnapshot(snapshot);
+  require(prq > 89.0F, "high fitness produces elite PRQ");
+  require(neuralDrive > 90.0F, "high fitness produces neural burst drive");
+  require(nexus::gameplay::PRQEngine::gradeForScore(prq) ==
+              nexus::gameplay::PRQGrade::kElite,
+          "high fitness maps to elite PRQ grade");
+
+  fitness.update({0.05F, 0.1F, 0.05F}, {0.1F, 0.1F, -1});
+  const auto recovery = fitness.snapshot();
+  require(nexus::gameplay::PRQEngine::scoreForSnapshot(recovery) < 40.0F,
+          "low fitness produces recovering PRQ");
+  require(nexus::gameplay::PRQEngine::neuralDriveForSnapshot(recovery) < neuralDrive,
+          "low fitness lowers neural drive");
+}
+
+void mode_runtime_prq_state_tracks_live_fitness() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk"}, {"user_id", "prq_fitness"}},
+              "prq_session")
+              .status == "ok",
+          "prq mode session starts");
+
+  auto modeState = gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "prq_default");
+  require(modeState.payload["prq"].get<float>() == 75.0F, "default mode PRQ before fitness");
+  require(modeState.payload["prq_source"].get<std::string>() == "sprint_default",
+          "default PRQ source is explicit");
+
+  const auto fitness = gameplay.handleGameplayCommand(
+      "fel.fitness.update",
+      {{"frc_mobility", 0.9F},
+       {"frc_active_range", 0.85F},
+       {"frc_control", 0.8F},
+       {"iap_engagement", 0.95F},
+       {"iap_confidence", 0.9F},
+       {"breath_phase", 1}},
+      "prq_fitness_update");
+  require(fitness.status == "ok", "fitness update for PRQ ok");
+
+  modeState = gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "prq_live");
+  require(modeState.payload["prq"].get<float>() > 89.0F, "mode PRQ follows fitness snapshot");
+  require(modeState.payload["prq_grade"].get<std::string>() == "ELITE",
+          "mode PRQ grade follows fitness snapshot");
+  require(modeState.payload["prq_source"].get<std::string>() == "fitness_snapshot",
+          "mode PRQ source follows fitness");
+  require(modeState.payload["fitness_revision"].get<std::uint64_t>() == 1,
+          "mode state reports fitness revision");
+  require(modeState.payload["neural_drive"].get<float>() > 90.0F,
+          "mode state reports fitness neural drive");
+  require(modeState.payload["arcade_physics"]["neural_burst_active"].get<bool>(),
+          "fitness neural drive enables burst physics");
 }
 
 void arcade_physics_maps_prq_75() {
@@ -2910,7 +2979,9 @@ auto main() -> int {
   physics_intent_queue_is_consumed_on_step();
   engine_tick_runs_physics_before_gameplay_update();
   gameplay_update_drains_agent_commands_before_throw_catch();
-  prq_stub_returns_sprint_defaults();
+  prq_uses_sprint_defaults_until_fitness_arrives();
+  prq_derives_readiness_from_fitness_snapshot();
+  mode_runtime_prq_state_tracks_live_fitness();
   arcade_physics_maps_prq_75();
   dunk_contest_charge_release_scores();
   karate_endless_wave_spawns();
