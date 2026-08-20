@@ -303,13 +303,13 @@ struct GameModeRegistry {
     static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases)
         .subtracting([.basketballDunkContestIRL, .marketBrowse, .movementLab])
 
-    /// All Arena game/module IDs from `arena_mode_registry.cpp` (excludes education-only preview modules).
+    /// All Arena game/module IDs mirrored from `arena_mode_registry.cpp`; preview education modules stay non-launchable.
     static let arenaRegistryModeIds: [GameModeId] = [
         .basketballHeadToHead, .basketballDunkContestIRL, .basketballDunkContest3D, .basketball3v3,
         .karate, .karateEndless,
         .baseball, .football, .soccer, .golf, .tennis, .volleyball,
         .gymnastics, .surfing, .skateboarding, .snowboarding,
-        .brainBrawl, .whoSceneIt, .courtCarnival, .marketBrowse,
+        .brainBrawl, .whoSceneIt, .courtCarnival, .marketBrowse, .movementLab,
     ]
 
     static var nexusSprintModes: [GameMode] {
@@ -622,7 +622,7 @@ struct GameModeRegistry {
         catalogModes.filter { $0.sport == sport }
     }
 
-    /// All 20 arena modes — always listed in the mode picker with honest prod/staging/preview badges.
+    /// All arena catalog modes — listed with honest prod/staging/preview badges.
     static var catalogModes: [GameMode] {
         all.filter { arenaRegistryModeIds.contains($0.id) }
     }

@@ -493,15 +493,24 @@ void gameplay_update_drains_agent_commands_before_throw_catch() {
   physics.shutdown();
 }
 
-void arena_mode_registry_lists_nineteen_modes() {
-  require(nexus::gameplay::ArenaModeRegistry::allModes().size() == 19,
-          "arena registry exposes 19 modes");
+void arena_mode_registry_lists_twenty_modes_with_preview_modules() {
+  require(nexus::gameplay::ArenaModeRegistry::allModes().size() == 20,
+          "arena registry exposes 20 modes");
   const auto dunk = nexus::gameplay::ArenaModeRegistry::find("basketball_dunk");
   require(dunk.has_value(), "basketball_dunk found");
   require(dunk->venueToken == "Venice_Beach_Court", "dunk venue token");
   require(dunk->nexusMeshPath.find(".nexusmesh.json") != std::string_view::npos,
           "dunk nexus mesh path");
   require(dunk->legacyUeMapAlias.find("/Game/FEL/Maps/") == 0, "dunk legacy ue alias");
+
+  const auto movementLab = nexus::gameplay::ArenaModeRegistry::find("movement_lab");
+  require(movementLab.has_value(), "movement_lab preview module found");
+  require(movementLab->releaseState == nexus::gameplay::ArenaReleaseState::kPreview,
+          "movement_lab remains preview");
+  require(!movementLab->scoringEnabled, "movement_lab scoring disabled");
+  require(movementLab->modeWeight == 0.0F, "movement_lab PRQ weight disabled");
+  require(movementLab->nexusMeshPath == "assets/nexus/imported/movement_lab_preview_placeholder.nexusmesh.json",
+          "movement_lab uses preview placeholder mesh");
 }
 
 void arena_mode_registry_production_modes_match_validate_script() {
@@ -2513,6 +2522,7 @@ void game_prompt_adapter_normalizes_mode_aliases() {
   require(nexus::ai::normalizeGameModeId("venice_pickup") == "basketball_h2h", "venice_pickup alias");
   require(nexus::ai::normalizeGameModeId("karate_kata") == "karate_endless", "karate_kata alias");
   require(nexus::ai::normalizeGameModeId("market_browse").empty(), "market_browse excluded");
+  require(nexus::ai::normalizeGameModeId("movement_lab").empty(), "movement_lab preview module excluded");
 }
 
 void game_prompt_adapter_sanitize_llm_json_strips_markdown_fence() {
@@ -3094,7 +3104,7 @@ auto main() -> int {
   voxel_parser_passes_through_set_voxels_and_fill_region();
   voxel_parser_rejects_invalid_creative_params();
   gameplay_session_state_query_returns_coherent_payload();
-  arena_mode_registry_lists_nineteen_modes();
+  arena_mode_registry_lists_twenty_modes_with_preview_modules();
   arena_mode_registry_production_modes_match_validate_script();
   gameplay_manager_evaluates_volleyball_outcome();
   outcome_sport_mode_mechanics_and_session_scores();

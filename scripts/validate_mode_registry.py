@@ -128,7 +128,11 @@ def validate_cpp_runtime_modes(registry: dict[str, dict[str, object]], ue_maps: 
     return production_ids
 
 
-def validate_backend_special_modes(registry: dict[str, dict[str, object]], ue_maps: dict[str, object]) -> None:
+def validate_backend_special_modes(
+    registry: dict[str, dict[str, object]],
+    ue_maps: dict[str, object],
+    cpp_blocks: dict[str, str],
+) -> None:
     dunk_3d = registry.get("basketball_dunk_3d", {})
     if dunk_3d.get("nexus_runtime_mode_id") == "basketball_dunk" and ue_maps.get("basketball_dunk_3d"):
         ok("basketball_dunk_3d aliases to canonical basketball_dunk runtime")
@@ -146,6 +150,15 @@ def validate_backend_special_modes(registry: dict[str, dict[str, object]], ue_ma
         ok("market_browse is non-game module with zero PRQ weight")
     else:
         err("market_browse must stay non-game-module with prq_weight=0")
+    market_cpp = cpp_blocks.get("market_browse", "")
+    if (
+        "ArenaReleaseState::kNonGameModule" in market_cpp
+        and "scoringEnabled = false" in market_cpp
+        and "modeWeight = 0.0F" in market_cpp
+    ):
+        ok("market_browse C++ registry is non-game and non-scoring")
+    else:
+        err("market_browse C++ registry must stay non-game and non-scoring")
 
     movement = registry.get("movement_lab", {})
     if (
@@ -157,6 +170,16 @@ def validate_backend_special_modes(registry: dict[str, dict[str, object]], ue_ma
         ok("movement_lab is preview education with scoring disabled")
     else:
         err("movement_lab must stay preview education with scoring disabled and prq_weight=0")
+    movement_cpp = cpp_blocks.get("movement_lab", "")
+    if (
+        "ArenaReleaseState::kPreview" in movement_cpp
+        and "scoringEnabled = false" in movement_cpp
+        and "modeWeight = 0.0F" in movement_cpp
+        and "movement_lab_preview_placeholder.nexusmesh.json" in movement_cpp
+    ):
+        ok("movement_lab C++ registry is preview, non-scoring, and placeholder-backed")
+    else:
+        err("movement_lab C++ registry must be preview, non-scoring, and placeholder-backed")
 
 
 def validate_swift_surface(registry: dict[str, dict[str, object]], production_ids: list[str]) -> None:
@@ -189,10 +212,11 @@ def main() -> int:
         registry = {}
     ue_maps_payload = json.loads(UE_MODE_MAPS.read_text())
     ue_maps = ue_maps_payload.get("mode_to_unreal_map", {})
+    cpp_blocks = extract_cpp_mode_blocks(CPP_REGISTRY_CPP.read_text())
 
     validate_declared_counts(mode_manager, registry)
     production_ids = validate_cpp_runtime_modes(registry, ue_maps)
-    validate_backend_special_modes(registry, ue_maps)
+    validate_backend_special_modes(registry, ue_maps, cpp_blocks)
     validate_swift_surface(registry, production_ids)
 
     print()
