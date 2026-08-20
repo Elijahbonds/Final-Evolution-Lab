@@ -1069,7 +1069,9 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
     if (params.contains("auth_token")) {
       config.authToken = params.value("auth_token", config.authToken);
     }
-    config.persistToDisk = params.value("persist_to_disk", true);
+    config.persistToDisk = params.value("persist_to_disk", config.persistToDisk);
+    config.httpEnabled = params.value("http_enabled", config.httpEnabled);
+    config.useStubHttpTransport = params.value("use_stub_http", config.useStubHttpTransport);
     m_gameplayManager.setReceiptClientConfig(std::move(config));
     const auto flushResult = m_gameplayManager.flushPendingReceipts();
     return response(id, "ok",
@@ -1079,6 +1081,8 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
                         {"requeued", flushResult.requeued},
                         {"queued_on_disk", flushResult.queued_on_disk},
                         {"queue_directory", m_gameplayManager.receiptQueueDirectory()},
+                        {"http_enabled", m_gameplayManager.receiptClientConfig().httpEnabled},
+                        {"use_stub_http", m_gameplayManager.receiptClientConfig().useStubHttpTransport},
                     });
   }
 

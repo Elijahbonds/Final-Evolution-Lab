@@ -23,7 +23,7 @@ Build + deploy:
 ```bash
 ./scripts/deploy-hosting.sh fel-dashboard
 # or
-cd frontend && npm run build && firebase deploy --only hosting:fel-dashboard
+cd frontend && npm ci --legacy-peer-deps && npm run build && firebase deploy --only hosting:fel-dashboard
 ```
 
 Default URLs: `https://final-evolution-lab.web.app`, `https://final-evolution-lab.firebaseapp.com`
@@ -31,7 +31,7 @@ Default URLs: `https://final-evolution-lab.web.app`, `https://final-evolution-la
 Preview channel (staging):
 
 ```bash
-cd frontend && npm run build
+cd frontend && npm ci --legacy-peer-deps && npm run build
 firebase hosting:channel:deploy preview --only hosting:fel-dashboard
 ```
 
@@ -59,7 +59,7 @@ Local dev remains `npm run dev` in each app directory — deploy is separate.
 ## Emulators
 
 ```bash
-cd frontend && npm run build
+cd frontend && npm ci --legacy-peer-deps && npm run build
 firebase emulators:start --only hosting
 ```
 

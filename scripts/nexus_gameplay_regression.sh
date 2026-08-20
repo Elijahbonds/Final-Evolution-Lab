@@ -23,13 +23,41 @@ done
 mkdir -p "${ARTIFACT_DIR}"
 cd "${ROOT}"
 
+echo "==> iOS/NEXUS Linux preflight"
+"${ROOT}/scripts/ios-linux-preflight.sh"
+
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
   echo "==> Configure + build headless gameplay tests"
+  if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
+    export CC="${CC:-gcc}"
+    export CXX="g++"
+  fi
+  REQUESTED_CXX="$(command -v "${CXX:-c++}" 2>/dev/null || true)"
+  if [[ -z "${REQUESTED_CXX}" ]]; then
+    echo "error: requested C++ compiler '${CXX:-c++}' was not found" >&2
+    exit 1
+  fi
+  CMAKE_COMPILER_ARGS=(-DCMAKE_CXX_COMPILER="${REQUESTED_CXX}")
+  if [[ -d "${HEADLESS_DIR}" ]]; then
+    echo "==> Recreating ${HEADLESS_DIR} for a clean compiler/configuration state"
+    rm -rf "${HEADLESS_DIR}"
+  fi
   cmake -S . -B "${HEADLESS_DIR}" \
+    "${CMAKE_COMPILER_ARGS[@]}" \
     -DNEXUS_ENABLE_RENDERER=OFF \
     -DNEXUS_BUILD_RUNTIME=OFF \
     -DNEXUS_BUILD_TESTS=ON
-  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)" --target nexus_gameplay_test
+  # GNU Make recipes assume nested object directories already exist; create
+  # them explicitly so parallel agent builds do not fail while writing .d files.
+  find "${HEADLESS_DIR}/CMakeFiles" -name build.make -print0 |
+    while IFS= read -r -d '' build_make; do
+      awk '/^[^#[:space:]].*\.cpp\.o:/{target=$1; sub(/:$/, "", target); print target}' "${build_make}" |
+        while IFS= read -r object_path; do
+          mkdir -p "${HEADLESS_DIR}/$(dirname "${object_path}")"
+        done
+    done
+  # Regression runs must not reuse stale objects after engine/gameplay ABI changes.
+  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 fi
 
 GAMEPLAY_TEST="${HEADLESS_DIR}/nexus_gameplay_test"
