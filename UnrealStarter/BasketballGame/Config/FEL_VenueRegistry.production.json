@@ -30,6 +30,25 @@
       }
     },
     {
+      "id": "basketball_dunk",
+      "analyticsMode": "dunk_contest",
+      "venueKey": "venice_beach_court",
+      "displayVenue": "Venice Beach Blue Court",
+      "renderMode": "3D_UE5",
+      "nexusRuntimeModeId": "basketball_dunk",
+      "legacyAliasFor": "basketball_dunk_3d",
+      "courtColor": "venice_blue",
+      "lumaScanSource": "venice_beach",
+      "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
+      "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx",
+      "lumaAssets": {
+        "baseMesh": "SM_LumaScan_VeniceBeach_Mesh",
+        "albedoTexture": "T_LumaScan_VeniceBeach_Albedo",
+        "importPath": "Content/FEL/Venues/VeniceBeach/LumaScans/",
+        "courtSurfaceOverride": "T_VeniceBlue_ConcreteCourtSurface"
+      }
+    },
+    {
       "id": "basketball_dunk_3d",
       "analyticsMode": "dunk_contest",
       "venueKey": "venice_beach_court",
@@ -149,6 +168,11 @@
       "analyticsPolicyName": "Venice Beach — Tennis + Luma shop backdrop",
       "nexusEnvironmentAssetId": "tennis_court_environment_model_fbx",
       "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
+    },
+    {
+      "venueKey": "regulation_court_irl",
+      "analyticsPolicyName": "Regulation Court — IRL camera mode",
+      "nexusEnvironmentAssetId": "irl_camera_session"
     },
     {
       "venueKey": "vault_shop",

@@ -1,4 +1,5 @@
-// Port of UFELExerciseDemoPipelineSubsystem — maps 12 production arena modes to Academy mod1-mod12
+// Port of UFELExerciseDemoPipelineSubsystem — maps every production arena mode
+// to an Academy montage so no launchable NEXUS mode presents a dead demo slot.
 #pragma once
 
 #include <nlohmann/json.hpp>
