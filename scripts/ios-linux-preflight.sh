@@ -98,8 +98,25 @@ def require_equal_sets(label: str, actual: list[str], expected: list[str]) -> No
         err(f"{label} mismatch: {'; '.join(detail)}")
 
 
+def require_after(source: str, label: str, anchor: str, needles: list[str], window: int = 1600) -> None:
+    start = source.find(anchor)
+    if start < 0:
+        err(f"{label}: missing anchor {anchor!r}")
+        return
+    snippet = source[start:start + window]
+    for needle in needles:
+        if needle not in snippet:
+            err(f"{label}: missing {needle!r} near {anchor!r}")
+
+
 game_mode_source = read_text("FinalEvolutionLab/Models/GameMode.swift")
-router_source = read_text("FinalEvolutionLab/Views/GameModeRouter.swift")
+game_mode_selection_source = read_text("FinalEvolutionLab/Views/GameModeSelectionView.swift")
+arcade_library_source = read_text("FinalEvolutionLab/Views/ArcadeLibraryView.swift")
+dashboard_source = read_text("FinalEvolutionLab/Views/DashboardView.swift")
+lab_source = read_text("FinalEvolutionLab/Views/LabView.swift")
+content_view_source = read_text("FinalEvolutionLab/ContentView.swift")
+nexus_generator_source = read_text("FinalEvolutionLab/Views/NexusGameGeneratorView.swift")
+gameplay_view_source = read_text("FinalEvolutionLab/Views/GamePlayView.swift")
 arena_header = read_text("app/gameplay/include/nexus/gameplay/arena_mode_registry.h")
 arena_source = read_text("app/gameplay/src/arena_mode_registry.cpp")
 validate_modes_source = read_text("scripts/nexus_validate_production_modes.sh")
@@ -128,8 +145,65 @@ if cpp_production_modes and validate_script_modes and cpp_production_modes != va
 
 if 'case .basketballDunkContest3D: return "basketball_dunk"' not in game_mode_source:
     err("Swift 3D dunk mode must map to C++ basketball_dunk runtime id")
-if ".basketballDunkContestIRL" not in router_source or "IRLDunkView" not in router_source:
-    err("Swift IRL dunk mode must route to IRLDunkView instead of the C++ runtime")
+require_after(
+    game_mode_selection_source,
+    "Arena sprint strip IRL route",
+    "ForEach(GameModeRegistry.nexusSprintModes)",
+    ["mode.id.isIRLDunkContest", "showDunkPlatform = true"],
+)
+require_after(
+    game_mode_selection_source,
+    "Arena route helper IRL guard",
+    "private func pushGameplayRoute(_ modeId: GameModeId)",
+    ["modeId.isIRLDunkContest", "showDunkPlatform = true"],
+)
+require_after(
+    arcade_library_source,
+    "Arcade route helper IRL guard",
+    "private func pushGameplayRoute(_ modeId: GameModeId)",
+    ["modeId.isIRLDunkContest", "showDunkPlatform = true"],
+)
+require_after(
+    dashboard_source,
+    "Dashboard quick launch IRL route",
+    "ForEach(GameModeRegistry.nexusSprintModes.prefix(3))",
+    ["mode.id.isIRLDunkContest", "showDunkPlatform = true"],
+)
+require_after(
+    dashboard_source,
+    "Dashboard navigation IRL fallback",
+    ".navigationDestination(isPresented: $navigateToArenaGame)",
+    ["mode.id.isIRLDunkContest", "DunkMatchmakingView"],
+)
+require_after(
+    lab_source,
+    "Lab global arena IRL route",
+    "private var globalArenaCard",
+    ["mode.id.isIRLDunkContest", "showDunkPlatform = true"],
+    window=2600,
+)
+require_after(
+    lab_source,
+    "Lab navigation IRL fallback",
+    ".navigationDestination(isPresented: $navigateToArenaGame)",
+    ["mode.id.isIRLDunkContest", "DunkMatchmakingView"],
+)
+require_after(
+    content_view_source,
+    "Agent launch IRL route",
+    ".fullScreenCover(isPresented: $showAgentLaunchedGame)",
+    ["mode.id.isIRLDunkContest", "DunkMatchmakingView"],
+)
+require_after(
+    nexus_generator_source,
+    "Generator route helper IRL guard",
+    "private func pushGameplayRoute(for rawModeId: String)",
+    ["modeId.isIRLDunkContest", "showDunkPlatform = true"],
+)
+if 'if !gameMode.id.isIRLDunkContest {' not in gameplay_view_source or "nexusEngine.start(modeId:" not in gameplay_view_source:
+    err("GamePlayView must guard NEXUS C++ session start for iOS-only IRL dunk")
+if "guard !gameMode.id.isIRLDunkContest else { return }" not in gameplay_view_source:
+    err("GamePlayView must skip NEXUS stop/receipt flush for iOS-only IRL dunk")
 
 registry_entries = re.findall(
     r'\{\.id = "([^"]+)".*?\.nexusMeshPath = "([^"]+)".*?\.releaseState = ArenaReleaseState::k([A-Za-z]+)',

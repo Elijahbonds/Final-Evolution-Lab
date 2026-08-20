@@ -465,7 +465,9 @@ struct GamePlayView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .onAppear {
             sceneViewportReady = false
-            nexusEngine.start(modeId: gameMode.id.nexusRuntimeModeId, readiness: sessionReadiness)
+            if !gameMode.id.isIRLDunkContest {
+                nexusEngine.start(modeId: gameMode.id.nexusRuntimeModeId, readiness: sessionReadiness)
+            }
             FELSoundscapeEngine.shared.start(for: gameMode.id)
             FELHaptics.prepare()
             if skipMatchLobbyForScreenshotHarness {
@@ -3600,6 +3602,7 @@ struct GamePlayView: View {
     }
 
     private func stopNexusSessionForCurrentScores() {
+        guard !gameMode.id.isIRLDunkContest else { return }
         let skipScoreSync = usesNexusScoreAuthority && nexusEngine.isLinked
         nexusEngine.stop(playerScore: score, opponentScore: opponentScore, skipScoreSync: skipScoreSync)
     }
