@@ -193,7 +193,7 @@ extension GameModeId {
             .strength
         case .gymnastics, .golf:
             .mobility
-        case .brainBrawl, .whoSceneIt, .courtCarnival, .marketBrowse:
+        case .brainBrawl, .whoSceneIt, .courtCarnival, .marketBrowse, .movementLab:
             .recovery
         }
     }

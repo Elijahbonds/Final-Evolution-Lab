@@ -462,7 +462,10 @@ struct GamePlayView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .onAppear {
             sceneViewportReady = false
-            nexusEngine.start(modeId: gameMode.id.nexusRuntimeModeId, readiness: sessionReadiness)
+            let runtimeModeId = gameMode.id.nexusRuntimeModeId
+            if gameMode.isNexusSprintPlayable, !runtimeModeId.isEmpty {
+                nexusEngine.start(modeId: runtimeModeId, readiness: sessionReadiness)
+            }
             FELSoundscapeEngine.shared.start(for: gameMode.id)
             FELHaptics.prepare()
             if skipMatchLobbyForScreenshotHarness {
@@ -3248,6 +3251,7 @@ struct GamePlayView: View {
         case .whoSceneIt: ["Freeze", "Spot Star", "Recall"]
         case .courtCarnival: ["Pad Hit", "Dice Roll", "Mini Win"]
         case .marketBrowse: ["Browse", "Scan", "Vault"]
+        case .movementLab: ["Learn", "Balance", "Breath"]
         }
     }
 
@@ -4069,7 +4073,7 @@ struct GamePlayView: View {
                 return action.contains("Win") ? 300 : (action.contains("Tie") ? 100 : 0)
             }
             return 50
-        case .marketBrowse:
+        case .marketBrowse, .movementLab:
             return 10
         }
     }
