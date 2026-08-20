@@ -2076,8 +2076,25 @@ void flagship_outcome_sport_validate_only_integration() {
     const auto pulse = gameplay.handleGameplayCommand(
         "fel.sport.pulse", {{"success", true}, {"timing", 0.9F}}, "baseball_pulse");
     require(pulse.status == "ok", "baseball sport pulse ok");
+    if (i == 0) {
+      require(pulse.payload["outcome_sport"]["release_state"].get<std::string>() == "validate_only",
+              "baseball pulse carries validate-only state");
+      require(pulse.payload["outcome_sport"]["preview_label"].get<std::string>() ==
+                  "PULSE EVALUATOR - NOT FULL SPORT SIM",
+              "baseball pulse carries preview label");
+    }
     gameplay.update(0.05, physics, {});
   }
+
+  const auto baseballState =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "baseball_state");
+  require(baseballState.payload["outcome_sport"]["release_state"].get<std::string>() ==
+              "validate_only",
+          "baseball query state carries validate-only label");
+  const auto baseballHud = gameplay.handleGameplayQuery("fel.hud.poll", {}, "baseball_hud");
+  require(baseballHud.payload["payload"]["mode_state"]["outcome_sport"]["preview_label"]
+              .get<std::string>() == "PULSE EVALUATOR - NOT FULL SPORT SIM",
+          "baseball HUD mode state carries preview label");
 
   const auto end = gameplay.handleGameplayCommand(
       "fel.arena.end_session", {{"use_live_scores", true}}, "baseball_end");

@@ -11,6 +11,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 CPP_REGISTRY_H = REPO_ROOT / "app" / "gameplay" / "include" / "nexus" / "gameplay" / "arena_mode_registry.h"
 SWIFT_GAME_MODE = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
 AGENT_SERVICE = REPO_ROOT / "FinalEvolutionLab" / "Services" / "NEXUSAgentService.swift"
+GAMEPLAY_VIEW = REPO_ROOT / "FinalEvolutionLab" / "Views" / "GamePlayView.swift"
+NEXUS_GAMEPLAY_ENGINE = REPO_ROOT / "FinalEvolutionLab" / "Services" / "NexusGameplayEngine.swift"
 
 ERRORS: list[str] = []
 
@@ -173,6 +175,49 @@ def validate_agent_launch_surface(source: str) -> None:
             err(f"registry launch alias missing: {snippet}")
 
 
+def validate_live_gameplay_integration() -> None:
+    gameplay_source = GAMEPLAY_VIEW.read_text()
+    engine_source = NEXUS_GAMEPLAY_ENGINE.read_text()
+
+    required_gameplay_snippets = [
+        (
+            "onAction: handleSceneAction",
+            "GameSceneHostView viewport taps route into the gameplay action loop",
+        ),
+        (
+            "nexusEngine.stop(playerScore: score, opponentScore: opponentScore)",
+            "GamePlayView ends the C++ arena with live Swift scores",
+        ),
+        (
+            "stopNexusSessionWithCurrentScores()",
+            "GamePlayView centralizes live-score NEXUS session teardown",
+        ),
+    ]
+    for snippet, message in required_gameplay_snippets:
+        if snippet in gameplay_source:
+            ok(message)
+        else:
+            err(f"Swift gameplay integration missing: {message}")
+
+    stop_start = engine_source.find("func stop(playerScore: Int = 0, opponentScore: Int = 0, skipScoreSync: Bool = false)")
+    if stop_start == -1:
+        err("NexusGameplayEngine.stop signature missing")
+        return
+    stop_end = engine_source.find("NexusGameplayBridge.destroySession(session)", stop_start)
+    if stop_end == -1:
+        err("NexusGameplayEngine.stop teardown call missing")
+        return
+    stop_body = engine_source[stop_start:stop_end]
+    sync_index = stop_body.find("syncScores(player: playerScore, opponent: opponentScore)")
+    inactive_index = stop_body.find("sessionActive = false")
+    if sync_index == -1:
+        err("NexusGameplayEngine.stop must sync final scores before ending arena")
+    elif inactive_index == -1 or sync_index < inactive_index:
+        ok("NexusGameplayEngine.stop syncs final scores before marking the session inactive")
+    else:
+        err("NexusGameplayEngine.stop marks session inactive before syncing final scores")
+
+
 def main() -> int:
     print("== iOS NEXUS runtime launch validation ==")
     swift_source = SWIFT_GAME_MODE.read_text()
@@ -189,6 +234,7 @@ def main() -> int:
     validate_launchable_set(cpp_production_modes, swift_cases, overrides, excluded_cases)
     validate_non_launchable_modes(cpp_production_modes, swift_cases, overrides, excluded_cases)
     validate_agent_launch_surface(swift_source)
+    validate_live_gameplay_integration()
 
     print()
     if ERRORS:

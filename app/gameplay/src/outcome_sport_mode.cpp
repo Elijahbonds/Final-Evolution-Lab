@@ -309,6 +309,8 @@ auto OutcomeSportMode::pulse(const nlohmann::json& params) -> Result<nlohmann::j
 auto OutcomeSportMode::stateJson() const -> nlohmann::json {
   nlohmann::json state{
       {"mode_id", m_modeId},
+      {"release_state", "validate_only"},
+      {"preview_label", "PULSE EVALUATOR - NOT FULL SPORT SIM"},
       {"player_score", m_playerScore},
       {"opponent_score", m_opponentScore},
       {"player_metric", m_playerMetric},

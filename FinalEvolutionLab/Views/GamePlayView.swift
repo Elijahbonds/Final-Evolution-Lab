@@ -486,7 +486,7 @@ struct GamePlayView: View {
         }
         .onDisappear {
             sceneViewportReady = false
-            nexusEngine.stop()
+            stopNexusSessionWithCurrentScores()
             FELSoundscapeEngine.shared.stop()
             matchLobbyComplete = false
             multipeerService.stop()
@@ -726,6 +726,7 @@ struct GamePlayView: View {
                 useNexus3DEngine: Config.useNexus3DGameplay,
                 neuralDrive: viewModel.profile.metrics.neuralDrive,
                 scenicCameraAngle: ScenicCameraAngle.defaultForMode(gameMode.id),
+                onAction: handleSceneAction,
                 onViewportReady: { sceneViewportReady = true },
                 leftStickInput: leftStickVector,
                 rightStickInput: rightStickVector,
@@ -4118,6 +4119,7 @@ struct GamePlayView: View {
         withAnimation(.spring(response: 0.4)) {
             isActive = false
         }
+        stopNexusSessionWithCurrentScores()
         Task {
             try? await Task.sleep(for: .milliseconds(300))
             withAnimation(.spring(response: 0.4)) {
@@ -4395,6 +4397,7 @@ struct GamePlayView: View {
     private func finalizeResults() {
         if finalizedMatchSessionId == matchSessionId { return }
 
+        stopNexusSessionWithCurrentScores()
         CrashReporter.setGameMode(id: gameMode.id.rawValue)
         if shardsReward > 0 {
             viewModel.profile.pendingUnverifiedShardCredits += shardsReward
@@ -4453,6 +4456,10 @@ struct GamePlayView: View {
 #endif
 
         finalizedMatchSessionId = matchSessionId
+    }
+
+    private func stopNexusSessionWithCurrentScores() {
+        nexusEngine.stop(playerScore: score, opponentScore: opponentScore)
     }
 
     private func handleLiveLeakage(joint: JointType, severity: Double) {

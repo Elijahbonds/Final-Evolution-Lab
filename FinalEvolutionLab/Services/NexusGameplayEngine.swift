@@ -1266,12 +1266,12 @@ final class NexusGameplayEngine {
     func stop(playerScore: Int = 0, opponentScore: Int = 0, skipScoreSync: Bool = false) {
         proMotionTicker.stop()
         lastHudPollTime = 0
-        sessionActive = false
 
         if session != nil {
             if !skipScoreSync {
                 syncScores(player: playerScore, opponent: opponentScore)
             }
+            sessionActive = false
 
             if let endRaw = NexusGameplayBridge.endArena(
                 session,
@@ -1296,6 +1296,7 @@ final class NexusGameplayEngine {
             }
         }
 
+        sessionActive = false
         NexusGameplayBridge.destroySession(session)
         session = nil
         sessionActive = false
