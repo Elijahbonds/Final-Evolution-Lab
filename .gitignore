@@ -8,6 +8,8 @@ babel.config.js
 metro.config.js
 package.json
 package-lock.json
+!frontend/package.json
+!frontend/package-lock.json
 tsconfig.json
 app.json
 
@@ -136,6 +138,8 @@ android-sdk/
 *.app
 *.dSYM
 *.xcarchive
+build-full/
+build-headless/
 
 # UE5 intermediate
 Saved/
