@@ -1007,6 +1007,32 @@ void exercise_demo_pipeline_maps_production_modes() {
   require(mapping.has_value(), "dunk demo mapping exists");
   require(mapping->moduleId == "mod2", "dunk maps to mod2");
   require(mapping->montagePath.find("mod2") != std::string::npos, "montage path contains mod2");
+
+  const auto productionModes = nexus::gameplay::ArenaModeRegistry::productionModes();
+  const auto allMappings = nexus::gameplay::ExerciseDemoPipeline::allProductionMappings();
+  require(allMappings["count"].get<std::size_t>() == productionModes.size(),
+          "exercise demo mapping count matches production registry");
+
+  for (const nexus::gameplay::ArenaModeConfig& mode : productionModes) {
+    const auto productionMapping =
+        nexus::gameplay::ExerciseDemoPipeline::mappingForMode(mode.id);
+    require(productionMapping.has_value(),
+            std::string("production mode demo mapping exists: ") + std::string(mode.id));
+    require(!productionMapping->moduleId.empty(),
+            std::string("production mode demo module id set: ") + std::string(mode.id));
+    require(productionMapping->montagePath.find(productionMapping->moduleId) != std::string::npos,
+            std::string("production mode montage path includes module id: ") +
+                std::string(mode.id));
+
+    const auto productionJson =
+        nexus::gameplay::ExerciseDemoPipeline::mappingJson(mode.id);
+    require(!productionJson.contains("note"),
+            std::string("production mode demo json is not fallback: ") + std::string(mode.id));
+  }
+
+  const auto marketMapping =
+      nexus::gameplay::ExerciseDemoPipeline::mappingForMode("market_browse");
+  require(!marketMapping.has_value(), "non-game market browse has no demo montage");
 }
 
 void physics_intent_queue_is_consumed_on_step() {
