@@ -1,6 +1,8 @@
 // Spec §2.2 P1 — strike / block / dodge / counter
 #pragma once
 
+#include <cstdint>
+
 #include "nexus/core/result.h"
 
 #include <string_view>
