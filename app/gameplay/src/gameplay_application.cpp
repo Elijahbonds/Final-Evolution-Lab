@@ -975,8 +975,9 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
     if (modeSet.isErr()) {
       return response(id, "error", {}, modeSet.error());
     }
-    m_felBridge.notifyVenueTravel(ArenaModeRegistry::venueTokenForMode(*modeId), *modeId);
-    m_felBridge.emitVaultSessionSnapshot(*modeId, 0.0F, 0.0F, 0.0F);
+    const auto& arenaState = m_arenaSession.state();
+    m_felBridge.notifyVenueTravel(arenaState.venueToken, arenaState.modeId);
+    m_felBridge.emitVaultSessionSnapshot(arenaState.modeId, 0.0F, 0.0F, 0.0F);
     return response(id, "ok", m_arenaSession.stateJson());
   }
 

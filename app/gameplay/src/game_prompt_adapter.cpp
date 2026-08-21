@@ -374,6 +374,9 @@ auto normalizeGameModeId(std::string_view modeId) -> std::string {
   if (lowered == "venice_pickup" || lowered == "pickup" || lowered == "pickup_basketball") {
     return "basketball_h2h";
   }
+  if (lowered == "basketball_dunk_3d" || lowered == "dunk_3d") {
+    return "basketball_dunk";
+  }
   if (lowered == "karate_kata" || lowered == "kata_endless") {
     return "karate_endless";
   }
