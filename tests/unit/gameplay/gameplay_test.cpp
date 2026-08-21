@@ -411,6 +411,9 @@ void arena_mode_registry_lists_nineteen_modes() {
   require(dunk->nexusMeshPath.find(".nexusmesh.json") != std::string_view::npos,
           "dunk nexus mesh path");
   require(dunk->legacyUeMapAlias.find("/Game/FEL/Maps/") == 0, "dunk legacy ue alias");
+  const auto splitDunk = nexus::gameplay::ArenaModeRegistry::find("basketball_dunk_3d");
+  require(splitDunk.has_value(), "basketball_dunk_3d alias found");
+  require(splitDunk->id == "basketball_dunk", "basketball_dunk_3d resolves to NEXUS dunk runtime");
 }
 
 void arena_mode_registry_production_modes_match_validate_script() {
@@ -1355,6 +1358,37 @@ void flagship_basketball_dunk_validate_only_integration() {
   physics.shutdown();
 }
 
+void split_dunk_3d_alias_starts_canonical_nexus_session() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  nexus::physics::PhysicsWorld physics;
+  require(physics.init({}).isOk(), "physics init");
+
+  const auto started = gameplay.handleGameplayCommand(
+      "fel.arena.start_session",
+      {{"mode_id", "basketball_dunk_3d"}, {"user_id", "split_dunk"}},
+      "split_dunk_start");
+  require(started.status == "ok", "split dunk alias session starts");
+  require(started.payload["mode_id"].get<std::string>() == "basketball_dunk",
+          "split dunk alias resolves to canonical session mode");
+
+  const auto modeState =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "split_dunk_mode_state");
+  require(modeState.payload["mode_id"].get<std::string>() == "basketball_dunk",
+          "split dunk alias resolves to canonical runtime mode");
+
+  require(gameplay.handleGameplayCommand("fel.dunk.charge_begin", {}, "split_dunk_charge").status ==
+              "ok",
+          "split dunk alias accepts dunk charge");
+  require(gameplay.handleGameplayCommand(
+              "fel.dunk.charge_release", {{"power", 0.88F}}, "split_dunk_release")
+              .status == "ok",
+          "split dunk alias accepts dunk release");
+
+  physics.shutdown();
+}
+
 void flagship_karate_kata_validate_only_integration() {
   nexus::creative::VoxelWorld world;
   nexus::creative::WorldManipulator manipulator(world);
@@ -2150,6 +2184,9 @@ void game_prompt_adapter_covers_all_playable_modes() {
 
 void game_prompt_adapter_normalizes_mode_aliases() {
   require(nexus::ai::normalizeGameModeId("venice_pickup") == "basketball_h2h", "venice_pickup alias");
+  require(nexus::ai::normalizeGameModeId("basketball_dunk_3d") == "basketball_dunk",
+          "basketball_dunk_3d alias");
+  require(nexus::ai::normalizeGameModeId("DUNK_3D") == "basketball_dunk", "dunk_3d alias");
   require(nexus::ai::normalizeGameModeId("karate_kata") == "karate_endless", "karate_kata alias");
   require(nexus::ai::normalizeGameModeId("market_browse").empty(), "market_browse excluded");
 }
@@ -2766,6 +2803,7 @@ auto main() -> int {
   mode_runtime_rejects_non_object_snow_and_scene_params();
   snowboarding_action_payloads_are_objects();
   flagship_basketball_dunk_validate_only_integration();
+  split_dunk_3d_alias_starts_canonical_nexus_session();
   flagship_karate_kata_validate_only_integration();
   flagship_venice_pickup_validate_only_integration();
   flagship_court_carnival_validate_only_integration();
