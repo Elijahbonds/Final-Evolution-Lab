@@ -17,6 +17,28 @@ WARNINGS = []
 def err(msg): ERRORS.append(msg)
 def warn(msg): WARNINGS.append(msg)
 
+def load_mode_registry():
+    mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
+    if not mgr_path.exists():
+        return {}
+    mgr = json.loads(mgr_path.read_text())
+    return mgr.get("mode_manager", {}).get("mode_registry", {})
+
+def load_ue_mode_maps():
+    ue_maps_path = REPO_ROOT / "backend" / "ue_mode_maps.json"
+    if not ue_maps_path.exists():
+        return {}
+    return json.loads(ue_maps_path.read_text()).get("mode_to_unreal_map", {})
+
+def is_ue_launch_mode(mode_id, info=None, ue_maps=None):
+    info = info or {}
+    ue_maps = ue_maps or load_ue_mode_maps()
+    if info.get("render_mode") == "IRL":
+        return False
+    if info.get("status") in ("non-game-module", "non_game"):
+        return False
+    return ue_maps.get(mode_id) is not None
+
 # ── 1. Validate DefaultGame.ini packaging settings ──────────────────────────
 def validate_packaging_settings():
     ini_path = REPO_ROOT / "infra" / "ue5_config" / "DefaultGame.ini"
@@ -38,10 +60,8 @@ def validate_packaging_settings():
             err(f"Missing packaging flag: {flag} — {reason}")
 
     # Validate all required maps are listed in MapsToCook
-    mode_mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
-    if mode_mgr_path.exists():
-        mgr = json.loads(mode_mgr_path.read_text())
-        registry = mgr.get("mode_manager", {}).get("mode_registry", {})
+    registry = load_mode_registry()
+    if registry:
         maps_in_ini = re.findall(r'\+MapsToCook=\(FilePath="([^"]+)"\)', content)
         for mode_id, info in registry.items():
             map_path = info.get("map", "")
@@ -74,10 +94,12 @@ def validate_fel_play_map():
                 play_map_section[k.strip()] = v.strip()
 
     # Cross-check with ue_mode_maps.json
-    ue_maps_path = REPO_ROOT / "backend" / "ue_mode_maps.json"
-    if ue_maps_path.exists():
-        ue_maps = json.loads(ue_maps_path.read_text()).get("mode_to_unreal_map", {})
-        for mode_id in ue_maps:
+    ue_maps = load_ue_mode_maps()
+    if ue_maps:
+        registry = load_mode_registry()
+        for mode_id, unreal_map in ue_maps.items():
+            if unreal_map is None:
+                continue
             if mode_id not in play_map_section:
                 err(f"FELPlayMap missing mode: {mode_id}")
     print("  ✓ FELPlayMap cross-reference validated")
@@ -115,11 +137,11 @@ def validate_arena_settings():
 
     mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
     if mgr_path.exists():
-        mgr = json.loads(mgr_path.read_text())
-        registry = mgr.get("mode_manager", {}).get("mode_registry", {})
+        registry = load_mode_registry()
+        ue_maps = load_ue_mode_maps()
         for mode_id, info in registry.items():
             if mode_id not in modes:
-                if info.get("status") in ("production", "staging"):
+                if info.get("status") in ("production", "staging") and is_ue_launch_mode(mode_id, info, ue_maps):
                     warn(f"ArenaSettings missing config for {info['status']} mode: {mode_id}")
 
     print("  ✓ ArenaSettings cross-check completed")

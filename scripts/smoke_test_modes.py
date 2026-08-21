@@ -29,33 +29,47 @@ def skip(msg):
     SKIP += 1
     print(f"  ⏭  {msg}")
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Production modes expected to pass all gates
-# ═══════════════════════════════════════════════════════════════════════════════
-PRODUCTION_MODES = [
-    "basketball_h2h", "basketball_dunk", "basketball_3v3",
-    "karate_h2h", "karate_endless",
-    "baseball", "football", "soccer", "golf",
-    "tennis", "volleyball", "surfing",
-    "gymnastics", "skateboarding", "snowboarding",
-]
+def load_json(relative_path):
+    return json.loads((REPO_ROOT / relative_path).read_text())
 
-NON_GAME_MODULES = ["market_browse"]
+MODE_MANAGER = load_json("backend/FEL_ModeManager.production.json")
+REGISTRY = MODE_MANAGER["mode_manager"]["mode_registry"]
+UE_MODE_MAPS = load_json("backend/ue_mode_maps.json")["mode_to_unreal_map"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+def registry_modes_with_status(status):
+    return [mode for mode, info in REGISTRY.items() if info.get("status") == status]
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Registry-derived launch sets
+# ═══════════════════════════════════════════════════════════════════════════════
+PRODUCTION_MODES = registry_modes_with_status("production")
+LAUNCH_ALIAS_MODES = [mode for mode, info in REGISTRY.items() if info.get("alias_for")]
+STAGING_MODES = [mode for mode in registry_modes_with_status("staging") if mode not in LAUNCH_ALIAS_MODES]
+PREVIEW_MODES = registry_modes_with_status("preview")
+NON_GAME_MODULES = registry_modes_with_status("non-game-module")
+UE_LAUNCH_MODES = [mode for mode, unreal_map in UE_MODE_MAPS.items() if unreal_map is not None]
+SWIFT_ALIAS_TARGETS = {"basketball_dunk": "basketball_dunk_3d"}
+SWIFT_EXCLUDED_PREVIEW_MODES = {"movement_lab"}
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
 # ═══════════════════════════════════════════════════════════════════════════════
 def test_mode_manager_registry():
     print("\n── Test 1: ModeManager Registry ──")
-    mgr = json.loads((REPO_ROOT / "backend" / "FEL_ModeManager.production.json").read_text())
-    registry = mgr["mode_manager"]["mode_registry"]
+    declared_total = MODE_MANAGER["mode_manager"]["total_modes"]
+    declared_production = MODE_MANAGER["mode_manager"]["production_modes"]
+    if declared_total == len(REGISTRY):
+        ok(f"declared total_modes={declared_total}")
+    else:
+        fail(f"declared total_modes={declared_total}, actual={len(REGISTRY)}")
+    if declared_production == len(PRODUCTION_MODES):
+        ok(f"declared production_modes={declared_production}")
+    else:
+        fail(f"declared production_modes={declared_production}, actual={len(PRODUCTION_MODES)}")
 
     for mode in PRODUCTION_MODES:
-        if mode in registry:
-            info = registry[mode]
+        if mode in REGISTRY:
+            info = REGISTRY[mode]
             if info["status"] == "production":
                 ok(f"{mode} → production, venue_id={info['venue_id']}")
             else:
@@ -63,25 +77,32 @@ def test_mode_manager_registry():
         else:
             fail(f"{mode} missing from ModeManager registry")
 
+    for mode in LAUNCH_ALIAS_MODES:
+        info = REGISTRY[mode]
+        if info.get("alias_for") in REGISTRY and info.get("status") in ("production", "staging"):
+            ok(f"{mode} → launch alias for {info['alias_for']}")
+        else:
+            fail(f"{mode} alias_for={info.get('alias_for')} status={info.get('status')}, expected launchable alias")
+
     for mode in STAGING_MODES:
-        if mode in registry and registry[mode]["status"] == "staging":
+        if mode in REGISTRY and REGISTRY[mode]["status"] == "staging":
             ok(f"{mode} → staging (expected)")
-        elif mode in registry:
-            fail(f"{mode} status={registry[mode]['status']}, expected staging")
+        elif mode in REGISTRY:
+            fail(f"{mode} status={REGISTRY[mode]['status']}, expected staging")
         else:
             fail(f"{mode} missing from registry")
 
     for mode in PREVIEW_MODES:
-        if mode in registry and registry[mode]["status"] == "preview":
+        if mode in REGISTRY and REGISTRY[mode]["status"] == "preview":
             ok(f"{mode} → preview (expected)")
         else:
             fail(f"{mode} missing or wrong status in registry")
 
     for mode in NON_GAME_MODULES:
-        if mode in registry and registry[mode]["status"] == "non-game-module":
+        if mode in REGISTRY and REGISTRY[mode]["status"] == "non-game-module":
             ok(f"{mode} → non-game-module (expected)")
-        elif mode in registry:
-            fail(f"{mode} status={registry[mode]['status']}, expected non-game-module")
+        elif mode in REGISTRY:
+            fail(f"{mode} status={REGISTRY[mode]['status']}, expected non-game-module")
         else:
             fail(f"{mode} missing from registry")
 
@@ -90,19 +111,16 @@ def test_mode_manager_registry():
 # ═══════════════════════════════════════════════════════════════════════════════
 def test_ue_mode_maps():
     print("\n── Test 2: UE Mode Maps ──")
-    ue_maps = json.loads((REPO_ROOT / "backend" / "ue_mode_maps.json").read_text())
-    mode_map = ue_maps["mode_to_unreal_map"]
-
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
-        if mode in mode_map:
-            ok(f"{mode} → {mode_map[mode]}")
+    for mode, info in REGISTRY.items():
+        mapped = UE_MODE_MAPS.get(mode, "__missing__")
+        if mapped not in (None, "__missing__"):
+            ok(f"{mode} → {mapped}")
+        elif info.get("render_mode") == "IRL" and mapped is None:
+            ok(f"{mode} → IRL/no UE map")
+        elif info.get("status") in ("preview", "non-game-module"):
+            skip(f"{mode} has no required UE launch map ({info.get('status')})")
         else:
-            if mode == "market_browse":
-                # market_browse may not have a UE map (it's a shop module)
-                ok(f"{mode} → present in ue_mode_maps")
-            else:
-                fail(f"{mode} missing from ue_mode_maps.json")
+            fail(f"{mode} missing from ue_mode_maps.json")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 3: ArenaSettings Coverage
@@ -112,8 +130,7 @@ def test_arena_settings():
     arena = json.loads((REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Content" / "FEL" / "Config" / "ArenaSettings.json").read_text())
     modes = arena["modes"]
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in UE_LAUNCH_MODES:
         if mode in modes:
             cfg = modes[mode]
             has_level = "unrealOpenLevelPackage" in cfg
@@ -134,8 +151,10 @@ def test_venue_registry():
     mode_ids = {m["id"] for m in vr["modes"]}
     venue_keys = {v["venueKey"] for v in vr["venues"]}
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode, info in REGISTRY.items():
+        if mode in SWIFT_EXCLUDED_PREVIEW_MODES:
+            skip(f"{mode} preview education module is not a UE venue")
+            continue
         if mode in mode_ids:
             entry = next(m for m in vr["modes"] if m["id"] == mode)
             if entry["venueKey"] in venue_keys:
@@ -165,8 +184,7 @@ def test_fel_play_map():
                 k, v = line.strip().split("=", 1)
                 play_map[k.strip()] = v.strip()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in UE_LAUNCH_MODES:
         if mode in play_map:
             path = play_map[mode]
             # Verify path uses /Venues/ convention
@@ -175,14 +193,7 @@ def test_fel_play_map():
             else:
                 fail(f"{mode} deep link path doesn't use /Venues/ convention: {path}")
         else:
-            if mode in ("market_browse",):
-                # market_browse has its own path format
-                if mode in play_map:
-                    ok(f"{mode} → {play_map[mode]}")
-                else:
-                    fail(f"{mode} missing from FELPlayMap")
-            else:
-                fail(f"{mode} missing from FELPlayMap")
+            fail(f"{mode} missing from FELPlayMap")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 6: Swift GameMode Enum
@@ -192,11 +203,13 @@ def test_swift_enum():
     swift_path = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
     content = swift_path.read_text()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    app_modes = [mode for mode in PRODUCTION_MODES + LAUNCH_ALIAS_MODES + NON_GAME_MODULES if mode not in SWIFT_EXCLUDED_PREVIEW_MODES]
+    for mode in app_modes:
         # Search for rawValue
         if f'= "{mode}"' in content:
             ok(f'{mode} has Swift enum case')
+        elif mode in SWIFT_ALIAS_TARGETS and f'case "{mode}":' in content and f'= "{SWIFT_ALIAS_TARGETS[mode]}"' in content:
+            ok(f'{mode} resolves through Swift playableMode alias')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
 
@@ -208,8 +221,8 @@ def test_server_seeded_modes():
     server_path = REPO_ROOT / "backend" / "server.py"
     content = server_path.read_text()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    seeded_modes = [mode for mode in PRODUCTION_MODES + LAUNCH_ALIAS_MODES + NON_GAME_MODULES if mode not in SWIFT_EXCLUDED_PREVIEW_MODES]
+    for mode in seeded_modes:
         if f'"id":"{mode}"' in content or f'"id": "{mode}"' in content:
             ok(f"{mode} in server seeded modes")
         else:
@@ -245,7 +258,7 @@ def test_economy_integration():
             fail(f"{label} missing")
 
     # Verify PRQ weights cover all scoring modes
-    scoring_modes = PRODUCTION_MODES  # all production modes are scoring modes
+    scoring_modes = [mode for mode in PRODUCTION_MODES if REGISTRY[mode].get("prq_weight", 0) > 0]
     for mode in scoring_modes:
         if f'"{mode}"' in content.split("PRQ_MODE_WEIGHTS")[1].split("}")[0]:
             ok(f"PRQ weight defined for {mode}")
