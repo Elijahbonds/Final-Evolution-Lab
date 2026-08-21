@@ -30,6 +30,12 @@ if [[ "${SKIP_BUILD}" -eq 0 ]]; then
   if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
     export CXX="$(command -v g++)"
   fi
+  if [[ -n "${CC:-}" ]] && command -v "${CC}" >/dev/null 2>&1; then
+    export CC="$(command -v "${CC}")"
+  fi
+  if [[ -n "${CXX:-}" ]] && command -v "${CXX}" >/dev/null 2>&1; then
+    export CXX="$(command -v "${CXX}")"
+  fi
 
   CACHE_FILE="${HEADLESS_DIR}/CMakeCache.txt"
   if [[ -f "${CACHE_FILE}" && -n "${CXX:-}" ]] && ! grep -q "CMAKE_CXX_COMPILER:FILEPATH=${CXX}" "${CACHE_FILE}"; then
@@ -43,7 +49,7 @@ if [[ "${SKIP_BUILD}" -eq 0 ]]; then
     -DNEXUS_ENABLE_RENDERER=OFF \
     -DNEXUS_BUILD_RUNTIME=OFF \
     -DNEXUS_BUILD_TESTS=ON
-  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)" --target nexus_gameplay_test
+  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 fi
 
 GAMEPLAY_TEST="${HEADLESS_DIR}/nexus_gameplay_test"
