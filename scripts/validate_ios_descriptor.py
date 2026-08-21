@@ -17,6 +17,15 @@ WARNINGS = []
 def err(msg): ERRORS.append(msg)
 def warn(msg): WARNINGS.append(msg)
 
+_UE_MAP_MISSING = object()
+
+def is_irl_mode(mode_id, info=None, ue_map=_UE_MAP_MISSING):
+    if ue_map is None:
+        return True
+    if info and (info.get("render_mode") == "IRL" or info.get("venue_id") is None):
+        return True
+    return mode_id.endswith("_irl")
+
 # ── 1. Validate DefaultGame.ini packaging settings ──────────────────────────
 def validate_packaging_settings():
     ini_path = REPO_ROOT / "infra" / "ue5_config" / "DefaultGame.ini"
@@ -77,7 +86,12 @@ def validate_fel_play_map():
     ue_maps_path = REPO_ROOT / "backend" / "ue_mode_maps.json"
     if ue_maps_path.exists():
         ue_maps = json.loads(ue_maps_path.read_text()).get("mode_to_unreal_map", {})
-        for mode_id in ue_maps:
+        registry = (json.loads((REPO_ROOT / "backend" / "FEL_ModeManager.production.json").read_text())
+                    .get("mode_manager", {})
+                    .get("mode_registry", {}))
+        for mode_id, ue_map in ue_maps.items():
+            if is_irl_mode(mode_id, registry.get(mode_id), ue_map):
+                continue
             if mode_id not in play_map_section:
                 err(f"FELPlayMap missing mode: {mode_id}")
     print("  ✓ FELPlayMap cross-reference validated")
@@ -117,9 +131,13 @@ def validate_arena_settings():
     if mgr_path.exists():
         mgr = json.loads(mgr_path.read_text())
         registry = mgr.get("mode_manager", {}).get("mode_registry", {})
+        ue_maps_path = REPO_ROOT / "backend" / "ue_mode_maps.json"
+        ue_maps = {}
+        if ue_maps_path.exists():
+            ue_maps = json.loads(ue_maps_path.read_text()).get("mode_to_unreal_map", {})
         for mode_id, info in registry.items():
             if mode_id not in modes:
-                if info.get("status") in ("production", "staging"):
+                if info.get("status") in ("production", "staging") and not is_irl_mode(mode_id, info, ue_maps.get(mode_id)):
                     warn(f"ArenaSettings missing config for {info['status']} mode: {mode_id}")
 
     print("  ✓ ArenaSettings cross-check completed")

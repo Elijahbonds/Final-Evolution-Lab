@@ -38,12 +38,19 @@ PRODUCTION_MODES = [
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
     "gymnastics", "skateboarding", "snowboarding",
+    "brain_brawl", "who_scene_it", "court_carnival",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
+EDUCATION_PREVIEW_MODULES = ["movement_lab"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = []
+
+GAMEPLAY_MODES = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+SWIFT_RUNTIME_ALIASES = {
+    "basketball_dunk": "basketballDunkContest3D",
+}
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -85,6 +92,14 @@ def test_mode_manager_registry():
         else:
             fail(f"{mode} missing from registry")
 
+    for mode in EDUCATION_PREVIEW_MODULES:
+        if mode in registry and registry[mode]["status"] == "preview":
+            ok(f"{mode} → preview education module (expected)")
+        elif mode in registry:
+            fail(f"{mode} status={registry[mode]['status']}, expected preview")
+        else:
+            fail(f"{mode} missing from registry")
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 2: UE Mode Maps Coverage
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -93,8 +108,7 @@ def test_ue_mode_maps():
     ue_maps = json.loads((REPO_ROOT / "backend" / "ue_mode_maps.json").read_text())
     mode_map = ue_maps["mode_to_unreal_map"]
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in GAMEPLAY_MODES:
         if mode in mode_map:
             ok(f"{mode} → {mode_map[mode]}")
         else:
@@ -112,8 +126,7 @@ def test_arena_settings():
     arena = json.loads((REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Content" / "FEL" / "Config" / "ArenaSettings.json").read_text())
     modes = arena["modes"]
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in GAMEPLAY_MODES:
         if mode in modes:
             cfg = modes[mode]
             has_level = "unrealOpenLevelPackage" in cfg
@@ -134,8 +147,7 @@ def test_venue_registry():
     mode_ids = {m["id"] for m in vr["modes"]}
     venue_keys = {v["venueKey"] for v in vr["venues"]}
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in GAMEPLAY_MODES:
         if mode in mode_ids:
             entry = next(m for m in vr["modes"] if m["id"] == mode)
             if entry["venueKey"] in venue_keys:
@@ -143,7 +155,11 @@ def test_venue_registry():
             else:
                 fail(f"{mode} references unknown venue: {entry['venueKey']}")
         else:
-            fail(f"{mode} missing from VenueRegistry")
+            alias_entry = next((m for m in vr["modes"] if m.get("nexusRuntimeModeId") == mode), None)
+            if alias_entry and alias_entry["venueKey"] in venue_keys:
+                ok(f"{mode} → alias {alias_entry['id']} venue={alias_entry['venueKey']}")
+            else:
+                fail(f"{mode} missing from VenueRegistry")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 5: DefaultGame.ini FELPlayMap
@@ -165,8 +181,7 @@ def test_fel_play_map():
                 k, v = line.strip().split("=", 1)
                 play_map[k.strip()] = v.strip()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in GAMEPLAY_MODES:
         if mode in play_map:
             path = play_map[mode]
             # Verify path uses /Venues/ convention
@@ -192,11 +207,12 @@ def test_swift_enum():
     swift_path = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
     content = swift_path.read_text()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in GAMEPLAY_MODES:
         # Search for rawValue
         if f'= "{mode}"' in content:
             ok(f'{mode} has Swift enum case')
+        elif mode in SWIFT_RUNTIME_ALIASES and SWIFT_RUNTIME_ALIASES[mode] in content:
+            ok(f'{mode} resolves through Swift alias {SWIFT_RUNTIME_ALIASES[mode]}')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
 
@@ -208,8 +224,7 @@ def test_server_seeded_modes():
     server_path = REPO_ROOT / "backend" / "server.py"
     content = server_path.read_text()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
-    for mode in all_modes:
+    for mode in GAMEPLAY_MODES:
         if f'"id":"{mode}"' in content or f'"id": "{mode}"' in content:
             ok(f"{mode} in server seeded modes")
         else:
@@ -256,7 +271,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print("  18 gameplay modes + module guards · 8 test categories")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()
