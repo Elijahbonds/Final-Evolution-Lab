@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { 
   Trophy, Brain, HelpCircle, Award, Play, RotateCcw, 
@@ -89,7 +89,7 @@ export function TriviaArenaView({ onBack }) {
     synthTone(783.99, "sine", 0.25, 0.16); // G5
   };
 
-  const playIncorrectSound = () => {
+  const playIncorrectSound = useCallback(() => {
     try {
       if (!audioEnabled) return;
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -105,17 +105,7 @@ export function TriviaArenaView({ onBack }) {
       osc.start();
       osc.stop(ctx.currentTime + 0.35);
     } catch {}
-  };
-
-  // Timer logic
-  useEffect(() => {
-    if (gameState === "question" && timeLeft > 0 && !isAnswered) {
-      timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
-    } else if (gameState === "question" && timeLeft === 0 && !isAnswered) {
-      handleTimeout();
-    }
-    return () => clearTimeout(timerRef.current);
-  }, [gameState, timeLeft, isAnswered]);
+  }, [audioEnabled]);
 
   const startNewGame = () => {
     setRound(1);
@@ -181,19 +171,6 @@ export function TriviaArenaView({ onBack }) {
     }
   };
 
-  const handleTimeout = () => {
-    setIsAnswered(true);
-    setSelectedAnswer(-1); // No choice
-    playIncorrectSound();
-    
-    setHistoryLog(prev => [
-      ...prev,
-      { category: currentCategory, question: question.question, correct: false }
-    ]);
-
-    setTimeout(advanceGame, 2000);
-  };
-
   const selectAnswer = (optionIdx) => {
     if (isAnswered) return;
     setIsAnswered(true);
@@ -215,17 +192,7 @@ export function TriviaArenaView({ onBack }) {
     setTimeout(advanceGame, 2000);
   };
 
-  const advanceGame = () => {
-    if (round < 5) {
-      setRound(r => r + 1);
-      setGameState("spinning");
-      setCurrentCategory(null);
-    } else {
-      submitGameSession();
-    }
-  };
-
-  const submitGameSession = async () => {
+  const submitGameSession = useCallback(async () => {
     setGameState("grading");
     setSubmitting(true);
     
@@ -254,7 +221,34 @@ export function TriviaArenaView({ onBack }) {
       setSubmitting(false);
       setGameState("results");
     }
-  };
+  }, [score]);
+
+  const advanceGame = useCallback(() => {
+    if (round < 5) {
+      setRound(r => r + 1);
+      setGameState("spinning");
+      setCurrentCategory(null);
+    } else {
+      submitGameSession();
+    }
+  }, [round, submitGameSession]);
+
+  // Timer logic
+  useEffect(() => {
+    if (gameState === "question" && timeLeft > 0 && !isAnswered) {
+      timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+    } else if (gameState === "question" && timeLeft === 0 && !isAnswered) {
+      setIsAnswered(true);
+      setSelectedAnswer(-1); // No choice
+      playIncorrectSound();
+      setHistoryLog(prev => [
+        ...prev,
+        { category: currentCategory, question: question?.question ?? "", correct: false }
+      ]);
+      setTimeout(advanceGame, 2000);
+    }
+    return () => clearTimeout(timerRef.current);
+  }, [gameState, timeLeft, isAnswered, playIncorrectSound, currentCategory, question, advanceGame]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 fade-in">
