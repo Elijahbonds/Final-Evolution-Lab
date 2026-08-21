@@ -30,20 +30,25 @@ def skip(msg):
     print(f"  ⏭  {msg}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Production modes expected to pass all gates
+# Production NEXUS runtime modes expected to pass all gates.
+# Keep this list aligned with app/gameplay/include/nexus/gameplay/arena_mode_registry.h.
 # ═══════════════════════════════════════════════════════════════════════════════
 PRODUCTION_MODES = [
-    "basketball_h2h", "basketball_dunk", "basketball_3v3",
-    "karate_h2h", "karate_endless",
-    "baseball", "football", "soccer", "golf",
-    "tennis", "volleyball", "surfing",
-    "gymnastics", "skateboarding", "snowboarding",
+    "basketball_h2h", "basketball_dunk", "basketball_3v3", "court_carnival",
+    "karate_h2h", "karate_endless", "baseball", "football",
+    "soccer", "golf", "tennis", "volleyball",
+    "gymnastics", "surfing", "skateboarding", "snowboarding",
+    "brain_brawl", "who_scene_it",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = []
+
+SWIFT_MODE_ALIASES = {
+    "basketball_dunk": ["basketball_dunk_3d"],
+}
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -132,18 +137,28 @@ def test_venue_registry():
     print("\n── Test 4: VenueRegistry Coverage ──")
     vr = json.loads((REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Config" / "FEL_VenueRegistry.production.json").read_text())
     mode_ids = {m["id"] for m in vr["modes"]}
+    runtime_aliases = {
+        m["nexusRuntimeModeId"]: m
+        for m in vr["modes"]
+        if "nexusRuntimeModeId" in m
+    }
     venue_keys = {v["venueKey"] for v in vr["venues"]}
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
         if mode in mode_ids:
             entry = next(m for m in vr["modes"] if m["id"] == mode)
-            if entry["venueKey"] in venue_keys:
-                ok(f"{mode} → venue={entry['venueKey']}")
-            else:
-                fail(f"{mode} references unknown venue: {entry['venueKey']}")
+        elif mode in runtime_aliases:
+            entry = runtime_aliases[mode]
+            ok(f"{mode} → split alias {entry['id']}")
         else:
             fail(f"{mode} missing from VenueRegistry")
+            continue
+
+        if entry["venueKey"] in venue_keys:
+            ok(f"{mode} → venue={entry['venueKey']}")
+        else:
+            fail(f"{mode} references unknown venue: {entry['venueKey']}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 5: DefaultGame.ini FELPlayMap
@@ -197,6 +212,8 @@ def test_swift_enum():
         # Search for rawValue
         if f'= "{mode}"' in content:
             ok(f'{mode} has Swift enum case')
+        elif any(f'= "{alias}"' in content for alias in SWIFT_MODE_ALIASES.get(mode, [])):
+            ok(f'{mode} has Swift split alias')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
 
@@ -256,7 +273,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print("  18 NEXUS runtime modes · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()

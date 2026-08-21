@@ -1,6 +1,8 @@
 // Spec §2.2 / Appendix C — apex tap QTE grading
 #pragma once
 
+#include <cstdint>
+
 #include <string_view>
 
 namespace nexus::gameplay {

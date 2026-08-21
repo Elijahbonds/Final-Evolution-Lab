@@ -1,6 +1,8 @@
 // Spec §7.4 — sprint PRQ stub (hardcoded 75 until HealthKit bridge)
 #pragma once
 
+#include <cstdint>
+
 #include <string_view>
 
 namespace nexus::gameplay {

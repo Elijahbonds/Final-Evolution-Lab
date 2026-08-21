@@ -1,6 +1,8 @@
 // Spec §2.2 P0 — Dunk Contest charge → jump → dunk → score loop
 #pragma once
 
+#include <cstdint>
+
 #include "nexus/core/result.h"
 #include "nexus/gameplay/arcade_physics.h"
 #include "nexus/gameplay/qte_system.h"

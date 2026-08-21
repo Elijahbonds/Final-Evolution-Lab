@@ -10,6 +10,7 @@
 #include "nexus/gameplay/arena_mode_registry.h"
 #include "nexus/gameplay/arcade_physics.h"
 #include "nexus/gameplay/arena_session_manager.h"
+#include "nexus/gameplay/combat_system.h"
 #include "nexus/gameplay/exercise_demo_pipeline.h"
 #include "nexus/gameplay/fel_bridge_service.h"
 #include "nexus/gameplay/fel_session_types.h"
@@ -631,6 +632,57 @@ void karate_h2h_sport_pulse_hp_combat() {
           "outcome_sport nested on hud");
 
   physics.shutdown();
+}
+
+void combat_system_resolves_counter_window_and_labels() {
+  using nexus::gameplay::CombatAction;
+  using nexus::gameplay::CombatSystem;
+
+  const auto counter = CombatSystem::resolve(CombatAction::kCounter, true, 0.15F);
+  require(counter.countered, "counter succeeds at edge of timing window");
+  require(counter.damageDealt == 25.0F, "counter deals flagship karate damage");
+  require(counter.staminaCost == 8.0F, "counter stamina cost stable");
+  require(CombatSystem::actionLabel(counter.action) == std::string_view("counter"),
+          "counter action label stable");
+
+  const auto lateCounter = CombatSystem::resolve(CombatAction::kCounter, true, 0.151F);
+  require(!lateCounter.countered, "counter rejects late opponent attack");
+  require(lateCounter.damageDealt == 0.0F, "late counter deals no damage");
+
+  const auto idleCounter = CombatSystem::resolve(CombatAction::kCounter, false, 0.0F);
+  require(!idleCounter.countered, "counter rejects idle opponent");
+  require(idleCounter.damageDealt == 0.0F, "idle counter deals no damage");
+}
+
+void combat_system_resolves_strike_block_and_dodge_basics() {
+  using nexus::gameplay::CombatAction;
+  using nexus::gameplay::CombatSystem;
+
+  const auto light = CombatSystem::resolve(CombatAction::kLightStrike, false, 1.0F);
+  require(light.damageDealt == 8.0F, "light strike damage stable");
+  require(light.staminaCost == 5.0F, "light strike stamina cost stable");
+  require(CombatSystem::actionLabel(light.action) == std::string_view("light_strike"),
+          "light strike label stable");
+
+  const auto heavy = CombatSystem::resolve(CombatAction::kHeavyStrike, false, 1.0F);
+  require(heavy.damageDealt == 18.0F, "heavy strike damage stable");
+  require(heavy.staminaCost == 15.0F, "heavy strike stamina cost stable");
+  require(CombatSystem::actionLabel(heavy.action) == std::string_view("heavy_strike"),
+          "heavy strike label stable");
+
+  const auto block = CombatSystem::resolve(CombatAction::kBlock, true, 0.3F);
+  require(block.blocked, "block marks incoming attack blocked");
+  require(block.damageDealt == 0.0F, "block deals no damage");
+  require(block.staminaCost == 3.0F, "block stamina cost stable");
+  require(CombatSystem::actionLabel(block.action) == std::string_view("block"),
+          "block label stable");
+
+  const auto dodge = CombatSystem::resolve(CombatAction::kDodge, true, 0.3F);
+  require(!dodge.blocked && !dodge.countered, "dodge is evasive only");
+  require(dodge.damageDealt == 0.0F, "dodge deals no damage");
+  require(dodge.staminaCost == 10.0F, "dodge stamina cost stable");
+  require(CombatSystem::actionLabel(dodge.action) == std::string_view("dodge"),
+          "dodge label stable");
 }
 
 void arena_session_end_dispatches_receipt_and_bridge_messages() {
@@ -2738,6 +2790,8 @@ auto main() -> int {
   gameplay_manager_evaluates_volleyball_outcome();
   outcome_sport_mode_mechanics_and_session_scores();
   karate_h2h_sport_pulse_hp_combat();
+  combat_system_resolves_counter_window_and_labels();
+  combat_system_resolves_strike_block_and_dodge_basics();
   arena_session_end_dispatches_receipt_and_bridge_messages();
   dunk_contest_lifecycle_generates_win_receipt();
   arena_pause_resume_preserves_session();
