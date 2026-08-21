@@ -20,7 +20,8 @@ namespace {
 } // namespace
 
 auto ModeRuntime::physicsParams() const -> ArcadePhysicsParams {
-  return ArcadePhysics::fromPRQ(PRQEngine::getScore(), PRQEngine::getNeuralDrive());
+  return ArcadePhysics::fromPRQ(PRQEngine::scoreForFitness(m_fitnessSnapshot),
+                                PRQEngine::neuralDriveForFitness(m_fitnessSnapshot));
 }
 
 auto ModeRuntime::parseCarnivalPad(std::string_view label) -> std::optional<CarnivalPad> {
@@ -37,6 +38,10 @@ auto ModeRuntime::parseCarnivalPad(std::string_view label) -> std::optional<Carn
     return CarnivalPad::kAtwLandmark;
   }
   return std::nullopt;
+}
+
+void ModeRuntime::setFitnessSnapshot(FitnessSnapshot snapshot) {
+  m_fitnessSnapshot = snapshot;
 }
 
 auto ModeRuntime::setMode(std::string_view modeId) -> Result<void> {
@@ -440,11 +445,12 @@ auto ModeRuntime::handleCommand(std::string_view command, const nlohmann::json& 
 }
 
 auto ModeRuntime::stateJson() const -> nlohmann::json {
+  const float prqScore = PRQEngine::scoreForFitness(m_fitnessSnapshot);
   nlohmann::json payload{
       {"mode_id", m_modeId},
       {"kind", static_cast<int>(m_kind)},
-      {"prq", PRQEngine::getScore()},
-      {"prq_grade", PRQEngine::gradeLabel(PRQEngine::getGrade())},
+      {"prq", prqScore},
+      {"prq_grade", PRQEngine::gradeLabel(PRQEngine::gradeForScore(prqScore))},
   };
 
   const ArcadePhysicsParams physics = physicsParams();

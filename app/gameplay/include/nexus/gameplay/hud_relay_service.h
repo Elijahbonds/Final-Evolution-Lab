@@ -22,6 +22,7 @@ public:
   [[nodiscard]] auto lastRelayError() const -> const nexus::core::WebSocketErrorEnvelope&;
 
   void setWebSocketUrl(std::string url);
+  void setStubTransportEnabled(bool enabled);
   void emitTickFrame(const nlohmann::json& framePayload);
   void broadcastMessage(std::string_view messageType, const nlohmann::json& payload = {});
   [[nodiscard]] auto latestFrame() const -> const nlohmann::json&;

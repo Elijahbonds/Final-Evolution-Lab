@@ -125,6 +125,7 @@ void GameplayApplication::update(double deltaSeconds,
       [](const ai::AgentResponse& agentResponse) { return agentResponse.status == "error"; }));
 
   const auto fitness = m_fitnessData.snapshot();
+  m_modeRuntime.setFitnessSnapshot(fitness);
   if (m_arenaSession.state().phase == ArenaSessionPhase::kActive && !m_arenaSession.state().paused) {
     m_arenaSession.update(deltaSeconds, fitness);
     m_modeRuntime.update(deltaSeconds);
@@ -556,6 +557,7 @@ auto GameplayApplication::applyFitnessCommand(std::string_view command,
   }
 
   const auto snapshot = m_fitnessData.snapshot();
+  m_modeRuntime.setFitnessSnapshot(snapshot);
   NEXUS_LOG_INFO(LogChannel::kAI, "Fitness metrics updated from agent command");
   nlohmann::json payload = fitnessSnapshotToJson(snapshot);
   payload["hud"] = {
@@ -585,6 +587,7 @@ auto GameplayApplication::applyScanGenerateCommand(std::string_view command,
 
   const auto& result = mapped.value();
   m_fitnessData.update(result.frc, result.iap);
+  m_modeRuntime.setFitnessSnapshot(m_fitnessData.snapshot());
 
   const int radius = result.generative.paintRadius;
   const int material = result.generative.voxelMaterial;
@@ -1070,6 +1073,9 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
       config.authToken = params.value("auth_token", config.authToken);
     }
     config.persistToDisk = params.value("persist_to_disk", true);
+    config.httpEnabled = params.value("http_enabled", config.httpEnabled);
+    config.useStubHttpTransport =
+        params.value("use_stub_http_transport", config.useStubHttpTransport);
     m_gameplayManager.setReceiptClientConfig(std::move(config));
     const auto flushResult = m_gameplayManager.flushPendingReceipts();
     return response(id, "ok",

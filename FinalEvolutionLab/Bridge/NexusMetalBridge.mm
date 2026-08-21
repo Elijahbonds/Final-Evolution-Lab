@@ -221,6 +221,13 @@ bool nexus_metal_renderer_initialize(NexusMetalRendererHandle handle, CAMetalLay
   }
   ctx->scene = nexus::renderer::RenderScene::createFromManifest(manifestPath, ctx->modeId);
   const auto loadResult = ctx->renderer.loadVenueFromManifest(ctx->modeId);
+  if (loadResult.isErr()) {
+    ctx->lastError = ctx->renderer.lastError();
+    if (ctx->lastError.empty()) {
+      ctx->lastError = loadResult.error();
+    }
+    return false;
+  }
   if (ctx->scene.meshCount() == 0 ||
       ctx->scene.collectDrawCommands(/*frustumCull=*/false).empty()) {
     ctx->lastError = "Venue scene has no drawable meshes for mode=" + ctx->modeId;
