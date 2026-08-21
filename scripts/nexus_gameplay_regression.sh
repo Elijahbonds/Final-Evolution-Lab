@@ -24,6 +24,20 @@ mkdir -p "${ARTIFACT_DIR}"
 cd "${ROOT}"
 
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
+  if [[ -z "${CC:-}" ]] && command -v gcc >/dev/null 2>&1; then
+    export CC="$(command -v gcc)"
+  fi
+  if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
+    export CXX="$(command -v g++)"
+  fi
+
+  CACHE_FILE="${HEADLESS_DIR}/CMakeCache.txt"
+  if [[ -f "${CACHE_FILE}" && -n "${CXX:-}" ]] && ! grep -q "CMAKE_CXX_COMPILER:FILEPATH=${CXX}" "${CACHE_FILE}"; then
+    echo "==> Clearing stale headless CMake cache for compiler ${CXX}"
+    rm -f "${CACHE_FILE}"
+    rm -rf "${HEADLESS_DIR}/CMakeFiles"
+  fi
+
   echo "==> Configure + build headless gameplay tests"
   cmake -S . -B "${HEADLESS_DIR}" \
     -DNEXUS_ENABLE_RENDERER=OFF \
