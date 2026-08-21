@@ -49,7 +49,8 @@ struct GameModeSelectionView: View {
                 GamePlayView(
                     viewModel: viewModel,
                     gameMode: mode,
-                    sessionReadiness: sessionReadiness
+                    sessionReadiness: sessionReadiness,
+                    coopPlayerCount: mode.id == .karateEndless ? karateCoopPlayerCount : 1
                 )
                 .id(gameplayLaunchId)
             }
@@ -124,12 +125,7 @@ struct GameModeSelectionView: View {
                 HStack(spacing: 10) {
                     ForEach(GameModeRegistry.nexusSprintModes) { mode in
                         Button {
-                            FELHaptics.modeSelect()
-                            SaveSystem.saveLastSelectedArenaModeId(mode.id.rawValue)
-                            pendingMode = mode
-                            Task { @MainActor in
-                                await launchSelectedMode()
-                            }
+                            selectMode(mode)
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(mode.nexusSprintPriorityLabel)
@@ -356,23 +352,7 @@ struct GameModeSelectionView: View {
             LazyVGrid(columns: columns, spacing: 14) {
                 ForEach(Array(modes.enumerated()), id: \.element.id) { modeIndex, mode in
                     GameModeCard(mode: mode) {
-                        guard mode.isLaunchableInCurrentBuild else {
-                            comingSoonModeName = mode.name
-                            showComingSoonSheet = true
-                            return
-                        }
-                        FELHaptics.modeSelect()
-                        SaveSystem.saveLastSelectedArenaModeId(mode.id.rawValue)
-                        pendingMode = mode
-                        if mode.id.isIRLDunkContest {
-                            showDunkPlatform = true
-                        } else if mode.id == .karateEndless {
-                            showKarateCoopLobby = true
-                        } else {
-                            Task { @MainActor in
-                                await launchSelectedMode()
-                            }
-                        }
+                        selectMode(mode)
                     }
                     .opacity(appeared ? 1 : 0)
                     .offset(y: appeared ? 0 : 20)
@@ -381,6 +361,27 @@ struct GameModeSelectionView: View {
                         value: appeared
                     )
                 }
+            }
+        }
+    }
+
+    @MainActor
+    private func selectMode(_ mode: GameMode) {
+        guard mode.isLaunchableInCurrentBuild else {
+            comingSoonModeName = mode.name
+            showComingSoonSheet = true
+            return
+        }
+        FELHaptics.modeSelect()
+        SaveSystem.saveLastSelectedArenaModeId(mode.id.rawValue)
+        pendingMode = mode
+        if mode.id.isIRLDunkContest {
+            showDunkPlatform = true
+        } else if mode.id == .karateEndless {
+            showKarateCoopLobby = true
+        } else {
+            Task { @MainActor in
+                await launchSelectedMode()
             }
         }
     }

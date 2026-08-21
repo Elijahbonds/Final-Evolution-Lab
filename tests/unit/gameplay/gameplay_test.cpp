@@ -1264,6 +1264,22 @@ void mode_runtime_rejects_non_object_snow_and_scene_params() {
   router.shutdown();
 }
 
+void mode_runtime_canonicalizes_alias_mode_ids() {
+  nexus::gameplay::ModeRuntime runtime;
+
+  require(runtime.setMode("venice_pickup").isOk(), "venice pickup alias accepted");
+  auto pickupState = runtime.stateJson();
+  require(pickupState["mode_id"].get<std::string>() == "basketball_h2h",
+          "venice pickup emits canonical mode id");
+  require(pickupState["pickup"].is_object(), "canonical pickup state nested");
+
+  require(runtime.setMode("karate_kata").isOk(), "karate kata alias accepted");
+  auto karateState = runtime.stateJson();
+  require(karateState["mode_id"].get<std::string>() == "karate_endless",
+          "karate kata emits canonical mode id");
+  require(karateState["karate"].is_object(), "canonical karate state nested");
+}
+
 void snowboarding_action_payloads_are_objects() {
   nexus::creative::VoxelWorld world;
   nexus::creative::WorldManipulator manipulator(world);
@@ -2362,7 +2378,7 @@ void nexus_sprint_live_modes_agent_contract_integration() {
     const char* nestedStateKey;
   };
 
-  const std::array<SprintProbe, 9> probes{{
+  const std::array<SprintProbe, 10> probes{{
       {"basketball_dunk", "fel.dunk.charge_begin", {}, "fel.dunk.charge_begin", "dunk"},
       {"karate_endless", "fel.karate.action", {{"action", "heavy_strike"}},
        "fel.karate.action", "karate"},
@@ -2385,6 +2401,8 @@ void nexus_sprint_live_modes_agent_contract_integration() {
        "fel.skate.trick", "skateboarding"},
       {"snowboarding", "fel.snow.carve", {{"timing", 0.93F}, {"line_difficulty", 0.75F}},
        "fel.snow.carve", "snowboarding"},
+      {"surfing", "fel.surf.carve", {{"timing", 0.93F}, {"wave_difficulty", 0.75F}},
+       "fel.surf.carve", "surfing"},
       {"who_scene_it", "fel.scene.buzz_in", {{"timing", 0.91F}}, "fel.scene.buzz_in",
        "who_scene_it"},
   }};
@@ -2764,6 +2782,7 @@ auto main() -> int {
   fitness_partial_update_rejects_empty_params();
   fitness_update_rejects_non_finite_values();
   mode_runtime_rejects_non_object_snow_and_scene_params();
+  mode_runtime_canonicalizes_alias_mode_ids();
   snowboarding_action_payloads_are_objects();
   flagship_basketball_dunk_validate_only_integration();
   flagship_karate_kata_validate_only_integration();

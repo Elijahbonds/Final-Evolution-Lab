@@ -14,6 +14,7 @@ struct GamePlayView: View {
     let sessionReadiness: Double
     /// HUD theme from NEXUS Game Generator customizer — flows into live gameplay chrome.
     var generatorHudTheme: NexusGeneratorHudTheme? = nil
+    var coopPlayerCount: Int = 1
     /// When true (screenshot harness only), skips multiplayer lobby + countdown so START MATCH + scene chrome are visible immediately.
     var skipMatchLobbyForScreenshotHarness: Bool = false
 
@@ -208,6 +209,16 @@ struct GamePlayView: View {
 
     private var isBasketball: Bool {
         gameMode.id == .basketballHeadToHead || gameMode.id.is3DDunkContest || gameMode.id == .basketball3v3
+    }
+
+    /// C++ gameplay owns HUD score authority for NEXUS runtime modes; Swift remains fallback for IRL/preview shells.
+    private var usesNexusScoreAuthority: Bool {
+        switch gameMode.id {
+        case .basketballDunkContestIRL, .marketBrowse:
+            return false
+        default:
+            return gameMode.id.isNexusSprintPlayable
+        }
     }
 
     private var supportsDefense: Bool {
@@ -462,7 +473,11 @@ struct GamePlayView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .onAppear {
             sceneViewportReady = false
-            nexusEngine.start(modeId: gameMode.id.nexusRuntimeModeId, readiness: sessionReadiness)
+            nexusEngine.start(
+                modeId: gameMode.id.nexusRuntimeModeId,
+                readiness: sessionReadiness,
+                coopPlayerCount: gameMode.id == .karateEndless ? coopPlayerCount : 1
+            )
             FELSoundscapeEngine.shared.start(for: gameMode.id)
             FELHaptics.prepare()
             if skipMatchLobbyForScreenshotHarness {
@@ -476,6 +491,24 @@ struct GamePlayView: View {
                 opponentScore = newScore
             }
         }
+        .onChange(of: nexusEngine.hud.playerScore) { _, newScore in
+            guard usesNexusScoreAuthority, nexusEngine.sessionActive else { return }
+            let roundedScore = Int(newScore.rounded())
+            if score != roundedScore {
+                withAnimation(.spring(response: 0.2)) {
+                    score = roundedScore
+                }
+            }
+        }
+        .onChange(of: nexusEngine.hud.opponentScore) { _, newScore in
+            guard usesNexusScoreAuthority, nexusEngine.sessionActive else { return }
+            let roundedScore = Int(newScore.rounded())
+            if opponentScore != roundedScore {
+                withAnimation(.spring(response: 0.2)) {
+                    opponentScore = roundedScore
+                }
+            }
+        }
         .onChange(of: nexusEngine.hud.karateWave) { oldWave, newWave in
             if gameMode.id == .karateEndless, newWave > oldWave, oldWave > 0 {
                 FELGameplayEventBus.postWaveCompleted()
@@ -483,7 +516,9 @@ struct GamePlayView: View {
         }
         .onDisappear {
             sceneViewportReady = false
-            nexusEngine.stop()
+            if nexusEngine.sessionActive {
+                nexusEngine.stop(playerScore: score, opponentScore: opponentScore)
+            }
             FELSoundscapeEngine.shared.stop()
             matchLobbyComplete = false
             multipeerService.stop()
@@ -4089,6 +4124,9 @@ struct GamePlayView: View {
 
     private func endGame() {
         guard isActive else { return }
+        if nexusEngine.sessionActive {
+            nexusEngine.stop(playerScore: score, opponentScore: opponentScore)
+        }
         runMeterTimer?.cancel()
         runMeterTimer = nil
         streakTimer?.cancel()
