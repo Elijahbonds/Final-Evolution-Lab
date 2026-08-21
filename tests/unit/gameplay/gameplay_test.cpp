@@ -762,9 +762,10 @@ void session_receipt_flush_keeps_queue_when_http_disabled() {
           "session ends");
 
   const auto flush = gameplay.handleGameplayCommand(
-      "fel.arena.flush_receipts", {{"persist_to_disk", true}}, "flush");
+      "fel.arena.flush_receipts", {{"persist_to_disk", true}, {"http_enabled", false}}, "flush");
   require(flush.status == "ok", "flush command ok");
   require(flush.payload["delivered"].get<std::size_t>() >= 1, "receipt delivered to disk queue");
+  require(flush.payload["queued_on_disk"].get<std::size_t>() >= 1, "receipt persisted to disk");
   require(!flush.payload["queue_directory"].get<std::string>().empty(), "queue directory returned");
 
   const auto receipts =
@@ -958,6 +959,30 @@ void prq_stub_returns_sprint_defaults() {
   require(nexus::gameplay::PRQEngine::getScore() == 75.0F, "prq sprint default");
   require(nexus::gameplay::PRQEngine::getGrade() == nexus::gameplay::PRQGrade::kPrimed,
           "prq grade primed");
+}
+
+void prq_uses_measured_fitness_snapshot_when_available() {
+  nexus::gameplay::FitnessSnapshot snapshot{};
+  snapshot.frc = {.mobilityScore = 0.85F, .activeRangeScore = 0.80F, .controlScore = 0.95F};
+  snapshot.iap = {.engagementScore = 0.90F, .confidence = 0.90F, .breathPhase = 1};
+  snapshot.frcComposite = nexus::gameplay::computeFrcComposite(snapshot.frc);
+  snapshot.iapComposite = nexus::gameplay::computeIapComposite(snapshot.iap);
+  snapshot.powerReadiness = nexus::gameplay::computePowerReadiness(snapshot.frc, snapshot.iap);
+  snapshot.revision = 1;
+
+  const float score = nexus::gameplay::PRQEngine::scoreForFitness(snapshot);
+  const float neuralDrive = nexus::gameplay::PRQEngine::neuralDriveForFitness(snapshot);
+  require(score > nexus::gameplay::PRQEngine::getScore(), "fitness PRQ exceeds default when ready");
+  require(neuralDrive > nexus::gameplay::PRQEngine::getNeuralDrive(),
+          "fitness neural drive exceeds default when ready");
+  require(nexus::gameplay::PRQEngine::gradeForScore(score) ==
+              nexus::gameplay::PRQGrade::kElite,
+          "high readiness PRQ grades elite");
+
+  nexus::gameplay::ModeRuntime runtime;
+  require(runtime.setMode("basketball_dunk").isOk(), "mode runtime accepts dunk mode");
+  runtime.setFitnessSnapshot(snapshot);
+  require(runtime.stateJson()["prq"].get<float>() == score, "mode runtime exposes fitness PRQ");
 }
 
 void arcade_physics_maps_prq_75() {
@@ -1889,6 +1914,16 @@ void hud_relay_websocket_stub_emits_frames() {
           "hud relay WS payload type");
 }
 
+void hud_relay_live_transport_toggle_reaches_tcp_path() {
+  nexus::gameplay::HudRelayService relay;
+  relay.setWebSocketUrl("ws://127.0.0.1:1/ws/hud");
+  relay.setStubTransportEnabled(false);
+  const auto result = relay.connectRelay();
+  require(result.isErr(), "hud relay live transport attempts TCP and fails closed port");
+  require(relay.relayState() == nexus::core::WebSocketClientState::kError,
+          "hud relay live transport surfaces TCP error");
+}
+
 void session_receipt_http_stub_posts_localhost_contract() {
   const auto tempDir = std::filesystem::temp_directory_path() /
                        ("fel_receipt_http_stub_test_" + std::to_string(getpid()));
@@ -1921,6 +1956,7 @@ void session_receipt_http_stub_posts_localhost_contract() {
   client.enqueue(receipt);
   const auto flush = client.flush();
   require(flush.delivered == 1, "stub HTTP flush delivers receipt");
+  require(flush.queued_on_disk == 0, "HTTP-only stub flush does not count disk queue");
   require(client.pendingCount() == 0, "receipt cleared after stub POST");
   require(client.postedRequests().size() == 1, "one stub POST recorded");
   require(client.postedRequests().front().url.find("/api/games/session") != std::string::npos,
@@ -2746,6 +2782,7 @@ auto main() -> int {
   hud_poll_returns_tick_frame_payload();
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
+  hud_relay_live_transport_toggle_reaches_tcp_path();
   session_receipt_http_stub_posts_localhost_contract();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
@@ -2755,6 +2792,7 @@ auto main() -> int {
   engine_tick_runs_physics_before_gameplay_update();
   gameplay_update_drains_agent_commands_before_throw_catch();
   prq_stub_returns_sprint_defaults();
+  prq_uses_measured_fitness_snapshot_when_available();
   arcade_physics_maps_prq_75();
   dunk_contest_charge_release_scores();
   karate_endless_wave_spawns();

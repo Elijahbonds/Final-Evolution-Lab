@@ -42,6 +42,7 @@ public:
   [[nodiscard]] auto pendingCount() const -> std::size_t;
   [[nodiscard]] auto pendingReceipts() const -> std::span<const nlohmann::json>;
   [[nodiscard]] auto postedRequests() const -> std::span<const nexus::core::HttpPostRecord>;
+  [[nodiscard]] auto config() const -> const SessionReceiptClientConfig&;
   [[nodiscard]] auto queueDirectory() const -> const std::string&;
   void clearPending();
 
@@ -49,7 +50,7 @@ private:
   [[nodiscard]] static auto defaultQueueDirectory() -> std::string;
   [[nodiscard]] auto ensureQueueDirectory() const -> Result<void>;
   [[nodiscard]] auto persistReceipt(const nlohmann::json& receipt) -> std::optional<std::string>;
-  [[nodiscard]] auto deliverReceipt(const nlohmann::json& receipt) -> Result<int>;
+  [[nodiscard]] auto deliverReceipt(const nlohmann::json& receipt) -> Result<bool>;
 
   SessionReceiptClientConfig m_config;
   nexus::core::HttpClient m_http;

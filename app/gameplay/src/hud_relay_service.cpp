@@ -19,7 +19,7 @@ nexus::core::WebSocketClient makeRelayClient(std::string url, bool useStubTransp
 } // namespace
 
 HudRelayService::HudRelayService()
-    : m_relay(makeRelayClient(m_websocketUrl, true)) {}
+    : m_relay(makeRelayClient(m_websocketUrl, m_useStubTransport)) {}
 
 auto HudRelayService::connectRelay() -> nexus::Result<void> {
   m_relay.setUrl(m_websocketUrl);
@@ -41,6 +41,11 @@ auto HudRelayService::lastRelayError() const -> const nexus::core::WebSocketErro
 void HudRelayService::setWebSocketUrl(std::string url) {
   m_websocketUrl = std::move(url);
   m_relay.setUrl(m_websocketUrl);
+}
+
+void HudRelayService::setStubTransportEnabled(bool enabled) {
+  m_useStubTransport = enabled;
+  m_relay.setStubTransportEnabled(enabled);
 }
 
 void HudRelayService::emitTickFrame(const nlohmann::json& framePayload) {

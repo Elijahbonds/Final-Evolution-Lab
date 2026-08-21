@@ -109,7 +109,9 @@ auto SessionReceiptClient::flush() -> SessionReceiptDispatchResult {
     const auto delivery = deliverReceipt(receipt);
     if (delivery.isOk()) {
       ++result.delivered;
-      ++result.queued_on_disk;
+      if (delivery.value()) {
+        ++result.queued_on_disk;
+      }
       continue;
     }
 
@@ -156,6 +158,10 @@ auto SessionReceiptClient::postedRequests() const -> std::span<const nexus::core
   return m_http.postedRequests();
 }
 
+auto SessionReceiptClient::config() const -> const SessionReceiptClientConfig& {
+  return m_config;
+}
+
 auto SessionReceiptClient::queueDirectory() const -> const std::string& {
   return m_config.queueDirectory;
 }
@@ -193,16 +199,18 @@ auto SessionReceiptClient::persistReceipt(const nlohmann::json& receipt) -> std:
   return path.string();
 }
 
-auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Result<int> {
+auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Result<bool> {
   const std::string modeId = receipt.value("mode_id", std::string("unknown"));
   const int score = receipt.value("score", 0);
+  bool persistedOnDisk = false;
 
   if (m_config.persistToDisk) {
     if (const auto path = persistReceipt(receipt)) {
+      persistedOnDisk = true;
       NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                      "Session receipt persisted for iOS/SessionService pickup path=" + *path);
     } else {
-      return Result<int>::err("failed to persist receipt");
+      return Result<bool>::err("failed to persist receipt");
     }
   }
 
@@ -210,7 +218,7 @@ auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Resu
     m_http.setUrl(resolvePostUrl(m_config));
     const auto postResult = m_http.post(receipt.dump());
     if (postResult.isErr()) {
-      return postResult;
+      return Result<bool>::err(postResult.error());
     }
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                    "Session receipt POST mode=" + modeId + " score=" + std::to_string(score) +
@@ -221,7 +229,7 @@ auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Resu
                        " score=" + std::to_string(score));
   }
 
-  return Result<int>::ok(200);
+  return Result<bool>::ok(persistedOnDisk);
 }
 
 } // namespace nexus::gameplay
