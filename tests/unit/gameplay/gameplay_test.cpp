@@ -1929,6 +1929,49 @@ void session_receipt_http_stub_posts_localhost_contract() {
           "POST body includes mode_id");
 }
 
+void session_receipt_live_transport_config_survives_agent_flush() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk"}, {"user_id", "live_receipt_user"}},
+              "live_receipt_start")
+              .status == "ok",
+          "live receipt session starts");
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.end_session",
+              {{"player_score", 21.0F}, {"opponent_score", 10.0F}},
+              "live_receipt_end")
+              .status == "ok",
+          "live receipt session ends");
+
+  const nlohmann::json liveFlushParams = {
+      {"base_url", "http://127.0.0.1:9/api/games/session"},
+      {"persist_to_disk", false},
+      {"http_enabled", true},
+      {"use_stub_transport", false},
+  };
+  const auto firstFlush =
+      gameplay.handleGameplayCommand("fel.arena.flush_receipts", liveFlushParams, "live_flush_1");
+  require(firstFlush.status == "ok", "first live flush command ok");
+  require(firstFlush.payload["delivered"].get<std::size_t>() == 0,
+          "unreachable live receipt endpoint is not delivered");
+  require(firstFlush.payload["requeued"].get<std::size_t>() >= 1,
+          "failed live receipt remains queued");
+  require(firstFlush.payload["queued_on_disk"].get<std::size_t>() == 0,
+          "HTTP-only live receipt does not report disk queue");
+
+  const auto secondFlush =
+      gameplay.handleGameplayCommand("fel.arena.flush_receipts", {}, "live_flush_2");
+  require(secondFlush.status == "ok", "second live flush command ok");
+  require(secondFlush.payload["delivered"].get<std::size_t>() == 0,
+          "live receipt config does not fall back to stub transport");
+  require(secondFlush.payload["requeued"].get<std::size_t>() >= 1,
+          "live receipt remains queued after preserved transport retry");
+}
+
 struct TextGenTempWorkspace {
   std::filesystem::path root;
   std::string manifestPath;
@@ -2362,7 +2405,7 @@ void nexus_sprint_live_modes_agent_contract_integration() {
     const char* nestedStateKey;
   };
 
-  const std::array<SprintProbe, 9> probes{{
+  const std::array<SprintProbe, 10> probes{{
       {"basketball_dunk", "fel.dunk.charge_begin", {}, "fel.dunk.charge_begin", "dunk"},
       {"karate_endless", "fel.karate.action", {{"action", "heavy_strike"}},
        "fel.karate.action", "karate"},
@@ -2385,6 +2428,8 @@ void nexus_sprint_live_modes_agent_contract_integration() {
        "fel.skate.trick", "skateboarding"},
       {"snowboarding", "fel.snow.carve", {{"timing", 0.93F}, {"line_difficulty", 0.75F}},
        "fel.snow.carve", "snowboarding"},
+      {"surfing", "fel.surf.carve", {{"timing", 0.9F}, {"wave_difficulty", 0.8F}},
+       "fel.surf.carve", "surfing"},
       {"who_scene_it", "fel.scene.buzz_in", {{"timing", 0.91F}}, "fel.scene.buzz_in",
        "who_scene_it"},
   }};
@@ -2747,6 +2792,7 @@ auto main() -> int {
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_live_transport_config_survives_agent_flush();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();

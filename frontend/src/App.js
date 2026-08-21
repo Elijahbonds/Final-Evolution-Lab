@@ -523,11 +523,11 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
     }
   }, [consoleLogs]);
 
-  const addLog = (msg) => {
+  const addLog = useCallback((msg) => {
     setConsoleLogs(prev => [...prev, { id: Date.now() + Math.random(), ts: new Date().toLocaleTimeString(), msg }].slice(-25));
-  };
+  }, []);
 
-  const getAudioContext = () => {
+  const getAudioContext = useCallback(() => {
     if (!audioCtxRef.current) {
       audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
     }
@@ -535,9 +535,9 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
       audioCtxRef.current.resume();
     }
     return audioCtxRef.current;
-  };
+  }, []);
 
-  const playSound = (type) => {
+  const playSound = useCallback((type) => {
     try {
       const ctx = getAudioContext();
       const osc = ctx.createOscillator();
@@ -581,7 +581,7 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
     } catch (e) {
       console.warn("Web Audio API failed:", e);
     }
-  };
+  }, [getAudioContext]);
 
   useEffect(() => {
     if (gameActive && timeLeft > 0) {
@@ -607,7 +607,7 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
       addLog(`[Engine] Telemetry target spawned: ID_${Math.floor(newTarget.id % 10000)} (type=${newTarget.type})`);
     }, mode.game_type === 'precision' ? 1400 : 750);
     return () => clearInterval(spawn);
-  }, [gameActive, mode.game_type]);
+  }, [gameActive, mode.game_type, addLog]);
 
   useEffect(() => {
     const cleanup = setInterval(() => {
@@ -668,7 +668,7 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
     } catch (_e) {
       addLog(`[Error] Reward commit failed; showing local estimate.`);
     }
-  }, [mode.id, score, maxCombo, onComplete]);
+  }, [mode.id, score, maxCombo, onComplete, playSound, addLog]);
 
   useEffect(() => {
     if (timeLeft <= 0 && gameActive) { finalizeGame(); }
@@ -1389,15 +1389,6 @@ const BrainBrawlView = ({ onBack }) => {
   const [category, setCategory] = useState('all');
   const timerRef = useRef(null);
 
-  useEffect(() => {
-    if (gameState === 'playing' && timeLeft > 0) {
-      timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
-    } else if (gameState === 'playing' && timeLeft <= 0) {
-      answerQuestion(-1); // Time's up
-    }
-    return () => clearTimeout(timerRef.current);
-  }, [gameState, timeLeft]);
-
   const startGame = async () => {
     try {
       const r = await axios.post(`${API}/brain-brawl/session/start`, { category, count: 10 });
@@ -1419,7 +1410,7 @@ const BrainBrawlView = ({ onBack }) => {
     }
   };
 
-  const answerQuestion = (index) => {
+  const answerQuestion = useCallback((index) => {
     clearTimeout(timerRef.current);
     const next = [...picked, index];
     setPicked(next);
@@ -1445,7 +1436,16 @@ const BrainBrawlView = ({ onBack }) => {
       setCurrentQ((c) => c + 1);
       setTimeLeft(15);
     }
-  };
+  }, [currentQ, picked, questions, sessionId]);
+
+  useEffect(() => {
+    if (gameState === 'playing' && timeLeft > 0) {
+      timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+    } else if (gameState === 'playing' && timeLeft <= 0) {
+      answerQuestion(-1); // Time's up
+    }
+    return () => clearTimeout(timerRef.current);
+  }, [gameState, timeLeft, answerQuestion]);
 
   return (
     <div className="space-y-8 fade-in">

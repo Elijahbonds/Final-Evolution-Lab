@@ -1,24 +1,4 @@
 {
-  "hosting": {
-    "public": "public",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "rewrites": [
-      {
-        "source": "/api/**",
-        "destination": "/api/**"
-      },
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ],
-    "headers": [
-      {
-        "source": "/static/**",
-        "headers": [{"key": "Cache-Control", "value": "max-age=31536000,immutable"}]
-      }
-    ]
-  },
   "database": {
     "rules": "database.rules.json"
   },
@@ -41,6 +21,17 @@
         {
           "source": "**",
           "destination": "/index.html"
+        }
+      ],
+      "headers": [
+        {
+          "source": "/static/**",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "max-age=31536000,immutable"
+            }
+          ]
         }
       ]
     }

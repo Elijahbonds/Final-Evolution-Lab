@@ -109,7 +109,9 @@ auto SessionReceiptClient::flush() -> SessionReceiptDispatchResult {
     const auto delivery = deliverReceipt(receipt);
     if (delivery.isOk()) {
       ++result.delivered;
-      ++result.queued_on_disk;
+      if (m_config.persistToDisk) {
+        ++result.queued_on_disk;
+      }
       continue;
     }
 
@@ -119,7 +121,9 @@ auto SessionReceiptClient::flush() -> SessionReceiptDispatchResult {
       remaining.push_back(std::move(receipt));
       remainingRetries.push_back(retries);
       if (m_config.persistToDisk) {
-        (void)persistReceipt(remaining.back());
+        if (persistReceipt(remaining.back())) {
+          ++result.queued_on_disk;
+        }
       }
     } else {
       NEXUS_LOG_WARN(nexus::LogChannel::kAI,
@@ -158,6 +162,10 @@ auto SessionReceiptClient::postedRequests() const -> std::span<const nexus::core
 
 auto SessionReceiptClient::queueDirectory() const -> const std::string& {
   return m_config.queueDirectory;
+}
+
+auto SessionReceiptClient::config() const -> const SessionReceiptClientConfig& {
+  return m_config;
 }
 
 void SessionReceiptClient::clearPending() {
@@ -210,11 +218,16 @@ auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Resu
     m_http.setUrl(resolvePostUrl(m_config));
     const auto postResult = m_http.post(receipt.dump());
     if (postResult.isErr()) {
-      return postResult;
+      return Result<int>::err(postResult.error());
+    }
+    const int statusCode = postResult.value();
+    if (statusCode < 200 || statusCode >= 300) {
+      return Result<int>::err("session POST returned HTTP " + std::to_string(statusCode));
     }
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                    "Session receipt POST mode=" + modeId + " score=" + std::to_string(score) +
-                       " status=" + std::to_string(postResult.value()));
+                       " status=" + std::to_string(statusCode));
+    return Result<int>::ok(statusCode);
   } else {
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                    "Session receipt flush (HTTP disabled) mode=" + modeId +
