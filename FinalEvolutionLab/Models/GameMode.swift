@@ -107,12 +107,6 @@ extension GameModeId {
 
     /// Playable via NEXUS headless gameplay (full simulators + outcome evaluators).
     var isNexusSprintPlayable: Bool {
-        switch self {
-        case .marketBrowse:
-            return true
-        default:
-            break
-        }
         switch nexusCapabilityTier {
         case .prod, .sim, .staging: return true
         case .preview, .nonGame: return false

@@ -1266,7 +1266,6 @@ final class NexusGameplayEngine {
     func stop(playerScore: Int = 0, opponentScore: Int = 0, skipScoreSync: Bool = false) {
         proMotionTicker.stop()
         lastHudPollTime = 0
-        sessionActive = false
 
         if session != nil {
             if !skipScoreSync {
