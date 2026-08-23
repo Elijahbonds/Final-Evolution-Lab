@@ -36,18 +36,39 @@ one did not.
 |---|---|---|---|---|
 | 1 | **Camera: dunk radius 14 → 3.0** | one number | Abacus | character 8.2% → 21%, 46px → ~150px |
 | 2 | **Mount `<CaptionRegion />`** | 2 files | Abacus | live regions 0 → 2 |
-| 3 | **Re-export the character mesh** | one Blender session | Mini | the arms can move at all |
+| 3 | **Prefix bug: fix and shipped** | done | — | conform pipeline no longer silently fails on FEL's own mesh |
+| 4 | **Find and fix whatever produces the deployed 18,409-vert `Body_c5`** | unknown | Mini | the arms can move at all |
 
-Three items. One is a number, one is a component, one is an art task. That is
-the entire distance between here and "measurably shippable".
+### Item 3 is done — and it redirects item 4
+
+M104 downloaded FEL's actual base mesh and confirmed `mixamorig10:` — not
+`mixamorig:` or `mixamorig1:` — is its real bone prefix. All three copies of
+FEL's strip-prefix rule (`boneNames.ts`, `clip_check.mjs`, `fel_conform.py`)
+missed it; `fel_conform.py`'s own health check would have reported this exact
+asset as `conforms: True` while every bone lookup against it silently failed.
+Fixed, tested against the real prefix, zero regressions across 33 suites.
+
+**What M104 did NOT confirm: that the raw downloaded asset is where the
+T-pose bug lives.** The one region directly checked — the jacket's sleeve,
+which has geometry running the full arm to the wrist — was **already
+correctly bound to arm bones, 100%**, before any repair. And the raw asset's
+vertex count (20,431 across four pieces) does not match the 18,409 M98
+measured on the live, deployed, single-mesh character. Something between
+"raw Mixamo download" and "what the game actually renders" changes the mesh,
+and that is where item 4 needs to look — not at re-running the same download.
+
+`tools/glb_reskin.mjs inspect <file.glb>` gives the M98 measurement offline,
+in about a second, the moment the actual deployed asset can be extracted.
+Do that first, before opening Blender.
 
 ### Why the camera and the mesh are the same fix
 
-They are not, but they fail together. The character is 46 CSS pixels tall, and
-at that size a correctly-rigged arm and a welded one are the same picture — it
-is what made me misdiagnose the T-pose twice. Fixing the camera without fixing
-the mesh gives you a **large** broken character. Fixing the mesh without the
-camera gives you a correct character nobody can see.
+They fail together regardless of where the mesh bug turns out to live. The
+character is 46 CSS pixels tall, and at that size a correctly-rigged arm and
+a welded one are the same picture — it is what made the T-pose get
+misdiagnosed twice already. Fixing the camera without fixing the mesh gives
+you a **large** broken character. Fixing the mesh without the camera gives
+you a correct character nobody can see.
 
 Do both before judging whether it looks right.
 

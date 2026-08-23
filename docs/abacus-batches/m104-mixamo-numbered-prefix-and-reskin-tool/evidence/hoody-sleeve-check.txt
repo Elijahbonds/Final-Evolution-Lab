@@ -1,0 +1,2 @@
+male_athlete_base.glb -> sleeve verts (|x|>35): 734  arm-bound: 734 (100.0%)
+male_athlete_reskinned.glb -> sleeve verts (|x|>35): 734  arm-bound: 734 (100.0%)

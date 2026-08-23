@@ -1,6 +1,6 @@
 # Drag-and-drop index — everything built in this session
 
-**24 batches, 34 new core modules, 1,700 passing assertions.**
+**25 batches, 35 new core modules, 1,728 passing assertions.**
 Every zip is in this folder. **Integration order is strict** — later batches
 replace files from earlier ones.
 
@@ -43,6 +43,7 @@ both fix something the product was caught doing.
 | 22 | `m101-pass2-verifiability.zip` | **which modes could carry prize money — dunk is clean, 4 are not** | no |
 | 23 | `m102-pass2-server-verification.zip` | **a real match re-simulated and matched — plus a one-line fix to M94** | no |
 | 24 | `m103-pass2-recertification.zip` | **the honest scorecard: 4 of 13 demonstrated, 6 measured broken** | no |
+| 25 | `m104-mixamo-numbered-prefix-and-reskin-tool.zip` | **FEL's own mesh is `mixamorig10:`-prefixed and every strip rule missed it — fixed** | no |
 
 **M95, M96 and M97 depend on nothing and should ship first.** They are the only two
 batches here that fix a defect someone has actually watched the deployed
@@ -97,7 +98,7 @@ Each of these is one line, and without it the batch does nothing:
 ## Verify before and after
 
 ```bash
-node tools/certify.mjs             # 32/32 suites, 1700 assertions, gate clean
+node tools/certify.mjs             # 33/33 suites, 1728 assertions, gate clean
 node tools/determinism_probe.mjs   # can a match be verified for money
 node --experimental-strip-types tools/skin_audit.mjs   # can the characters animate AT ALL
 node tools/pose_probe.mjs          # character size + pose INSIDE the running game

@@ -26,6 +26,7 @@ use as the smoke test.
 import argparse
 import json
 import os
+import re
 import sys
 
 try:
@@ -34,6 +35,29 @@ try:
 except ImportError:  # pragma: no cover - allows linting outside Blender
     bpy = None
     mathutils = None
+
+# `mixamorig:` was the only prefix this file ever stripped. The real FEL base
+# mesh (male_athlete_base_model_fbx, downloaded fresh from the asset source
+# and inspected directly) is prefixed `mixamorig10:` — Mixamo appends an
+# incrementing suffix on every re-download through its auto-rigger, so the
+# digit is not always absent and never always "1". A literal string compare
+# against "mixamorig:" therefore MISSES this asset entirely: `probe()` would
+# report zero prefixed bones and `conforms: True` on a rig where every single
+# bone is unresolvable at runtime — a false negative from the one tool built
+# to catch exactly this. Matched with a regex instead, once, and used
+# everywhere below rather than repeating the literal four times.
+MIXAMO_PREFIX = re.compile(r"^mixamorig\d*[:_]", re.IGNORECASE)
+
+
+def strip_mixamo(name):
+    """Unprefixed bone/vertex-group name, or the name unchanged if it never
+    carried a Mixamo prefix in the first place."""
+    return MIXAMO_PREFIX.sub("", name)
+
+
+def is_mixamo_prefixed(name):
+    return MIXAMO_PREFIX.match(name) is not None
+
 
 REQUIRED_BONES = [
     "Hips", "Spine", "Spine1", "Spine2", "Neck", "Head",
@@ -108,8 +132,12 @@ def detect_bind_pose(arm):
     """T-pose vs A-pose: in a T-pose the hand sits near shoulder height and
     far out laterally; in an A-pose it hangs well below."""
     bones = arm.data.bones
-    hand = bones.get("LeftHand") or bones.get("mixamorig:LeftHand")
-    shoulder = bones.get("LeftShoulder") or bones.get("mixamorig:LeftShoulder")
+    # Unprefixed first; then ANY Mixamo prefix, matched by name rather than a
+    # second hardcoded literal that would have the same blind spot as the
+    # first one.
+    by_stripped = {strip_mixamo(b.name): b for b in bones}
+    hand = bones.get("LeftHand") or by_stripped.get("LeftHand")
+    shoulder = bones.get("LeftShoulder") or by_stripped.get("LeftShoulder")
     if not hand or not shoulder:
         return "unknown"
     drop = shoulder.head_local.z - hand.head_local.z
@@ -121,8 +149,8 @@ def detect_bind_pose(arm):
 
 def probe(arm):
     names = [b.name for b in arm.data.bones] if arm else []
-    prefixed = [n for n in names if n.startswith("mixamorig:")]
-    stripped = {n.replace("mixamorig:", "") for n in names}
+    prefixed = [n for n in names if is_mixamo_prefixed(n)]
+    stripped = {strip_mixamo(n) for n in names}
     missing = [b for b in REQUIRED_BONES if b not in stripped]
     scene = bpy.context.scene
     return {
@@ -142,8 +170,8 @@ def probe(arm):
 def strip_prefix(arm, fixes):
     renamed = 0
     for bone in arm.data.bones:
-        if bone.name.startswith("mixamorig:"):
-            new = bone.name.replace("mixamorig:", "")
+        if is_mixamo_prefixed(bone.name):
+            new = strip_mixamo(bone.name)
             fixes.append({"category": "skeleton", "what": "strip mixamorig prefix",
                           "before": bone.name, "after": new, "confidence": "certain"})
             bone.name = new
@@ -153,10 +181,10 @@ def strip_prefix(arm, fixes):
         if obj.type != "MESH":
             continue
         for vg in obj.vertex_groups:
-            if vg.name.startswith("mixamorig:"):
-                vg.name = vg.name.replace("mixamorig:", "")
+            if is_mixamo_prefixed(vg.name):
+                vg.name = strip_mixamo(vg.name)
     if renamed:
-        log("stripped mixamorig: from %d bones (+ vertex groups)" % renamed)
+        log("stripped mixamorig prefix from %d bones (+ vertex groups)" % renamed)
     return renamed
 
 

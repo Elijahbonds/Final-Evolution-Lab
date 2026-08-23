@@ -12,8 +12,19 @@
 // three. `tests/anim_test.ts` checks this copy; `tests/clip_check_test.mjs`
 // checks that one.
 
-/** Prefixes the common exporters put in front of every bone name. */
-export const KNOWN_PREFIXES = ['mixamorig:', 'mixamorig1:', 'Armature|', 'root|'];
+/**
+ * Prefixes the common exporters put in front of every bone name.
+ *
+ * `mixamorig1:` used to be the only numbered variant listed here — that
+ * missed `mixamorig10:`, which is the ACTUAL prefix on FEL's own production
+ * base mesh (male_athlete_base_model_fbx, the character behind dunk, karate,
+ * baseball and nine other modes). Mixamo appends an incrementing suffix each
+ * time an asset is re-downloaded through its auto-rigger, so any single digit
+ * or pair of digits is possible, not just "1". An enumerated literal list can
+ * never cover that; `stripPrefix` below matches the digits with a regex and
+ * this list is kept for the two prefixes that carry no digit at all.
+ */
+export const KNOWN_PREFIXES = ['Armature|', 'root|'];
 
 /**
  * The canonical FEL rig. Must stay in sync with `REQUIRED_BONES` in
@@ -36,11 +47,16 @@ export const REQUIRED_BONES = [
  * rig was never conformed. Renaming belongs in Blender, on purpose, once.
  */
 export function stripPrefix(name: string): string {
+  // `mixamorig`, then any run of digits (or none), then `:` or `_`. Covers
+  // `mixamorig:`, `mixamorig1:`, `mixamorig10:`, `mixamorig_`, ... in one
+  // rule instead of an enumerated list that is always one export behind.
+  const mixamo = name.match(/^mixamorig\d*[:_](.+)$/i);
+  if (mixamo) return mixamo[1];
   for (const p of KNOWN_PREFIXES) {
     if (name.startsWith(p)) return name.slice(p.length);
   }
-  // Some exporters use `Armature_Hips` or `mixamorig_Hips`.
-  const underscore = name.match(/^(?:mixamorig\d*|Armature)_(.+)$/);
+  // Some exporters use `Armature_Hips` instead of `Armature|Hips`.
+  const underscore = name.match(/^Armature_(.+)$/);
   return underscore ? underscore[1] : name;
 }
 

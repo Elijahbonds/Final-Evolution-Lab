@@ -1,0 +1,37 @@
+male_athlete_base.glb — 168 nodes, 6 meshes, 1 skins
+
+  Ch28_Body — 9466 vertices, dominant bone:
+    mixamorig10:Head             59.4%
+    mixamorig10:LeftHand         3.0%
+    mixamorig10:RightHand        3.0%
+    mixamorig10:LeftHandThumb3   1.4%
+    mixamorig10:RightHandThumb3  1.4%
+    mixamorig10:LeftHandMiddle3  1.3%
+
+  Ch28_Sneakers — 2415 vertices, dominant bone:
+    mixamorig10:LeftFoot         42.2%
+    mixamorig10:RightFoot        42.0%
+    mixamorig10:RightToeBase     8.0%
+    mixamorig10:LeftToeBase      7.9%
+
+  Ch28_Pants — 4332 vertices, dominant bone:
+    mixamorig10:LeftUpLeg        23.7%
+    mixamorig10:RightUpLeg       22.6%
+    mixamorig10:LeftLeg          21.3%
+    mixamorig10:RightLeg         19.2%
+    mixamorig10:Hips             12.1%
+    mixamorig10:LeftFoot         0.5%
+
+  Ch28_Hoody — 4218 vertices, dominant bone:
+    mixamorig10:Spine2           25.7%
+    mixamorig10:Head             17.6%
+    mixamorig10:Hips             11.0%
+    mixamorig10:RightArm         7.4%
+    mixamorig10:LeftArm          7.0%
+    mixamorig10:Neck             6.9%
+
+  Ch28_Eyelashes — 753 vertices, dominant bone:
+    mixamorig10:Head             100.0%
+
+  Ch28_Hair — 15541 vertices, dominant bone:
+    mixamorig10:Head             100.0%

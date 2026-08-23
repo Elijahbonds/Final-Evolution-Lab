@@ -90,6 +90,18 @@ ok('an empty drop is not an error', sourcesPresent([]).length === 0);
 // ── prefix stripping, shared with clip_check.mjs ─────────────────────────
 ok('mixamorig: stripped', stripPrefix('mixamorig:Hips') === 'Hips');
 ok('mixamorig1: stripped', stripPrefix('mixamorig1:LeftArm') === 'LeftArm');
+// FEL's OWN base mesh (male_athlete_base_model_fbx — the character behind
+// dunk and eleven other modes) is prefixed mixamorig10:, not mixamorig: or
+// mixamorig1:. Confirmed by downloading the real source FBX and reading its
+// converted glTF joint names directly. KNOWN_PREFIXES used to be an
+// enumerated literal list that stopped at "1" and silently failed to strip
+// this asset's bones — every lookup against it would have returned the
+// prefixed name unchanged and matched nothing in the running game.
+ok('mixamorig10: stripped — THE REAL PREFIX ON FEL\'S PRODUCTION BASE MESH',
+  stripPrefix('mixamorig10:Head') === 'Head');
+ok('and so is mixamorig2, mixamorig23, any digit run — this is a rule, not a list',
+  stripPrefix('mixamorig2:RightUpLeg') === 'RightUpLeg'
+  && stripPrefix('mixamorig23:Neck') === 'Neck');
 ok('Armature| stripped', stripPrefix('Armature|Spine') === 'Spine');
 ok('root| stripped', stripPrefix('root|Neck') === 'Neck');
 ok('underscore form stripped', stripPrefix('mixamorig_RightFoot') === 'RightFoot');

@@ -33,13 +33,18 @@ export const REQUIRED_BONES = [
   'RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase',
 ];
 
-const KNOWN_PREFIXES = ['mixamorig:', 'mixamorig1:', 'Armature|', 'root|'];
+// Mirrors anim/boneNames.ts exactly — see that file for why the digit run has
+// to be a regex rather than an enumerated list (mixamorig10: is the actual
+// prefix on FEL's own base mesh, and mixamorig1: alone never matched it).
+const KNOWN_PREFIXES = ['Armature|', 'root|'];
 
 export function stripPrefix(name) {
+  const mixamo = name.match(/^mixamorig\d*[:_](.+)$/i);
+  if (mixamo) return mixamo[1];
   for (const p of KNOWN_PREFIXES) {
     if (name.startsWith(p)) return name.slice(p.length);
   }
-  const m = name.match(/^(?:mixamorig\d*|Armature)_(.+)$/);
+  const m = name.match(/^Armature_(.+)$/);
   return m ? m[1] : name;
 }
 
