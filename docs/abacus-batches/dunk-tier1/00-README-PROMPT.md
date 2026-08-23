@@ -69,13 +69,31 @@ Measured: **77% of the character mesh is dominated by the `Head` bone.** The
 hands are weighted `Head` at 0.78, the chest at 0.97. The upper body is a rigid
 lump welded to the head — the arms cannot move whatever the skeleton does.
 
-In Blender:
+**Before opening Blender, read this.** M104 downloaded the raw source asset
+(`male_athlete_base_model_fbx`) and checked it directly. The one region that
+would actually show this bug — the jacket sleeve, which runs the full arm to
+the wrist — was **already 100% correctly bound to arm bones**, before any
+repair. The raw download's vertex count (20,431 across 4 meshes) also does not
+match the deployed character's (18,409, one merged mesh) that M98 measured
+live. Something between "raw download" and "what the game renders" changes
+the mesh, and it is not reproducible from the raw source alone.
+
+**So: extract the actual deployed `.glb` first** (browser dev tools → Network
+tab, while playing any mode with this character — dunk, karate, onevone all
+use it), and run `node tools/glb_reskin.mjs inspect <file.glb>` on THAT file
+before assuming the raw Mixamo download is what needs fixing. It gives the
+same per-mesh weight measurement M98 took live, offline, in about a second —
+confirm the 77%/Head number reproduces on the real deployed file before
+spending a Blender session on the wrong one.
+
+Once the right file is confirmed broken, in Blender:
 
 1. Confirm the mesh is parented to the armature with **automatic weights**,
    not to a single bone.
 2. Weight-paint or auto-weight the arms, hands and torso to their own bones.
 3. Export glTF with skinning, **unprefixed bone names** (`Hips`, `LeftArm` —
-   never `mixamorig:`).
+   never `mixamorig:` — check for `mixamorig10:` too, see M104: the digit is
+   never fixed, it increments on every Mixamo re-download).
 4. `node --experimental-strip-types tools/skin_audit.mjs` → **0 broken**. It
    currently reports 5/5.
 
