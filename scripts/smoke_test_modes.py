@@ -33,17 +33,29 @@ def skip(msg):
 # Production modes expected to pass all gates
 # ═══════════════════════════════════════════════════════════════════════════════
 PRODUCTION_MODES = [
-    "basketball_h2h", "basketball_dunk", "basketball_3v3",
+    "basketball_h2h", "basketball_dunk", "basketball_3v3", "court_carnival",
     "karate_h2h", "karate_endless",
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
-    "gymnastics", "skateboarding", "snowboarding",
+    "gymnastics", "brain_brawl", "skateboarding", "snowboarding",
+    "who_scene_it",
 ]
 
+SPLIT_DUNK_MODES = ["basketball_dunk_3d", "basketball_dunk_irl"]
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = []
+
+VENUE_REGISTRY_ALIASES = {
+    "basketball_dunk": "basketball_dunk_3d",
+}
+
+SWIFT_ENUM_ALIASES = {
+    "basketball_dunk": "basketball_dunk_3d",
+}
+
+UE_MAP_OPTIONAL_MODES = {"basketball_dunk_irl"}
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -85,6 +97,14 @@ def test_mode_manager_registry():
         else:
             fail(f"{mode} missing from registry")
 
+    for mode in SPLIT_DUNK_MODES:
+        if mode in registry and registry[mode]["status"] == "production":
+            ok(f"{mode} → production split dunk mode")
+        elif mode in registry:
+            fail(f"{mode} status={registry[mode]['status']}, expected production")
+        else:
+            fail(f"{mode} missing from registry")
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 2: UE Mode Maps Coverage
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -93,10 +113,16 @@ def test_ue_mode_maps():
     ue_maps = json.loads((REPO_ROOT / "backend" / "ue_mode_maps.json").read_text())
     mode_map = ue_maps["mode_to_unreal_map"]
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = PRODUCTION_MODES + SPLIT_DUNK_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
         if mode in mode_map:
-            ok(f"{mode} → {mode_map[mode]}")
+            if mode_map[mode] is None:
+                if mode in UE_MAP_OPTIONAL_MODES:
+                    ok(f"{mode} → camera-only / no UE map")
+                else:
+                    fail(f"{mode} has null UE map without optional exemption")
+            else:
+                ok(f"{mode} → {mode_map[mode]}")
         else:
             if mode == "market_browse":
                 # market_browse may not have a UE map (it's a shop module)
@@ -112,8 +138,11 @@ def test_arena_settings():
     arena = json.loads((REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Content" / "FEL" / "Config" / "ArenaSettings.json").read_text())
     modes = arena["modes"]
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = PRODUCTION_MODES + SPLIT_DUNK_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
+        if mode in UE_MAP_OPTIONAL_MODES:
+            ok(f"{mode} → camera-only / no ArenaSettings")
+            continue
         if mode in modes:
             cfg = modes[mode]
             has_level = "unrealOpenLevelPackage" in cfg
@@ -134,12 +163,14 @@ def test_venue_registry():
     mode_ids = {m["id"] for m in vr["modes"]}
     venue_keys = {v["venueKey"] for v in vr["venues"]}
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = PRODUCTION_MODES + SPLIT_DUNK_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
-        if mode in mode_ids:
-            entry = next(m for m in vr["modes"] if m["id"] == mode)
+        registry_mode = VENUE_REGISTRY_ALIASES.get(mode, mode)
+        if registry_mode in mode_ids:
+            entry = next(m for m in vr["modes"] if m["id"] == registry_mode)
             if entry["venueKey"] in venue_keys:
-                ok(f"{mode} → venue={entry['venueKey']}")
+                suffix = f" via {registry_mode}" if registry_mode != mode else ""
+                ok(f"{mode} → venue={entry['venueKey']}{suffix}")
             else:
                 fail(f"{mode} references unknown venue: {entry['venueKey']}")
         else:
@@ -165,8 +196,11 @@ def test_fel_play_map():
                 k, v = line.strip().split("=", 1)
                 play_map[k.strip()] = v.strip()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = PRODUCTION_MODES + SPLIT_DUNK_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
+        if mode in UE_MAP_OPTIONAL_MODES:
+            ok(f"{mode} → camera-only / no FELPlayMap")
+            continue
         if mode in play_map:
             path = play_map[mode]
             # Verify path uses /Venues/ convention
@@ -192,11 +226,13 @@ def test_swift_enum():
     swift_path = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
     content = swift_path.read_text()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = PRODUCTION_MODES + SPLIT_DUNK_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
+        swift_mode = SWIFT_ENUM_ALIASES.get(mode, mode)
         # Search for rawValue
-        if f'= "{mode}"' in content:
-            ok(f'{mode} has Swift enum case')
+        if f'= "{swift_mode}"' in content:
+            suffix = f" via {swift_mode}" if swift_mode != mode else ""
+            ok(f'{mode} has Swift enum case{suffix}')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
 
@@ -256,7 +292,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print("  18 NEXUS runtime modes + split dunk descriptors · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()

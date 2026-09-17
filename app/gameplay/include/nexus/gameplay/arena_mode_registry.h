@@ -3,6 +3,7 @@
 // `legacyUeMapAlias` retains archived UE `/Game/FEL/Maps/*` strings for vault JSON compat only.
 #pragma once
 
+#include <cstdint>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <span>
