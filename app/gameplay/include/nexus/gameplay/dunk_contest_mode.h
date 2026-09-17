@@ -5,6 +5,7 @@
 #include "nexus/gameplay/arcade_physics.h"
 #include "nexus/gameplay/qte_system.h"
 
+#include <cstdint>
 #include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
