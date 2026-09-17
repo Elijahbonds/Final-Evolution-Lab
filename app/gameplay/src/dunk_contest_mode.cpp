@@ -165,7 +165,7 @@ auto DunkContestMode::stateJson() const -> nlohmann::json {
     dunks.push_back({
         {"style", static_cast<int>(dunk.style)},
         {"hang_time", dunk.hangTimeSeconds},
-        {"timing_grade", QTESystem::gradeLabel(dunk.timingGrade)},
+        {"timing_grade", std::string(QTESystem::gradeLabel(dunk.timingGrade))},
         {"points", dunk.points},
     });
   }

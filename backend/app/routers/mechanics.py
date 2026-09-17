@@ -11,10 +11,12 @@ persist via ``session_processor`` to Postgres (or SQLite when USE_SQLITE_DEV=tru
 """
 from __future__ import annotations
 
+import json
 import random
 import time
 import uuid
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, File, Query, UploadFile
@@ -32,10 +34,13 @@ _confirmed_scans: set[str] = set()
 _critique_requests: list[dict[str, Any]] = []
 _brain_brawl_sessions: dict[str, dict[str, Any]] = {}
 _workout_logs: list[dict[str, Any]] = []
+_MODE_MANAGER_PATH = Path(__file__).resolve().parents[2] / "FEL_ModeManager.production.json"
 
 ARENA_MODES = [
     ("basketball_h2h", "Street · 1v1", "Basketball", "VeniceBeach", "1v1", "3 min"),
     ("basketball_dunk", "Dunk Contest", "Basketball", "VeniceBeach", "Solo", "5 min"),
+    ("basketball_dunk_3d", "3D H2H Dunk Contest", "Basketball", "VeniceBeach", "1v1", "5 min"),
+    ("basketball_dunk_irl", "IRL H2H Dunk Contest", "Basketball", "RegulationCourtIRL", "1v1", "Live"),
     ("basketball_3v3", "Street · 3v3", "Basketball", "VeniceBeach", "3v3", "8 min"),
     ("karate", "Karate · Dojo", "Combat", "Dojo", "Solo", "3 min"),
     ("karate_h2h", "Karate · 1v1", "Combat", "Dojo", "1v1", "3 min"),
@@ -51,9 +56,20 @@ ARENA_MODES = [
     ("surfing", "Surf · Line", "Board", "VeniceBeach", "Solo", "3 min"),
     ("skateboarding", "Skate · Dojo", "Board", "Dojo", "Solo", "3 min"),
     ("snowboarding", "Snow · Line", "Board", "TrainingFloor", "Solo", "3 min"),
+    ("who_scene_it", "Who Scene It", "Academy", "NeuroArena", "2-8", "15 min"),
+    ("court_carnival", "Court Carnival", "Party", "VeniceBeach", "2-4", "30 min"),
     ("market_browse", "Sovereign Shop", "Academy", "Luma_Venice_Shop", "Browse", "Open"),
     ("trivia_arena", "Trivia Arena", "Academy", "NeuroArena", "Solo", "2 min"),
 ]
+
+
+def _mode_registry_counts() -> dict[str, int]:
+    payload = json.loads(_MODE_MANAGER_PATH.read_text())
+    registry = payload.get("mode_manager", {}).get("mode_registry", {})
+    return {
+        "total_modes": len(registry),
+        "production_modes": sum(1 for entry in registry.values() if entry.get("status") == "production"),
+    }
 
 INTENTS = {
     "fascial_hydration": "Fascial Hydration",
@@ -637,7 +653,7 @@ async def hub_status() -> dict[str, Any]:
 
 @router.get("/production/health")
 async def production_health() -> dict[str, Any]:
-    return {"status": "HEALTHY", "checks": {"mode_manager": {"production_modes": 19}}}
+    return {"status": "HEALTHY", "checks": {"mode_manager": _mode_registry_counts()}}
 
 
 @router.get("/production/handshake-log")

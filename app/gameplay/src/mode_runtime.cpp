@@ -194,7 +194,7 @@ auto ModeRuntime::handleCommand(std::string_view command, const nlohmann::json& 
         return Result<nlohmann::json>::err(result.error());
       }
       nlohmann::json payload = m_dunk.stateJson();
-      payload["timing_grade"] = QTESystem::gradeLabel(result.value());
+      payload["timing_grade"] = std::string(QTESystem::gradeLabel(result.value()));
       payload["physics_feedback"] = {
           {"hang_time_multiplier", physicsParams().hangTimeMultiplier},
           {"charge_power", m_dunk.chargePower()},
