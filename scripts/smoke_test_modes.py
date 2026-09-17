@@ -44,6 +44,7 @@ SWIFT_ALIASES = {
     "basketball_dunk": ("basketball_dunk_3d",),
 }
 UE_ALIASES = {
+    "basketball_dunk": ("basketball_dunk_3d",),
     "basketball_dunk_3d": ("basketball_dunk",),
 }
 
