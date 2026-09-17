@@ -110,7 +110,8 @@ def test_hub_command_center_status_renders() -> None:
     assert status.json()["database"]["status"] == "ready"
     assert len(status.json()["database"]["venues"]) == 12
     assert health.status_code == 200
-    assert health.json()["checks"]["mode_manager"]["production_modes"] == 19
+    assert health.json()["checks"]["mode_manager"]["production_modes"] == 20
+    assert health.json()["checks"]["mode_manager"]["total_modes"] == 22
     assert handshake.status_code == 200
     assert handshake.json()["log"]
     assert telemetry.status_code == 200

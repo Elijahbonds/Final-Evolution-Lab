@@ -1091,13 +1091,14 @@ async def get_game_mode(mode_id: str):
 
 ## ── PRQ Mode Weights & Economy Constants ───────────────────────────────────
 PRQ_MODE_WEIGHTS = {
-    "basketball_h2h": 1.2, "basketball_dunk": 1.0, "basketball_3v3": 1.3,
+    "basketball_h2h": 1.2, "basketball_dunk": 1.0,
+    "basketball_dunk_3d": 1.0, "basketball_dunk_irl": 1.5, "basketball_3v3": 1.3,
     "karate_h2h": 1.4,     "karate_endless": 1.4,
     "baseball": 1.0,       "football": 1.5,       "soccer": 1.1,
     "golf": 0.9,           "tennis": 1.1,          "volleyball": 1.2,
-    "surfing": 1.05,       "skateboarding": 1.0,   "snowboarding": 1.0,
-    "gymnastics": 1.0,     "brain_brawl": 0.8,
-    "who_scene_it": 0.7,   "court_carnival": 0.9,
+    "surfing": 1.05,       "skateboarding": 0.9,   "snowboarding": 0.9,
+    "gymnastics": 1.0,     "brain_brawl": 1.0,
+    "who_scene_it": 1.1,   "court_carnival": 1.0,  "trivia_arena": 1.0,
 }
 
 SHARD_WIN, SHARD_DRAW, SHARD_LOSS = 50, 25, 15
@@ -1317,6 +1318,8 @@ def get_seeded_game_modes():
     return [
         {"id":"basketball_h2h","name":"Street 1v1","display_name":"Street · 1v1","venue":"Venice Beach","category":"Basketball","description":"Head-to-head street basketball","image_url":"/images/ue5_basketball.png","player_count":"1v1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"shooting"},
         {"id":"basketball_dunk","name":"Dunk Contest","display_name":"Dunk Contest","venue":"Venice Beach","category":"Basketball","description":"Execute dunks with timing precision","image_url":"/images/ue5_basketball.png","player_count":"1","duration":"5 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
+        {"id":"basketball_dunk_3d","name":"3D H2H Dunk Contest","display_name":"3D H2H Dunk Contest","venue":"Venice Beach Blue Court","category":"Basketball","description":"NEXUS C++ dunk contest with timing, judges, and crowd momentum","image_url":"/images/ue5_basketball.png","player_count":"1v1","duration":"5 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
+        {"id":"basketball_dunk_irl","name":"IRL H2H Dunk Contest","display_name":"IRL H2H Dunk Contest","venue":"Regulation Court (IRL)","category":"Basketball","description":"Phone camera, Vision pose, and WDA/FIBA judge workflow for a real 10-ft rim","image_url":"/images/ue5_basketball.png","player_count":"1v1","duration":"Live","difficulty":"Advanced","playable":True,"game_type":"camera"},
         {"id":"basketball_3v3","name":"Street 3v3","display_name":"Street · 3v3","venue":"Venice Beach","category":"Basketball","description":"Team-based street basketball","image_url":"/images/ue5_basketball.png","player_count":"3v3","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"strategy"},
         {"id":"karate_h2h","name":"Karate 1v1","display_name":"Karate · 1v1","venue":"Dojo","category":"Combat","description":"Strike, block, counter","image_url":"/images/ue5_dojo.png","player_count":"1v1","duration":"5 min","difficulty":"Intermediate","playable":True,"game_type":"combat"},
         {"id":"karate_endless","name":"Karate Endless","display_name":"Karate · Endless","venue":"Dojo","category":"Combat","description":"Survive endless waves","image_url":"/images/ue5_dojo.png","player_count":"1","duration":"Unlimited","difficulty":"Expert","playable":True,"game_type":"endurance"},

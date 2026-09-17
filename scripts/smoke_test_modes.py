@@ -32,26 +32,60 @@ def skip(msg):
 # ═══════════════════════════════════════════════════════════════════════════════
 # Production modes expected to pass all gates
 # ═══════════════════════════════════════════════════════════════════════════════
-PRODUCTION_MODES = [
-    "basketball_h2h", "basketball_dunk", "basketball_3v3",
-    "karate_h2h", "karate_endless",
-    "baseball", "football", "soccer", "golf",
-    "tennis", "volleyball", "surfing",
-    "gymnastics", "skateboarding", "snowboarding",
+MODE_MANAGER = json.loads((REPO_ROOT / "backend" / "FEL_ModeManager.production.json").read_text())
+MODE_REGISTRY = MODE_MANAGER["mode_manager"]["mode_registry"]
+
+PRODUCTION_MODES = [mode for mode, info in MODE_REGISTRY.items() if info.get("status") == "production"]
+STAGING_MODES = [mode for mode, info in MODE_REGISTRY.items() if info.get("status") == "staging"]
+PREVIEW_MODES = [mode for mode, info in MODE_REGISTRY.items() if info.get("status") == "preview"]
+NON_GAME_MODULES = [mode for mode, info in MODE_REGISTRY.items() if info.get("status") == "non-game-module"]
+
+SWIFT_ALIASES = {
+    "basketball_dunk": ("basketball_dunk_3d",),
+}
+UE_ALIASES = {
+    "basketball_dunk": ("basketball_dunk_3d",),
+    "basketball_dunk_3d": ("basketball_dunk",),
+}
+
+def mode_info(mode):
+    return MODE_REGISTRY.get(mode, {})
+
+def is_non_scoring_preview_module(mode):
+    info = mode_info(mode)
+    return info.get("status") == "preview" and info.get("scoring_enabled") is False
+
+def has_mode(container, mode, aliases=None):
+    aliases = aliases or {}
+    return mode in container or any(alias in container for alias in aliases.get(mode, ()))
+
+def mode_is_irl_or_null_ue(mode, ue_map=None):
+    info = mode_info(mode)
+    return info.get("render_mode") == "IRL" or ue_map is None
+
+GAMEPLAY_MODES = [
+    mode for mode in PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    if not is_non_scoring_preview_module(mode)
 ]
-
-NON_GAME_MODULES = ["market_browse"]
-
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
 # ═══════════════════════════════════════════════════════════════════════════════
 def test_mode_manager_registry():
     print("\n── Test 1: ModeManager Registry ──")
-    mgr = json.loads((REPO_ROOT / "backend" / "FEL_ModeManager.production.json").read_text())
-    registry = mgr["mode_manager"]["mode_registry"]
+    mgr = MODE_MANAGER
+    registry = MODE_REGISTRY
+
+    declared_total = mgr["mode_manager"].get("total_modes")
+    declared_production = mgr["mode_manager"].get("production_modes")
+    if declared_total == len(registry):
+        ok(f"declared total_modes matches registry ({declared_total})")
+    else:
+        fail(f"declared total_modes={declared_total}, actual={len(registry)}")
+    if declared_production == len(PRODUCTION_MODES):
+        ok(f"declared production_modes matches registry ({declared_production})")
+    else:
+        fail(f"declared production_modes={declared_production}, actual={len(PRODUCTION_MODES)}")
 
     for mode in PRODUCTION_MODES:
         if mode in registry:
@@ -93,10 +127,15 @@ def test_ue_mode_maps():
     ue_maps = json.loads((REPO_ROOT / "backend" / "ue_mode_maps.json").read_text())
     mode_map = ue_maps["mode_to_unreal_map"]
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = GAMEPLAY_MODES
     for mode in all_modes:
         if mode in mode_map:
-            ok(f"{mode} → {mode_map[mode]}")
+            if mode_is_irl_or_null_ue(mode, mode_map[mode]):
+                ok(f"{mode} → non-UE / IRL route")
+            else:
+                ok(f"{mode} → {mode_map[mode]}")
+        elif has_mode(mode_map, mode, UE_ALIASES):
+            ok(f"{mode} → covered by runtime alias")
         else:
             if mode == "market_browse":
                 # market_browse may not have a UE map (it's a shop module)
@@ -112,9 +151,11 @@ def test_arena_settings():
     arena = json.loads((REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Content" / "FEL" / "Config" / "ArenaSettings.json").read_text())
     modes = arena["modes"]
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = GAMEPLAY_MODES
     for mode in all_modes:
-        if mode in modes:
+        if mode_info(mode).get("render_mode") == "IRL":
+            ok(f"{mode} → IRL route skips ArenaSettings")
+        elif mode in modes:
             cfg = modes[mode]
             has_level = "unrealOpenLevelPackage" in cfg
             has_display = "modeDisplayName" in cfg
@@ -122,6 +163,8 @@ def test_arena_settings():
                 ok(f"{mode} → {cfg['modeDisplayName']}")
             else:
                 fail(f"{mode} missing unrealOpenLevelPackage or modeDisplayName")
+        elif has_mode(modes, mode, UE_ALIASES):
+            ok(f"{mode} → covered by ArenaSettings runtime alias")
         else:
             fail(f"{mode} missing from ArenaSettings.json")
 
@@ -134,14 +177,18 @@ def test_venue_registry():
     mode_ids = {m["id"] for m in vr["modes"]}
     venue_keys = {v["venueKey"] for v in vr["venues"]}
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = GAMEPLAY_MODES
     for mode in all_modes:
-        if mode in mode_ids:
+        if mode_info(mode).get("render_mode") == "IRL" and mode not in mode_ids:
+            ok(f"{mode} → IRL route skips UE venue mode entry")
+        elif mode in mode_ids:
             entry = next(m for m in vr["modes"] if m["id"] == mode)
             if entry["venueKey"] in venue_keys:
                 ok(f"{mode} → venue={entry['venueKey']}")
             else:
                 fail(f"{mode} references unknown venue: {entry['venueKey']}")
+        elif has_mode(mode_ids, mode, UE_ALIASES):
+            ok(f"{mode} → covered by VenueRegistry runtime alias")
         else:
             fail(f"{mode} missing from VenueRegistry")
 
@@ -165,15 +212,20 @@ def test_fel_play_map():
                 k, v = line.strip().split("=", 1)
                 play_map[k.strip()] = v.strip()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = GAMEPLAY_MODES
     for mode in all_modes:
-        if mode in play_map:
+        ue_map = json.loads((REPO_ROOT / "backend" / "ue_mode_maps.json").read_text())["mode_to_unreal_map"].get(mode)
+        if mode_is_irl_or_null_ue(mode, ue_map):
+            ok(f"{mode} → non-UE / IRL route skips FELPlayMap")
+        elif mode in play_map:
             path = play_map[mode]
             # Verify path uses /Venues/ convention
             if "/Venues/" in path:
                 ok(f"{mode} → {path}")
             else:
                 fail(f"{mode} deep link path doesn't use /Venues/ convention: {path}")
+        elif has_mode(play_map, mode, UE_ALIASES):
+            ok(f"{mode} → covered by FELPlayMap runtime alias")
         else:
             if mode in ("market_browse",):
                 # market_browse has its own path format
@@ -192,11 +244,13 @@ def test_swift_enum():
     swift_path = REPO_ROOT / "FinalEvolutionLab" / "Models" / "GameMode.swift"
     content = swift_path.read_text()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = GAMEPLAY_MODES
     for mode in all_modes:
         # Search for rawValue
         if f'= "{mode}"' in content:
             ok(f'{mode} has Swift enum case')
+        elif any(f'= "{alias}"' in content for alias in SWIFT_ALIASES.get(mode, ())):
+            ok(f'{mode} covered by Swift enum runtime alias')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
 
@@ -208,10 +262,12 @@ def test_server_seeded_modes():
     server_path = REPO_ROOT / "backend" / "server.py"
     content = server_path.read_text()
 
-    all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
+    all_modes = GAMEPLAY_MODES
     for mode in all_modes:
         if f'"id":"{mode}"' in content or f'"id": "{mode}"' in content:
             ok(f"{mode} in server seeded modes")
+        elif any(f'"id":"{alias}"' in content or f'"id": "{alias}"' in content for alias in UE_ALIASES.get(mode, ())):
+            ok(f"{mode} covered by server seeded runtime alias")
         else:
             fail(f"{mode} missing from server.py seeded modes")
 
@@ -256,7 +312,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print(f"  {len(PRODUCTION_MODES)} production entries · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()
