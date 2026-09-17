@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-FEL Smoke Test Suite — 12 Production Mode Acceptance Tests
-Tests each production mode's registration, configuration, and deep link routing.
+FEL Smoke Test Suite — NEXUS production mode acceptance tests.
+Tests each canonical runtime mode's registration, configuration, and deep link routing.
 Run against a live or mock FEL backend.
 """
 import json
@@ -38,12 +38,14 @@ PRODUCTION_MODES = [
     "baseball", "football", "soccer", "golf",
     "tennis", "volleyball", "surfing",
     "gymnastics", "skateboarding", "snowboarding",
+    "brain_brawl", "who_scene_it", "court_carnival",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = []
+REGISTRY_ONLY_PREVIEW_MODULES = ["movement_lab"]
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -76,6 +78,14 @@ def test_mode_manager_registry():
             ok(f"{mode} → preview (expected)")
         else:
             fail(f"{mode} missing or wrong status in registry")
+
+    for mode in REGISTRY_ONLY_PREVIEW_MODULES:
+        if mode in registry and registry[mode]["status"] == "preview":
+            ok(f"{mode} → preview registry module (expected)")
+        elif mode in registry:
+            fail(f"{mode} status={registry[mode]['status']}, expected preview")
+        else:
+            fail(f"{mode} missing from registry")
 
     for mode in NON_GAME_MODULES:
         if mode in registry and registry[mode]["status"] == "non-game-module":
@@ -131,13 +141,15 @@ def test_arena_settings():
 def test_venue_registry():
     print("\n── Test 4: VenueRegistry Coverage ──")
     vr = json.loads((REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Config" / "FEL_VenueRegistry.production.json").read_text())
-    mode_ids = {m["id"] for m in vr["modes"]}
     venue_keys = {v["venueKey"] for v in vr["venues"]}
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
-        if mode in mode_ids:
-            entry = next(m for m in vr["modes"] if m["id"] == mode)
+        entry = next(
+            (m for m in vr["modes"] if m["id"] == mode or m.get("nexusRuntimeModeId") == mode),
+            None,
+        )
+        if entry:
             if entry["venueKey"] in venue_keys:
                 ok(f"{mode} → venue={entry['venueKey']}")
             else:
@@ -197,6 +209,8 @@ def test_swift_enum():
         # Search for rawValue
         if f'= "{mode}"' in content:
             ok(f'{mode} has Swift enum case')
+        elif mode == "basketball_dunk" and 'case .basketballDunkContest3D: return "basketball_dunk"' in content:
+            ok(f'{mode} has Swift NEXUS runtime alias')
         else:
             fail(f'{mode} missing from GameMode.swift enum')
 
@@ -244,8 +258,8 @@ def test_economy_integration():
         else:
             fail(f"{label} missing")
 
-    # Verify PRQ weights cover all scoring modes
-    scoring_modes = PRODUCTION_MODES  # all production modes are scoring modes
+    # Verify PRQ weights cover all production runtime modes.
+    scoring_modes = PRODUCTION_MODES
     for mode in scoring_modes:
         if f'"{mode}"' in content.split("PRQ_MODE_WEIGHTS")[1].split("}")[0]:
             ok(f"PRQ weight defined for {mode}")
@@ -256,7 +270,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print("  18 NEXUS runtime modes · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()
