@@ -40,7 +40,8 @@ Prerequisites
 A. Menu navigation (DoD #6)
   1. Launch app → tab shell visible (≤2 taps to Arena)
   2. Arena → Modes → Dunk Contest (P0) and Karate Endless (P1) cards visible
-  3. Tap a P2 mode → "Coming Soon" sheet (release config)
+  3. Tap a P2 production/sim/staging sport mode → GamePlayView loads
+  4. Tap preview/non-game modules with preview disabled → "Coming Soon" sheet
 
 B. Dunk Contest touch loop (DoD #3)
   1. Tap Dunk Contest → GamePlayView loads (no crash)
