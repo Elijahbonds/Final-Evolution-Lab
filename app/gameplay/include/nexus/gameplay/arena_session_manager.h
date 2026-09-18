@@ -6,6 +6,7 @@
 #include "nexus/gameplay/fitness_data.h"
 #include "nexus/gameplay/gameplay_manager.h"
 
+#include <cstdint>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>

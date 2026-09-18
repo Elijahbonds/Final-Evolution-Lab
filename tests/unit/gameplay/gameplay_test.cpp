@@ -411,6 +411,12 @@ void arena_mode_registry_lists_nineteen_modes() {
   require(dunk->nexusMeshPath.find(".nexusmesh.json") != std::string_view::npos,
           "dunk nexus mesh path");
   require(dunk->legacyUeMapAlias.find("/Game/FEL/Maps/") == 0, "dunk legacy ue alias");
+  const auto dunk3d = nexus::gameplay::ArenaModeRegistry::find("basketball_dunk_3d");
+  require(dunk3d.has_value(), "basketball_dunk_3d resolves to dunk runtime");
+  require(dunk3d->id == "basketball_dunk", "basketball_dunk_3d canonical runtime id");
+  require(nexus::gameplay::ArenaModeRegistry::venueTokenForMode("basketball_dunk_3d") ==
+              "Venice_Beach_Court",
+          "basketball_dunk_3d venue token");
 }
 
 void arena_mode_registry_production_modes_match_validate_script() {
