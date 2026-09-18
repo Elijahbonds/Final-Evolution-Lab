@@ -5,16 +5,29 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+if [[ "$(uname -s)" == "Linux" ]]; then
+  if [[ -z "${CC:-}" ]] && command -v gcc >/dev/null 2>&1; then
+    export CC=gcc
+  fi
+  if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
+    export CXX=g++
+  fi
+fi
+
+echo "==> Phase 0: registry alignment validators"
+python3 scripts/validate_mode_registry.py
+python3 scripts/validate_ios_cpp_registry.py
+
 echo "==> Phase 1: headless build (NEXUS_ENABLE_RENDERER=OFF)"
-cmake -S . -B build-headless \
+cmake --fresh -S . -B build-headless \
   -DNEXUS_ENABLE_RENDERER=OFF \
   -DNEXUS_BUILD_RUNTIME=OFF \
   -DNEXUS_BUILD_TESTS=ON
-cmake --build build-headless -j"$(sysctl -n hw.ncpu 2>/dev/null || echo 4)"
+cmake --build build-headless -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 ctest --test-dir build-headless --output-on-failure
 
 echo "==> Phase 1: full renderer build (NEXUS_ENABLE_RENDERER=ON)"
-cmake -S . -B build-full \
+cmake --fresh -S . -B build-full \
   -DNEXUS_ENABLE_RENDERER=ON \
   -DNEXUS_BUILD_RUNTIME=ON \
   -DNEXUS_BUILD_TESTS=ON

@@ -39,11 +39,11 @@ Prerequisites
 
 A. Menu navigation (DoD #6)
   1. Launch app → tab shell visible (≤2 taps to Arena)
-  2. Arena → Modes → Dunk Contest (P0) and Karate Endless (P1) cards visible
-  3. Tap a P2 mode → "Coming Soon" sheet (release config)
+  2. Arena → Modes → IRL H2H Dunk Contest, 3D H2H Dunk Contest, and Karate Endless cards visible
+  3. Tap any production P2 mode (Gymnastics, Surfing, Skateboarding, Snowboarding, Brain Brawl, Who Scene It) → dedicated gameplay surface loads with honest prod/sim label
 
 B. Dunk Contest touch loop (DoD #3)
-  1. Tap Dunk Contest → GamePlayView loads (no crash)
+  1. Tap 3D H2H Dunk Contest → GamePlayView loads (no crash)
   2. Hold anywhere → release → tap at apex
   3. Center HUD: timing_grade + player_score increment
   4. NEXUS session_state shows active during play
@@ -78,6 +78,11 @@ if [[ "$CHECKLIST_ONLY" -eq 1 ]]; then
 fi
 
 cd "$ROOT"
+
+echo "==> Registry alignment validators"
+python3 scripts/validate_mode_registry.py
+python3 scripts/validate_ios_cpp_registry.py
+python3 scripts/validate_ios_descriptor.py
 
 echo "==> Headless ctest gate"
 ./scripts/smoke_gameplay_session.sh --skip-build

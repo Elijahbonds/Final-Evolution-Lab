@@ -76,14 +76,12 @@ extension GameModeId {
         case .basketballDunkContestIRL, .basketballDunkContest3D, .karateEndless, .basketballHeadToHead, .venicePickup, .courtCarnival,
              .whoSceneIt:
             return .prod
-        case .gymnastics, .skateboarding, .snowboarding, .surfing:
+        case .gymnastics, .skateboarding, .snowboarding, .surfing, .brainBrawl:
             return .prod
-        case .brainBrawl:
-            return .staging
         case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
             return .sim
         case .marketBrowse:
-            return .preview
+            return .nonGame
         }
     }
 
@@ -109,7 +107,7 @@ extension GameModeId {
     var isNexusSprintPlayable: Bool {
         switch self {
         case .marketBrowse:
-            return true
+            return false
         default:
             break
         }
@@ -252,12 +250,14 @@ extension GameMode {
         }
     }
 
-    /// SceneKit shell + NEXUS session — preview/staging tiers need ``Config.showPreviewGameModes`` in Release.
+    /// SceneKit shell + NEXUS session; non-game modules route to their own production surfaces.
     var isLaunchableInCurrentBuild: Bool {
         switch nexusCapabilityTier {
         case .prod, .sim, .staging:
             return true
-        case .preview, .nonGame:
+        case .nonGame:
+            return true
+        case .preview:
             return Config.showPreviewGameModes
         }
     }
@@ -300,7 +300,7 @@ struct GameModeRegistry {
     ]
 
     /// Every playable arena mode — full lineup ships available; per-mode capability
-    /// badges (prod/sim/staging) stay honest via ``GameModeId/nexusCapabilityTier``.
+    /// badges (prod/sim/staging/non-game) stay honest via ``GameModeId/nexusCapabilityTier``.
     static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases).subtracting([.marketBrowse])
 
     /// All 20 mode IDs from `arena_mode_registry.cpp` — keep in sync when adding modes.
@@ -563,7 +563,7 @@ struct GameModeRegistry {
             multiplayerType: .solo,
             environmentName: "Luma Venice Shop",
             hint: "Browse the vault · scan venues · shop collectibles",
-            releaseState: .preview
+            releaseState: .production
         ),
     ]
 

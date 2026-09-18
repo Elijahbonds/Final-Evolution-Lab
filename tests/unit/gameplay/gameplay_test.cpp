@@ -2362,29 +2362,49 @@ void nexus_sprint_live_modes_agent_contract_integration() {
     const char* nestedStateKey;
   };
 
-  const std::array<SprintProbe, 9> probes{{
+  const std::array<SprintProbe, nexus::gameplay::kProductionModeCount> probes{{
+      {"basketball_h2h", "fel.pickup.action",
+       {{"action", "shoot"}, {"timing", 0.9F}, {"success", true}}, "fel.pickup.action",
+       "pickup"},
       {"basketball_dunk", "fel.dunk.charge_begin", {}, "fel.dunk.charge_begin", "dunk"},
-      {"karate_endless", "fel.karate.action", {{"action", "heavy_strike"}},
-       "fel.karate.action", "karate"},
-      {"basketball_h2h", "fel.fitness.update",
-       {{"frc_mobility", 0.6F},
-        {"frc_active_range", 0.6F},
-        {"frc_control", 0.6F},
-        {"iap_engagement", 0.6F},
-        {"iap_confidence", 0.6F},
-        {"breath_phase", 0}},
-       "", "pickup"},
+      {"basketball_3v3", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.95F}, {"shot_type", "three_pointer"}},
+       "fel.sport.pulse", "outcome_sport"},
       {"court_carnival", "fel.carnival.trigger_pad", {{"pad", "trick_shot"}, {"timing", 0.9F}},
        "fel.carnival.trigger_pad", "carnival"},
+      {"karate_h2h", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.9F}, {"action", "heavy_strike"}}, "fel.sport.pulse",
+       "outcome_sport"},
+      {"karate_endless", "fel.karate.action", {{"action", "heavy_strike"}},
+       "fel.karate.action", "karate"},
+      {"baseball", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.93F}, {"play_type", "home_run"}}, "fel.sport.pulse",
+       "outcome_sport"},
+      {"football", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.9F}, {"play_type", "touchdown"}}, "fel.sport.pulse",
+       "outcome_sport"},
+      {"soccer", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.9F}, {"shot_type", "penalty"}}, "fel.sport.pulse",
+       "outcome_sport"},
+      {"golf", "fel.sport.pulse", {{"success", true}, {"timing", 0.93F}, {"club", "putt"}},
+       "fel.sport.pulse", "outcome_sport"},
+      {"tennis", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.9F}, {"shot_type", "ace"}}, "fel.sport.pulse",
+       "outcome_sport"},
+      {"volleyball", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.95F}, {"rally_type", "ace_serve"}},
+       "fel.sport.pulse", "outcome_sport"},
       {"gymnastics", "fel.gymnastics.tap", {{"timing", 0.92F}, {"difficulty", 0.75F}},
        "fel.gymnastics.tap", "gymnastics"},
-      {"brain_brawl", "fel.brain.answer",
-       {{"correct", true}, {"response_time", 5.0F}, {"category", "BodyIQ"}},
-       "fel.brain.answer", "brain_brawl"},
+      {"surfing", "fel.surf.carve", {{"timing", 0.92F}, {"wave_difficulty", 0.75F}},
+       "fel.surf.carve", "surfing"},
       {"skateboarding", "fel.skate.trick", {{"difficulty", 0.85F}, {"combo_multiplier", 2}},
        "fel.skate.trick", "skateboarding"},
       {"snowboarding", "fel.snow.carve", {{"timing", 0.93F}, {"line_difficulty", 0.75F}},
        "fel.snow.carve", "snowboarding"},
+      {"brain_brawl", "fel.brain.answer",
+       {{"correct", true}, {"response_time", 5.0F}, {"category", "BodyIQ"}},
+       "fel.brain.answer", "brain_brawl"},
       {"who_scene_it", "fel.scene.buzz_in", {{"timing", 0.91F}}, "fel.scene.buzz_in",
        "who_scene_it"},
   }};
@@ -2445,6 +2465,7 @@ void nexus_sprint_live_modes_agent_contract_integration() {
     require(hudFrame["payload"]["mode_state"].is_object(), "hud mode_state object");
     require(hudFrame["payload"]["mode_state"].contains(probe.nestedStateKey),
             std::string("hud nested mode state for ") + probe.modeId);
+    std::fprintf(stderr, "PASS: sprint mode=%s\n", probe.modeId);
   }
 
   server.shutdown();

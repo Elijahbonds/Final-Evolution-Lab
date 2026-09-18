@@ -21,9 +21,18 @@ done
 
 cd "$ROOT"
 
+if [[ "$(uname -s)" == "Linux" ]]; then
+  if [[ -z "${CC:-}" ]] && command -v gcc >/dev/null 2>&1; then
+    export CC=gcc
+  fi
+  if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
+    export CXX=g++
+  fi
+fi
+
 if [[ "$SKIP_BUILD" -eq 0 ]]; then
   echo "==> Configure headless build"
-  cmake -S . -B "$BUILD_DIR" -DNEXUS_ENABLE_RENDERER=OFF
+  cmake --fresh -S . -B "$BUILD_DIR" -DNEXUS_ENABLE_RENDERER=OFF
   echo "==> Build"
   cmake --build "$BUILD_DIR" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 fi
