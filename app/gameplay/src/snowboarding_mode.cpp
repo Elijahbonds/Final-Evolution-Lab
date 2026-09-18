@@ -8,6 +8,8 @@ namespace {
 
 constexpr float kTimingPerfectThreshold = 0.92F;
 constexpr float kTimingGoodThreshold = 0.65F;
+constexpr const char* kPreviewLabel =
+    "VENUE PROXY - mountain slope scoring loop until production slope mesh ships";
 
 } // namespace
 
@@ -172,6 +174,7 @@ auto SnowboardingMode::stateJson() const -> nlohmann::json {
   out["max_wipeouts"] = kMaxWipeouts;
   out["run_complete"] = isRunComplete();
   out["release_state"] = "validate_only";
+  out["preview_label"] = kPreviewLabel;
   return out;
 }
 

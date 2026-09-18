@@ -59,7 +59,7 @@ enum ArcadeLibraryPreferences {
 
     private static func decodeIds(forKey key: String) -> [GameModeId] {
         guard let rawList = UserDefaults.standard.stringArray(forKey: key) else { return [] }
-        return rawList.compactMap { GameModeId(rawValue: $0) }
+        return rawList.compactMap { GameModeRegistry.playableModeId(forRegistryId: $0) }
     }
 
     private static func encodeIds(_ ids: [GameModeId], forKey key: String) {

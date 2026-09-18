@@ -1977,7 +1977,7 @@ struct DunkCompetitionView: View {
             opponentMaxHeight: opponentMax,
             payout: payout
         )
-        GameResultService.saveResult(modeId: "dunk_competition", userScore: Int(playerScore))
+        GameResultService.saveResult(modeId: GameModeId.basketballDunkContest3D.rawValue, userScore: Int(playerScore))
         phase = .result
     }
 }

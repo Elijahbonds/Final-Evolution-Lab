@@ -125,6 +125,7 @@ void GameplayApplication::update(double deltaSeconds,
       [](const ai::AgentResponse& agentResponse) { return agentResponse.status == "error"; }));
 
   const auto fitness = m_fitnessData.snapshot();
+  m_modeRuntime.syncFitness(fitness);
   if (m_arenaSession.state().phase == ArenaSessionPhase::kActive && !m_arenaSession.state().paused) {
     m_arenaSession.update(deltaSeconds, fitness);
     m_modeRuntime.update(deltaSeconds);
@@ -556,6 +557,7 @@ auto GameplayApplication::applyFitnessCommand(std::string_view command,
   }
 
   const auto snapshot = m_fitnessData.snapshot();
+  m_modeRuntime.syncFitness(snapshot);
   NEXUS_LOG_INFO(LogChannel::kAI, "Fitness metrics updated from agent command");
   nlohmann::json payload = fitnessSnapshotToJson(snapshot);
   payload["hud"] = {
@@ -601,6 +603,7 @@ auto GameplayApplication::applyScanGenerateCommand(std::string_view command,
   }
 
   const auto fitnessSnapshot = m_fitnessData.snapshot();
+  m_modeRuntime.syncFitness(fitnessSnapshot);
   nlohmann::json commandsApplied = nlohmann::json::array({
       "fel.fitness.update",
       "fel.creative.fill_region",
@@ -1069,7 +1072,23 @@ auto GameplayApplication::applyArenaCommand(std::string_view command,
     if (params.contains("auth_token")) {
       config.authToken = params.value("auth_token", config.authToken);
     }
-    config.persistToDisk = params.value("persist_to_disk", true);
+    if (params.contains("persist_to_disk")) {
+      config.persistToDisk = params.value("persist_to_disk", config.persistToDisk);
+    }
+    if (params.contains("http_enabled")) {
+      config.httpEnabled = params.value("http_enabled", config.httpEnabled);
+    }
+    if (params.contains("use_stub_http_transport")) {
+      config.useStubHttpTransport =
+          params.value("use_stub_http_transport", config.useStubHttpTransport);
+    }
+    if (params.contains("flush_interval_seconds")) {
+      config.flushIntervalSeconds =
+          params.value("flush_interval_seconds", config.flushIntervalSeconds);
+    }
+    if (params.contains("max_retries")) {
+      config.maxRetries = params.value("max_retries", config.maxRetries);
+    }
     m_gameplayManager.setReceiptClientConfig(std::move(config));
     const auto flushResult = m_gameplayManager.flushPendingReceipts();
     return response(id, "ok",
