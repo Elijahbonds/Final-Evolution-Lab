@@ -15,8 +15,6 @@ jobs:
       - name: Run Pre-Build CI Check
         run: |
           chmod +x ./infra/fel_prebuild_ci_check.sh
-          # Set UPROJECT to the known location in the repo
-          export UPROJECT="./UnrealStarter/BasketballGame/FinalEvolutionLab.uproject"
           ./infra/fel_prebuild_ci_check.sh --strict
         env:
           INTERNAL_ID: FinalEvolutionLab
@@ -36,11 +34,14 @@ jobs:
           import json
           with open('./backend/FEL_ModeManager.production.json') as f:
               d = json.load(f)
-          modes = d['mode_manager']['modes']
-          print(f'Mode registry: {len(modes)} modes')
-          prod = [m for m in modes if m.get('status') == 'production']
-          print(f'Production: {len(prod)} | Staging: {len(modes) - len(prod)}')
-          assert len(modes) >= 17, 'Expected 17+ modes'
+          manager = d['mode_manager']
+          registry = manager['mode_registry']
+          prod = [mode_id for mode_id, info in registry.items() if info.get('status') == 'production']
+          print(f'Mode registry: {len(registry)} modes')
+          print(f'Production: {len(prod)} | Non-production: {len(registry) - len(prod)}')
+          assert len(registry) == manager.get('total_modes'), 'Declared total_modes does not match registry'
+          assert len(prod) == manager.get('production_modes'), 'Declared production_modes does not match registry'
+          assert len(prod) >= 19, 'Expected 19+ production game/app modes'
           print('✓ Mode registry valid')
           "
 
