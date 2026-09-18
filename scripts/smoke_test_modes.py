@@ -34,16 +34,16 @@ def skip(msg):
 # ═══════════════════════════════════════════════════════════════════════════════
 PRODUCTION_MODES = [
     "basketball_h2h", "basketball_dunk", "basketball_3v3",
-    "karate_h2h", "karate_endless",
+    "court_carnival", "karate_h2h", "karate_endless",
     "baseball", "football", "soccer", "golf",
-    "tennis", "volleyball", "surfing",
-    "gymnastics", "skateboarding", "snowboarding",
+    "tennis", "volleyball", "gymnastics", "surfing",
+    "skateboarding", "snowboarding", "brain_brawl", "who_scene_it",
 ]
 
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = []
+PREVIEW_MODES = []
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -133,11 +133,15 @@ def test_venue_registry():
     vr = json.loads((REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Config" / "FEL_VenueRegistry.production.json").read_text())
     mode_ids = {m["id"] for m in vr["modes"]}
     venue_keys = {v["venueKey"] for v in vr["venues"]}
+    runtime_mode_ids = {m.get("nexusRuntimeModeId") for m in vr["modes"] if m.get("nexusRuntimeModeId")}
 
     all_modes = PRODUCTION_MODES + STAGING_MODES + PREVIEW_MODES
     for mode in all_modes:
-        if mode in mode_ids:
-            entry = next(m for m in vr["modes"] if m["id"] == mode)
+        if mode in mode_ids or mode in runtime_mode_ids:
+            entry = next(
+                m for m in vr["modes"]
+                if m["id"] == mode or m.get("nexusRuntimeModeId") == mode
+            )
             if entry["venueKey"] in venue_keys:
                 ok(f"{mode} → venue={entry['venueKey']}")
             else:
@@ -197,6 +201,8 @@ def test_swift_enum():
         # Search for rawValue
         if f'= "{mode}"' in content:
             ok(f'{mode} has Swift enum case')
+        elif mode == "basketball_dunk" and '= "basketball_dunk_3d"' in content:
+            ok("basketball_dunk has Swift split 3D enum alias")
         else:
             fail(f'{mode} missing from GameMode.swift enum')
 
@@ -256,7 +262,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print("  18 NEXUS runtime modes · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()

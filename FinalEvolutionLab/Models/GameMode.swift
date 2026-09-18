@@ -76,10 +76,8 @@ extension GameModeId {
         case .basketballDunkContestIRL, .basketballDunkContest3D, .karateEndless, .basketballHeadToHead, .venicePickup, .courtCarnival,
              .whoSceneIt:
             return .prod
-        case .gymnastics, .skateboarding, .snowboarding, .surfing:
+        case .gymnastics, .skateboarding, .snowboarding, .surfing, .brainBrawl:
             return .prod
-        case .brainBrawl:
-            return .staging
         case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
             return .sim
         case .marketBrowse:
@@ -118,7 +116,6 @@ extension GameModeId {
         case .preview, .nonGame: return false
         }
     }
-
     /// Modes scored via C++ `OutcomeSportMode` + `fel.sport.pulse` (see `mode_runtime.cpp`).
     var isNexusOutcomeSportMode: Bool {
         switch self {
