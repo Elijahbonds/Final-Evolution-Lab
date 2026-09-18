@@ -218,6 +218,16 @@ struct GamePlayView: View {
         gameRules.targetScore
     }
 
+    private var nexusSessionPlayerScore: Int {
+        let hudScore = Int(nexusEngine.hud.playerScore.rounded())
+        return hudScore > 0 ? hudScore : score
+    }
+
+    private var nexusSessionOpponentScore: Int {
+        let hudScore = Int(nexusEngine.hud.opponentScore.rounded())
+        return hudScore > 0 ? hudScore : opponentScore
+    }
+
     private var maxRounds: Int {
         gameRules.roundLimit
     }
@@ -483,7 +493,10 @@ struct GamePlayView: View {
         }
         .onDisappear {
             sceneViewportReady = false
-            nexusEngine.stop()
+            nexusEngine.stop(
+                playerScore: nexusSessionPlayerScore,
+                opponentScore: nexusSessionOpponentScore
+            )
             FELSoundscapeEngine.shared.stop()
             matchLobbyComplete = false
             multipeerService.stop()
@@ -4392,19 +4405,28 @@ struct GamePlayView: View {
         if finalizedMatchSessionId == matchSessionId { return }
 
         CrashReporter.setGameMode(id: gameMode.id.rawValue)
-        if shardsReward > 0 {
-            viewModel.profile.pendingUnverifiedShardCredits += shardsReward
+        let localTrustLevel = GameSessionTrustLevel.localPractice
+        let canApplyLocalEconomy = NexusEconomyAuthority.allowsLocalEconomyGrant(
+            modeId: gameMode.id,
+            trustLevel: localTrustLevel
+        )
+        let localShardsEarned = canApplyLocalEconomy ? shardsReward : 0
+        let localPRQBonus = canApplyLocalEconomy ? prqReward : 0
+        if localShardsEarned > 0 {
+            viewModel.profile.pendingUnverifiedShardCredits += localShardsEarned
             Task {
                 await TrainingLabSocialBridge.shared.recordShardLedgerForArenaSession(
                     gameModeId: gameMode.id.rawValue,
-                    deltaShards: shardsReward,
+                    deltaShards: localShardsEarned,
                     sessionId: matchSessionId.uuidString
                 )
             }
         }
 #if DEBUG
-        viewModel.profile.metrics.prqScore = PRQ.clamp(viewModel.profile.metrics.prqScore + prqReward)
-        viewModel.profile.metrics.neuralDrive = min(100, viewModel.profile.metrics.neuralDrive + 3)
+        if canApplyLocalEconomy {
+            viewModel.profile.metrics.prqScore = PRQ.clamp(viewModel.profile.metrics.prqScore + localPRQBonus)
+            viewModel.profile.metrics.neuralDrive = min(100, viewModel.profile.metrics.neuralDrive + 3)
+        }
 #endif
 
         let elapsedSeconds: Int = {
@@ -4421,12 +4443,12 @@ struct GamePlayView: View {
             date: Date(),
             score: score,
             opponentScore: opponentScore,
-            shardsEarned: shardsReward,
-            prqBonus: prqReward,
+            shardsEarned: localShardsEarned,
+            prqBonus: localPRQBonus,
             isMultiplayer: multipeerService.isConnected,
             duration: elapsedSeconds,
             verificationSeed: GameplaySeed.uint64(from: matchSessionId),
-            trustLevel: .localPractice
+            trustLevel: localTrustLevel
         )
 
         SaveSystem.saveProfile(viewModel.profile)

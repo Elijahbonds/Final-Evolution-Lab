@@ -10,6 +10,8 @@ package.json
 package-lock.json
 tsconfig.json
 app.json
+!frontend/package.json
+!frontend/package-lock.json
 
 # Xcode / NEXUS embed artifacts (never sync into app bundle)
 FinalEvolutionLab/GoogleService-Info.plist
@@ -136,6 +138,8 @@ android-sdk/
 *.app
 *.dSYM
 *.xcarchive
+build-headless/
+build-full/
 
 # UE5 intermediate
 Saved/
