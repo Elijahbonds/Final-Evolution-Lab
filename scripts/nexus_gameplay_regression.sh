@@ -10,6 +10,17 @@ REGRESSION_JSON="${ARTIFACT_DIR}/gameplay_regression.json"
 REGRESSION_LOG="${ARTIFACT_DIR}/gameplay_regression_run.log"
 SKIP_BUILD=0
 
+if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
+  export CXX=g++
+fi
+if [[ -z "${CC:-}" ]] && command -v gcc >/dev/null 2>&1; then
+  export CC=gcc
+fi
+CMAKE_COMPILER_ARGS=()
+if [[ -n "${CXX:-}" ]]; then
+  CMAKE_COMPILER_ARGS+=("-DCMAKE_CXX_COMPILER=${CXX}")
+fi
+
 for arg in "$@"; do
   case "$arg" in
     --skip-build) SKIP_BUILD=1 ;;
@@ -25,11 +36,15 @@ cd "${ROOT}"
 
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
   echo "==> Configure + build headless gameplay tests"
-  cmake -S . -B "${HEADLESS_DIR}" \
+  if [[ "${NEXUS_REUSE_BUILD:-0}" != "1" ]]; then
+    cmake -E rm -rf "${HEADLESS_DIR}"
+  fi
+  cmake -S . -B "${HEADLESS_DIR}" --fresh \
     -DNEXUS_ENABLE_RENDERER=OFF \
     -DNEXUS_BUILD_RUNTIME=OFF \
-    -DNEXUS_BUILD_TESTS=ON
-  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)" --target nexus_gameplay_test
+    -DNEXUS_BUILD_TESTS=ON \
+    "${CMAKE_COMPILER_ARGS[@]}"
+  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 fi
 
 GAMEPLAY_TEST="${HEADLESS_DIR}/nexus_gameplay_test"
