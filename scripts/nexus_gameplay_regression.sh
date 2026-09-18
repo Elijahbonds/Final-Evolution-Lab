@@ -10,6 +10,12 @@ REGRESSION_JSON="${ARTIFACT_DIR}/gameplay_regression.json"
 REGRESSION_LOG="${ARTIFACT_DIR}/gameplay_regression_run.log"
 SKIP_BUILD=0
 
+if [[ "$(uname -s)" == "Linux" ]]; then
+  export CC="${CC:-gcc}"
+  export CXX="${CXX:-g++}"
+  export LIBRARY_PATH="/usr/lib/gcc/x86_64-linux-gnu/13:${LIBRARY_PATH:-}"
+fi
+
 for arg in "$@"; do
   case "$arg" in
     --skip-build) SKIP_BUILD=1 ;;
@@ -23,13 +29,15 @@ done
 mkdir -p "${ARTIFACT_DIR}"
 cd "${ROOT}"
 
+"${ROOT}/scripts/validate_ios_cpp_registry.py"
+
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
-  echo "==> Configure + build headless gameplay tests"
+  echo "==> Configure + build headless gameplay test matrix"
   cmake -S . -B "${HEADLESS_DIR}" \
     -DNEXUS_ENABLE_RENDERER=OFF \
     -DNEXUS_BUILD_RUNTIME=OFF \
     -DNEXUS_BUILD_TESTS=ON
-  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)" --target nexus_gameplay_test
+  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 fi
 
 GAMEPLAY_TEST="${HEADLESS_DIR}/nexus_gameplay_test"
@@ -73,8 +81,10 @@ gameplay_log = Path(sys.argv[6]).read_text(errors="replace")
 ctest_log = Path(sys.argv[7]).read_text(errors="replace")
 
 sprint_modes = [
-    "basketball_dunk", "karate_endless", "basketball_h2h", "court_carnival",
-    "gymnastics", "brain_brawl", "skateboarding", "snowboarding", "surfing",
+    "basketball_h2h", "basketball_dunk", "basketball_3v3", "court_carnival",
+    "karate_h2h", "karate_endless",
+    "baseball", "football", "soccer", "golf", "tennis", "volleyball",
+    "gymnastics", "surfing", "skateboarding", "snowboarding", "brain_brawl",
     "who_scene_it",
 ]
 
