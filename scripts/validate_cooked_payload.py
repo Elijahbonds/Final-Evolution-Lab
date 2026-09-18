@@ -19,9 +19,10 @@ REQUIRED_VENUE_DIRS = [
     "BaseballPark", "Dojo", "Gridiron", "Links",
     "Luma_Venice_Shop", "NeuroArena", "SandCourt",
     "SoccerStadium", "TennisCourt", "TrainingFloor", "VeniceBeach",
+    "SkatePark", "MountainSlope",
 ]
 
-STAGING_VENUE_DIRS = ["SkatePark", "MountainSlope"]
+STAGING_VENUE_DIRS = []
 
 def validate_venue_content_dirs():
     """Check that venue content directories exist (or note them for asset pipeline)"""

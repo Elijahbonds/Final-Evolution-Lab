@@ -303,6 +303,7 @@ auto OutcomeSportMode::pulse(const nlohmann::json& params) -> Result<nlohmann::j
                       {"sport_action", m_lastAction},
                       {"streak", m_streak}};
   payload["release_state"] = "validate_only";
+  payload["preview_label"] = "VALIDATE-ONLY SIMULATOR - LIVE NEXUS SCORING";
   return Result<nlohmann::json>::ok(std::move(payload));
 }
 
@@ -319,6 +320,8 @@ auto OutcomeSportMode::stateJson() const -> nlohmann::json {
       {"streak", m_streak},
       {"last_action", m_lastAction},
       {"match_complete", m_matchComplete},
+      {"release_state", "validate_only"},
+      {"preview_label", "VALIDATE-ONLY SIMULATOR - LIVE NEXUS SCORING"},
   };
 
   if (m_modeId == "tennis") {

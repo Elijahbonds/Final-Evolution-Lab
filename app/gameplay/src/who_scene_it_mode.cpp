@@ -4,6 +4,13 @@
 
 namespace nexus::gameplay {
 
+namespace {
+
+constexpr const char* kPreviewLabel =
+    "CONTENT PROXY - scene-card drills until full creator scene pack ships";
+
+} // namespace
+
 void WhoSceneItMode::reset() {
   m_phase = WhoSceneItPhase::kLobby;
   m_correctCount = 0;
@@ -130,6 +137,7 @@ auto WhoSceneItMode::stateJson() const -> nlohmann::json {
       {"player_has_buzz", m_playerHasBuzz},
       {"match_complete", isMatchComplete()},
       {"release_state", "validate_only"},
+      {"preview_label", kPreviewLabel},
   };
 }
 
