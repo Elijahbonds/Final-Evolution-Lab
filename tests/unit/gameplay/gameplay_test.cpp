@@ -1921,12 +1921,44 @@ void session_receipt_http_stub_posts_localhost_contract() {
   client.enqueue(receipt);
   const auto flush = client.flush();
   require(flush.delivered == 1, "stub HTTP flush delivers receipt");
+  require(flush.queued_on_disk == 0, "HTTP-only receipt does not count as disk queued");
   require(client.pendingCount() == 0, "receipt cleared after stub POST");
   require(client.postedRequests().size() == 1, "one stub POST recorded");
   require(client.postedRequests().front().url.find("/api/games/session") != std::string::npos,
           "POST targets session contract path");
   require(client.postedRequests().front().body.find("karate_endless") != std::string::npos,
           "POST body includes mode_id");
+  require(!std::filesystem::exists(tempDir), "HTTP-only receipt did not create disk queue");
+}
+
+void gameplay_manager_preserves_receipt_transport_config() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_config_roundtrip_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::GameplayManager manager;
+  nexus::gameplay::SessionReceiptClientConfig config;
+  config.queueDirectory = tempDir.string();
+  config.baseUrl = "http://127.0.0.1:65535/api/games/session";
+  config.authToken = "unit-test-token";
+  config.persistToDisk = false;
+  config.httpEnabled = true;
+  config.useStubHttpTransport = false;
+  config.flushIntervalSeconds = 0.25F;
+  config.maxRetries = 3;
+  manager.setReceiptClientConfig(config);
+
+  const auto roundTrip = manager.receiptClientConfig();
+  require(roundTrip.queueDirectory == config.queueDirectory, "receipt config queue dir preserved");
+  require(roundTrip.baseUrl == config.baseUrl, "receipt config base URL preserved");
+  require(roundTrip.authToken == config.authToken, "receipt config auth token preserved");
+  require(roundTrip.persistToDisk == config.persistToDisk, "receipt config disk flag preserved");
+  require(roundTrip.httpEnabled == config.httpEnabled, "receipt config HTTP flag preserved");
+  require(roundTrip.useStubHttpTransport == config.useStubHttpTransport,
+          "receipt config stub transport flag preserved");
+  require(roundTrip.flushIntervalSeconds == config.flushIntervalSeconds,
+          "receipt config flush interval preserved");
+  require(roundTrip.maxRetries == config.maxRetries, "receipt config max retries preserved");
 }
 
 struct TextGenTempWorkspace {
@@ -2362,10 +2394,7 @@ void nexus_sprint_live_modes_agent_contract_integration() {
     const char* nestedStateKey;
   };
 
-  const std::array<SprintProbe, 9> probes{{
-      {"basketball_dunk", "fel.dunk.charge_begin", {}, "fel.dunk.charge_begin", "dunk"},
-      {"karate_endless", "fel.karate.action", {{"action", "heavy_strike"}},
-       "fel.karate.action", "karate"},
+  const std::array<SprintProbe, nexus::gameplay::kProductionModeCount> probes{{
       {"basketball_h2h", "fel.fitness.update",
        {{"frc_mobility", 0.6F},
         {"frc_active_range", 0.6F},
@@ -2374,17 +2403,46 @@ void nexus_sprint_live_modes_agent_contract_integration() {
         {"iap_confidence", 0.6F},
         {"breath_phase", 0}},
        "", "pickup"},
+      {"basketball_dunk", "fel.dunk.charge_begin", {}, "fel.dunk.charge_begin", "dunk"},
+      {"basketball_3v3", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.94F}, {"sport_action", "three_pointer"}},
+       "fel.sport.pulse", "outcome_sport"},
       {"court_carnival", "fel.carnival.trigger_pad", {{"pad", "trick_shot"}, {"timing", 0.9F}},
        "fel.carnival.trigger_pad", "carnival"},
+      {"karate_h2h", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.9F}, {"action", "heavy_strike"}},
+       "fel.sport.pulse", "outcome_sport"},
+      {"karate_endless", "fel.karate.action", {{"action", "heavy_strike"}},
+       "fel.karate.action", "karate"},
+      {"baseball", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.95F}, {"sport_action", "home_run"}},
+       "fel.sport.pulse", "outcome_sport"},
+      {"football", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.9F}, {"play_type", "touchdown"}},
+       "fel.sport.pulse", "outcome_sport"},
+      {"soccer", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.88F}, {"sport_action", "penalty"}},
+       "fel.sport.pulse", "outcome_sport"},
+      {"golf", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.86F}, {"club", "putt"}},
+       "fel.sport.pulse", "outcome_sport"},
+      {"tennis", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.91F}, {"shot_type", "ace"}},
+       "fel.sport.pulse", "outcome_sport"},
+      {"volleyball", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.89F}, {"rally_type", "spike"}},
+       "fel.sport.pulse", "outcome_sport"},
       {"gymnastics", "fel.gymnastics.tap", {{"timing", 0.92F}, {"difficulty", 0.75F}},
        "fel.gymnastics.tap", "gymnastics"},
-      {"brain_brawl", "fel.brain.answer",
-       {{"correct", true}, {"response_time", 5.0F}, {"category", "BodyIQ"}},
-       "fel.brain.answer", "brain_brawl"},
+      {"surfing", "fel.surf.carve", {{"timing", 0.9F}, {"wave_difficulty", 0.7F}},
+       "fel.surf.carve", "surfing"},
       {"skateboarding", "fel.skate.trick", {{"difficulty", 0.85F}, {"combo_multiplier", 2}},
        "fel.skate.trick", "skateboarding"},
       {"snowboarding", "fel.snow.carve", {{"timing", 0.93F}, {"line_difficulty", 0.75F}},
        "fel.snow.carve", "snowboarding"},
+      {"brain_brawl", "fel.brain.answer",
+       {{"correct", true}, {"response_time", 5.0F}, {"category", "BodyIQ"}},
+       "fel.brain.answer", "brain_brawl"},
       {"who_scene_it", "fel.scene.buzz_in", {{"timing", 0.91F}}, "fel.scene.buzz_in",
        "who_scene_it"},
   }};
@@ -2445,6 +2503,7 @@ void nexus_sprint_live_modes_agent_contract_integration() {
     require(hudFrame["payload"]["mode_state"].is_object(), "hud mode_state object");
     require(hudFrame["payload"]["mode_state"].contains(probe.nestedStateKey),
             std::string("hud nested mode state for ") + probe.modeId);
+    std::fprintf(stderr, "PASS: sprint mode=%s\n", probe.modeId);
   }
 
   server.shutdown();
@@ -2747,6 +2806,7 @@ auto main() -> int {
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  gameplay_manager_preserves_receipt_transport_config();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();

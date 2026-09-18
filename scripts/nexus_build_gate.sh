@@ -5,6 +5,15 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+if [[ "$(uname -s)" == "Linux" ]]; then
+  export CC="${CC:-gcc}"
+  export CXX="${CXX:-g++}"
+  export LIBRARY_PATH="/usr/lib/gcc/x86_64-linux-gnu/13:${LIBRARY_PATH:-}"
+fi
+
+echo "==> Phase 0: Swift/C++ production registry sync"
+"${ROOT}/scripts/validate_ios_cpp_registry.py"
+
 echo "==> Phase 1: headless build (NEXUS_ENABLE_RENDERER=OFF)"
 cmake -S . -B build-headless \
   -DNEXUS_ENABLE_RENDERER=OFF \
