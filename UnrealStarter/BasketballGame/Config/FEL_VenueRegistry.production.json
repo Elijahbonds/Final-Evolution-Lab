@@ -48,6 +48,18 @@
       }
     },
     {
+      "id": "basketball_dunk",
+      "analyticsMode": "dunk_contest",
+      "venueKey": "venice_beach_court",
+      "displayVenue": "Venice Beach Blue Court",
+      "renderMode": "3D_UE5",
+      "nexusRuntimeModeId": "basketball_dunk",
+      "modeNote": "Legacy runtime alias for basketball_dunk_3d.",
+      "lumaScanSource": "venice_beach",
+      "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
+      "nexusBackdropAssetId": "luma_venice_shop_environment_model_fbx"
+    },
+    {
       "id": "basketball_dunk_irl",
       "analyticsMode": "dunk_contest_irl",
       "venueKey": "regulation_court_irl",
@@ -154,6 +166,12 @@
       "venueKey": "vault_shop",
       "analyticsPolicyName": "Luma Venice Shop (primary scan)",
       "nexusEnvironmentAssetId": "luma_venice_shop_environment_model_fbx"
+    },
+    {
+      "venueKey": "regulation_court_irl",
+      "analyticsPolicyName": "Regulation Court (IRL)",
+      "nexusEnvironmentAssetId": "venice_beach_court_model_fbx",
+      "notes": "IRL mode has no UE map; this key anchors analytics and receipt history only."
     },
     { "venueKey": "beach_court", "analyticsPolicyName": "Beach Court — Volleyball" },
     { "venueKey": "dojo_arena", "analyticsPolicyName": "Zen / Dojo Arena", "nexusEnvironmentAssetId": "zen_dojo_environment_model_fbx" },

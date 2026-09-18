@@ -9,6 +9,11 @@ ARTIFACT_DIR="${ROOT}/artifacts/playtest"
 REGRESSION_JSON="${ARTIFACT_DIR}/gameplay_regression.json"
 REGRESSION_LOG="${ARTIFACT_DIR}/gameplay_regression_run.log"
 SKIP_BUILD=0
+HOST_JOBS="$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
+
+: "${CC:=gcc}"
+: "${CXX:=g++}"
+export CC CXX
 
 for arg in "$@"; do
   case "$arg" in
@@ -24,12 +29,12 @@ mkdir -p "${ARTIFACT_DIR}"
 cd "${ROOT}"
 
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
-  echo "==> Configure + build headless gameplay tests"
-  cmake -S . -B "${HEADLESS_DIR}" \
+  echo "==> Configure + build headless gameplay tests (CC=${CC}, CXX=${CXX})"
+  cmake --fresh -S . -B "${HEADLESS_DIR}" \
     -DNEXUS_ENABLE_RENDERER=OFF \
     -DNEXUS_BUILD_RUNTIME=OFF \
     -DNEXUS_BUILD_TESTS=ON
-  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)" --target nexus_gameplay_test
+  cmake --build "${HEADLESS_DIR}" -j"${HOST_JOBS}"
 fi
 
 GAMEPLAY_TEST="${HEADLESS_DIR}/nexus_gameplay_test"
