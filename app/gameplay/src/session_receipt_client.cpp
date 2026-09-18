@@ -106,10 +106,26 @@ auto SessionReceiptClient::flush() -> SessionReceiptDispatchResult {
     std::size_t retries = m_retryCounts[index];
     ++result.attempted;
 
+    if (m_config.persistToDisk) {
+      if (persistReceipt(receipt).has_value()) {
+        ++result.queued_on_disk;
+      } else {
+        ++retries;
+        if (retries < m_config.maxRetries) {
+          ++result.requeued;
+          remaining.push_back(std::move(receipt));
+          remainingRetries.push_back(retries);
+        } else {
+          NEXUS_LOG_WARN(nexus::LogChannel::kAI,
+                         "Session receipt dropped after disk persistence failed");
+        }
+        continue;
+      }
+    }
+
     const auto delivery = deliverReceipt(receipt);
     if (delivery.isOk()) {
       ++result.delivered;
-      ++result.queued_on_disk;
       continue;
     }
 
@@ -118,9 +134,6 @@ auto SessionReceiptClient::flush() -> SessionReceiptDispatchResult {
       ++result.requeued;
       remaining.push_back(std::move(receipt));
       remainingRetries.push_back(retries);
-      if (m_config.persistToDisk) {
-        (void)persistReceipt(remaining.back());
-      }
     } else {
       NEXUS_LOG_WARN(nexus::LogChannel::kAI,
                      "Session receipt dropped after max retries: " + delivery.error());
@@ -196,15 +209,7 @@ auto SessionReceiptClient::persistReceipt(const nlohmann::json& receipt) -> std:
 auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Result<int> {
   const std::string modeId = receipt.value("mode_id", std::string("unknown"));
   const int score = receipt.value("score", 0);
-
-  if (m_config.persistToDisk) {
-    if (const auto path = persistReceipt(receipt)) {
-      NEXUS_LOG_INFO(nexus::LogChannel::kAI,
-                     "Session receipt persisted for iOS/SessionService pickup path=" + *path);
-    } else {
-      return Result<int>::err("failed to persist receipt");
-    }
-  }
+  int statusCode = 200;
 
   if (m_config.httpEnabled) {
     m_http.setUrl(resolvePostUrl(m_config));
@@ -212,16 +217,20 @@ auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Resu
     if (postResult.isErr()) {
       return postResult;
     }
+    statusCode = postResult.value();
+    if (statusCode < 200 || statusCode >= 300) {
+      return Result<int>::err("session POST returned HTTP status " + std::to_string(statusCode));
+    }
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                    "Session receipt POST mode=" + modeId + " score=" + std::to_string(score) +
-                       " status=" + std::to_string(postResult.value()));
+                       " status=" + std::to_string(statusCode));
   } else {
     NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                    "Session receipt flush (HTTP disabled) mode=" + modeId +
                        " score=" + std::to_string(score));
   }
 
-  return Result<int>::ok(200);
+  return Result<int>::ok(statusCode);
 }
 
 } // namespace nexus::gameplay
