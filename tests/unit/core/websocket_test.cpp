@@ -54,6 +54,29 @@ void invalid_url_rejected() {
   require(client.lastError().code == "invalid_url", "invalid url code");
 }
 
+void malformed_ports_are_rejected_without_throwing() {
+  const std::string badUrls[] = {
+      "ws://127.0.0.1:/ws/hud",
+      "ws://127.0.0.1:abc/ws/hud",
+      "ws://127.0.0.1:0/ws/hud",
+      "ws://127.0.0.1:70000/ws/hud",
+  };
+
+  for (const std::string& url : badUrls) {
+    nexus::core::WebSocketClient client({.url = url,
+                                         .autoReconnect = false,
+                                         .useStubTransport = false});
+    const auto result = client.connect();
+    require(result.isErr(), ("malformed port rejected: " + url).c_str());
+    require(client.state() == nexus::core::WebSocketClientState::kError,
+            ("malformed port sets error state: " + url).c_str());
+    require(client.lastError().code == "invalid_url",
+            ("malformed port uses invalid_url envelope: " + url).c_str());
+    require(client.lastError().endpoint == url,
+            ("malformed port preserves endpoint: " + url).c_str());
+  }
+}
+
 void stub_reconnect_after_disconnect() {
   nexus::core::WebSocketClient client({.url = "ws://127.0.0.1:8787/ws/hud",
                                        .autoReconnect = true,
@@ -97,6 +120,7 @@ auto main() -> int {
   send_without_connect_sets_error_envelope();
   tcp_connect_failure_surfaces_error();
   invalid_url_rejected();
+  malformed_ports_are_rejected_without_throwing();
   stub_reconnect_after_disconnect();
   auto_reconnect_on_send_when_disconnected();
   http_stub_post_records_session_contract();
