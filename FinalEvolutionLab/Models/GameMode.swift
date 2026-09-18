@@ -79,11 +79,11 @@ extension GameModeId {
         case .gymnastics, .skateboarding, .snowboarding, .surfing:
             return .prod
         case .brainBrawl:
-            return .staging
+            return .prod
         case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
             return .sim
         case .marketBrowse:
-            return .preview
+            return .nonGame
         }
     }
 
@@ -100,19 +100,13 @@ extension GameModeId {
     var nexusRuntimeModeId: String {
         switch self {
         case .venicePickup: return GameModeId.basketballHeadToHead.rawValue
-        case .basketballDunkContest3D: return "basketball_dunk"
+        case .basketballDunkContestIRL, .basketballDunkContest3D: return "basketball_dunk"
         default: return rawValue
         }
     }
 
     /// Playable via NEXUS headless gameplay (full simulators + outcome evaluators).
     var isNexusSprintPlayable: Bool {
-        switch self {
-        case .marketBrowse:
-            return true
-        default:
-            break
-        }
         switch nexusCapabilityTier {
         case .prod, .sim, .staging: return true
         case .preview, .nonGame: return false
@@ -290,7 +284,8 @@ extension GameMode {
 }
 
 struct GameModeRegistry {
-    /// Canonical production mode ids — keep in sync with `arena_mode_registry.h` and `scripts/nexus_validate_production_modes.sh`.
+    /// App-facing production ids. Split dunk ids resolve to the shared `basketball_dunk`
+    /// NEXUS runtime in `arena_mode_registry.h` / `scripts/nexus_validate_production_modes.sh`.
     static let productionModeIds: [String] = [
         "basketball_h2h", "basketball_dunk_irl", "basketball_dunk_3d", "basketball_3v3", "court_carnival",
         "karate_h2h", "karate_endless",
@@ -303,7 +298,7 @@ struct GameModeRegistry {
     /// badges (prod/sim/staging) stay honest via ``GameModeId/nexusCapabilityTier``.
     static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases).subtracting([.marketBrowse])
 
-    /// All 20 mode IDs from `arena_mode_registry.cpp` — keep in sync when adding modes.
+    /// App-visible arena ids, including split dunk app surfaces and non-game library browsing.
     static let arenaRegistryModeIds: [GameModeId] = [
         .basketballHeadToHead, .basketballDunkContestIRL, .basketballDunkContest3D, .basketball3v3,
         .karate, .karateEndless,
@@ -573,18 +568,23 @@ struct GameModeRegistry {
 
     /// Resolves C++ registry mode ids (including aliases) to a launchable ``GameMode``.
     static func playableMode(forRegistryId raw: String) -> GameMode? {
-        switch raw {
+        let normalized = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        switch normalized {
         case "venice_pickup":
             return mode(for: .basketballHeadToHead)
-        case "basketball_dunk":
+        case "basketball_dunk", "basketball_irl":
             return mode(for: .basketballDunkContest3D)
         case "market_browse", "module_library", "vault_shop":
             return mode(for: .marketBrowse)
         default:
             break
         }
-        guard let id = GameModeId(rawValue: raw) else { return nil }
+        guard let id = GameModeId(rawValue: normalized) else { return nil }
         return all.first(where: { $0.id == id })
+    }
+
+    static func launchModeId(forRegistryId raw: String) -> GameModeId? {
+        playableMode(forRegistryId: raw)?.id
     }
 
     /// Session readiness derived from generated spec difficulty tier.
@@ -594,9 +594,8 @@ struct GameModeRegistry {
 
     /// Uses ``SaveSystem/loadLastSelectedArenaModeId()`` so Global Arena matchmaking matches an explicit grid selection (GAME-35).
     static func resolvedLastSelectedMode() -> GameMode? {
-        guard let raw = SaveSystem.loadLastSelectedArenaModeId(),
-              let id = GameModeId(rawValue: raw) else { return nil }
-        return mode(for: id)
+        guard let raw = SaveSystem.loadLastSelectedArenaModeId() else { return nil }
+        return playableMode(forRegistryId: raw)
     }
 
     static var sportCategories: [GameMode.SportCategory] {
@@ -615,9 +614,12 @@ struct GameModeRegistry {
     /// Ingests a `FELModeManagerPayload` to dynamically update or filter shipping game modes.
     static func loadFromPayload(_ payload: FELModeManagerPayload) -> [GameMode] {
         var loaded: [GameMode] = []
+        var seenModeIds = Set<GameModeId>()
         for (rawId, entry) in payload.modeManager.modeRegistry {
-            guard let modeId = GameModeId(rawValue: rawId) else { continue }
-            let baseMode = all.first(where: { $0.id == modeId })
+            guard let baseMode = playableMode(forRegistryId: rawId),
+                  !seenModeIds.contains(baseMode.id) else { continue }
+            seenModeIds.insert(baseMode.id)
+            let modeId = baseMode.id
             let releaseState: GameMode.ReleaseState = entry.status == "production" ? .production : .preview
             
             let mode = GameMode(

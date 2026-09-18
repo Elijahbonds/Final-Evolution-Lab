@@ -1232,12 +1232,12 @@ struct NexusGameGeneratorView: View {
     /// Clears ``navigationDestination`` before re-push so EXIT → same mode re-entry works (SwiftUI item routing).
     @MainActor
     private func pushGameplayRoute(for rawModeId: String) async {
-        guard let modeId = GameModeId(rawValue: rawModeId),
-              GameModeRegistry.playableMode(forRegistryId: rawModeId) != nil
+        guard let mode = GameModeRegistry.playableMode(forRegistryId: rawModeId)
         else {
             progressLines.append("Error: mode \(rawModeId) is not launchable")
             return
         }
+        let modeId = mode.id
         if gameplayRoute == modeId {
             gameplayRoute = nil
             try? await Task.sleep(for: .milliseconds(50))
@@ -1270,7 +1270,7 @@ struct NexusGameGeneratorView: View {
 
     private func openStudioRun(for spec: NexusGameplayEngine.GeneratedGameSpec) {
         let exportPath = ensureExported(spec)
-        let modeId = GameModeId(rawValue: spec.modeId)
+        let modeId = GameModeRegistry.launchModeId(forRegistryId: spec.modeId)
         NexusStudioCoordinator.shared.openRunPanel(
             modeId: modeId ?? .basketballDunkContest3D,
             readiness: NexusGeneratedGameEntry.readiness(for: spec.difficultyTier),
