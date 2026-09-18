@@ -99,7 +99,7 @@ export function filterModes(
     result = result.filter((m) => m.tier === filter.tier);
   }
   if (filter?.sprintOnly) {
-    const sprintIds = new Set(["basketball_dunk", "karate_endless"]);
+    const sprintIds = new Set(["basketball_dunk", "basketball_dunk_3d", "karate_endless"]);
     result = result.filter((m) => sprintIds.has(m.id));
   }
   return result;

@@ -13,6 +13,9 @@ fi
 
 export NEXUS_MESH_PROFILE=mobile
 
+# NEXUS mesh-validated runtime ids. Swift exposes `basketball_dunk_3d` as the
+# user-facing 3D product and maps it to the C++ `basketball_dunk` runtime id.
+# `basketball_dunk_irl` is camera/HealthKit-only and intentionally not run here.
 PRODUCTION_MODES=(
   basketball_h2h basketball_dunk basketball_3v3 court_carnival
   karate_h2h karate_endless
