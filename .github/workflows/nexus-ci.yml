@@ -32,5 +32,19 @@ jobs:
         working-directory: backend
         run: python -m pytest tests_phase1/test_shell_gameplay.py -q
 
+      - name: Run legacy server game route tests
+        working-directory: backend
+        run: python -m pytest tests/test_server_game_routes.py tests/test_matches.py -q --noconftest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Build frontend dashboard
+        working-directory: frontend
+        run: |
+          npm install --legacy-peer-deps --package-lock=false
+          CI=false GENERATE_SOURCEMAP=false npm run build
+
       - name: Run NEXUS headless gameplay regression
         run: ./scripts/nexus_gameplay_regression.sh

@@ -2042,6 +2042,57 @@ void session_receipt_real_http_non_2xx_requeues_without_disk_fallback() {
   require(client.postedRequests().front().statusCode == 503, "real HTTP status captured as 503");
 }
 
+void flush_command_preserves_receipt_transport_config() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  const auto first = gameplay.handleGameplayCommand(
+      "fel.arena.flush_receipts",
+      {
+          {"queue_directory", "/tmp/fel_receipt_config_preserve"},
+          {"base_url", "http://127.0.0.1:65535/api/games/session"},
+          {"auth_token", "test-token"},
+          {"persist_to_disk", false},
+          {"http_enabled", true},
+          {"use_stub_http_transport", false},
+          {"flush_interval_seconds", 2.5F},
+          {"max_retries", 2},
+      },
+      "receipt_config_first");
+  require(first.status == "ok", "initial receipt config flush ok");
+
+  const auto configured = gameplay.gameplay_manager().receiptClientConfig();
+  require(configured.queueDirectory == "/tmp/fel_receipt_config_preserve",
+          "receipt config queue directory set");
+  require(configured.baseUrl == "http://127.0.0.1:65535/api/games/session",
+          "receipt config base URL set");
+  require(configured.authToken == "test-token", "receipt config auth token set");
+  require(!configured.persistToDisk, "receipt config persist flag set");
+  require(configured.httpEnabled, "receipt config HTTP enabled set");
+  require(!configured.useStubHttpTransport, "receipt config live transport set");
+  require(configured.flushIntervalSeconds == 2.5F, "receipt config interval set");
+  require(configured.maxRetries == 2, "receipt config max retries set");
+
+  const auto second =
+      gameplay.handleGameplayCommand("fel.arena.flush_receipts", {}, "receipt_config_second");
+  require(second.status == "ok", "empty receipt config flush ok");
+
+  const auto preserved = gameplay.gameplay_manager().receiptClientConfig();
+  require(preserved.queueDirectory == configured.queueDirectory,
+          "empty flush preserves queue directory");
+  require(preserved.baseUrl == configured.baseUrl, "empty flush preserves base URL");
+  require(preserved.authToken == configured.authToken, "empty flush preserves auth token");
+  require(preserved.persistToDisk == configured.persistToDisk,
+          "empty flush preserves persist flag");
+  require(preserved.httpEnabled == configured.httpEnabled, "empty flush preserves HTTP flag");
+  require(preserved.useStubHttpTransport == configured.useStubHttpTransport,
+          "empty flush preserves transport mode");
+  require(preserved.flushIntervalSeconds == configured.flushIntervalSeconds,
+          "empty flush preserves interval");
+  require(preserved.maxRetries == configured.maxRetries, "empty flush preserves retry limit");
+}
+
 struct TextGenTempWorkspace {
   std::filesystem::path root;
   std::string manifestPath;
@@ -2862,6 +2913,7 @@ auto main() -> int {
   session_receipt_http_stub_posts_localhost_contract();
   session_receipt_real_http_2xx_clears_without_disk_fallback();
   session_receipt_real_http_non_2xx_requeues_without_disk_fallback();
+  flush_command_preserves_receipt_transport_config();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
