@@ -14,7 +14,17 @@ import paypalrestsdk
 import websockets
 
 # Shared dependencies (DB, auth, User model, FEL_LLM_KEY) live in core.py
-from core import db, client, User, get_current_user, verify_firebase_token, FEL_LLM_KEY, ROOT_DIR
+from core import (
+    db,
+    client,
+    User,
+    build_local_shell_user,
+    get_current_user,
+    local_shell_auth_enabled,
+    verify_firebase_token,
+    FEL_LLM_KEY,
+    ROOT_DIR,
+)
 from privacy_minors import athlete_visible_in_public_discovery, include_prq_in_public_athlete_search
 from commerce_catalog import COMMERCE_CATALOG, resolve_paypal_line_item
 from iap_verify import extract_line_items, extract_product_ids, verify_legacy_receipt
@@ -211,45 +221,68 @@ async def create_session(request: Request, response: Response):
     email = decoded.get("email", f"{uid}@example.com")
     name = decoded.get("name", "Firebase User")
     picture = decoded.get("picture")
+
+    def local_shell_session_response() -> JSONResponse:
+        user = build_local_shell_user(user_id=uid, email=email, name=name, picture=picture)
+        session_token = f"sess_dev_{uid}_{uuid.uuid4().hex}"
+        payload = {**user.model_dump(), "session_token": session_token}
+        resp = JSONResponse(content=payload)
+        resp.set_cookie(
+            key="session_token",
+            value=session_token,
+            httponly=True,
+            secure=False,
+            samesite="lax",
+            path="/",
+            max_age=7 * 24 * 60 * 60,
+        )
+        return resp
     
-    # Check if user exists by user_id (which is their Firebase UID)
-    existing = await db.users.find_one({"user_id": uid})
-    if existing:
-        user_id = uid
-        await db.users.update_one({"user_id": user_id}, {"$set": {"name": name, "picture": picture}})
-    else:
-        # Check by email as fallback
-        existing_by_email = await db.users.find_one({"email": email})
-        if existing_by_email:
-            user_id = existing_by_email["user_id"]
-            # Link Firebase UID to existing account
-            await db.users.update_one({"user_id": user_id}, {"$set": {"name": name, "picture": picture, "user_id": uid}})
+    try:
+        # Check if user exists by user_id (which is their Firebase UID)
+        existing = await db.users.find_one({"user_id": uid})
+        if existing:
             user_id = uid
+            await db.users.update_one({"user_id": user_id}, {"$set": {"name": name, "picture": picture}})
         else:
-            user_id = uid
-            await db.users.insert_one({
-                "user_id": user_id, "email": email, "name": name,
-                "picture": picture, "created_at": datetime.now(timezone.utc).isoformat(),
-                "role": "athlete", "sport": "basketball", "prq_score": 75.0, "level": 1,
-                "xp": 0, "streak_days": 0, "total_workouts": 0, "coins": 100,
-                "followers": [], "following": [], "avatar_config": None
-            })
-            await db.prq_metrics.insert_one({
-                "id": str(uuid.uuid4()), "user_id": user_id, "overall_score": 75.0,
-                "strength": 70.0, "speed": 75.0, "endurance": 80.0, "agility": 72.0,
-                "power": 68.0, "flexibility": 78.0, "recovery": 82.0, "mental": 76.0,
-                "recorded_at": datetime.now(timezone.utc).isoformat()
-            })
-            
-    # Issue local session token
-    session_token = f"sess_{uuid.uuid4().hex}"
-    await db.user_sessions.insert_one({
-        "user_id": user_id, "session_token": session_token,
-        "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
-        "created_at": datetime.now(timezone.utc).isoformat()
-    })
-    
-    user_doc = await db.users.find_one({"user_id": user_id})
+            # Check by email as fallback
+            existing_by_email = await db.users.find_one({"email": email})
+            if existing_by_email:
+                user_id = existing_by_email["user_id"]
+                # Link Firebase UID to existing account
+                await db.users.update_one({"user_id": user_id}, {"$set": {"name": name, "picture": picture, "user_id": uid}})
+                user_id = uid
+            else:
+                user_id = uid
+                await db.users.insert_one({
+                    "user_id": user_id, "email": email, "name": name,
+                    "picture": picture, "created_at": datetime.now(timezone.utc).isoformat(),
+                    "role": "athlete", "sport": "basketball", "prq_score": 75.0, "level": 1,
+                    "xp": 0, "streak_days": 0, "total_workouts": 0, "coins": 100,
+                    "followers": [], "following": [], "avatar_config": None
+                })
+                await db.prq_metrics.insert_one({
+                    "id": str(uuid.uuid4()), "user_id": user_id, "overall_score": 75.0,
+                    "strength": 70.0, "speed": 75.0, "endurance": 80.0, "agility": 72.0,
+                    "power": 68.0, "flexibility": 78.0, "recovery": 82.0, "mental": 76.0,
+                    "recorded_at": datetime.now(timezone.utc).isoformat()
+                })
+
+        # Issue local session token
+        session_token = f"sess_{uuid.uuid4().hex}"
+        await db.user_sessions.insert_one({
+            "user_id": user_id, "session_token": session_token,
+            "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+
+        user_doc = await db.users.find_one({"user_id": user_id})
+    except Exception as exc:
+        if local_shell_auth_enabled():
+            logging.warning("Falling back to local shell session because auth persistence is unavailable: %s", exc)
+            return local_shell_session_response()
+        raise
+
     payload = {**user_doc, "session_token": session_token}
     resp = JSONResponse(content=payload)
     resp.set_cookie(
