@@ -41,21 +41,29 @@ jobs:
           python3 - <<'EOF'
           import json, sys
           data = json.load(open('backend/FEL_ModeManager.production.json'))
-          modes = data['mode_manager']['modes']
+          manager = data['mode_manager']
+          registry = manager['mode_registry']
           errors = []
-          for m in modes:
-              rm = m.get('render_mode', 'MISSING')
+          if manager.get('total_modes') != len(registry):
+              errors.append(f"declared total_modes={manager.get('total_modes')} but registry has {len(registry)}")
+          production = [mode_id for mode_id, info in registry.items() if info.get('status') == 'production']
+          if manager.get('production_modes') != len(production):
+              errors.append(f"declared production_modes={manager.get('production_modes')} but registry has {len(production)}")
+          for mode_id, info in registry.items():
+              rm = info.get('render_mode', '3D_UE5')
               if rm == 'MISSING':
-                  errors.append(f"{m['id']}: render_mode field missing")
-              print(f"  {m['id']:35} render_mode={rm:8} irl={m.get('irl_mode',False)}")
-          h2h  = next(m for m in modes if m['id'] == 'basketball_h2h')
-          bb   = next(m for m in modes if m['id'] == 'brain_brawl')
-          dunk = next(m for m in modes if m['id'] == 'basketball_dunk')
-          assert h2h['render_mode']  == '3D_UE5',  f"basketball_h2h must be 3D_UE5"
-          assert h2h['irl_mode']     == False,      "basketball_h2h must have irl_mode=false"
-          assert bb['render_mode']   == '2D',       f"brain_brawl must be 2D"
-          assert dunk['render_mode'] == '3D_UE5',   f"basketball_dunk must be 3D_UE5"
-          assert 'Venice' in dunk.get('venue_display', ''), "basketball_dunk venue must mention Venice Beach"
+                  errors.append(f"{mode_id}: render_mode field missing")
+              print(f"  {mode_id:35} render_mode={rm:8} irl={info.get('irl_mode', False)} status={info.get('status')}")
+          h2h  = registry['basketball_h2h']
+          bb   = registry['brain_brawl']
+          dunk = registry['basketball_dunk_3d']
+          irl  = registry['basketball_dunk_irl']
+          assert h2h.get('render_mode', '3D_UE5') == '3D_UE5', "basketball_h2h must be 3D_UE5"
+          assert h2h.get('irl_mode', False) == False, "basketball_h2h must have irl_mode=false"
+          assert bb.get('status') == 'production', "brain_brawl must be production"
+          assert dunk.get('render_mode') == '3D_UE5', "basketball_dunk_3d must be 3D_UE5"
+          assert irl.get('render_mode') == 'IRL', "basketball_dunk_irl must be IRL"
+          assert 'Venice' in dunk.get('venue_id', ''), "basketball_dunk_3d venue must mention Venice Beach"
           if errors:
               [print(f"ERROR: {e}") for e in errors]; sys.exit(1)
           print("All render mode assertions passed")
@@ -63,8 +71,8 @@ jobs:
 
       - name: Run smoke tests
         run: |
-          pip install -r backend/requirements.txt --quiet 2>/dev/null || true
-          python3 scripts/smoke_test_modes.py || echo "Smoke tests need backend deps — skipped in CI"
+          pip install -r backend/requirements.txt --quiet
+          python3 scripts/smoke_test_modes.py
 
   # ── 2. Deploy to Firebase (push only) ─────────────────────────
   deploy-firebase:

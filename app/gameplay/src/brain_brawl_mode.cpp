@@ -4,6 +4,13 @@
 
 namespace nexus::gameplay {
 
+namespace {
+
+constexpr const char* kPreviewLabel =
+    "ACADEMY PROXY - cognitive quiz simulator until full Neuro Arena content ships";
+
+} // namespace
+
 void BrainBrawlMode::reset() {
   m_phase = BrainBrawlPhase::kLobby;
   m_cognitiveScore = 0.0F;
@@ -93,6 +100,8 @@ auto BrainBrawlMode::stateJson() const -> nlohmann::json {
       {"streak_multiplier", m_streakMultiplier},
       {"current_category", m_currentCategory},
       {"match_complete", isMatchComplete()},
+      {"release_state", "validate_only"},
+      {"preview_label", kPreviewLabel},
   };
 }
 

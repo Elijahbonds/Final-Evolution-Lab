@@ -4,6 +4,13 @@
 
 namespace nexus::gameplay {
 
+namespace {
+
+constexpr const char* kPreviewLabel =
+    "VENUE PROXY - skate park scoring loop until full park mesh ships";
+
+} // namespace
+
 void SkateboardingMode::reset() {
   m_phase = SkatePhase::kRun;
   m_trickScore = 0.0F;
@@ -76,6 +83,7 @@ auto SkateboardingMode::stateJson() const -> nlohmann::json {
       {"max_bails", kMaxBails},
       {"run_complete", isRunComplete()},
       {"release_state", "validate_only"},
+      {"preview_label", kPreviewLabel},
   };
 }
 

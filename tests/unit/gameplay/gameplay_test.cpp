@@ -38,6 +38,9 @@
 #include <thread>
 #include <vector>
 
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 namespace {
@@ -53,6 +56,13 @@ void require(bool condition, const std::string& message) {
   require(condition, message.c_str());
 }
 
+void requireValidateOnlyPreviewLabel(const nlohmann::json& state, const std::string& modeName) {
+  require(state.value("release_state", std::string{}) == "validate_only",
+          modeName + " discloses validate-only state");
+  require(!state.value("preview_label", std::string{}).empty(),
+          modeName + " exposes preview label");
+}
+
 void removeTreeBestEffort(const std::filesystem::path& root) {
   for (int attempt = 0; attempt < 5; ++attempt) {
     std::error_code ec;
@@ -63,6 +73,65 @@ void removeTreeBestEffort(const std::filesystem::path& root) {
     std::this_thread::sleep_for(std::chrono::milliseconds(10 * (attempt + 1)));
   }
 }
+
+class OneShotHttpServer {
+public:
+  explicit OneShotHttpServer(int statusCode) : m_statusCode(statusCode) {
+    m_serverFd = ::socket(AF_INET, SOCK_STREAM, 0);
+    require(m_serverFd >= 0, "one-shot HTTP socket created");
+
+    int reuse = 1;
+    (void)::setsockopt(m_serverFd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+
+    sockaddr_in address{};
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    address.sin_port = 0;
+    require(::bind(m_serverFd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == 0,
+            "one-shot HTTP socket bound");
+    require(::listen(m_serverFd, 1) == 0, "one-shot HTTP socket listening");
+
+    socklen_t length = sizeof(address);
+    require(::getsockname(m_serverFd, reinterpret_cast<sockaddr*>(&address), &length) == 0,
+            "one-shot HTTP socket port discovered");
+    m_port = ntohs(address.sin_port);
+
+    m_thread = std::thread([this]() { serveOnce(); });
+  }
+
+  OneShotHttpServer(const OneShotHttpServer&) = delete;
+  auto operator=(const OneShotHttpServer&) -> OneShotHttpServer& = delete;
+
+  ~OneShotHttpServer() {
+    if (m_thread.joinable()) {
+      m_thread.join();
+    }
+  }
+
+  [[nodiscard]] auto url() const -> std::string {
+    return "http://127.0.0.1:" + std::to_string(m_port) + "/api/games/session";
+  }
+
+private:
+  void serveOnce() const {
+    const int clientFd = ::accept(m_serverFd, nullptr, nullptr);
+    if (clientFd >= 0) {
+      std::array<char, 1024> request{};
+      (void)::read(clientFd, request.data(), request.size());
+      const std::string reason = m_statusCode >= 500 ? "Service Unavailable" : "OK";
+      const std::string response = "HTTP/1.1 " + std::to_string(m_statusCode) + " " +
+                                   reason + "\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+      (void)::write(clientFd, response.data(), response.size());
+      (void)::close(clientFd);
+    }
+    (void)::close(m_serverFd);
+  }
+
+  int m_statusCode{200};
+  int m_serverFd{-1};
+  int m_port{0};
+  std::thread m_thread;
+};
 
 void fitness_data_snapshots_are_thread_safe() {
   nexus::gameplay::ThreadSafeFitnessData fitness;
@@ -411,6 +480,16 @@ void arena_mode_registry_lists_nineteen_modes() {
   require(dunk->nexusMeshPath.find(".nexusmesh.json") != std::string_view::npos,
           "dunk nexus mesh path");
   require(dunk->legacyUeMapAlias.find("/Game/FEL/Maps/") == 0, "dunk legacy ue alias");
+
+  const auto splitDunk = nexus::gameplay::ArenaModeRegistry::find("basketball_dunk_3d");
+  require(splitDunk.has_value(), "basketball_dunk_3d resolves to NEXUS dunk runtime");
+  require(splitDunk->id == "basketball_dunk", "split dunk canonical runtime id");
+
+  nexus::gameplay::ModeRuntime runtime;
+  require(runtime.setMode("basketball_dunk_3d").isOk(), "split dunk runtime mode set");
+  require(runtime.activeModeId() == "basketball_dunk", "split dunk runtime stores canonical id");
+  require(runtime.activeKind() == nexus::gameplay::ActiveModeKind::kDunkContest,
+          "split dunk runtime uses dunk contest mode");
 }
 
 void arena_mode_registry_production_modes_match_validate_script() {
@@ -520,6 +599,10 @@ void outcome_sport_mode_mechanics_and_session_scores() {
           "soccer win target is five goals");
   require(soccer.stateJson().value("penalty_round", 0) == 2,
           "two penalty pulses tracked");
+  require(soccer.stateJson().value("release_state", std::string{}) == "validate_only",
+          "outcome sports disclose validate-only state");
+  require(!soccer.stateJson().value("preview_label", std::string{}).empty(),
+          "outcome sports expose preview label");
 }
 
 void soccer_penalty_validate_only_integration() {
@@ -933,6 +1016,19 @@ void exercise_demo_pipeline_maps_production_modes() {
   require(mapping.has_value(), "dunk demo mapping exists");
   require(mapping->moduleId == "mod2", "dunk maps to mod2");
   require(mapping->montagePath.find("mod2") != std::string::npos, "montage path contains mod2");
+
+  const auto allMappings = nexus::gameplay::ExerciseDemoPipeline::allProductionMappings();
+  require(allMappings["count"].get<std::size_t>() == nexus::gameplay::kProductionModeCount,
+          "all production modes have academy mappings");
+  for (std::string_view modeId : nexus::gameplay::kProductionModeIds) {
+    const auto productionMapping = nexus::gameplay::ExerciseDemoPipeline::mappingForMode(modeId);
+    require(productionMapping.has_value(),
+            std::string("academy mapping exists for ") + std::string(modeId));
+    require(!productionMapping->moduleId.empty(),
+            std::string("academy module id set for ") + std::string(modeId));
+    require(!productionMapping->montagePath.empty(),
+            std::string("academy montage path set for ") + std::string(modeId));
+  }
 }
 
 void physics_intent_queue_is_consumed_on_step() {
@@ -960,12 +1056,125 @@ void prq_stub_returns_sprint_defaults() {
           "prq grade primed");
 }
 
+void prq_engine_derives_profile_from_fitness_snapshot() {
+  nexus::gameplay::ThreadSafeFitnessData fitness;
+  fitness.update({0.2F, 0.2F, 0.2F}, {0.2F, 0.5F, -1});
+  const auto lowProfile =
+      nexus::gameplay::PRQEngine::fromFitnessSnapshot(fitness.snapshot());
+  require(lowProfile.score > 15.0F && lowProfile.score < 16.0F,
+          "low readiness maps to low PRQ score");
+  require(lowProfile.neuralDrive > 13.0F && lowProfile.neuralDrive < 14.0F,
+          "low readiness maps to low neural drive");
+  require(lowProfile.grade == nexus::gameplay::PRQGrade::kRecovering,
+          "low readiness maps to recovering grade");
+  require(lowProfile.fitnessRevision == 1, "prq profile carries fitness revision");
+
+  fitness.update({1.0F, 0.9F, 0.95F}, {0.9F, 0.9F, 1});
+  const auto highProfile =
+      nexus::gameplay::PRQEngine::fromFitnessSnapshot(fitness.snapshot());
+  require(highProfile.score > 88.0F && highProfile.score < 89.0F,
+          "high readiness maps to elite PRQ score");
+  require(highProfile.neuralDrive > 85.0F && highProfile.neuralDrive < 86.0F,
+          "high readiness maps to high neural drive");
+  require(highProfile.grade == nexus::gameplay::PRQGrade::kElite,
+          "high readiness maps to elite grade");
+  require(highProfile.fitnessRevision == 2, "prq profile revision follows fitness update");
+}
+
 void arcade_physics_maps_prq_75() {
   const auto params =
       nexus::gameplay::ArcadePhysics::fromPRQ(75.0F, 60.0F);
   require(params.hangTimeMultiplier > 2.3F, "hang time multiplier at PRQ 75");
   require(params.explosiveFirstStep > 0.82F && params.explosiveFirstStep < 0.83F,
           "explosive first step at PRQ 75");
+}
+
+void mode_runtime_arcade_physics_follows_synced_fitness() {
+  nexus::gameplay::ModeRuntime runtime;
+  require(runtime.setMode("basketball_dunk").isOk(), "dunk mode set for prq sync");
+
+  const auto defaultState = runtime.stateJson();
+  require(defaultState["prq"].get<float>() == 75.0F, "mode runtime keeps default prq");
+  require(defaultState["fitness_revision"].get<std::uint64_t>() == 0,
+          "mode runtime default fitness revision");
+  const float defaultHang =
+      defaultState["arcade_physics"]["hang_time_multiplier"].get<float>();
+
+  nexus::gameplay::ThreadSafeFitnessData fitness;
+  fitness.update({0.2F, 0.2F, 0.2F}, {0.2F, 0.5F, -1});
+  runtime.syncFitness(fitness.snapshot());
+  const auto lowState = runtime.stateJson();
+  require(lowState["prq"].get<float>() < 20.0F, "mode runtime accepts low readiness prq");
+  require(lowState["prq_grade"].get<std::string>() == "RECOVERING",
+          "mode runtime exposes recovering grade");
+  require(lowState["fitness_revision"].get<std::uint64_t>() == 1,
+          "mode runtime exposes synced fitness revision");
+  const float lowHang = lowState["arcade_physics"]["hang_time_multiplier"].get<float>();
+  require(lowHang < defaultHang, "low readiness lowers dunk hang time");
+
+  fitness.update({1.0F, 0.9F, 0.95F}, {0.9F, 0.9F, 1});
+  runtime.syncFitness(fitness.snapshot());
+  const auto highState = runtime.stateJson();
+  require(highState["prq"].get<float>() > 88.0F, "mode runtime accepts elite readiness prq");
+  require(highState["prq_grade"].get<std::string>() == "ELITE",
+          "mode runtime exposes elite grade");
+  require(highState["arcade_physics"]["hang_time_multiplier"].get<float>() > defaultHang,
+          "elite readiness raises dunk hang time");
+}
+
+void gameplay_fitness_commands_drive_mode_runtime_prq() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk"}, {"user_id", "prq_mode_runtime"}},
+              "prq_start")
+              .status == "ok",
+          "prq test session starts");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.fitness.update",
+              {{"frc_mobility", 0.2F},
+               {"frc_active_range", 0.2F},
+               {"frc_control", 0.2F},
+               {"iap_engagement", 0.2F},
+               {"iap_confidence", 0.5F},
+               {"breath_phase", -1}},
+              "prq_low")
+              .status == "ok",
+          "low fitness update ok");
+  const auto lowState =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "prq_low_state");
+  require(lowState.status == "ok", "low prq mode state ok");
+  const float lowHang =
+      lowState.payload["arcade_physics"]["hang_time_multiplier"].get<float>();
+  require(lowState.payload["prq_grade"].get<std::string>() == "RECOVERING",
+          "low command updates mode prq grade");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.fitness.update",
+              {{"frc_mobility", 1.0F},
+               {"frc_active_range", 0.9F},
+               {"frc_control", 0.95F},
+               {"iap_engagement", 0.9F},
+               {"iap_confidence", 0.9F},
+               {"breath_phase", 1}},
+              "prq_high")
+              .status == "ok",
+          "high fitness update ok");
+  const auto highState =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "prq_high_state");
+  require(highState.status == "ok", "high prq mode state ok");
+  require(highState.payload["prq"].get<float>() > lowState.payload["prq"].get<float>(),
+          "high fitness raises mode prq");
+  require(highState.payload["prq_grade"].get<std::string>() == "ELITE",
+          "high command updates mode prq grade");
+  require(highState.payload["fitness_revision"].get<std::uint64_t>() == 2,
+          "mode prq revision follows command updates");
+  require(highState.payload["arcade_physics"]["hang_time_multiplier"].get<float>() > lowHang,
+          "high fitness raises mode hang time");
 }
 
 void dunk_contest_charge_release_scores() {
@@ -1568,6 +1777,7 @@ void flagship_gymnastics_validate_only_integration() {
       gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "gym_state");
   require(modeState.payload["gymnastics"]["elements_completed"].get<int>() >= 6,
           "gymnastics routine completes");
+  requireValidateOnlyPreviewLabel(modeState.payload["gymnastics"], "gymnastics state");
 
   physics.shutdown();
 }
@@ -1611,6 +1821,8 @@ void flagship_brain_brawl_validate_only_integration() {
           "hud reports brain brawl mode");
   require(hud.payload["payload"]["mode_state"]["brain_brawl"].is_object(),
           "hud brain brawl nested state");
+  requireValidateOnlyPreviewLabel(hud.payload["payload"]["mode_state"]["brain_brawl"],
+                                  "brain brawl HUD");
 
   physics.shutdown();
 }
@@ -1651,6 +1863,7 @@ void flagship_skateboarding_validate_only_integration() {
       gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "skate_final");
   require(finalState.payload["skateboarding"]["trick_score"].get<int>() >= 50,
           "skateboarding reaches win threshold");
+  requireValidateOnlyPreviewLabel(finalState.payload["skateboarding"], "skateboarding state");
 
   physics.shutdown();
 }
@@ -1699,6 +1912,8 @@ void flagship_snowboarding_validate_only_integration() {
           "hud reports snowboarding mode");
   require(hud.payload["payload"]["mode_state"]["snowboarding"].is_object(),
           "hud snowboarding nested state");
+  requireValidateOnlyPreviewLabel(hud.payload["payload"]["mode_state"]["snowboarding"],
+                                  "snowboarding HUD");
 
   physics.shutdown();
 }
@@ -1751,6 +1966,11 @@ void flagship_surfing_validate_only_integration() {
           "hud reports surfing mode");
   require(hud.payload["payload"]["mode_state"]["surfing"].is_object(),
           "hud surfing nested state");
+  require(hud.payload["payload"]["mode_state"]["surfing"].value("release_state", std::string{}) ==
+              "validate_only",
+          "surfing HUD discloses validate-only state");
+  require(!hud.payload["payload"]["mode_state"]["surfing"].value("preview_label", std::string{}).empty(),
+          "surfing HUD discloses venue proxy label");
 
   physics.shutdown();
 }
@@ -1803,6 +2023,13 @@ void flagship_outcome_sport_validate_only_integration() {
   }
 
   require(gameplay.mode_runtime().shouldAutoEndSession(), "volleyball match completes");
+  const auto volleyballState =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "volleyball_state");
+  require(volleyballState.payload["outcome_sport"].value("release_state", std::string{}) ==
+              "validate_only",
+          "outcome HUD state discloses validate-only state");
+  require(!volleyballState.payload["outcome_sport"].value("preview_label", std::string{}).empty(),
+          "outcome HUD state exposes preview label");
 
   physics.shutdown();
 }
@@ -1848,6 +2075,7 @@ void flagship_who_scene_it_validate_only_integration() {
           "who scene it reaches win threshold");
   require(finalState.payload["who_scene_it"]["match_complete"].get<bool>(),
           "who scene it match complete");
+  requireValidateOnlyPreviewLabel(finalState.payload["who_scene_it"], "who scene it state");
 
   physics.shutdown();
 }
@@ -1921,12 +2149,114 @@ void session_receipt_http_stub_posts_localhost_contract() {
   client.enqueue(receipt);
   const auto flush = client.flush();
   require(flush.delivered == 1, "stub HTTP flush delivers receipt");
+  require(flush.queued_on_disk == 0, "stub HTTP-only success does not count disk queue");
   require(client.pendingCount() == 0, "receipt cleared after stub POST");
   require(client.postedRequests().size() == 1, "one stub POST recorded");
   require(client.postedRequests().front().url.find("/api/games/session") != std::string::npos,
           "POST targets session contract path");
   require(client.postedRequests().front().body.find("karate_endless") != std::string::npos,
           "POST body includes mode_id");
+}
+
+void session_receipt_real_http_2xx_clears_without_disk_fallback() {
+  if (std::system("command -v curl >/dev/null 2>&1") != 0) {
+    return;
+  }
+
+  OneShotHttpServer server(204);
+  nexus::gameplay::SessionReceiptClient client({
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  client.enqueue({{"mode_id", "basketball_dunk"}, {"score", 21}, {"completed", true}});
+  const auto flush = client.flush();
+
+  require(flush.attempted == 1, "real HTTP 204 attempts one receipt");
+  require(flush.delivered == 1, "real HTTP 204 delivers receipt");
+  require(flush.requeued == 0, "real HTTP 204 does not requeue");
+  require(flush.queued_on_disk == 0, "real HTTP 204 has no disk fallback when disabled");
+  require(client.pendingCount() == 0, "real HTTP 204 clears pending receipt");
+  require(client.postedRequests().size() == 1, "real HTTP 204 records POST");
+  require(client.postedRequests().front().statusCode == 204, "real HTTP status captured as 204");
+}
+
+void session_receipt_real_http_non_2xx_requeues_without_disk_fallback() {
+  if (std::system("command -v curl >/dev/null 2>&1") != 0) {
+    return;
+  }
+
+  OneShotHttpServer server(503);
+  nexus::gameplay::SessionReceiptClient client({
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  client.enqueue({{"mode_id", "basketball_dunk"}, {"score", 21}, {"completed", true}});
+  const auto flush = client.flush();
+
+  require(flush.attempted == 1, "real HTTP 503 attempts one receipt");
+  require(flush.delivered == 0, "real HTTP 503 does not deliver receipt");
+  require(flush.requeued == 1, "real HTTP 503 requeues receipt");
+  require(flush.queued_on_disk == 0, "real HTTP 503 has no disk fallback when disabled");
+  require(client.pendingCount() == 1, "real HTTP 503 keeps pending receipt");
+  require(client.postedRequests().size() == 1, "real HTTP 503 records POST");
+  require(client.postedRequests().front().statusCode == 503, "real HTTP status captured as 503");
+}
+
+void flush_command_preserves_receipt_transport_config() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  const auto first = gameplay.handleGameplayCommand(
+      "fel.arena.flush_receipts",
+      {
+          {"queue_directory", "/tmp/fel_receipt_config_preserve"},
+          {"base_url", "http://127.0.0.1:65535/api/games/session"},
+          {"auth_token", "test-token"},
+          {"persist_to_disk", false},
+          {"http_enabled", true},
+          {"use_stub_http_transport", false},
+          {"flush_interval_seconds", 2.5F},
+          {"max_retries", 2},
+      },
+      "receipt_config_first");
+  require(first.status == "ok", "initial receipt config flush ok");
+
+  const auto configured = gameplay.gameplay_manager().receiptClientConfig();
+  require(configured.queueDirectory == "/tmp/fel_receipt_config_preserve",
+          "receipt config queue directory set");
+  require(configured.baseUrl == "http://127.0.0.1:65535/api/games/session",
+          "receipt config base URL set");
+  require(configured.authToken == "test-token", "receipt config auth token set");
+  require(!configured.persistToDisk, "receipt config persist flag set");
+  require(configured.httpEnabled, "receipt config HTTP enabled set");
+  require(!configured.useStubHttpTransport, "receipt config live transport set");
+  require(configured.flushIntervalSeconds == 2.5F, "receipt config interval set");
+  require(configured.maxRetries == 2, "receipt config max retries set");
+
+  const auto second =
+      gameplay.handleGameplayCommand("fel.arena.flush_receipts", {}, "receipt_config_second");
+  require(second.status == "ok", "empty receipt config flush ok");
+
+  const auto preserved = gameplay.gameplay_manager().receiptClientConfig();
+  require(preserved.queueDirectory == configured.queueDirectory,
+          "empty flush preserves queue directory");
+  require(preserved.baseUrl == configured.baseUrl, "empty flush preserves base URL");
+  require(preserved.authToken == configured.authToken, "empty flush preserves auth token");
+  require(preserved.persistToDisk == configured.persistToDisk,
+          "empty flush preserves persist flag");
+  require(preserved.httpEnabled == configured.httpEnabled, "empty flush preserves HTTP flag");
+  require(preserved.useStubHttpTransport == configured.useStubHttpTransport,
+          "empty flush preserves transport mode");
+  require(preserved.flushIntervalSeconds == configured.flushIntervalSeconds,
+          "empty flush preserves interval");
+  require(preserved.maxRetries == configured.maxRetries, "empty flush preserves retry limit");
 }
 
 struct TextGenTempWorkspace {
@@ -2150,6 +2480,10 @@ void game_prompt_adapter_covers_all_playable_modes() {
 
 void game_prompt_adapter_normalizes_mode_aliases() {
   require(nexus::ai::normalizeGameModeId("venice_pickup") == "basketball_h2h", "venice_pickup alias");
+  require(nexus::ai::normalizeGameModeId("basketball_dunk_3d") == "basketball_dunk",
+          "split dunk alias");
+  require(nexus::ai::normalizeGameModeId("basketball_dunk_irl").empty(),
+          "irl dunk excluded from NEXUS generation");
   require(nexus::ai::normalizeGameModeId("karate_kata") == "karate_endless", "karate_kata alias");
   require(nexus::ai::normalizeGameModeId("market_browse").empty(), "market_browse excluded");
 }
@@ -2747,6 +3081,9 @@ auto main() -> int {
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_real_http_2xx_clears_without_disk_fallback();
+  session_receipt_real_http_non_2xx_requeues_without_disk_fallback();
+  flush_command_preserves_receipt_transport_config();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
@@ -2755,7 +3092,10 @@ auto main() -> int {
   engine_tick_runs_physics_before_gameplay_update();
   gameplay_update_drains_agent_commands_before_throw_catch();
   prq_stub_returns_sprint_defaults();
+  prq_engine_derives_profile_from_fitness_snapshot();
   arcade_physics_maps_prq_75();
+  mode_runtime_arcade_physics_follows_synced_fitness();
+  gameplay_fitness_commands_drive_mode_runtime_prq();
   dunk_contest_charge_release_scores();
   karate_endless_wave_spawns();
   karate_endless_local_coop_wave_survival();
