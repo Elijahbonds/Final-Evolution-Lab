@@ -483,7 +483,7 @@ struct GamePlayView: View {
         }
         .onDisappear {
             sceneViewportReady = false
-            nexusEngine.stop()
+            stopNexusSessionWithCurrentScores()
             FELSoundscapeEngine.shared.stop()
             matchLobbyComplete = false
             multipeerService.stop()
@@ -497,6 +497,10 @@ struct GamePlayView: View {
             filmTimerTask?.cancel()
             courtCarnivalTapTimerTask?.cancel()
         }
+    }
+
+    private func stopNexusSessionWithCurrentScores() {
+        nexusEngine.stop(playerScore: score, opponentScore: opponentScore)
     }
 
     // MARK: - HUD Honesty
@@ -4392,6 +4396,7 @@ struct GamePlayView: View {
         if finalizedMatchSessionId == matchSessionId { return }
 
         CrashReporter.setGameMode(id: gameMode.id.rawValue)
+        stopNexusSessionWithCurrentScores()
         if shardsReward > 0 {
             viewModel.profile.pendingUnverifiedShardCredits += shardsReward
             Task {

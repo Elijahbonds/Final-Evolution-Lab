@@ -106,10 +106,25 @@ auto SessionReceiptClient::flush() -> SessionReceiptDispatchResult {
     std::size_t retries = m_retryCounts[index];
     ++result.attempted;
 
-    const auto delivery = deliverReceipt(receipt);
+    bool queuedOnDisk = false;
+    if (m_config.persistToDisk) {
+      if (const auto path = persistReceipt(receipt)) {
+        queuedOnDisk = true;
+        NEXUS_LOG_INFO(nexus::LogChannel::kAI,
+                       "Session receipt persisted for iOS/SessionService pickup path=" + *path);
+      } else {
+        NEXUS_LOG_WARN(nexus::LogChannel::kAI, "Session receipt disk persistence failed before flush");
+      }
+    }
+
+    const auto delivery = queuedOnDisk || !m_config.persistToDisk
+                              ? deliverReceipt(receipt)
+                              : Result<int>::err("failed to persist receipt");
     if (delivery.isOk()) {
       ++result.delivered;
-      ++result.queued_on_disk;
+      if (queuedOnDisk) {
+        ++result.queued_on_disk;
+      }
       continue;
     }
 
@@ -118,8 +133,10 @@ auto SessionReceiptClient::flush() -> SessionReceiptDispatchResult {
       ++result.requeued;
       remaining.push_back(std::move(receipt));
       remainingRetries.push_back(retries);
-      if (m_config.persistToDisk) {
-        (void)persistReceipt(remaining.back());
+      if (!queuedOnDisk && m_config.persistToDisk) {
+        if (persistReceipt(remaining.back()).has_value()) {
+          ++result.queued_on_disk;
+        }
       }
     } else {
       NEXUS_LOG_WARN(nexus::LogChannel::kAI,
@@ -154,6 +171,10 @@ auto SessionReceiptClient::pendingReceipts() const -> std::span<const nlohmann::
 
 auto SessionReceiptClient::postedRequests() const -> std::span<const nexus::core::HttpPostRecord> {
   return m_http.postedRequests();
+}
+
+auto SessionReceiptClient::config() const -> const SessionReceiptClientConfig& {
+  return m_config;
 }
 
 auto SessionReceiptClient::queueDirectory() const -> const std::string& {
@@ -196,15 +217,6 @@ auto SessionReceiptClient::persistReceipt(const nlohmann::json& receipt) -> std:
 auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Result<int> {
   const std::string modeId = receipt.value("mode_id", std::string("unknown"));
   const int score = receipt.value("score", 0);
-
-  if (m_config.persistToDisk) {
-    if (const auto path = persistReceipt(receipt)) {
-      NEXUS_LOG_INFO(nexus::LogChannel::kAI,
-                     "Session receipt persisted for iOS/SessionService pickup path=" + *path);
-    } else {
-      return Result<int>::err("failed to persist receipt");
-    }
-  }
 
   if (m_config.httpEnabled) {
     m_http.setUrl(resolvePostUrl(m_config));
