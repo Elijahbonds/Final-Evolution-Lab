@@ -47,7 +47,7 @@ Abacus AI Studio exports land as **Seele CDN FBX URLs** recorded in `seeles_work
 | `imported/*_mobile.nexusmesh.json` | 13 | mobile LOD sidecars (iOS ship path) |
 | `imported/*.nexusmesh.json` (desktop) | 2 full + 11 symlinks → mobile | Venice + gymnastics retain full desktop mesh |
 | `imported/demo_venue_marker.nexusmesh.json` | 1 | pipeline QA |
-| `imported/movement_lab_preview_placeholder.nexusmesh.json` | 1 | preview stub, unassigned |
+| `imported/movement_lab_preview_placeholder.nexusmesh.json` | 1 | preview stub, registered as non-scoring venue metadata only |
 
 Mirror repo (`rork-final-evolution-lab`) trails canonical: desktop `.nexusmesh.json` without `_mobile` sidecars or symlinks — **do not import from mirror**; canonical is source of truth.
 
@@ -71,9 +71,9 @@ All generative venue FBX exports (Seele pipeline: tripo3D / hunyuan3D) and the L
 | `neuro_arena_environment_model_fbx` | seele | tripo3D | brain_brawl, who_scene_it | yes |
 | `luma_venice_shop_environment_model_fbx` | luma | tripo3D | market_browse (non-game) | yes |
 | `demo_venue_marker` | procedural | — | pipeline QA only | yes |
-| `movement_lab_preview_placeholder` | procedural | — | **unassigned** (preview stub) | yes (copy-all) |
+| `movement_lab_preview_placeholder` | procedural | — | movement_lab (**preview metadata only**) | yes (copy-all) |
 
-**Orphaned on disk:** `movement_lab_preview_placeholder.nexusmesh.json` only — not in manifest `venues[]`.
+**Not production-manifested:** `movement_lab_preview_placeholder.nexusmesh.json` is referenced by preview venue metadata only — not in `nexus_asset_manifest.json` `venues[]` and not used by production validate-only.
 
 ## Production modes (18) — manifest coverage
 
@@ -165,7 +165,7 @@ Former staging modes (`gymnastics`, `skateboarding`, `snowboarding`, `brain_braw
 ### movement_lab preview stub (non-production)
 
 - **Status:** `preview` / `scoring_enabled: false` in `backend/FEL_ModeManager.production.json` — excluded from `production_modes` and from `nexus_validate_production_modes.sh`.
-- **On-disk placeholder:** `assets/nexus/imported/movement_lab_preview_placeholder.nexusmesh.json` (4-tris synthetic marker). **Not** registered in the manifest; **not** used by `--validate-only`. Bundled by the copy-all `*.nexusmesh.json` script but unused at runtime.
+- **On-disk placeholder:** `assets/nexus/imported/movement_lab_preview_placeholder.nexusmesh.json` (4-tris synthetic marker). Registered in venue metadata for preview API/UI truth; **not** registered in the production manifest and **not** used by `--validate-only`.
 - **Ship claim:** No production venue until manifest + mobile sidecar + validate-only pass exist for `movement_lab`.
 
 ## Venues (16)

@@ -1091,7 +1091,7 @@ async def get_game_mode(mode_id: str):
     raise HTTPException(status_code=404, detail="Game mode not found")
 
 ## ── PRQ Mode Weights & Economy Constants ───────────────────────────────────
-PRQ_MODE_WEIGHTS = {
+DEFAULT_PRQ_MODE_WEIGHTS = {
     "basketball_h2h": 1.2, "basketball_dunk": 1.0,
     "basketball_dunk_3d": 1.0, "basketball_dunk_irl": 1.5, "basketball_3v3": 1.3,
     "karate_h2h": 1.4,     "karate_endless": 1.4,
@@ -1102,6 +1102,8 @@ PRQ_MODE_WEIGHTS = {
     "who_scene_it": 0.7,   "court_carnival": 0.9,
 }
 
+PRQ_MODE_WEIGHTS = dict(DEFAULT_PRQ_MODE_WEIGHTS)
+
 SHARD_WIN, SHARD_DRAW, SHARD_LOSS = 50, 25, 15
 SHARD_COMBO_MULTIPLIER, SHARD_CRITICAL_BONUS = 5, 10
 XP_CAP_PER_SESSION = 500                    # Hard cap — never award more than 500 XP per session
@@ -1109,6 +1111,21 @@ XP_CAP_PER_SESSION = 500                    # Hard cap — never award more than
 
 # PRQ outcome base scores (v2.0 spec §6.1)
 PRQ_OUTCOME_BASE = {"win": 2.0, "draw": 0.5, "loss": 0.2}
+
+
+def _registry_prq_mode_weights(mode_manager: Dict[str, Any]) -> Dict[str, float]:
+    """Merge authored registry PRQ weights over safe server defaults."""
+
+    weights = dict(DEFAULT_PRQ_MODE_WEIGHTS)
+    registry = mode_manager.get("mode_manager", {}).get("mode_registry", {})
+    for mode_id, config in registry.items():
+        if not isinstance(config, dict) or "prq_weight" not in config:
+            continue
+        try:
+            weights[mode_id] = float(config["prq_weight"])
+        except (TypeError, ValueError):
+            logger.warning("Ignoring invalid PRQ weight for mode %s", mode_id)
+    return weights
 
 
 def _compute_prq_delta(
@@ -2286,18 +2303,7 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
 @api_router.get("/vault/status")
 async def get_vault_status():
     """LOCAL HUB MODE — No E3DS cloud. Data feed + Live Connection Preview."""
-    mode_maps = {
-        "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
-        "basketball_dunk_3d": "Venice_Beach_Court",
-        "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
-        "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
-        "football": "Gridiron_Stadium", "soccer": "Soccer_Stadium",
-        "golf": "Links_Course", "tennis": "Tennis_Court",
-        "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
-        "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope", "brain_brawl": "Neuro_Arena",
-        "who_scene_it": "Neuro_Arena", "court_carnival": "Venice_Beach_Court"
-    }
+    mode_maps = _registry_mode_maps()
     
     conn = await db.streaming_connections.find_one({"active": True})
     if conn:
@@ -2427,7 +2433,7 @@ async def connect_vault(data: Dict[str, Any], user: User = Depends(get_current_u
 @api_router.post("/hub/launch-mode")
 @api_router.post("/vault/launch-mode")
 async def launch_vault_mode(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    """Launch UE5 game mode via deep link — tracks session in Vault Hub"""
+    """Launch a NEXUS game mode or IRL camera venue via deep link."""
     mode_id = data.get("mode_id")
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mode_config = registry.get(mode_id)
@@ -2438,31 +2444,21 @@ async def launch_vault_mode(data: Dict[str, Any], user: User = Depends(get_curre
     if mode_config.get("status") not in ("production", "staging"):
         raise HTTPException(status_code=403, detail=f"Mode '{mode_id}' is not in production or staging status.")
 
-    map_path = mode_config.get("map")
-    venue_key = None
-    
-    # Load from ue_mode_maps.json if map is not present in mode_config
-    if not map_path:
-        ue_maps_path = ROOT_DIR / "ue_mode_maps.json"
-        if ue_maps_path.exists():
-            with open(ue_maps_path) as f:
-                ue_maps_data = json.load(f)
-                mode_to_map = ue_maps_data.get("mode_to_unreal_map", {})
-                venue_key = mode_to_map.get(mode_id)
-        
-        if venue_key:
-            # Look up in VENUE_REGISTRY
-            venues = VENUE_REGISTRY.get("venues", {})
-            venue_config = venues.get(venue_key) or venues.get(venue_key.lower())
-            if venue_config:
-                map_path = venue_config.get("map_path")
-            if not map_path:
-                map_path = f"/Game/FEL/Maps/{venue_key}"
-                
-    if not map_path:
-        raise HTTPException(status_code=400, detail=f"Mode {mode_id} is a non-game module and cannot be launched")
+    launch_meta = _resolve_mode_launch_metadata(mode_id, mode_config)
+    map_path = launch_meta["map_path"]
+    venue_key = launch_meta["venue_token"]
+    is_irl_mode = (
+        mode_config.get("render_mode") == "IRL"
+        or bool(launch_meta["venue_entry"].get("isIRLMode"))
+    )
 
     if not venue_key:
+        raise HTTPException(status_code=400, detail=f"Mode {mode_id} is a non-game module and cannot be launched")
+
+    if not map_path and not is_irl_mode:
+        raise HTTPException(status_code=400, detail=f"Mode {mode_id} is missing a launch map and cannot be launched")
+
+    if map_path and not venue_key:
         venue_key = map_path.split("/")[-1]
 
     gamemode_class = mode_config.get("gamemode_class", f"BP_GameMode_{venue_key}")
@@ -2500,15 +2496,18 @@ async def launch_vault_mode(data: Dict[str, Any], user: User = Depends(get_curre
         "gamemode_class": gamemode_class,
         "binary": binary,
         "status": status,
+        "render_mode": mode_config.get("render_mode", "3D_UE5"),
         "deep_link": deep_link,
         "source": "FEL_ModeManager.production.json",
         "cloud": False,
         "vault_session": True,
         "command": {
-            "cmd": "ueapp04",
-            "value": {
-                "ServerTravel": venue_key
-            }
+            "cmd": "fel.irl.launch" if is_irl_mode else "ueapp04",
+            "value": (
+                {"VenueToken": venue_key, "ModeId": mode_id, "SessionId": session_id}
+                if is_irl_mode
+                else {"ServerTravel": venue_key}
+            )
         }
     }
 
@@ -3180,6 +3179,7 @@ if mode_path.exists():
     with open(mode_path) as f:
         MODE_MANAGER = json.load(f)
     logger.info(f"Loaded mode manager: {len(MODE_MANAGER.get('mode_manager', {}).get('mode_registry', {}))} modes")
+PRQ_MODE_WEIGHTS = _registry_prq_mode_weights(MODE_MANAGER)
 
 UE_MODE_MAPS = {}
 ue_maps_path = ROOT_DIR / "ue_mode_maps.json"
@@ -3204,7 +3204,7 @@ def _resolve_mode_launch_metadata(mode_id: str, config: Dict[str, Any]) -> Dict[
     venue_entry = _venue_entry_for_mode(mode_id)
     unreal_map = config.get("map") or UE_MODE_MAPS.get(mode_id)
     venue_token = unreal_map or venue_entry.get("venueKey") or config.get("venue_id")
-    map_path = config.get("map")
+    map_path = config.get("map") or config.get("map_path")
     if not map_path and unreal_map:
         map_path = f"/Game/FEL/Maps/{unreal_map}"
     venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_entry.get("venueKey"), {})
@@ -3215,6 +3215,27 @@ def _resolve_mode_launch_metadata(mode_id: str, config: Dict[str, Any]) -> Dict[
         "venue_data": venue_data,
         "venue_entry": venue_entry,
     }
+
+def _registry_mode_maps() -> Dict[str, str]:
+    """Return launchable production/staging mode -> venue token from the registry."""
+
+    mode_maps: Dict[str, str] = {}
+    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+    for mode_id, config in registry.items():
+        if not isinstance(config, dict):
+            continue
+        status = config.get("status")
+        if status not in ("production", "staging"):
+            continue
+        launch_meta = _resolve_mode_launch_metadata(mode_id, config)
+        venue_token = launch_meta["venue_token"]
+        is_irl_mode = (
+            config.get("render_mode") == "IRL"
+            or bool(launch_meta["venue_entry"].get("isIRLMode"))
+        )
+        if venue_token and (launch_meta["map_path"] or is_irl_mode):
+            mode_maps[mode_id] = venue_token
+    return mode_maps
 
 async def _count_live_sessions(collection: str) -> int:
     try:
