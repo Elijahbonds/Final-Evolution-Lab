@@ -43,6 +43,9 @@ cmake -S . -B build-full \
 cmake --build build-full -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 ctest --test-dir build-full --output-on-failure
 
+echo "==> Phase 3: mobile mesh sidecar gate"
+"${ROOT}/scripts/nexus_mobile_mesh_gate.sh"
+
 # Production mode mesh budget (mobile profile). Skips when NEXUS_SKIP_PRODUCTION_MODE_VALIDATE=1.
 if [[ "${NEXUS_SKIP_PRODUCTION_MODE_VALIDATE:-}" != "1" ]]; then
   echo "==> Phase 1b: production mode validate-only (mobile)"
