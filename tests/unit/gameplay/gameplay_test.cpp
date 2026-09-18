@@ -2571,7 +2571,7 @@ void nexus_sprint_live_modes_agent_contract_integration() {
     const char* nestedStateKey;
   };
 
-  const std::array<SprintProbe, 9> probes{{
+  const std::array<SprintProbe, 10> probes{{
       {"basketball_dunk", "fel.dunk.charge_begin", {}, "fel.dunk.charge_begin", "dunk"},
       {"karate_endless", "fel.karate.action", {{"action", "heavy_strike"}},
        "fel.karate.action", "karate"},
@@ -2594,6 +2594,8 @@ void nexus_sprint_live_modes_agent_contract_integration() {
        "fel.skate.trick", "skateboarding"},
       {"snowboarding", "fel.snow.carve", {{"timing", 0.93F}, {"line_difficulty", 0.75F}},
        "fel.snow.carve", "snowboarding"},
+      {"surfing", "fel.surf.carve", {{"timing", 0.94F}, {"wave_difficulty", 0.8F}},
+       "fel.surf.carve", "surfing"},
       {"who_scene_it", "fel.scene.buzz_in", {{"timing", 0.91F}}, "fel.scene.buzz_in",
        "who_scene_it"},
   }};
@@ -2668,31 +2670,29 @@ void flagship_modes_emit_post_ready_receipts() {
   nexus::physics::PhysicsWorld physics;
   require(physics.init({}).isOk(), "physics init");
 
-  const std::array<std::string, 5> modes = {
-      "basketball_dunk", "karate_endless", "basketball_h2h", "basketball_3v3",
-      "court_carnival"};
-  for (const auto& modeId : modes) {
+  for (std::string_view modeId : nexus::gameplay::kProductionModeIds) {
     require(gameplay.handleGameplayCommand(
                 "fel.arena.start_session",
-                {{"mode_id", modeId}, {"user_id", "receipt_chain"}},
+                {{"mode_id", std::string(modeId)}, {"user_id", "receipt_chain"}},
                 "chain_start")
                 .status == "ok",
-            "chain session starts for " + modeId);
+            "chain session starts for " + std::string(modeId));
 
     require(gameplay.handleGameplayCommand(
                 "fel.arena.end_session",
                 {{"player_score", 21.0F}, {"opponent_score", 12.0F}},
                 "chain_end")
                 .status == "ok",
-            "chain session ends for " + modeId);
+            "chain session ends for " + std::string(modeId));
 
     const auto receipts =
         gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "chain_receipts");
-    require(!receipts.payload["receipts"].empty(), "receipt queued for " + modeId);
+    require(!receipts.payload["receipts"].empty(),
+            "receipt queued for " + std::string(modeId));
     const auto& receipt = receipts.payload["receipts"].back();
-    require(receipt["mode_id"].get<std::string>() == modeId, "receipt mode matches");
-    require(receipt.contains("telemetry"), "receipt telemetry for " + modeId);
-    require(receipt.contains("score"), "receipt score for " + modeId);
+    require(receipt["mode_id"].get<std::string>() == std::string(modeId), "receipt mode matches");
+    require(receipt.contains("telemetry"), "receipt telemetry for " + std::string(modeId));
+    require(receipt.contains("score"), "receipt score for " + std::string(modeId));
 
     gameplay.handleGameplayCommand("fel.arena.flush_receipts", {{"persist_to_disk", true}}, "chain_flush");
   }
