@@ -834,6 +834,46 @@ void session_receipt_flush_keeps_queue_when_http_disabled() {
   require(receipts.payload["receipts"].size() == 0, "receipt cleared after successful flush");
 }
 
+void session_receipt_flush_preserves_live_http_config() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+  OneShotHttpServer server(204);
+
+  auto configure = gameplay.handleGameplayCommand(
+      "fel.arena.flush_receipts",
+      {{"base_url", server.url()},
+       {"persist_to_disk", false},
+       {"http_enabled", true},
+       {"use_stub_http", false}},
+      "live_flush_configure");
+  require(configure.status == "ok", "live receipt config command ok");
+  require(configure.payload["attempted"].get<std::size_t>() == 0,
+          "config-only flush has no pending receipts");
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk"}, {"user_id", "live_flush_user"}},
+              "live_flush_start")
+              .status == "ok",
+          "live flush session starts");
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.end_session",
+              {{"player_score", 21.0F}, {"opponent_score", 10.0F}},
+              "live_flush_end")
+              .status == "ok",
+          "live flush session ends");
+
+  const auto flush = gameplay.handleGameplayCommand(
+      "fel.arena.flush_receipts", {{"persist_to_disk", false}}, "live_flush");
+  require(flush.status == "ok", "live receipt flush ok");
+  require(flush.payload["attempted"].get<std::size_t>() == 1, "live receipt attempted");
+  require(flush.payload["delivered"].get<std::size_t>() == 1, "live receipt delivered");
+  require(flush.payload["requeued"].get<std::size_t>() == 0, "live receipt not requeued");
+  require(flush.payload["queued_on_disk"].get<std::size_t>() == 0,
+          "live receipt stays off disk when disabled");
+}
+
 void session_receipt_disk_keyed_by_session_id() {
   const auto tempDir = std::filesystem::temp_directory_path() /
                        ("fel_receipt_dedup_test_" + std::to_string(getpid()));
@@ -1016,10 +1056,66 @@ void physics_intent_queue_is_consumed_on_step() {
   physics.shutdown();
 }
 
-void prq_stub_returns_sprint_defaults() {
-  require(nexus::gameplay::PRQEngine::getScore() == 75.0F, "prq sprint default");
+void prq_engine_uses_fitness_snapshot_with_default_fallback() {
+  nexus::gameplay::FitnessSnapshot empty;
+  require(nexus::gameplay::PRQEngine::scoreForFitness(empty) ==
+              nexus::gameplay::PRQEngine::kFallbackScore,
+          "prq uses fallback before fitness arrives");
   require(nexus::gameplay::PRQEngine::getGrade() == nexus::gameplay::PRQGrade::kPrimed,
-          "prq grade primed");
+          "fallback prq grade primed");
+
+  nexus::gameplay::ThreadSafeFitnessData fitness;
+  fitness.update({1.0F, 1.0F, 1.0F}, {1.0F, 1.0F, 1});
+  const auto ready = fitness.snapshot();
+  require(nexus::gameplay::PRQEngine::scoreForFitness(ready) > 99.0F,
+          "max readiness drives elite prq");
+  require(nexus::gameplay::PRQEngine::neuralDriveForFitness(ready) > 99.0F,
+          "max readiness drives neural drive");
+  require(nexus::gameplay::PRQEngine::gradeForScore(
+              nexus::gameplay::PRQEngine::scoreForFitness(ready)) ==
+              nexus::gameplay::PRQGrade::kElite,
+          "fitness prq grades elite");
+}
+
+void gameplay_fitness_update_drives_mode_runtime_prq() {
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  auto start = gameplay.handleGameplayCommand(
+      "fel.arena.start_session",
+      {{"mode_id", "basketball_dunk"}, {"user_id", "fitness_prq"}},
+      "fitness_prq_start");
+  require(start.status == "ok", "fitness prq session starts");
+
+  const auto baseline =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "fitness_prq_baseline");
+  require(baseline.status == "ok", "baseline mode state ok");
+  require(baseline.payload["prq"].get<float>() == nexus::gameplay::PRQEngine::kFallbackScore,
+          "baseline mode prq uses fallback");
+
+  auto update = gameplay.handleGameplayCommand(
+      "fel.fitness.update",
+      {
+          {"frc_mobility", 1.0F},
+          {"frc_active_range", 1.0F},
+          {"frc_control", 1.0F},
+          {"iap_engagement", 1.0F},
+          {"iap_confidence", 1.0F},
+          {"breath_phase", 1},
+      },
+      "fitness_prq_update");
+  require(update.status == "ok", "fitness prq update ok");
+
+  const auto updated =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "fitness_prq_updated");
+  require(updated.status == "ok", "updated mode state ok");
+  require(updated.payload["prq"].get<float>() > 99.0F,
+          "mode runtime prq follows fitness readiness");
+  require(updated.payload["prq_grade"].get<std::string>() == "ELITE",
+          "mode runtime prq grade follows fitness readiness");
+  require(updated.payload["arcade_physics"]["critical_hit_chance"].get<float>() > 0.34F,
+          "arcade physics consumes readiness prq");
 }
 
 void arcade_physics_maps_prq_75() {
@@ -2855,6 +2951,7 @@ auto main() -> int {
   dunk_contest_lifecycle_generates_win_receipt();
   arena_pause_resume_preserves_session();
   session_receipt_flush_keeps_queue_when_http_disabled();
+  session_receipt_flush_preserves_live_http_config();
   session_receipt_disk_keyed_by_session_id();
   hud_poll_returns_tick_frame_payload();
   fel_bridge_websocket_stub_sends_outbound();
@@ -2869,7 +2966,8 @@ auto main() -> int {
   physics_intent_queue_is_consumed_on_step();
   engine_tick_runs_physics_before_gameplay_update();
   gameplay_update_drains_agent_commands_before_throw_catch();
-  prq_stub_returns_sprint_defaults();
+  prq_engine_uses_fitness_snapshot_with_default_fallback();
+  gameplay_fitness_update_drives_mode_runtime_prq();
   arcade_physics_maps_prq_75();
   dunk_contest_charge_release_scores();
   karate_endless_wave_spawns();
