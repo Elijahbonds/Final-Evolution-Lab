@@ -1,11 +1,54 @@
 name: FEL Pre-Build CI Check
 on:
   push:
-    branches: [setup-healthkit]
+    branches:
+      - main
+      - setup-healthkit
+      - 'cursor/**'
   pull_request:
     branches: [setup-healthkit, main]
 
 jobs:
+  nexus-headless:
+    name: NEXUS Headless Gameplay Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake gcc g++
+
+      - name: Validate registries and smoke modes
+        run: |
+          python3 scripts/validate_ios_descriptor.py
+          python3 scripts/validate_cooked_payload.py
+          python3 scripts/smoke_test_modes.py
+
+      - name: Run headless gameplay regression
+        run: |
+          CC=gcc CXX=g++ ./scripts/nexus_gameplay_regression.sh
+
+  frontend-build:
+    name: Frontend Dashboard Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend dashboard
+        working-directory: frontend
+        run: CI=false GENERATE_SOURCEMAP=false npm run build
+
   identifier-alignment:
     name: 6-Point Identifier Alignment
     runs-on: macos-latest
@@ -32,17 +75,9 @@ jobs:
 
       - name: Validate Mode Registry
         run: |
-          python3 -c "
-          import json
-          with open('./backend/FEL_ModeManager.production.json') as f:
-              d = json.load(f)
-          modes = d['mode_manager']['modes']
-          print(f'Mode registry: {len(modes)} modes')
-          prod = [m for m in modes if m.get('status') == 'production']
-          print(f'Production: {len(prod)} | Staging: {len(modes) - len(prod)}')
-          assert len(modes) >= 17, 'Expected 17+ modes'
-          print('✓ Mode registry valid')
-          "
+          python3 scripts/validate_ios_descriptor.py
+          python3 scripts/validate_cooked_payload.py
+          python3 scripts/smoke_test_modes.py
 
       - name: Block Merge on Failure
         if: failure()
