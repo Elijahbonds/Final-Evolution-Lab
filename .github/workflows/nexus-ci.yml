@@ -12,6 +12,10 @@ jobs:
   headless-gameplay:
     name: Headless gameplay and descriptor gates
     runs-on: ubuntu-latest
+    env:
+      CC: gcc
+      CXX: g++
+      NEXUS_BUILD_JOBS: "2"
     steps:
       - uses: actions/checkout@v4
 

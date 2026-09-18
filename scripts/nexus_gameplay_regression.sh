@@ -21,6 +21,23 @@ if [[ -n "${CXX:-}" ]]; then
   CMAKE_COMPILER_ARGS+=("-DCMAKE_CXX_COMPILER=${CXX}")
 fi
 
+resolve_build_jobs() {
+  local requested="${NEXUS_BUILD_JOBS:-}"
+  if [[ -n "${requested}" ]]; then
+    if [[ ! "${requested}" =~ ^[1-9][0-9]*$ ]]; then
+      echo "error: NEXUS_BUILD_JOBS must be a positive integer" >&2
+      exit 2
+    fi
+    echo "${requested}"
+    return
+  fi
+
+  # Cursor/Linux runners have shown filesystem races under full host parallelism.
+  # Keep the default conservative while allowing local overrides when desired.
+  echo "2"
+}
+BUILD_JOBS="$(resolve_build_jobs)"
+
 for arg in "$@"; do
   case "$arg" in
     --skip-build) SKIP_BUILD=1 ;;
@@ -35,7 +52,7 @@ mkdir -p "${ARTIFACT_DIR}"
 cd "${ROOT}"
 
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
-  echo "==> Configure + build headless gameplay tests"
+  echo "==> Configure + build headless gameplay tests (jobs=${BUILD_JOBS})"
   if [[ "${NEXUS_REUSE_BUILD:-0}" != "1" ]]; then
     cmake -E rm -rf "${HEADLESS_DIR}"
   fi
@@ -44,7 +61,7 @@ if [[ "${SKIP_BUILD}" -eq 0 ]]; then
     -DNEXUS_BUILD_RUNTIME=OFF \
     -DNEXUS_BUILD_TESTS=ON \
     "${CMAKE_COMPILER_ARGS[@]}"
-  cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
+  cmake --build "${HEADLESS_DIR}" -j"${BUILD_JOBS}"
 fi
 
 GAMEPLAY_TEST="${HEADLESS_DIR}/nexus_gameplay_test"
