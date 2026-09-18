@@ -1,24 +1,30 @@
 #include "nexus/gameplay/prq_engine.h"
 
+#include <algorithm>
+
 namespace nexus::gameplay {
 
 namespace {
 
-constexpr float kSprintPrqScore = 75.0F;
-constexpr float kSprintNeuralDrive = 60.0F;
+[[nodiscard]] auto clampPercent(float value) -> float {
+  return std::clamp(value, 0.0F, 100.0F);
+}
 
 } // namespace
 
 auto PRQEngine::getScore() -> float {
-  return kSprintPrqScore;
+  return kDefaultScore;
 }
 
 auto PRQEngine::getNeuralDrive() -> float {
-  return kSprintNeuralDrive;
+  return kDefaultNeuralDrive;
 }
 
 auto PRQEngine::getGrade() -> PRQGrade {
-  const float score = getScore();
+  return gradeForScore(getScore());
+}
+
+auto PRQEngine::gradeForScore(float score) -> PRQGrade {
   if (score >= 80.0F) {
     return PRQGrade::kElite;
   }
@@ -29,6 +35,17 @@ auto PRQEngine::getGrade() -> PRQGrade {
     return PRQGrade::kReady;
   }
   return PRQGrade::kRecovering;
+}
+
+auto PRQEngine::fromFitnessSnapshot(const FitnessSnapshot& snapshot) -> PRQProfile {
+  if (snapshot.revision == 0) {
+    return {kDefaultScore, kDefaultNeuralDrive, gradeForScore(kDefaultScore), 0};
+  }
+
+  const float score = clampPercent(snapshot.powerReadiness * 100.0F);
+  const float neuralDrive = clampPercent(
+      (snapshot.iapComposite * 0.65F + snapshot.frc.controlScore * 0.35F) * 100.0F);
+  return {score, neuralDrive, gradeForScore(score), snapshot.revision};
 }
 
 auto PRQEngine::gradeLabel(PRQGrade grade) -> std::string_view {
