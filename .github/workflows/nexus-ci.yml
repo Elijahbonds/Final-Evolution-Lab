@@ -25,6 +25,7 @@ jobs:
       - name: Validate production mode descriptors
         run: |
           python scripts/smoke_test_modes.py
+          python scripts/validate_ios_runtime_launches.py
           python scripts/validate_ios_descriptor.py
           python scripts/validate_cooked_payload.py
 

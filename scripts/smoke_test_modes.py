@@ -7,6 +7,7 @@ Run against a live or mock FEL backend.
 import json
 import sys
 import os
+import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -219,7 +220,11 @@ def test_swift_enum():
         else:
             fail(f'{mode} missing from GameMode.swift enum')
     for legacy, target in LEGACY_ALIAS_MODES.items():
-        if f'case "{legacy}":' in content and f'= "{target}"' in content:
+        target_case = {
+            "basketball_dunk_3d": "basketballDunkContest3D",
+        }.get(target)
+        pattern = rf'case\s+"{re.escape(legacy)}"(?:\s*,\s*"[^"]+")*\s*:\s*return\s+\.{target_case}'
+        if target_case and re.search(pattern, content):
             ok(f'{legacy} resolves to Swift split mode {target}')
         else:
             fail(f'{legacy} missing Swift playableMode alias to {target}')
