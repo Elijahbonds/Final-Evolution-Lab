@@ -1,0 +1,37 @@
+name: NEXUS Headless Gameplay CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches:
+      - main
+      - "cursor/**"
+
+jobs:
+  headless-gameplay:
+    name: Headless gameplay and descriptor gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend test dependencies
+        run: python -m pip install -r backend/requirements.txt
+
+      - name: Validate production mode descriptors
+        run: |
+          python scripts/validate_nexus_production_registry_sync.py
+          python scripts/smoke_test_modes.py
+          python scripts/validate_ios_descriptor.py
+          python scripts/validate_cooked_payload.py
+
+      - name: Run backend gameplay API tests
+        working-directory: backend
+        run: python -m pytest tests_phase1/test_shell_gameplay.py -q
+
+      - name: Run NEXUS headless gameplay regression
+        run: ./scripts/nexus_gameplay_regression.sh
