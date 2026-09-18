@@ -79,7 +79,7 @@ extension GameModeId {
         case .gymnastics, .skateboarding, .snowboarding, .surfing:
             return .prod
         case .brainBrawl:
-            return .staging
+            return .prod
         case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
             return .sim
         case .marketBrowse:
@@ -109,7 +109,7 @@ extension GameModeId {
     var isNexusSprintPlayable: Bool {
         switch self {
         case .marketBrowse:
-            return true
+            return false
         default:
             break
         }
@@ -571,19 +571,30 @@ struct GameModeRegistry {
         all.first(where: { $0.id == id }) ?? all[0]
     }
 
-    /// Resolves C++ registry mode ids (including aliases) to a launchable ``GameMode``.
-    static func playableMode(forRegistryId raw: String) -> GameMode? {
+    /// Resolves C++ registry ids and legacy aliases to the Swift mode that should be routed.
+    static func playableModeId(forRegistryId raw: String) -> GameModeId? {
         switch raw {
         case "venice_pickup":
-            return mode(for: .basketballHeadToHead)
-        case "basketball_dunk":
-            return mode(for: .basketballDunkContest3D)
+            return .basketballHeadToHead
+        case "basketball_dunk", "basketball_dunk_contest", "dunk_competition":
+            return .basketballDunkContest3D
+        case "basketball_irl":
+            return .basketballDunkContestIRL
+        case "karate":
+            return .karate
+        case "karate_kata":
+            return .karateEndless
         case "market_browse", "module_library", "vault_shop":
-            return mode(for: .marketBrowse)
+            return .marketBrowse
         default:
             break
         }
-        guard let id = GameModeId(rawValue: raw) else { return nil }
+        return GameModeId(rawValue: raw)
+    }
+
+    /// Resolves C++ registry mode ids (including aliases) to a launchable ``GameMode``.
+    static func playableMode(forRegistryId raw: String) -> GameMode? {
+        guard let id = playableModeId(forRegistryId: raw) else { return nil }
         return all.first(where: { $0.id == id })
     }
 
