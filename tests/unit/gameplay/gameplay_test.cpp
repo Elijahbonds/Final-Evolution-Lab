@@ -30,6 +30,7 @@
 #include <cstdlib>
 #include <array>
 #include <chrono>
+#include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -38,6 +39,8 @@
 #include <thread>
 #include <vector>
 
+#include <netinet/in.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 namespace {
@@ -63,6 +66,67 @@ void removeTreeBestEffort(const std::filesystem::path& root) {
     std::this_thread::sleep_for(std::chrono::milliseconds(10 * (attempt + 1)));
   }
 }
+
+class OneShotHttpServer {
+public:
+  explicit OneShotHttpServer(int statusCode) : m_statusCode(statusCode) {
+    m_serverFd = ::socket(AF_INET, SOCK_STREAM, 0);
+    require(m_serverFd >= 0, "test HTTP server socket");
+
+    const int yes = 1;
+    (void)::setsockopt(m_serverFd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
+
+    sockaddr_in address{};
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    address.sin_port = 0;
+    require(::bind(m_serverFd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == 0,
+            "test HTTP server bind");
+    require(::listen(m_serverFd, 1) == 0, "test HTTP server listen");
+
+    socklen_t addressLength = sizeof(address);
+    require(::getsockname(m_serverFd, reinterpret_cast<sockaddr*>(&address), &addressLength) == 0,
+            "test HTTP server port");
+    m_port = ntohs(address.sin_port);
+
+    m_worker = std::thread([fd = m_serverFd, statusCode = m_statusCode]() {
+      int clientFd = ::accept(fd, nullptr, nullptr);
+      if (clientFd >= 0) {
+        std::array<char, 1024> requestBuffer{};
+        (void)::recv(clientFd, requestBuffer.data(), requestBuffer.size(), 0);
+        const std::string reason = statusCode >= 200 && statusCode < 300 ? "No Content" : "Error";
+        const std::string response = "HTTP/1.1 " + std::to_string(statusCode) + " " + reason +
+                                     "\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+        (void)::send(clientFd, response.data(), response.size(), 0);
+        (void)::close(clientFd);
+      }
+      (void)::close(fd);
+    });
+  }
+
+  OneShotHttpServer(const OneShotHttpServer&) = delete;
+  auto operator=(const OneShotHttpServer&) -> OneShotHttpServer& = delete;
+
+  ~OneShotHttpServer() {
+    join();
+  }
+
+  [[nodiscard]] auto url() const -> std::string {
+    return "http://127.0.0.1:" + std::to_string(m_port) + "/api/games/session";
+  }
+
+  void join() {
+    if (m_worker.joinable()) {
+      m_worker.join();
+    }
+  }
+
+private:
+  int m_statusCode{200};
+  int m_serverFd{-1};
+  std::uint16_t m_port{0};
+  std::thread m_worker;
+};
 
 void fitness_data_snapshots_are_thread_safe() {
   nexus::gameplay::ThreadSafeFitnessData fitness;
@@ -1921,12 +1985,78 @@ void session_receipt_http_stub_posts_localhost_contract() {
   client.enqueue(receipt);
   const auto flush = client.flush();
   require(flush.delivered == 1, "stub HTTP flush delivers receipt");
+  require(flush.queued_on_disk == 0, "stub HTTP-only flush does not report disk queue");
   require(client.pendingCount() == 0, "receipt cleared after stub POST");
   require(client.postedRequests().size() == 1, "one stub POST recorded");
   require(client.postedRequests().front().url.find("/api/games/session") != std::string::npos,
           "POST targets session contract path");
   require(client.postedRequests().front().body.find("karate_endless") != std::string::npos,
           "POST body includes mode_id");
+}
+
+void session_receipt_live_http_2xx_clears_without_disk_queue() {
+  require(std::system("command -v curl >/dev/null 2>&1") == 0, "curl available for live HTTP test");
+  OneShotHttpServer server(204);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  nlohmann::json receipt = {
+      {"mode_id", "basketball_dunk"},
+      {"score", 21},
+      {"outcome", "win"},
+      {"completed", true},
+      {"telemetry", {{"session_id", "http_204_session"}, {"user_id", "test_user"}}},
+  };
+
+  client.enqueue(receipt);
+  const auto flush = client.flush();
+  server.join();
+
+  require(flush.attempted == 1, "live HTTP 204 attempts receipt");
+  require(flush.delivered == 1, "live HTTP 204 delivers receipt");
+  require(flush.requeued == 0, "live HTTP 204 does not requeue");
+  require(flush.queued_on_disk == 0, "live HTTP 204 without persistence reports no disk queue");
+  require(client.pendingCount() == 0, "live HTTP 204 clears pending receipt");
+  require(client.postedRequests().size() == 1, "live HTTP 204 records POST");
+  require(client.postedRequests().front().statusCode == 204, "live HTTP 204 records true status");
+}
+
+void session_receipt_live_http_non_2xx_requeues_without_disk_queue() {
+  require(std::system("command -v curl >/dev/null 2>&1") == 0, "curl available for live HTTP test");
+  OneShotHttpServer server(503);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+      .maxRetries = 3,
+  });
+
+  nlohmann::json receipt = {
+      {"mode_id", "karate_endless"},
+      {"score", 12},
+      {"outcome", "loss"},
+      {"completed", true},
+      {"telemetry", {{"session_id", "http_503_session"}, {"user_id", "test_user"}}},
+  };
+
+  client.enqueue(receipt);
+  const auto flush = client.flush();
+  server.join();
+
+  require(flush.attempted == 1, "live HTTP 503 attempts receipt");
+  require(flush.delivered == 0, "live HTTP 503 does not deliver receipt");
+  require(flush.requeued == 1, "live HTTP 503 requeues receipt");
+  require(flush.queued_on_disk == 0, "live HTTP 503 without persistence reports no disk queue");
+  require(client.pendingCount() == 1, "live HTTP 503 keeps receipt pending");
+  require(client.postedRequests().size() == 1, "live HTTP 503 records POST");
+  require(client.postedRequests().front().statusCode == 503, "live HTTP 503 records true status");
 }
 
 struct TextGenTempWorkspace {
@@ -2747,6 +2877,8 @@ auto main() -> int {
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_live_http_2xx_clears_without_disk_queue();
+  session_receipt_live_http_non_2xx_requeues_without_disk_queue();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
