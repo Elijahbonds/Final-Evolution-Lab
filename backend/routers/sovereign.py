@@ -33,7 +33,7 @@ VENUE_REGISTRY: Dict[str, Any] = _load_json(
     "FEL_VenueRegistry.production.json",
     {
         "venues": [
-            {"id": "fel_arena", "name": "FEL Arena", "capacity": 2, "modes": ["basketball_h2h", "basketball_3v3", "karate", "tennis"]},
+            {"id": "fel_arena", "name": "FEL Arena", "capacity": 2, "modes": ["basketball_h2h", "basketball_3v3", "karate_h2h", "tennis"]},
             {"id": "street_court", "name": "Street Court", "capacity": 2, "modes": ["basketball_h2h"]},
             {"id": "nexus_dome", "name": "Nexus Dome", "capacity": 4, "modes": ["basketball_3v3", "football", "soccer"]},
         ]
@@ -47,14 +47,14 @@ MODE_MANAGER: Dict[str, Any] = _load_json(
             "modes": [
                 {"id": "basketball_h2h", "name": "Basketball 1v1", "render_mode": "3D_UE5", "max_players": 2},
                 {"id": "basketball_3v3", "name": "Basketball 3v3", "render_mode": "3D_UE5", "max_players": 6},
-                {"id": "basketball_dunk", "name": "Dunk Contest", "render_mode": "3D_UE5", "max_players": 2},
+                {"id": "basketball_dunk_3d", "name": "Dunk Contest", "render_mode": "3D_UE5", "max_players": 2},
                 {"id": "tennis", "name": "Tennis", "render_mode": "3D_UE5", "max_players": 2},
                 {"id": "soccer", "name": "Soccer", "render_mode": "3D_UE5", "max_players": 2},
                 {"id": "football", "name": "Football", "render_mode": "3D_UE5", "max_players": 2},
                 {"id": "baseball", "name": "Baseball", "render_mode": "3D_UE5", "max_players": 2},
                 {"id": "golf", "name": "Golf", "render_mode": "3D_UE5", "max_players": 1},
                 {"id": "volleyball", "name": "Volleyball", "render_mode": "3D_UE5", "max_players": 2},
-                {"id": "karate", "name": "Karate", "render_mode": "3D_UE5", "max_players": 2},
+                {"id": "karate_h2h", "name": "Karate", "render_mode": "3D_UE5", "max_players": 2},
                 {"id": "karate_endless", "name": "Karate Endless", "render_mode": "3D_UE5", "max_players": 1},
                 {"id": "gymnastics", "name": "Gymnastics", "render_mode": "3D_UE5", "max_players": 1},
                 {"id": "snowboarding", "name": "Snowboarding", "render_mode": "3D_UE5", "max_players": 1},
@@ -63,8 +63,7 @@ MODE_MANAGER: Dict[str, Any] = _load_json(
                 {"id": "brain_brawl", "name": "Brain Brawl", "render_mode": "2D", "max_players": 2},
                 {"id": "court_carnival", "name": "Court Carnival", "render_mode": "2D", "max_players": 1},
                 {"id": "who_scene_it", "name": "Who Scene It", "render_mode": "2D", "max_players": 2},
-                {"id": "basketball_irl", "name": "IRL Dunk", "render_mode": "IRL", "max_players": 1},
-                {"id": "dunk_competition", "name": "Dunk Competition", "render_mode": "3D_UE5", "max_players": 2},
+                {"id": "basketball_dunk_irl", "name": "IRL Dunk", "render_mode": "IRL", "max_players": 1},
             ]
         }
     }

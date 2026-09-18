@@ -149,10 +149,7 @@ void GameplayManager::setReceiptClientConfig(SessionReceiptClientConfig config) 
 }
 
 auto GameplayManager::receiptClientConfig() const -> SessionReceiptClientConfig {
-  SessionReceiptClientConfig config;
-  config.queueDirectory = m_receiptClient.queueDirectory();
-  config.persistToDisk = true;
-  return config;
+  return m_receiptClient.config();
 }
 
 auto GameplayManager::receiptQueueDirectory() const -> std::string {

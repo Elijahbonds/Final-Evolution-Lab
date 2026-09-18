@@ -27,6 +27,7 @@ from routers import education_tracks as education_tracks_router
 from routers import system_scan as system_scan_router
 from routers import pass_image as pass_image_router
 from routers import biofuel as biofuel_router
+from routers import matches as matches_router
 
 # PayPal config
 paypalrestsdk.configure({
@@ -194,6 +195,25 @@ class AnalyticsSessionIn(BaseModel):
         if len(raw) > 8000:
             raise ValueError("stream_quality payload too large")
         return v
+
+
+class LegacyGameResultIn(BaseModel):
+    """Bounded iOS legacy result payload. Canonical NEXUS receipts use /api/games/session."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    user_id: str = Field("player", min_length=1, max_length=80)
+    mode_id: str = Field(..., min_length=1, max_length=80)
+    user_score: int = Field(0, ge=-1_000_000, le=1_000_000)
+    opponent_score: int = Field(0, ge=-1_000_000, le=1_000_000)
+    duration_seconds: int = Field(0, ge=0, le=86400 * 7)
+    creator_card_ids: List[str] = Field(default_factory=list, max_length=64)
+    prq_delta: int = Field(0, ge=-100, le=100)
+
+    @field_validator("creator_card_ids")
+    @classmethod
+    def cap_creator_cards(cls, v: List[str]) -> List[str]:
+        return [str(card_id)[:128] for card_id in v[:64]]
 
 
 @api_router.post("/auth/session")
@@ -1090,8 +1110,9 @@ async def get_game_mode(mode_id: str):
     raise HTTPException(status_code=404, detail="Game mode not found")
 
 ## ── PRQ Mode Weights & Economy Constants ───────────────────────────────────
-PRQ_MODE_WEIGHTS = {
-    "basketball_h2h": 1.2, "basketball_dunk": 1.0, "basketball_3v3": 1.3,
+DEFAULT_PRQ_MODE_WEIGHTS = {
+    "basketball_h2h": 1.2, "basketball_dunk": 1.0,
+    "basketball_dunk_3d": 1.0, "basketball_dunk_irl": 1.5, "basketball_3v3": 1.3,
     "karate_h2h": 1.4,     "karate_endless": 1.4,
     "baseball": 1.0,       "football": 1.5,       "soccer": 1.1,
     "golf": 0.9,           "tennis": 1.1,          "volleyball": 1.2,
@@ -1100,6 +1121,8 @@ PRQ_MODE_WEIGHTS = {
     "who_scene_it": 0.7,   "court_carnival": 0.9,
 }
 
+PRQ_MODE_WEIGHTS = dict(DEFAULT_PRQ_MODE_WEIGHTS)
+
 SHARD_WIN, SHARD_DRAW, SHARD_LOSS = 50, 25, 15
 SHARD_COMBO_MULTIPLIER, SHARD_CRITICAL_BONUS = 5, 10
 XP_CAP_PER_SESSION = 500                    # Hard cap — never award more than 500 XP per session
@@ -1107,6 +1130,21 @@ XP_CAP_PER_SESSION = 500                    # Hard cap — never award more than
 
 # PRQ outcome base scores (v2.0 spec §6.1)
 PRQ_OUTCOME_BASE = {"win": 2.0, "draw": 0.5, "loss": 0.2}
+
+
+def _registry_prq_mode_weights(mode_manager: Dict[str, Any]) -> Dict[str, float]:
+    """Merge authored registry PRQ weights over safe server defaults."""
+
+    weights = dict(DEFAULT_PRQ_MODE_WEIGHTS)
+    registry = mode_manager.get("mode_manager", {}).get("mode_registry", {})
+    for mode_id, config in registry.items():
+        if not isinstance(config, dict) or "prq_weight" not in config:
+            continue
+        try:
+            weights[mode_id] = float(config["prq_weight"])
+        except (TypeError, ValueError):
+            logger.warning("Ignoring invalid PRQ weight for mode %s", mode_id)
+    return weights
 
 
 def _compute_prq_delta(
@@ -1161,6 +1199,45 @@ def _compute_shard_reward(
     subtotal     = base + combo_bonus + crit_bonus
     pacing_bonus = math.ceil(subtotal * 0.05) if pacing_score >= 75 else 0
     return subtotal + pacing_bonus
+
+
+LEGACY_GAME_RESULT_MODE_ALIASES = {
+    "basketball_irl": "basketball_dunk_irl",
+    "dunk_competition": "basketball_dunk_3d",
+    "karate": "karate_h2h",
+    "karate_1v1": "karate_h2h",
+}
+
+
+def _normalize_legacy_game_result_mode_id(mode_id: str) -> str:
+    lowered = str(mode_id).strip().lower()
+    return LEGACY_GAME_RESULT_MODE_ALIASES.get(lowered, lowered)
+
+
+@api_router.post("/games/result")
+async def save_legacy_game_result(payload: LegacyGameResultIn):
+    """
+    Compatibility endpoint for legacy Swift mini-game views.
+
+    Authenticated economy writes should use /api/games/session; this route preserves the
+    existing iOS fire-and-forget result call while rejecting ghost mode ids.
+    """
+    mode_id = _normalize_legacy_game_result_mode_id(payload.mode_id)
+    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+    if registry and mode_id not in registry:
+        raise HTTPException(status_code=400, detail=f"unknown mode_id: {payload.mode_id}")
+
+    result_doc = payload.model_dump()
+    result_doc.update(
+        {
+            "id": str(uuid.uuid4()),
+            "mode_id": mode_id,
+            "source": "legacy_ios_result",
+            "played_at": datetime.now(timezone.utc).isoformat(),
+        }
+    )
+    await db.game_sessions.insert_one(result_doc)
+    return {"ok": True, "result_id": result_doc["id"], "mode_id": mode_id}
 
 
 @api_router.post("/games/session")
@@ -1316,7 +1393,9 @@ async def get_neurocognitive_baseline(user: User = Depends(get_current_user)):
 def get_seeded_game_modes():
     return [
         {"id":"basketball_h2h","name":"Street 1v1","display_name":"Street · 1v1","venue":"Venice Beach","category":"Basketball","description":"Head-to-head street basketball","image_url":"/images/ue5_basketball.png","player_count":"1v1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"shooting"},
-        {"id":"basketball_dunk","name":"Dunk Contest","display_name":"Dunk Contest","venue":"Venice Beach","category":"Basketball","description":"Execute dunks with timing precision","image_url":"/images/ue5_basketball.png","player_count":"1","duration":"5 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
+        {"id":"basketball_dunk","name":"Dunk Contest","display_name":"Dunk Contest","venue":"Venice Beach","category":"Basketball","description":"Legacy runtime alias for 3D Dunk Contest","image_url":"/images/ue5_basketball.png","player_count":"1","duration":"5 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
+        {"id":"basketball_dunk_irl","name":"IRL H2H Dunk Contest","display_name":"IRL H2H Dunk Contest","venue":"Regulation Court","category":"Basketball","description":"Phone camera, Vision pose, and WDA/FIBA dunk judging on a real hoop","image_url":"/images/ue5_basketball.png","player_count":"1v1","duration":"5 min","difficulty":"Advanced","playable":True,"game_type":"irl_scoring"},
+        {"id":"basketball_dunk_3d","name":"3D H2H Dunk Contest","display_name":"3D H2H Dunk Contest","venue":"Venice Beach Blue Court","category":"Basketball","description":"NEXUS in-engine dunk catalog with swipe timing and judge scoring","image_url":"/images/ue5_basketball.png","player_count":"1v1","duration":"5 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
         {"id":"basketball_3v3","name":"Street 3v3","display_name":"Street · 3v3","venue":"Venice Beach","category":"Basketball","description":"Team-based street basketball","image_url":"/images/ue5_basketball.png","player_count":"3v3","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"strategy"},
         {"id":"karate_h2h","name":"Karate 1v1","display_name":"Karate · 1v1","venue":"Dojo","category":"Combat","description":"Strike, block, counter","image_url":"/images/ue5_dojo.png","player_count":"1v1","duration":"5 min","difficulty":"Intermediate","playable":True,"game_type":"combat"},
         {"id":"karate_endless","name":"Karate Endless","display_name":"Karate · Endless","venue":"Dojo","category":"Combat","description":"Survive endless waves","image_url":"/images/ue5_dojo.png","player_count":"1","duration":"Unlimited","difficulty":"Expert","playable":True,"game_type":"endurance"},
@@ -1676,17 +1755,19 @@ async def get_venue_registry():
 
     result = []
     for mode_id, config in registry.items():
-        map_path = config.get("map")
-        if not map_path:
+        launch_meta = _resolve_mode_launch_metadata(mode_id, config)
+        venue_token = launch_meta["venue_token"]
+        if not venue_token:
             continue
-        venue_key = map_path.split("/")[-1]
-        venue_data = venues.get(venue_key, {})
+        map_path = launch_meta["map_path"]
+        venue_data = launch_meta["venue_data"] or venues.get(venue_token, {})
         result.append({
             "mode_id": mode_id,
-            "deep_link": f"finalevolution://launch?map={venue_key}&mode={mode_id}",
+            "deep_link": f"finalevolution://launch?map={venue_token}&mode={mode_id}",
             "map_path": map_path,
-            "venue_token": venue_key,
-            "venue_display": venue_data.get("display_name", venue_key.replace("_", " ")),
+            "unreal_map": launch_meta["unreal_map"],
+            "venue_token": venue_token,
+            "venue_display": venue_data.get("display_name") or launch_meta["venue_entry"].get("displayVenue") or str(venue_token).replace("_", " "),
             "category": venue_data.get("category", "Unknown"),
             "binary": config.get("binary", ""),
             "status": config.get("status", "staging"),
@@ -2280,16 +2361,7 @@ async def ai_chat(data: Dict[str, Any], user: User = Depends(get_current_user)):
 @api_router.get("/vault/status")
 async def get_vault_status():
     """LOCAL HUB MODE — No E3DS cloud. Data feed + Live Connection Preview."""
-    mode_maps = {
-        "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
-        "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
-        "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
-        "football": "Gridiron_Stadium", "soccer": "Soccer_Stadium",
-        "golf": "Links_Course", "tennis": "Tennis_Court",
-        "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
-        "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope", "brain_brawl": "Neuro_Arena"
-    }
+    mode_maps = _registry_mode_maps()
     
     conn = await db.streaming_connections.find_one({"active": True})
     if conn:
@@ -2419,7 +2491,7 @@ async def connect_vault(data: Dict[str, Any], user: User = Depends(get_current_u
 @api_router.post("/hub/launch-mode")
 @api_router.post("/vault/launch-mode")
 async def launch_vault_mode(data: Dict[str, Any], user: User = Depends(get_current_user)):
-    """Launch UE5 game mode via deep link — tracks session in Vault Hub"""
+    """Launch a NEXUS game mode or IRL camera venue via deep link."""
     mode_id = data.get("mode_id")
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mode_config = registry.get(mode_id)
@@ -2430,31 +2502,21 @@ async def launch_vault_mode(data: Dict[str, Any], user: User = Depends(get_curre
     if mode_config.get("status") not in ("production", "staging"):
         raise HTTPException(status_code=403, detail=f"Mode '{mode_id}' is not in production or staging status.")
 
-    map_path = mode_config.get("map")
-    venue_key = None
-    
-    # Load from ue_mode_maps.json if map is not present in mode_config
-    if not map_path:
-        ue_maps_path = ROOT_DIR / "ue_mode_maps.json"
-        if ue_maps_path.exists():
-            with open(ue_maps_path) as f:
-                ue_maps_data = json.load(f)
-                mode_to_map = ue_maps_data.get("mode_to_unreal_map", {})
-                venue_key = mode_to_map.get(mode_id)
-        
-        if venue_key:
-            # Look up in VENUE_REGISTRY
-            venues = VENUE_REGISTRY.get("venues", {})
-            venue_config = venues.get(venue_key) or venues.get(venue_key.lower())
-            if venue_config:
-                map_path = venue_config.get("map_path")
-            if not map_path:
-                map_path = f"/Game/FEL/Maps/{venue_key}"
-                
-    if not map_path:
-        raise HTTPException(status_code=400, detail=f"Mode {mode_id} is a non-game module and cannot be launched")
+    launch_meta = _resolve_mode_launch_metadata(mode_id, mode_config)
+    map_path = launch_meta["map_path"]
+    venue_key = launch_meta["venue_token"]
+    is_irl_mode = (
+        mode_config.get("render_mode") == "IRL"
+        or bool(launch_meta["venue_entry"].get("isIRLMode"))
+    )
 
     if not venue_key:
+        raise HTTPException(status_code=400, detail=f"Mode {mode_id} is a non-game module and cannot be launched")
+
+    if not map_path and not is_irl_mode:
+        raise HTTPException(status_code=400, detail=f"Mode {mode_id} is missing a launch map and cannot be launched")
+
+    if map_path and not venue_key:
         venue_key = map_path.split("/")[-1]
 
     gamemode_class = mode_config.get("gamemode_class", f"BP_GameMode_{venue_key}")
@@ -2492,15 +2554,18 @@ async def launch_vault_mode(data: Dict[str, Any], user: User = Depends(get_curre
         "gamemode_class": gamemode_class,
         "binary": binary,
         "status": status,
+        "render_mode": mode_config.get("render_mode", "3D_UE5"),
         "deep_link": deep_link,
         "source": "FEL_ModeManager.production.json",
         "cloud": False,
         "vault_session": True,
         "command": {
-            "cmd": "ueapp04",
-            "value": {
-                "ServerTravel": venue_key
-            }
+            "cmd": "fel.irl.launch" if is_irl_mode else "ueapp04",
+            "value": (
+                {"VenueToken": venue_key, "ModeId": mode_id, "SessionId": session_id}
+                if is_irl_mode
+                else {"ServerTravel": venue_key}
+            )
         }
     }
 
@@ -3172,6 +3237,70 @@ if mode_path.exists():
     with open(mode_path) as f:
         MODE_MANAGER = json.load(f)
     logger.info(f"Loaded mode manager: {len(MODE_MANAGER.get('mode_manager', {}).get('mode_registry', {}))} modes")
+PRQ_MODE_WEIGHTS = _registry_prq_mode_weights(MODE_MANAGER)
+
+UE_MODE_MAPS = {}
+ue_maps_path = ROOT_DIR / "ue_mode_maps.json"
+if ue_maps_path.exists():
+    with open(ue_maps_path) as f:
+        UE_MODE_MAPS = json.load(f).get("mode_to_unreal_map", {})
+    logger.info(f"Loaded UE mode map aliases: {len(UE_MODE_MAPS)} modes")
+
+MODE_VENUE_INDEX = {
+    mode.get("id"): mode
+    for mode in VENUE_REGISTRY.get("modes", [])
+    if isinstance(mode, dict) and mode.get("id")
+}
+
+def _venue_entry_for_mode(mode_id: str) -> Dict[str, Any]:
+    """Resolve split/API aliases back to their authored venue metadata."""
+    return MODE_VENUE_INDEX.get(mode_id) or (
+        MODE_VENUE_INDEX.get("basketball_dunk_3d") if mode_id == "basketball_dunk" else {}
+    )
+
+def _resolve_mode_launch_metadata(mode_id: str, config: Dict[str, Any]) -> Dict[str, Any]:
+    venue_entry = _venue_entry_for_mode(mode_id)
+    unreal_map = config.get("map") or UE_MODE_MAPS.get(mode_id)
+    venue_token = unreal_map or venue_entry.get("venueKey") or config.get("venue_id")
+    map_path = config.get("map") or config.get("map_path")
+    if not map_path and unreal_map:
+        map_path = f"/Game/FEL/Maps/{unreal_map}"
+    venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_entry.get("venueKey"), {})
+    return {
+        "map_path": map_path,
+        "unreal_map": unreal_map,
+        "venue_token": venue_token,
+        "venue_data": venue_data,
+        "venue_entry": venue_entry,
+    }
+
+def _registry_mode_maps() -> Dict[str, str]:
+    """Return launchable production/staging mode -> venue token from the registry."""
+
+    mode_maps: Dict[str, str] = {}
+    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+    for mode_id, config in registry.items():
+        if not isinstance(config, dict):
+            continue
+        status = config.get("status")
+        if status not in ("production", "staging"):
+            continue
+        launch_meta = _resolve_mode_launch_metadata(mode_id, config)
+        venue_token = launch_meta["venue_token"]
+        is_irl_mode = (
+            config.get("render_mode") == "IRL"
+            or bool(launch_meta["venue_entry"].get("isIRLMode"))
+        )
+        if venue_token and (launch_meta["map_path"] or is_irl_mode):
+            mode_maps[mode_id] = venue_token
+    return mode_maps
+
+async def _count_live_sessions(collection: str) -> int:
+    try:
+        return await db[collection].count_documents({})
+    except Exception as exc:
+        logger.warning(f"live session count unavailable for {collection}: {exc}")
+        return 0
 
 # Vault connection state
 vault_state = {
@@ -3837,22 +3966,23 @@ async def get_production_modes():
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     modes = []
     for mode_id, config in registry.items():
-        map_path = config.get("map")
-        if not map_path:
+        launch_meta = _resolve_mode_launch_metadata(mode_id, config)
+        venue_token = launch_meta["venue_token"]
+        if not venue_token:
             continue
-        venue_key = map_path.split("/")[-1]
-        venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
+        venue_data = launch_meta["venue_data"] or VENUE_REGISTRY.get("venues", {}).get(venue_token, {})
         # Check for live session data in venue collection
-        collection = venue_data.get("db_collection", f"sessions_{venue_key.lower()}")
-        live_sessions = await db[collection].count_documents({})
+        collection = venue_data.get("db_collection", f"sessions_{str(venue_token).lower()}")
+        live_sessions = await _count_live_sessions(collection)
         modes.append({
             "mode_id": mode_id,
-            "map_path": map_path,
+            "map_path": launch_meta["map_path"],
+            "unreal_map": launch_meta["unreal_map"],
             "gamemode_class": config.get("gamemode_class", ""),
             "binary": config.get("binary", ""),
             "status": config.get("status", "staging"),
-            "venue": venue_key,
-            "venue_display": venue_data.get("display_name", venue_key),
+            "venue": venue_token,
+            "venue_display": venue_data.get("display_name") or launch_meta["venue_entry"].get("displayVenue") or venue_token,
             "live_sessions": live_sessions,
             "db_collection": collection,
             "data_source": "FEL_ModeManager.production.json"
@@ -4036,6 +4166,7 @@ app.include_router(education_tracks_router.router)
 app.include_router(system_scan_router.router)
 app.include_router(pass_image_router.router)
 app.include_router(biofuel_router.router)
+app.include_router(matches_router.router)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
