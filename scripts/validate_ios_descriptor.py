@@ -19,6 +19,27 @@ IRL_RENDER_MODES = {"IRL"}
 def err(msg): ERRORS.append(msg)
 def warn(msg): WARNINGS.append(msg)
 
+def parse_maps_to_cook(content):
+    return set(re.findall(r'\+MapsToCook=\(FilePath="([^"]+)"\)', content))
+
+def parse_fel_play_map(content):
+    play_map = {}
+    in_section = False
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped == "[FELPlayMap]":
+            in_section = True
+            continue
+        if in_section and stripped.startswith("["):
+            break
+        if in_section and "=" in stripped and not stripped.startswith(";"):
+            key, value = stripped.split("=", 1)
+            play_map[key.strip()] = value.strip()
+    return play_map
+
+def arena_level_to_package(level_path):
+    return level_path.split(".", 1)[0]
+
 # ── 1. Validate DefaultGame.ini packaging settings ──────────────────────────
 def validate_packaging_settings():
     ini_path = REPO_ROOT / "infra" / "ue5_config" / "DefaultGame.ini"
@@ -39,20 +60,37 @@ def validate_packaging_settings():
         if flag not in content:
             err(f"Missing packaging flag: {flag} — {reason}")
 
-    # Validate all required maps are listed in MapsToCook
+    # Validate all runtime packages are listed in MapsToCook. The mode manager no
+    # longer carries per-mode map fields, so derive package paths from FELPlayMap
+    # and ArenaSettings, which are the routes iOS actually opens.
     mode_mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
     if mode_mgr_path.exists():
         mgr = json.loads(mode_mgr_path.read_text())
         registry = mgr.get("mode_manager", {}).get("mode_registry", {})
-        maps_in_ini = re.findall(r'\+MapsToCook=\(FilePath="([^"]+)"\)', content)
+        maps_in_ini = parse_maps_to_cook(content)
+        play_map = parse_fel_play_map(content)
+        arena_path = REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Content" / "FEL" / "Config" / "ArenaSettings.json"
+        arena_modes = {}
+        if arena_path.exists():
+            arena_modes = json.loads(arena_path.read_text()).get("modes", {})
         for mode_id, info in registry.items():
-            map_path = info.get("map", "")
-            if map_path and map_path not in maps_in_ini:
-                # Check if venue folder is at least present
-                venue = map_path.split("/")[-1]
-                found = any(venue in m for m in maps_in_ini)
-                if not found and info.get("status") == "production":
-                    warn(f"Production mode '{mode_id}' map not in MapsToCook: {map_path}")
+            if info.get("status") not in ("production", "non-game-module"):
+                continue
+            if info.get("render_mode") in IRL_RENDER_MODES:
+                continue
+
+            play_map_path = play_map.get(mode_id)
+            arena_level = arena_modes.get(mode_id, {}).get("unrealOpenLevelPackage")
+            arena_package = arena_level_to_package(arena_level) if arena_level else None
+            expected_package = play_map_path or arena_package
+
+            if not expected_package:
+                err(f"Shipping mode '{mode_id}' missing FELPlayMap/ArenaSettings package")
+                continue
+            if arena_package and play_map_path and arena_package != play_map_path:
+                err(f"Shipping mode '{mode_id}' FELPlayMap/ArenaSettings mismatch: {play_map_path} != {arena_package}")
+            if expected_package not in maps_in_ini:
+                err(f"Shipping mode '{mode_id}' package not in MapsToCook: {expected_package}")
 
     print("  ✓ Packaging settings validated")
 

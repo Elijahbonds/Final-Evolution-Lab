@@ -83,7 +83,7 @@ extension GameModeId {
         case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
             return .sim
         case .marketBrowse:
-            return .preview
+            return .nonGame
         }
     }
 
@@ -255,9 +255,9 @@ extension GameMode {
     /// SceneKit shell + NEXUS session — preview/staging tiers need ``Config.showPreviewGameModes`` in Release.
     var isLaunchableInCurrentBuild: Bool {
         switch nexusCapabilityTier {
-        case .prod, .sim, .staging:
+        case .prod, .sim, .staging, .nonGame:
             return true
-        case .preview, .nonGame:
+        case .preview:
             return Config.showPreviewGameModes
         }
     }
@@ -563,7 +563,7 @@ struct GameModeRegistry {
             multiplayerType: .solo,
             environmentName: "Luma Venice Shop",
             hint: "Browse the vault · scan venues · shop collectibles",
-            releaseState: .preview
+            releaseState: .production
         ),
     ]
 
@@ -629,7 +629,8 @@ struct GameModeRegistry {
         for (rawId, entry) in payload.modeManager.modeRegistry {
             guard let modeId = playableModeId(forRegistryId: rawId) else { continue }
             let baseMode = all.first(where: { $0.id == modeId })
-            let releaseState: GameMode.ReleaseState = entry.status == "production" ? .production : .preview
+            let releaseState: GameMode.ReleaseState = ["production", "non-game-module"].contains(entry.status) ? .production : .preview
+            let capabilityTier: NexusCapabilityTier = entry.status == "non-game-module" ? .nonGame : (baseMode?.capabilityTier ?? modeId.nexusCapabilityTier)
             
             let mode = GameMode(
                 id: modeId,
@@ -642,7 +643,7 @@ struct GameModeRegistry {
                 environmentName: baseMode?.environmentName ?? "Arena",
                 hint: baseMode?.hint,
                 releaseState: releaseState,
-                capabilityTier: baseMode?.capabilityTier ?? modeId.nexusCapabilityTier
+                capabilityTier: capabilityTier
             )
             loaded.append(mode)
         }

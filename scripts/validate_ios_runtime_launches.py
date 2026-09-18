@@ -90,6 +90,24 @@ def main() -> int:
         failures,
     )
     require(
+        re.search(r"case\s+\.marketBrowse:\s*return\s+\.nonGame", game_mode) is not None,
+        "market browse is classified as a non-game module, not preview gameplay",
+        failures,
+    )
+    require(
+        "case .prod, .sim, .staging, .nonGame:" in game_mode,
+        "non-game modules can launch through dedicated module routes",
+        failures,
+    )
+    require(
+        re.search(
+            r"id:\s*\.marketBrowse[\s\S]*?releaseState:\s*\.production",
+            game_mode,
+        ) is not None,
+        "market browse is visible as production module library content",
+        failures,
+    )
+    require(
         "guard let modeId = playableModeId(forRegistryId: rawId)" in game_mode,
         "mode-manager payload ingest accepts canonical runtime ids",
         failures,

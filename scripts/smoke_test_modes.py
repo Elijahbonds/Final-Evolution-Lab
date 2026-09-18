@@ -171,6 +171,7 @@ def test_venue_registry():
 def test_fel_play_map():
     print("\n── Test 5: FELPlayMap Deep Link Routing ──")
     content = (REPO_ROOT / "infra" / "ue5_config" / "DefaultGame.ini").read_text()
+    maps_to_cook = set(re.findall(r'\+MapsToCook=\(FilePath="([^"]+)"\)', content))
 
     play_map = {}
     in_section = False
@@ -185,7 +186,10 @@ def test_fel_play_map():
                 k, v = line.strip().split("=", 1)
                 play_map[k.strip()] = v.strip()
 
-    all_modes = [m for m in PRODUCTION_REGISTRY_MODES + STAGING_MODES if m not in IRL_MODES]
+    arena = json.loads((REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Content" / "FEL" / "Config" / "ArenaSettings.json").read_text())
+    arena_modes = arena["modes"]
+
+    all_modes = [m for m in PRODUCTION_REGISTRY_MODES + STAGING_MODES + NON_GAME_MODULES if m not in IRL_MODES]
     for mode in all_modes:
         if mode in play_map:
             path = play_map[mode]
@@ -194,15 +198,21 @@ def test_fel_play_map():
                 ok(f"{mode} → {path}")
             else:
                 fail(f"{mode} deep link path doesn't use /Venues/ convention: {path}")
-        else:
-            if mode in ("market_browse",):
-                # market_browse has its own path format
-                if mode in play_map:
-                    ok(f"{mode} → {play_map[mode]}")
-                else:
-                    fail(f"{mode} missing from FELPlayMap")
+
+            if path in maps_to_cook:
+                ok(f"{mode} package is staged in MapsToCook")
             else:
-                fail(f"{mode} missing from FELPlayMap")
+                fail(f"{mode} package missing from MapsToCook: {path}")
+
+            arena_level = arena_modes.get(mode, {}).get("unrealOpenLevelPackage")
+            if arena_level:
+                arena_package = arena_level.split(".", 1)[0]
+                if arena_package == path:
+                    ok(f"{mode} ArenaSettings matches FELPlayMap")
+                else:
+                    fail(f"{mode} ArenaSettings mismatch: {arena_package} != {path}")
+        else:
+            fail(f"{mode} missing from FELPlayMap")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 6: Swift GameMode Enum
@@ -228,6 +238,12 @@ def test_swift_enum():
             ok(f'{legacy} resolves to Swift split mode {target}')
         else:
             fail(f'{legacy} missing Swift playableMode alias to {target}')
+
+    market_tier_pattern = r'case\s+\.marketBrowse:\s*return\s+\.nonGame'
+    if re.search(market_tier_pattern, content):
+        ok('market_browse uses Swift nonGame tier')
+    else:
+        fail('market_browse must use Swift nonGame tier, not preview')
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 7: Server.py Seeded Game Modes
