@@ -39,11 +39,12 @@ Prerequisites
 
 A. Menu navigation (DoD #6)
   1. Launch app → tab shell visible (≤2 taps to Arena)
-  2. Arena → Modes → Dunk Contest (P0) and Karate Endless (P1) cards visible
-  3. Tap a P2 mode → "Coming Soon" sheet (release config)
+  2. Arena → Modes → IRL Dunk, 3D Dunk, Karate Endless, and board/academy cards visible
+  3. Tap a production P2 mode (Surfing / Skateboarding / Brain Brawl) → gameplay launches with honest tier badge
+  4. Market Browse remains a non-game module, not a scored gameplay launch
 
 B. Dunk Contest touch loop (DoD #3)
-  1. Tap Dunk Contest → GamePlayView loads (no crash)
+  1. Tap 3D H2H Dunk Contest → GamePlayView loads (no crash)
   2. Hold anywhere → release → tap at apex
   3. Center HUD: timing_grade + player_score increment
   4. NEXUS session_state shows active during play

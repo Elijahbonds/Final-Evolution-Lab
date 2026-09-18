@@ -11,13 +11,15 @@ persist via ``session_processor`` to Postgres (or SQLite when USE_SQLITE_DEV=tru
 """
 from __future__ import annotations
 
+import json
 import random
 import time
 import uuid
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, File, Query, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
 
 router = APIRouter(tags=["mechanics"])
@@ -33,27 +35,96 @@ _critique_requests: list[dict[str, Any]] = []
 _brain_brawl_sessions: dict[str, dict[str, Any]] = {}
 _workout_logs: list[dict[str, Any]] = []
 
-ARENA_MODES = [
-    ("basketball_h2h", "Street · 1v1", "Basketball", "VeniceBeach", "1v1", "3 min"),
-    ("basketball_dunk", "Dunk Contest", "Basketball", "VeniceBeach", "Solo", "5 min"),
-    ("basketball_3v3", "Street · 3v3", "Basketball", "VeniceBeach", "3v3", "8 min"),
-    ("karate", "Karate · Dojo", "Combat", "Dojo", "Solo", "3 min"),
-    ("karate_h2h", "Karate · 1v1", "Combat", "Dojo", "1v1", "3 min"),
-    ("karate_endless", "Karate · Endless", "Combat", "Dojo", "Solo", "Endless"),
-    ("baseball", "Baseball · Ballpark", "Field", "BaseballPark", "Solo", "5 min"),
-    ("football", "Football · Kick Return", "Field", "Gridiron", "Solo", "4 min"),
-    ("soccer", "Soccer · Stadium", "Field", "SoccerStadium", "Solo", "3 min"),
-    ("golf", "Golf · Links", "Precision", "Links", "Solo", "5 min"),
-    ("tennis", "Tennis · Court", "Court", "TennisCourt", "1v1", "3 min"),
-    ("volleyball", "Volleyball · Sand Court", "Court", "SandCourt", "2v2", "3 min"),
-    ("gymnastics", "Gymnastics · Floor", "Performance", "TrainingFloor", "Solo", "4 min"),
-    ("brain_brawl", "Academy · Brain Brawl", "Academy", "NeuroArena", "Solo", "2 min"),
-    ("surfing", "Surf · Line", "Board", "VeniceBeach", "Solo", "3 min"),
-    ("skateboarding", "Skate · Dojo", "Board", "Dojo", "Solo", "3 min"),
-    ("snowboarding", "Snow · Line", "Board", "TrainingFloor", "Solo", "3 min"),
-    ("market_browse", "Sovereign Shop", "Academy", "Luma_Venice_Shop", "Browse", "Open"),
-    ("trivia_arena", "Trivia Arena", "Academy", "NeuroArena", "Solo", "2 min"),
-]
+_BACKEND_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _load_json(name: str) -> dict[str, Any]:
+    try:
+        return json.loads((_BACKEND_ROOT / name).read_text())
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+MODE_MANAGER = _load_json("FEL_ModeManager.production.json")
+UE_MODE_MAPS = _load_json("ue_mode_maps.json").get("mode_to_unreal_map", {})
+VENUE_REGISTRY = _load_json("FEL_VenueRegistry.production.json")
+
+MODE_ALIASES = {
+    "basketball_dunk": "basketball_dunk_3d",
+    "basketball_irl": "basketball_dunk_irl",
+    "dunk_competition": "basketball_dunk_3d",
+    "karate": "karate_h2h",
+    "karate_1v1": "karate_h2h",
+}
+
+MODE_DETAILS: dict[str, dict[str, str]] = {
+    "basketball_h2h": {"name": "Street · 1v1", "category": "Basketball", "players": "1v1", "duration": "3 min"},
+    "basketball_dunk_3d": {"name": "3D H2H Dunk Contest", "category": "Basketball", "players": "1v1", "duration": "5 min"},
+    "basketball_dunk_irl": {"name": "IRL H2H Dunk Contest", "category": "Basketball", "players": "1v1", "duration": "5 min"},
+    "basketball_3v3": {"name": "Street · 3v3", "category": "Basketball", "players": "3v3", "duration": "8 min"},
+    "karate_h2h": {"name": "Karate · 1v1", "category": "Combat", "players": "1v1", "duration": "3 min"},
+    "karate_endless": {"name": "Karate · Endless", "category": "Combat", "players": "1-4 local", "duration": "Endless"},
+    "baseball": {"name": "Baseball · Ballpark", "category": "Field", "players": "Solo", "duration": "5 min"},
+    "football": {"name": "Football · Kick Return", "category": "Field", "players": "Solo", "duration": "4 min"},
+    "soccer": {"name": "Soccer · Stadium", "category": "Field", "players": "Solo", "duration": "3 min"},
+    "golf": {"name": "Golf · Links", "category": "Precision", "players": "Solo", "duration": "5 min"},
+    "tennis": {"name": "Tennis · Court", "category": "Court", "players": "1v1", "duration": "3 min"},
+    "volleyball": {"name": "Volleyball · Sand Court", "category": "Court", "players": "2v2", "duration": "3 min"},
+    "gymnastics": {"name": "Gymnastics · Floor", "category": "Performance", "players": "Solo", "duration": "4 min"},
+    "surfing": {"name": "Surf · Line", "category": "Board", "players": "Solo", "duration": "3 min"},
+    "skateboarding": {"name": "Skate · Line", "category": "Board", "players": "Solo", "duration": "3 min"},
+    "snowboarding": {"name": "Snow · Line", "category": "Board", "players": "Solo", "duration": "3 min"},
+    "brain_brawl": {"name": "Academy · Brain Brawl", "category": "Academy", "players": "Solo", "duration": "2 min"},
+    "who_scene_it": {"name": "Who Scene It", "category": "Academy", "players": "Solo", "duration": "2 min"},
+    "court_carnival": {"name": "Court Carnival", "category": "Party", "players": "Solo", "duration": "5 min"},
+    "market_browse": {"name": "Sovereign Shop", "category": "Academy", "players": "Browse", "duration": "Open"},
+}
+
+
+def _mode_registry() -> dict[str, dict[str, Any]]:
+    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+    return registry if isinstance(registry, dict) else {}
+
+
+def _venue_modes() -> dict[str, dict[str, Any]]:
+    return {
+        str(entry.get("id")): entry
+        for entry in VENUE_REGISTRY.get("modes", [])
+        if isinstance(entry, dict) and entry.get("id")
+    }
+
+
+def _venue_entries() -> dict[str, dict[str, Any]]:
+    return {
+        str(entry.get("venueKey")): entry
+        for entry in VENUE_REGISTRY.get("venues", [])
+        if isinstance(entry, dict) and entry.get("venueKey")
+    }
+
+
+def _canonical_mode_id(raw: str) -> str:
+    mode_id = str(raw or "basketball_h2h").strip().lower()
+    return MODE_ALIASES.get(mode_id, mode_id)
+
+
+def _display_venue(mode_id: str, config: dict[str, Any]) -> str:
+    venue_mode = _venue_modes().get(mode_id, {})
+    if venue_mode.get("displayVenue"):
+        return str(venue_mode["displayVenue"])
+    return str(config.get("venue_id") or UE_MODE_MAPS.get(mode_id) or "Arena")
+
+
+def _venue_token(mode_id: str, config: dict[str, Any]) -> str:
+    venue_mode = _venue_modes().get(mode_id, {})
+    return str(venue_mode.get("venueKey") or UE_MODE_MAPS.get(mode_id) or config.get("venue_id") or "arena")
+
+
+def _launchable_mode_ids() -> set[str]:
+    return {
+        mode_id
+        for mode_id, config in _mode_registry().items()
+        if config.get("status") == "production" and mode_id != "basketball_dunk"
+    }
 
 INTENTS = {
     "fascial_hydration": "Fascial Hydration",
@@ -142,19 +213,31 @@ def _now() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def _mode(row: tuple[str, str, str, str, str, str]) -> dict[str, Any]:
-    mode_id, display_name, category, venue, players, duration = row
+def _mode(mode_id: str, config: dict[str, Any]) -> dict[str, Any]:
+    details = MODE_DETAILS.get(mode_id, {})
+    display_name = details.get("name", mode_id.replace("_", " ").title())
+    category = details.get("category", "Arena")
+    venue = _display_venue(mode_id, config)
+    players = details.get("players", "Solo")
+    duration = details.get("duration", "3 min")
+    status = str(config.get("status", "preview"))
+    render_mode = str(config.get("render_mode") or _venue_modes().get(mode_id, {}).get("renderMode") or "3D_NEXUS")
+    playable = mode_id in _launchable_mode_ids() and status == "production"
     return {
         "id": mode_id,
         "name": display_name,
         "display_name": display_name,
         "category": category,
         "venue": venue,
+        "venue_token": _venue_token(mode_id, config),
+        "render_mode": render_mode,
+        "release_state": status,
+        "prq_weight": config.get("prq_weight", 1.0),
         "player_count": players,
         "duration": duration,
         "difficulty": "Cognitive" if category == "Academy" else "Adaptive",
-        "game_type": "quiz" if mode_id in {"brain_brawl", "trivia_arena"} else "reflex",
-        "playable": mode_id != "market_browse",
+        "game_type": "quiz" if mode_id == "brain_brawl" else "reflex",
+        "playable": playable,
         "image_url": "/images/ue5_basketball.png" if category == "Basketball" else "/images/ue5_board.png",
         "description": f"{display_name} is wired through the FEL shell economy and HUD pipeline.",
     }
@@ -175,7 +258,12 @@ def _target() -> dict[str, int]:
 
 @router.get("/games/modes")
 async def game_modes() -> list[dict[str, Any]]:
-    return [_mode(row) for row in ARENA_MODES]
+    registry = _mode_registry()
+    return [
+        _mode(mode_id, config)
+        for mode_id, config in registry.items()
+        if config.get("status") != "preview" and mode_id != "basketball_dunk"
+    ]
 
 
 @router.post("/ai/chat")
@@ -472,9 +560,22 @@ async def update_profile(payload: dict[str, Any] | None = None) -> dict[str, Any
 # Native-launch + session-state (web returns no deep link → browser sim)
 # ─────────────────────────────────────────────────────────────
 def _launch_payload(mode_id: str) -> dict[str, Any]:
+    requested_mode_id = str(mode_id or "basketball_h2h")
+    resolved_mode_id = _canonical_mode_id(requested_mode_id)
+    registry = _mode_registry()
+    config = registry.get(resolved_mode_id)
+    if config is None:
+        raise HTTPException(status_code=404, detail=f"Unknown mode_id: {requested_mode_id}")
+    if resolved_mode_id not in _launchable_mode_ids():
+        raise HTTPException(status_code=403, detail=f"Mode {requested_mode_id} is not launchable in the shell")
+
     return {
         "session_id": f"hub_{uuid.uuid4().hex[:12]}",
-        "mode_id": mode_id,
+        "mode_id": resolved_mode_id,
+        "requested_mode_id": requested_mode_id,
+        "venue": _venue_token(resolved_mode_id, config),
+        "render_mode": config.get("render_mode") or _venue_modes().get(resolved_mode_id, {}).get("renderMode") or "3D_NEXUS",
+        "release_state": config.get("status", "preview"),
         # No deep link on the web shell — the React PlayableGame simulator is used.
         "deep_link": None,
         "status": "registered",
@@ -617,16 +718,13 @@ def _uptime_seconds() -> int:
 
 @router.get("/hub/status")
 async def hub_status() -> dict[str, Any]:
+    venue_keys = sorted(_venue_entries())
     return {
         "websocket": {"status": "connected", "connected_clients": [], "total_messages": 0},
         "database": {
             "status": "ready",
-            "total_venues": 12,
-            "venues": [
-                "VeniceBeach", "Dojo", "BaseballPark", "Gridiron", "SoccerStadium",
-                "Links", "TennisCourt", "SandCourt", "TrainingFloor", "NeuroArena",
-                "Luma_Venice_Shop", "SecureEnclave",
-            ],
+            "total_venues": len(venue_keys),
+            "venues": venue_keys,
         },
         "integrity": {"status": "ACTIVE", "hardware_auth": {"bIsHardwareAuthenticated": True, "back_camera_verified": True, "imu_visual_sync": True}},
         "telemetry": {"prq": 75.6, "combo_meter": 0, "buckets": 0, "vertical_jump": 0, "velocity_vectors": {"x": 0, "y": 0, "z": 0}},
@@ -637,17 +735,34 @@ async def hub_status() -> dict[str, Any]:
 
 @router.get("/production/health")
 async def production_health() -> dict[str, Any]:
-    return {"status": "HEALTHY", "checks": {"mode_manager": {"production_modes": 19}}}
+    registry = _mode_registry()
+    production_modes = [mode_id for mode_id, config in registry.items() if config.get("status") == "production"]
+    shell_launchable_modes = sorted(_launchable_mode_ids())
+    return {
+        "status": "HEALTHY",
+        "checks": {
+            "mode_manager": {
+                "total_modes": len(registry),
+                "production_modes": len(production_modes),
+                "shell_launchable_modes": len(shell_launchable_modes),
+                "launchable_mode_ids": shell_launchable_modes,
+                "source": "FEL_ModeManager.production.json",
+            }
+        },
+    }
 
 
 @router.get("/production/handshake-log")
 async def production_handshake_log() -> dict[str, Any]:
     now_ms = int(datetime.now(UTC).timestamp() * 1000)
+    registry = _mode_registry()
+    venue_count = len(_venue_entries())
     return {
         "handshake_status": "CONNECTED",
         "log": [
             {"ts": now_ms, "level": "INFO", "msg": "Local hub online. AES-256-GCM tunnels enabled."},
-            {"ts": now_ms, "level": "INFO", "msg": "Venue registry loaded (12 venues)."},
+            {"ts": now_ms, "level": "INFO", "msg": f"Venue registry loaded ({venue_count} venues)."},
+            {"ts": now_ms, "level": "INFO", "msg": f"Mode registry loaded ({len(registry)} modes, {len(_launchable_mode_ids())} shell-launchable)."},
         ],
     }
 
