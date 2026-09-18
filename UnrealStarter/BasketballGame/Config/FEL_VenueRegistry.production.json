@@ -106,6 +106,18 @@
     { "id": "gymnastics", "analyticsMode": "gymnastics_routine", "venueKey": "arena_floor", "displayVenue": "Arena", "optional": true, "nexusEnvironmentAssetId": "gymnastics_floor_environment_model_fbx" },
     { "id": "brain_brawl", "analyticsMode": "brain_brawl", "venueKey": "neuro_arena", "displayVenue": "Neuro Arena", "optional": true, "nexusEnvironmentAssetId": "neuro_arena_environment_model_fbx" },
     {
+      "id": "movement_lab",
+      "analyticsMode": "movement_lab",
+      "venueKey": "movement_lab",
+      "displayVenue": "Movement Lab",
+      "renderMode": "Preview",
+      "optional": true,
+      "releaseState": "preview",
+      "scoringEnabled": false,
+      "nexusEnvironmentAssetId": "movement_lab_preview_placeholder",
+      "modeNote": "Preview-only education overlay. Excluded from production gameplay validation and ranked scoring."
+    },
+    {
       "id": "market_browse",
       "analyticsMode": "market_browse",
       "venueKey": "vault_shop",
@@ -156,6 +168,17 @@
       "nexusEnvironmentAssetId": "luma_venice_shop_environment_model_fbx"
     },
     { "venueKey": "beach_court", "analyticsPolicyName": "Beach Court — Volleyball" },
+    {
+      "venueKey": "movement_lab",
+      "analyticsPolicyName": "Movement Lab preview education overlay",
+      "renderMode": "Preview",
+      "nexusEnvironmentAssetId": "movement_lab_preview_placeholder"
+    },
+    {
+      "venueKey": "regulation_court_irl",
+      "analyticsPolicyName": "Regulation Court (IRL camera)",
+      "renderMode": "IRL"
+    },
     { "venueKey": "dojo_arena", "analyticsPolicyName": "Zen / Dojo Arena", "nexusEnvironmentAssetId": "zen_dojo_environment_model_fbx" },
     { "venueKey": "neuro_arena", "analyticsPolicyName": "Neuro Arena", "nexusEnvironmentAssetId": "neuro_arena_environment_model_fbx" },
     { "venueKey": "skate_park", "analyticsPolicyName": "Skate Park" },
