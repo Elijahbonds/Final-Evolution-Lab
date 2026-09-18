@@ -606,6 +606,23 @@ struct GameLogicTests {
         #expect(GameplaySessionReceiptCoordinator.parseTrustLevel(["fel_trust_level": "server_verified"]) == .serverVerified)
     }
 
+    @Test @MainActor func sessionReceiptAcceptsCanonicalNexusModeIds() {
+        let dunkFields = GameplaySessionReceiptCoordinator.parseReceiptFields([
+            "game_mode_id": "basketball_dunk",
+            "player_score": 92,
+            "opponent_score": 88,
+            "fel_trust_level": "server_verified",
+        ])
+        #expect(dunkFields?.mode == .basketballDunkContest3D)
+        #expect(dunkFields?.trustLevel == .serverVerified)
+
+        let marketFields = GameplaySessionReceiptCoordinator.parseReceiptFields([
+            "mode": "market_browse",
+            "player_score": 0,
+        ])
+        #expect(marketFields?.mode == .marketBrowse)
+    }
+
     @Test func sessionReceiptProductionPathDocumentedInConfig() {
         #expect(Config.gameplaySessionReceiptURL.contains("/api/games/session") == true)
         #expect(NexusBackendClient.apiBaseURL.isEmpty == false)

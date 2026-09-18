@@ -8,6 +8,8 @@ babel.config.js
 metro.config.js
 package.json
 package-lock.json
+!frontend/package.json
+!frontend/package-lock.json
 tsconfig.json
 app.json
 
@@ -94,6 +96,7 @@ __pycache__/
 *pyc*
 venv/
 .venv/
+backend/*.sqlite3
 
 # Archives / large binaries
 **/*.zip
@@ -136,6 +139,8 @@ android-sdk/
 *.app
 *.dSYM
 *.xcarchive
+build-headless/
+build-full/
 
 # UE5 intermediate
 Saved/

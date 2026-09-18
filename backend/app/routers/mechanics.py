@@ -16,8 +16,9 @@ import time
 import uuid
 from datetime import UTC, datetime
 from typing import Any
+from urllib.parse import urlencode
 
-from fastapi import APIRouter, File, Query, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
 
 router = APIRouter(tags=["mechanics"])
@@ -54,6 +55,7 @@ ARENA_MODES = [
     ("market_browse", "Sovereign Shop", "Academy", "Luma_Venice_Shop", "Browse", "Open"),
     ("trivia_arena", "Trivia Arena", "Academy", "NeuroArena", "Solo", "2 min"),
 ]
+_ARENA_MODE_BY_ID = {row[0]: row for row in ARENA_MODES}
 
 INTENTS = {
     "fascial_hydration": "Fascial Hydration",
@@ -469,27 +471,46 @@ async def update_profile(payload: dict[str, Any] | None = None) -> dict[str, Any
 
 
 # ─────────────────────────────────────────────────────────────
-# Native-launch + session-state (web returns no deep link → browser sim)
+# Native-launch + session-state (native receives a deep link; web can still fall back to browser sim)
 # ─────────────────────────────────────────────────────────────
-def _launch_payload(mode_id: str) -> dict[str, Any]:
+def _native_deep_link(*, mode_id: str, venue: str, session_id: str, surface: str) -> str:
+    query = urlencode({"map": venue, "mode": mode_id, "session": session_id, "surface": surface})
+    return f"finalevolution://launch?{query}"
+
+
+def _launch_payload(mode_id: str, *, surface: str) -> dict[str, Any]:
+    if mode_id not in _ARENA_MODE_BY_ID:
+        raise HTTPException(status_code=404, detail=f"Mode '{mode_id}' is not registered in the local arena shell.")
+
+    mode = _mode(_ARENA_MODE_BY_ID[mode_id])
+    session_id = f"{surface}_{uuid.uuid4().hex[:12]}"
+    deep_link = _native_deep_link(mode_id=mode_id, venue=mode["venue"], session_id=session_id, surface=surface)
     return {
-        "session_id": f"hub_{uuid.uuid4().hex[:12]}",
+        "session_id": session_id,
         "mode_id": mode_id,
-        # No deep link on the web shell — the React PlayableGame simulator is used.
-        "deep_link": None,
+        "venue": mode["venue"],
+        "map": mode["venue"],
+        "deep_link": deep_link,
         "status": "registered",
-        "hub": "local",
+        "render_mode": "native" if mode["playable"] else "non-game-module",
+        "playable": mode["playable"],
+        "source": "phase1_mechanics_local",
+        "hub": surface,
+        "command": {
+            "cmd": "fel.native.launch" if mode["playable"] else "fel.market.open",
+            "value": {"VenueToken": mode["venue"], "ModeId": mode_id, "SessionId": session_id},
+        },
     }
 
 
 @router.post("/hub/launch-mode")
 async def hub_launch_mode(payload: dict[str, Any] | None = None) -> dict[str, Any]:
-    return _launch_payload(str((payload or {}).get("mode_id", "basketball_h2h")))
+    return _launch_payload(str((payload or {}).get("mode_id", "basketball_h2h")), surface="hub")
 
 
 @router.post("/vault/launch-mode")
 async def vault_launch_mode(payload: dict[str, Any] | None = None) -> dict[str, Any]:
-    return _launch_payload(str((payload or {}).get("mode_id", "basketball_h2h")))
+    return _launch_payload(str((payload or {}).get("mode_id", "basketball_h2h")), surface="vault")
 
 
 @router.post("/session/state")

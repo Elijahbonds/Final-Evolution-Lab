@@ -83,7 +83,7 @@ def test_trivia_questions_by_category_and_random() -> None:
     assert len(mixed.json()) == 5
 
 
-def test_native_launch_returns_no_deeplink_on_web() -> None:
+def test_native_launch_returns_deeplink_and_session_payload() -> None:
     client = TestClient(app)
 
     hub = client.post("/api/hub/launch-mode", json={"mode_id": "karate_h2h"})
@@ -91,11 +91,27 @@ def test_native_launch_returns_no_deeplink_on_web() -> None:
     state = client.post("/api/session/state", json={"session_id": "hub_x", "state": "completed", "score": 900})
 
     assert hub.status_code == 200
-    assert hub.json()["deep_link"] is None
-    assert hub.json()["mode_id"] == "karate_h2h"
+    hub_body = hub.json()
+    assert hub_body["session_id"].startswith("hub_")
+    assert hub_body["deep_link"].startswith("finalevolution://launch?")
+    assert "mode=karate_h2h" in hub_body["deep_link"]
+    assert "session=" in hub_body["deep_link"]
+    assert hub_body["mode_id"] == "karate_h2h"
+    assert hub_body["command"]["cmd"] == "fel.native.launch"
     assert vault.status_code == 200
+    assert vault.json()["session_id"].startswith("vault_")
+    assert "mode=soccer" in vault.json()["deep_link"]
     assert state.status_code == 200
     assert state.json()["state"] == "completed"
+
+
+def test_native_launch_rejects_unknown_modes() -> None:
+    client = TestClient(app)
+
+    response = client.post("/api/hub/launch-mode", json={"mode_id": "unknown_mode"})
+
+    assert response.status_code == 404
+    assert "not registered" in response.json()["detail"]
 
 
 def test_hub_command_center_status_renders() -> None:

@@ -162,8 +162,8 @@ export function LandingPage() {
     basketball_h2h: { name: "Basketball H2H", weight: 1.2, color: "text-cyan-400", border: "border-cyan-400/30", bg: "bg-cyan-500/10" },
     football: { name: "Football Field", weight: 1.5, color: "text-pink-400", border: "border-pink-400/30", bg: "bg-pink-500/10" },
     golf: { name: "Precision Golf", weight: 0.9, color: "text-emerald-400", border: "border-emerald-400/30", bg: "bg-emerald-500/10" },
-    karate: { name: "Karate Dojo", weight: 1.1, color: "text-amber-400", border: "border-amber-400/30", bg: "bg-amber-500/10" },
-    brain_brawl: { name: "Brain Brawl Arena", weight: 1.3, color: "text-purple-400", border: "border-purple-400/30", bg: "bg-purple-500/10" }
+    karate_endless: { name: "Karate Endless", weight: 1.4, color: "text-amber-400", border: "border-amber-400/30", bg: "bg-amber-500/10" },
+    brain_brawl: { name: "Brain Brawl Arena", weight: 1.0, color: "text-purple-400", border: "border-purple-400/30", bg: "bg-purple-500/10" }
   };
 
   const handleLogin = () => {
@@ -387,9 +387,9 @@ export function LandingPage() {
               <div className="w-12 h-12 bg-cyan-400/10 flex items-center justify-center text-cyan-400 rounded mb-6 group-hover:scale-110 transition-transform">
                 <Gamepad2 className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-bold uppercase mb-2 font-mono">17 Game Modes</h3>
+              <h3 className="text-xl font-bold uppercase mb-2 font-mono">18 NEXUS Runtime Modes</h3>
               <p className="text-zinc-400 text-sm leading-relaxed">
-                Play soccer, basketball, boxing, surfing, and karate. Build performance data points directly on client devices, bypassing intermediate web builders.
+                Play basketball, soccer, karate, surfing, academy, and board-sport loops through the NEXUS runtime. Build performance data points directly on client devices, bypassing intermediate web builders.
               </p>
             </div>
 
