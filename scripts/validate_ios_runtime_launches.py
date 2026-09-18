@@ -41,6 +41,8 @@ def main() -> int:
     agent_service = read("FinalEvolutionLab/Services/NEXUSAgentService.swift")
     generator_view = read("FinalEvolutionLab/Views/NexusGameGeneratorView.swift")
     studio_run = read("FinalEvolutionLab/Views/NexusStudio/NexusStudioRunPanelView.swift")
+    mode_selection = read("FinalEvolutionLab/Views/GameModeSelectionView.swift")
+    receipt_coordinator = read("FinalEvolutionLab/Services/GameplaySessionReceiptCoordinator.swift")
 
     require(
         "static func playableModeId(forRegistryId raw: String) -> GameModeId?" in game_mode,
@@ -85,6 +87,14 @@ def main() -> int:
     )
 
     require(
+        mode_selection.count("selectLaunchableMode(mode)") >= 2
+        and "showDunkPlatform = true" in mode_selection
+        and "showKarateCoopLobby = true" in mode_selection,
+        "Arena sprint banner and grid share IRL/karate lobby routing",
+        failures,
+    )
+
+    require(
         "GameModeRegistry.playableMode(forRegistryId: modeId)" in agent_service,
         "agent launch tool accepts canonical registry ids",
         failures,
@@ -122,6 +132,22 @@ def main() -> int:
         "GameModeId(rawValue: spec.modeId)" not in studio_run
         and "GameModeId(rawValue: entry.modeId)" not in studio_run,
         "Studio Run no longer requires generated ids to be exact Swift enum raw values",
+        failures,
+    )
+
+    require(
+        "let id = playableModeId(forRegistryId: raw)" in game_mode,
+        "saved Arena selections resolve legacy/canonical aliases",
+        failures,
+    )
+    require(
+        "guard let modeId = playableModeId(forRegistryId: rawId)" in game_mode,
+        "remote mode payload ingest resolves registry aliases",
+        failures,
+    )
+    require(
+        "GameModeRegistry.playableModeId(forRegistryId: modeStr)" in receipt_coordinator,
+        "session receipt parser resolves registry aliases before ingest",
         failures,
     )
 

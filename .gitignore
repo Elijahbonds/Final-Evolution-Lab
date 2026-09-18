@@ -141,6 +141,7 @@ android-sdk/
 *.xcarchive
 build-headless/
 build-full/
+.nexus-build.lock/
 
 # UE5 intermediate
 Saved/
