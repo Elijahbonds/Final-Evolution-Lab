@@ -33,6 +33,26 @@ def contains_alias_return(content: str, aliases: tuple[str, ...], target: str) -
     return re.search(case_pattern + r"\s*" + return_pattern, content, re.MULTILINE) is not None
 
 
+def routes_dedicated_launch_surfaces(content: str) -> bool:
+    """The gameplayRoute stack must keep camera/non-game modes out of GamePlayView."""
+    route_stack = content.find(".navigationDestination(item: $gameplayRoute)")
+    irl_guard = content.find("mode.id.isIRLDunkContest", route_stack)
+    irl_view = content.find("IRLDunkView(viewModel: viewModel, gameMode: mode)", route_stack)
+    market_guard = content.find("mode.id == .marketBrowse", route_stack)
+    market_view = content.find("MarketBrowseView(viewModel: viewModel)", route_stack)
+    gameplay_view = content.find("GamePlayView(", route_stack)
+    return (
+        route_stack >= 0
+        and irl_guard >= 0
+        and irl_view > irl_guard
+        and market_guard >= 0
+        and market_view > market_guard
+        and gameplay_view >= 0
+        and irl_view < gameplay_view
+        and market_view < gameplay_view
+    )
+
+
 def main() -> int:
     failures: list[str] = []
 
@@ -41,6 +61,8 @@ def main() -> int:
     agent_service = read("FinalEvolutionLab/Services/NEXUSAgentService.swift")
     receipt_coordinator = read("FinalEvolutionLab/Services/GameplaySessionReceiptCoordinator.swift")
     generator_view = read("FinalEvolutionLab/Views/NexusGameGeneratorView.swift")
+    selection_view = read("FinalEvolutionLab/Views/GameModeSelectionView.swift")
+    arcade_view = read("FinalEvolutionLab/Views/ArcadeLibraryView.swift")
     studio_run = read("FinalEvolutionLab/Views/NexusStudio/NexusStudioRunPanelView.swift")
 
     require(
@@ -115,6 +137,21 @@ def main() -> int:
     require(
         "GameModeRegistry.playableModeId(forRegistryId: spec.modeId)" in generator_view,
         "game generator opens Studio Run with resolved Swift route",
+        failures,
+    )
+    require(
+        routes_dedicated_launch_surfaces(generator_view),
+        "game generator gameplay route dispatches IRL camera and market surfaces before 3D gameplay",
+        failures,
+    )
+    require(
+        routes_dedicated_launch_surfaces(selection_view),
+        "mode selection gameplay route dispatches IRL camera and market surfaces before 3D gameplay",
+        failures,
+    )
+    require(
+        routes_dedicated_launch_surfaces(arcade_view),
+        "arcade library gameplay route dispatches IRL camera and market surfaces before 3D gameplay",
         failures,
     )
     require(
