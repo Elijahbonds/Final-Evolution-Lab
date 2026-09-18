@@ -226,6 +226,9 @@ constexpr std::array<ArenaModeConfig, 19> kModes{{
   if (modeId == "venice_pickup") {
     return "basketball_h2h";
   }
+  if (modeId == "basketball_dunk_3d") {
+    return "basketball_dunk";
+  }
   if (modeId == "karate_kata") {
     return "karate_endless";
   }

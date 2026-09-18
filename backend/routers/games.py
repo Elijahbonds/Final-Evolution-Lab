@@ -33,13 +33,15 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 
 # ── PRQ Mode Weights & Economy Constants ───────────────────────────────────
 PRQ_MODE_WEIGHTS = {
-    "basketball_h2h": 1.2, "basketball_dunk": 1.0, "basketball_3v3": 1.3,
+    "basketball_h2h": 1.2, "basketball_dunk": 1.0,
+    "basketball_dunk_3d": 1.0, "basketball_dunk_irl": 1.5,
+    "basketball_3v3": 1.3,
     "karate_h2h": 1.4, "karate_endless": 1.4,
     "baseball": 1.0, "football": 1.5, "soccer": 1.1,
     "golf": 0.9, "tennis": 1.1, "volleyball": 1.2,
-    "surfing": 1.05, "skateboarding": 1.0, "snowboarding": 1.0,
-    "gymnastics": 1.0, "brain_brawl": 0.8,
-    "who_scene_it": 0.7, "court_carnival": 0.9,
+    "surfing": 1.05, "skateboarding": 0.9, "snowboarding": 0.9,
+    "gymnastics": 1.0, "brain_brawl": 1.0,
+    "who_scene_it": 1.1, "court_carnival": 1.0,
 }
 SHARD_WIN, SHARD_DRAW, SHARD_LOSS = 50, 25, 15
 SHARD_COMBO_MULTIPLIER, SHARD_CRITICAL_BONUS = 5, 10
@@ -227,6 +229,8 @@ def get_seeded_game_modes():
     return [
         {"id":"basketball_h2h","name":"Street 1v1","display_name":"Street · 1v1","venue":"Venice Beach","category":"Basketball","description":"Head-to-head street basketball","image_url":"https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800","player_count":"1v1","duration":"10 min","difficulty":"Intermediate","playable":True,"game_type":"shooting"},
         {"id":"basketball_dunk","name":"Dunk Contest","display_name":"Dunk Contest","venue":"Venice Beach","category":"Basketball","description":"Execute dunks with timing precision","image_url":"https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800","player_count":"1","duration":"5 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
+        {"id":"basketball_dunk_irl","name":"IRL H2H Dunk Contest","display_name":"IRL H2H Dunk Contest","venue":"Regulation Court","category":"Basketball","description":"Record dunks with camera, Vision pose checks, and WDA/FIBA judging","image_url":"https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800","player_count":"1v1","duration":"5 min","difficulty":"Advanced","playable":True,"game_type":"camera_judged"},
+        {"id":"basketball_dunk_3d","name":"3D H2H Dunk Contest","display_name":"3D H2H Dunk Contest","venue":"Venice Beach","category":"Basketball","description":"NEXUS engine dunk contest with swipe timing and ghost competition","image_url":"https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800","player_count":"1v1","duration":"5 min","difficulty":"Advanced","playable":True,"game_type":"timing"},
         {"id":"basketball_3v3","name":"Street 3v3","display_name":"Street · 3v3","venue":"Venice Beach","category":"Basketball","description":"Team-based street basketball","image_url":"https://images.unsplash.com/photo-1519861531473-9200262188bf?w=800","player_count":"3v3","duration":"15 min","difficulty":"Intermediate","playable":True,"game_type":"strategy"},
         {"id":"karate_h2h","name":"Karate 1v1","display_name":"Karate · 1v1","venue":"Dojo","category":"Combat","description":"Strike, block, counter","image_url":"https://images.unsplash.com/photo-1555597673-b21d5c935865?w=800","player_count":"1v1","duration":"5 min","difficulty":"Intermediate","playable":True,"game_type":"combat"},
         {"id":"karate_endless","name":"Karate Endless","display_name":"Karate · Endless","venue":"Dojo","category":"Combat","description":"Survive endless waves","image_url":"https://images.unsplash.com/photo-1564415315949-7a0c4c73aab4?w=800","player_count":"1","duration":"Unlimited","difficulty":"Expert","playable":True,"game_type":"endurance"},
@@ -775,13 +779,15 @@ async def get_streaming_status():
     """LOCAL SOVEREIGN MODE — No E3DS cloud. Data feed only."""
     mode_maps = {
         "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
+        "basketball_dunk_3d": "Venice_Beach_Court",
         "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
         "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
         "football": "Gridiron_Stadium", "soccer": "Soccer_Stadium",
         "golf": "Links_Course", "tennis": "Tennis_Court",
         "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
         "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope",
+        "snowboarding": "Mountain_Slope", "brain_brawl": "Neuro_Arena",
+        "who_scene_it": "Neuro_Arena", "court_carnival": "Venice_Beach_Court",
     }
     ws_connected = len(sovereign_bridge.clients) > 0
     return {
