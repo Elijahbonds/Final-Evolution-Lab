@@ -37,29 +37,47 @@ cmake -S . -B build-headless --fresh \
 cmake --build build-headless -j"$(sysctl -n hw.ncpu 2>/dev/null || echo 4)"
 ctest --test-dir build-headless --output-on-failure
 
-echo "==> Phase 1: full renderer build (NEXUS_ENABLE_RENDERER=ON)"
-reset_build_dir build-full
-cmake -S . -B build-full --fresh \
-  -DNEXUS_ENABLE_RENDERER=ON \
-  -DNEXUS_BUILD_RUNTIME=ON \
-  -DNEXUS_BUILD_TESTS=ON \
-  "${CMAKE_COMPILER_ARGS[@]}"
-cmake --build build-full -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
-ctest --test-dir build-full --output-on-failure
+FULL_RENDERER_AVAILABLE=1
+if [[ "${NEXUS_SKIP_FULL_RENDERER:-}" == "1" ]]; then
+  FULL_RENDERER_AVAILABLE=0
+  echo "==> Phase 1: full renderer skipped (NEXUS_SKIP_FULL_RENDERER=1)"
+else
+  echo "==> Phase 1: full renderer build (NEXUS_ENABLE_RENDERER=ON)"
+  reset_build_dir build-full
+  cmake -S . -B build-full --fresh \
+    -DNEXUS_ENABLE_RENDERER=ON \
+    -DNEXUS_BUILD_RUNTIME=ON \
+    -DNEXUS_BUILD_TESTS=ON \
+    "${CMAKE_COMPILER_ARGS[@]}"
+  cmake --build build-full -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
+  ctest --test-dir build-full --output-on-failure
+fi
 
 # Production mode mesh budget (mobile profile). Skips when NEXUS_SKIP_PRODUCTION_MODE_VALIDATE=1.
 if [[ "${NEXUS_SKIP_PRODUCTION_MODE_VALIDATE:-}" != "1" ]]; then
-  echo "==> Phase 1b: production mode validate-only (mobile)"
-  "${ROOT}/scripts/nexus_validate_production_modes.sh"
+  if [[ "${FULL_RENDERER_AVAILABLE}" == "1" ]]; then
+    echo "==> Phase 1b: production mode validate-only (mobile)"
+    "${ROOT}/scripts/nexus_validate_production_modes.sh"
+  else
+    echo "==> Phase 1b: skipped (requires full renderer; NEXUS_SKIP_FULL_RENDERER=1)"
+  fi
 else
   echo "==> Phase 1b: skipped (NEXUS_SKIP_PRODUCTION_MODE_VALIDATE=1)"
 fi
 
 if [[ "${NEXUS_SKIP_STAGING_MODE_VALIDATE:-}" != "1" ]]; then
-  echo "==> Phase 1c: staging mode validate-only (mobile)"
-  "${ROOT}/scripts/nexus_validate_staging_modes.sh"
+  if [[ "${FULL_RENDERER_AVAILABLE}" == "1" ]]; then
+    echo "==> Phase 1c: staging mode validate-only (mobile)"
+    "${ROOT}/scripts/nexus_validate_staging_modes.sh"
+  else
+    echo "==> Phase 1c: skipped (requires full renderer; NEXUS_SKIP_FULL_RENDERER=1)"
+  fi
 else
   echo "==> Phase 1c: skipped (NEXUS_SKIP_STAGING_MODE_VALIDATE=1)"
 fi
 
-echo "==> nexus_build_gate PASS"
+if [[ "${FULL_RENDERER_AVAILABLE}" == "1" ]]; then
+  echo "==> nexus_build_gate PASS"
+else
+  echo "==> nexus_build_gate PASS (headless only; full renderer skipped)"
+fi
