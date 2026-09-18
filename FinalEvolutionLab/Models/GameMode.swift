@@ -627,7 +627,7 @@ struct GameModeRegistry {
     static func loadFromPayload(_ payload: FELModeManagerPayload) -> [GameMode] {
         var loaded: [GameMode] = []
         for (rawId, entry) in payload.modeManager.modeRegistry {
-            guard let modeId = GameModeId(rawValue: rawId) else { continue }
+            guard let modeId = playableModeId(forRegistryId: rawId) else { continue }
             let baseMode = all.first(where: { $0.id == modeId })
             let releaseState: GameMode.ReleaseState = entry.status == "production" ? .production : .preview
             

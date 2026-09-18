@@ -39,6 +39,7 @@ def main() -> int:
     game_mode = read("FinalEvolutionLab/Models/GameMode.swift")
     content_view = read("FinalEvolutionLab/ContentView.swift")
     agent_service = read("FinalEvolutionLab/Services/NEXUSAgentService.swift")
+    receipt_coordinator = read("FinalEvolutionLab/Services/GameplaySessionReceiptCoordinator.swift")
     generator_view = read("FinalEvolutionLab/Views/NexusGameGeneratorView.swift")
     studio_run = read("FinalEvolutionLab/Views/NexusStudio/NexusStudioRunPanelView.swift")
 
@@ -64,6 +65,11 @@ def main() -> int:
     require(
         contains_alias_return(game_mode, ("market_browse", "module_library", "vault_shop"), "marketBrowse"),
         "non-game module aliases resolve to market browse",
+        failures,
+    )
+    require(
+        "guard let modeId = playableModeId(forRegistryId: rawId)" in game_mode,
+        "mode-manager payload ingest accepts canonical runtime ids",
         failures,
     )
 
@@ -109,6 +115,16 @@ def main() -> int:
     require(
         "GameModeRegistry.playableModeId(forRegistryId: spec.modeId)" in generator_view,
         "game generator opens Studio Run with resolved Swift route",
+        failures,
+    )
+    require(
+        "GameModeRegistry.playableModeId(forRegistryId: modeStr)" in receipt_coordinator,
+        "verified receipt ingestion resolves canonical runtime ids",
+        failures,
+    )
+    require(
+        "GameModeId(rawValue: modeStr)" not in receipt_coordinator,
+        "verified receipt ingestion no longer drops canonical runtime ids",
         failures,
     )
 

@@ -8,6 +8,8 @@ namespace {
 
 constexpr float kTimingPerfectThreshold = 0.92F;
 constexpr float kTimingGoodThreshold = 0.65F;
+constexpr const char* kPreviewLabel =
+    "VENUE PROXY - floor routine simulator until full apparatus venue ships";
 
 } // namespace
 
@@ -103,6 +105,8 @@ auto GymnasticsMode::stateJson() const -> nlohmann::json {
       {"deductions", m_deductions},
       {"deduction_points", m_deductionPoints},
       {"routine_complete", isRoutineComplete()},
+      {"release_state", "validate_only"},
+      {"preview_label", kPreviewLabel},
   };
 }
 

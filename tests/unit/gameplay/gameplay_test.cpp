@@ -56,6 +56,13 @@ void require(bool condition, const std::string& message) {
   require(condition, message.c_str());
 }
 
+void requireValidateOnlyPreviewLabel(const nlohmann::json& state, const std::string& modeName) {
+  require(state.value("release_state", std::string{}) == "validate_only",
+          modeName + " discloses validate-only state");
+  require(!state.value("preview_label", std::string{}).empty(),
+          modeName + " exposes preview label");
+}
+
 void removeTreeBestEffort(const std::filesystem::path& root) {
   for (int attempt = 0; attempt < 5; ++attempt) {
     std::error_code ec;
@@ -1770,6 +1777,7 @@ void flagship_gymnastics_validate_only_integration() {
       gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "gym_state");
   require(modeState.payload["gymnastics"]["elements_completed"].get<int>() >= 6,
           "gymnastics routine completes");
+  requireValidateOnlyPreviewLabel(modeState.payload["gymnastics"], "gymnastics state");
 
   physics.shutdown();
 }
@@ -1813,6 +1821,8 @@ void flagship_brain_brawl_validate_only_integration() {
           "hud reports brain brawl mode");
   require(hud.payload["payload"]["mode_state"]["brain_brawl"].is_object(),
           "hud brain brawl nested state");
+  requireValidateOnlyPreviewLabel(hud.payload["payload"]["mode_state"]["brain_brawl"],
+                                  "brain brawl HUD");
 
   physics.shutdown();
 }
@@ -1853,6 +1863,7 @@ void flagship_skateboarding_validate_only_integration() {
       gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "skate_final");
   require(finalState.payload["skateboarding"]["trick_score"].get<int>() >= 50,
           "skateboarding reaches win threshold");
+  requireValidateOnlyPreviewLabel(finalState.payload["skateboarding"], "skateboarding state");
 
   physics.shutdown();
 }
@@ -1901,6 +1912,8 @@ void flagship_snowboarding_validate_only_integration() {
           "hud reports snowboarding mode");
   require(hud.payload["payload"]["mode_state"]["snowboarding"].is_object(),
           "hud snowboarding nested state");
+  requireValidateOnlyPreviewLabel(hud.payload["payload"]["mode_state"]["snowboarding"],
+                                  "snowboarding HUD");
 
   physics.shutdown();
 }
@@ -2062,6 +2075,7 @@ void flagship_who_scene_it_validate_only_integration() {
           "who scene it reaches win threshold");
   require(finalState.payload["who_scene_it"]["match_complete"].get<bool>(),
           "who scene it match complete");
+  requireValidateOnlyPreviewLabel(finalState.payload["who_scene_it"], "who scene it state");
 
   physics.shutdown();
 }
