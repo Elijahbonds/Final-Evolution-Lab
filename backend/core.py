@@ -22,6 +22,17 @@ FEL_LLM_KEY = os.environ.get('GEMINI_API_KEY') or os.environ.get('FEL_LLM_KEY', 
 # Database Connection Pool Setup
 db_pool = None
 
+
+def normalize_asyncpg_dsn(database_url: str) -> str:
+    """Convert SQLAlchemy asyncpg URLs into raw asyncpg-compatible DSNs."""
+
+    if database_url.startswith("postgresql+asyncpg://"):
+        return "postgresql://" + database_url.removeprefix("postgresql+asyncpg://")
+    if database_url.startswith("postgres+asyncpg://"):
+        return "postgres://" + database_url.removeprefix("postgres+asyncpg://")
+    return database_url
+
+
 async def init_db():
     global db_pool
     if db_pool is None:
@@ -34,6 +45,7 @@ async def init_db():
             db_port = os.environ.get("DB_PORT", "5432")
             db_name = os.environ.get("DB_NAME", "fdcdb")
             database_url = f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
+        database_url = normalize_asyncpg_dsn(database_url)
         db_pool = await asyncpg.create_pool(database_url, min_size=1, max_size=20)
 
 async def get_db_pool():

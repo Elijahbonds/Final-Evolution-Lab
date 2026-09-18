@@ -6,8 +6,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BUILD_DIR="${BUILD_DIR:-${ROOT}/build-full}"
-HEADLESS_BUILD_DIR="${ROOT}/build-headless"
+source "${ROOT}/scripts/lib/nexus_build_lock.sh"
+BUILD_DIR="${NEXUS_FULL_BUILD_DIR:-${BUILD_DIR:-${ROOT}/build-full}}"
+HEADLESS_BUILD_DIR="${NEXUS_HEADLESS_BUILD_DIR:-${ROOT}/build-headless}"
 ARTIFACT_DIR="${ROOT}/artifacts/playtest"
 LATEST_JSON="${ARTIFACT_DIR}/latest.json"
 DEV_EXPORT="${ARTIFACT_DIR}/dev_stats_tick.json"
@@ -55,6 +56,7 @@ export NEXUS_MESH_PROFILE="${NEXUS_MESH_PROFILE:-mobile}"
 export NEXUS_DEV_STATS=0
 export NEXUS_DEV_DRAW_STATS=0
 
+nexus_acquire_build_lock
 cd "${ROOT}"
 
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then

@@ -9,7 +9,7 @@ import {
   Award, BarChart3, Calendar, MessageCircle, Send,
   Play, Pause, Shield, TrendingUp, Radio, Wifi, WifiOff,
   Crosshair, Timer, Flame, Crown, Medal, ChevronDown,
-  Swords, Video, Palette, UserPlus, Gift, Download, Smartphone
+  Swords, Video, Palette, UserPlus, Gift, Download, Smartphone, Cpu
 } from "lucide-react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { StreaksView, SocialView, TournamentsView, AvatarBuilderView, VideoCritiqueView } from "@/components/NewViews";
@@ -17,6 +17,7 @@ import { MultiplayerView, ReferralView, AnalyticsView } from "@/components/Quali
 import { HubDashboard } from "@/components/HubDashboard";
 import { FELOSDashboard, EducationTracksPortal } from "@/components/FELOSDashboard";
 import { LandingPage as RedesignedLandingPage } from "@/components/LandingPage";
+import { NexusPage } from "@/components/NexusConsole";
 import DownloadPage from "@/components/DownloadPage";
 import { TriviaArenaView } from "@/components/TriviaArenaView";
 import Phase3HUD from "@/components/hud/Phase3HUD";
@@ -59,11 +60,13 @@ const FALLBACK_PROGRESS = { total_workouts: 0, total_games: 0, total_brawls: 0, 
 // XP / Shards / PRQ / MRI rewards even when the backend is unreachable.
 const SHARD_BASE_BY_OUTCOME = { win: 50, draw: 25, loss: 15 };
 const PRQ_MODE_WEIGHTS = {
-  basketball_h2h: 1.2, basketball_dunk: 1.0, basketball_3v3: 1.3,
-  karate: 1.4, karate_h2h: 1.4, karate_endless: 1.4,
+  basketball_h2h: 1.2, basketball_dunk: 1.0, basketball_dunk_3d: 1.0,
+  basketball_dunk_irl: 1.5, basketball_3v3: 1.3,
+  karate_h2h: 1.4, karate_endless: 1.4,
   baseball: 1.0, football: 1.5, soccer: 1.1, golf: 0.9, tennis: 1.1,
-  volleyball: 1.2, gymnastics: 1.0, brain_brawl: 0.8, surfing: 1.05,
-  skateboarding: 1.0, snowboarding: 1.0, market_browse: 0.0,
+  volleyball: 1.2, gymnastics: 1.0, brain_brawl: 1.0, who_scene_it: 1.1,
+  court_carnival: 1.0, surfing: 1.05, skateboarding: 0.9,
+  snowboarding: 0.9, market_browse: 0.0, movement_lab: 0.0,
 };
 function computeLocalReward({ mode_id, score, outcome, duration_seconds = 30, combo = 0, critical = 0, pacing = 0 }) {
   const xp = Math.min(500, Math.max(10, Math.floor(score / 5)));
@@ -278,7 +281,8 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   const navItems = [
     {id:'fel-os',icon:Crosshair,label:'FEL OS'},
     {id:'dashboard',icon:Home,label:'Dashboard'},{id:'scan',icon:Activity,label:'System Scan'},
-    {id:'games',icon:Gamepad2,label:'Game Modes'},{id:'multiplayer',icon:Swords,label:'Multiplayer'},
+    {id:'games',icon:Gamepad2,label:'Game Modes'},{id:'nexus',icon:Cpu,label:'NEXUS Console'},
+    {id:'multiplayer',icon:Swords,label:'Multiplayer'},
     {id:'cards',icon:Users,label:'Creator Cards'},{id:'coach',icon:Trophy,label:'Coach Hub'},
     {id:'ai-coach',icon:MessageCircle,label:'AI Coach'},
     {id:'education',icon:GraduationCap,label:'Education'},{id:'brain-brawl',icon:Brain,label:'Brain Brawl'},
@@ -523,11 +527,11 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
     }
   }, [consoleLogs]);
 
-  const addLog = (msg) => {
+  const addLog = useCallback((msg) => {
     setConsoleLogs(prev => [...prev, { id: Date.now() + Math.random(), ts: new Date().toLocaleTimeString(), msg }].slice(-25));
-  };
+  }, []);
 
-  const getAudioContext = () => {
+  const getAudioContext = useCallback(() => {
     if (!audioCtxRef.current) {
       audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
     }
@@ -535,9 +539,9 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
       audioCtxRef.current.resume();
     }
     return audioCtxRef.current;
-  };
+  }, []);
 
-  const playSound = (type) => {
+  const playSound = useCallback((type) => {
     try {
       const ctx = getAudioContext();
       const osc = ctx.createOscillator();
@@ -581,7 +585,7 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
     } catch (e) {
       console.warn("Web Audio API failed:", e);
     }
-  };
+  }, [getAudioContext]);
 
   useEffect(() => {
     if (gameActive && timeLeft > 0) {
@@ -607,7 +611,7 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
       addLog(`[Engine] Telemetry target spawned: ID_${Math.floor(newTarget.id % 10000)} (type=${newTarget.type})`);
     }, mode.game_type === 'precision' ? 1400 : 750);
     return () => clearInterval(spawn);
-  }, [gameActive, mode.game_type]);
+  }, [gameActive, mode.game_type, addLog]);
 
   useEffect(() => {
     const cleanup = setInterval(() => {
@@ -668,7 +672,7 @@ const PlayableGame = ({ mode, onComplete, onBack }) => {
     } catch (_e) {
       addLog(`[Error] Reward commit failed; showing local estimate.`);
     }
-  }, [mode.id, score, maxCombo, onComplete]);
+  }, [mode.id, score, maxCombo, onComplete, playSound, addLog]);
 
   useEffect(() => {
     if (timeLeft <= 0 && gameActive) { finalizeGame(); }
@@ -1389,15 +1393,6 @@ const BrainBrawlView = ({ onBack }) => {
   const [category, setCategory] = useState('all');
   const timerRef = useRef(null);
 
-  useEffect(() => {
-    if (gameState === 'playing' && timeLeft > 0) {
-      timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
-    } else if (gameState === 'playing' && timeLeft <= 0) {
-      answerQuestion(-1); // Time's up
-    }
-    return () => clearTimeout(timerRef.current);
-  }, [gameState, timeLeft]);
-
   const startGame = async () => {
     try {
       const r = await axios.post(`${API}/brain-brawl/session/start`, { category, count: 10 });
@@ -1419,7 +1414,7 @@ const BrainBrawlView = ({ onBack }) => {
     }
   };
 
-  const answerQuestion = (index) => {
+  const answerQuestion = useCallback((index) => {
     clearTimeout(timerRef.current);
     const next = [...picked, index];
     setPicked(next);
@@ -1445,7 +1440,16 @@ const BrainBrawlView = ({ onBack }) => {
       setCurrentQ((c) => c + 1);
       setTimeLeft(15);
     }
-  };
+  }, [picked, currentQ, questions, sessionId]);
+
+  useEffect(() => {
+    if (gameState === 'playing' && timeLeft > 0) {
+      timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+    } else if (gameState === 'playing' && timeLeft <= 0) {
+      answerQuestion(-1); // Time's up
+    }
+    return () => clearTimeout(timerRef.current);
+  }, [gameState, timeLeft, answerQuestion]);
 
   return (
     <div className="space-y-8 fade-in">
@@ -1685,8 +1689,8 @@ const ProfileView = () => {
 };
 
 // ===================== MAIN DASHBOARD =====================
-const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState('fel-os');
+const Dashboard = ({ initialTab = 'fel-os' }) => {
+  const [activeTab, setActiveTab] = useState(initialTab);
   const location = useLocation();
   const { user, setUser } = useAuth();
   useEffect(() => { if (location.state?.user && !user) setUser(location.state.user); }, [location.state, user, setUser]);
@@ -1697,6 +1701,7 @@ const Dashboard = () => {
       case 'dashboard': return <DashboardView setActiveTab={setActiveTab} />;
       case 'scan': return <SystemScanView />;
       case 'games': return <GameModesView />;
+      case 'nexus': return <NexusPage />;
       case 'cards': return <CreatorCardsView />;
       case 'coach': return <CoachHubView />;
       case 'ai-coach': return <AICoachView />;
@@ -1737,6 +1742,7 @@ function AppRouter() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/nexus" element={<ProtectedRoute><Dashboard initialTab="nexus" /></ProtectedRoute>} />
       <Route path="/hud" element={<Phase3HUD />} />
       <Route path="/download" element={<DownloadPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />

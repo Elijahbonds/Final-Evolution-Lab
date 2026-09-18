@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { 
   Trophy, Brain, HelpCircle, Award, Play, RotateCcw, 
@@ -45,7 +45,7 @@ export function TriviaArenaView({ onBack }) {
   ];
 
   // Sound Synthesizer (Web Audio API)
-  const synthTone = (freq, type = "sine", duration = 0.1, delay = 0) => {
+  const synthTone = useCallback((freq, type = "sine", duration = 0.1, delay = 0) => {
     if (!audioEnabled) return;
     try {
       setTimeout(() => {
@@ -62,9 +62,9 @@ export function TriviaArenaView({ onBack }) {
         osc.stop(ctx.currentTime + duration);
       }, delay * 1000);
     } catch {}
-  };
+  }, [audioEnabled]);
 
-  const playSpinSound = () => {
+  const playSpinSound = useCallback(() => {
     if (!audioEnabled) return;
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -81,15 +81,15 @@ export function TriviaArenaView({ onBack }) {
       osc.start();
       osc.stop(ctx.currentTime + 3.0);
     } catch {}
-  };
+  }, [audioEnabled]);
 
-  const playCorrectSound = () => {
+  const playCorrectSound = useCallback(() => {
     synthTone(523.25, "sine", 0.1); // C5
     synthTone(659.25, "sine", 0.15, 0.08); // E5
     synthTone(783.99, "sine", 0.25, 0.16); // G5
-  };
+  }, [synthTone]);
 
-  const playIncorrectSound = () => {
+  const playIncorrectSound = useCallback(() => {
     try {
       if (!audioEnabled) return;
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -105,17 +105,7 @@ export function TriviaArenaView({ onBack }) {
       osc.start();
       osc.stop(ctx.currentTime + 0.35);
     } catch {}
-  };
-
-  // Timer logic
-  useEffect(() => {
-    if (gameState === "question" && timeLeft > 0 && !isAnswered) {
-      timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
-    } else if (gameState === "question" && timeLeft === 0 && !isAnswered) {
-      handleTimeout();
-    }
-    return () => clearTimeout(timerRef.current);
-  }, [gameState, timeLeft, isAnswered]);
+  }, [audioEnabled]);
 
   const startNewGame = () => {
     setRound(1);
@@ -181,51 +171,7 @@ export function TriviaArenaView({ onBack }) {
     }
   };
 
-  const handleTimeout = () => {
-    setIsAnswered(true);
-    setSelectedAnswer(-1); // No choice
-    playIncorrectSound();
-    
-    setHistoryLog(prev => [
-      ...prev,
-      { category: currentCategory, question: question.question, correct: false }
-    ]);
-
-    setTimeout(advanceGame, 2000);
-  };
-
-  const selectAnswer = (optionIdx) => {
-    if (isAnswered) return;
-    setIsAnswered(true);
-    setSelectedAnswer(optionIdx);
-    
-    const isCorrect = optionIdx === question.correct;
-    if (isCorrect) {
-      setScore(s => s + 1);
-      playCorrectSound();
-    } else {
-      playIncorrectSound();
-    }
-
-    setHistoryLog(prev => [
-      ...prev,
-      { category: currentCategory, question: question.question, correct: isCorrect }
-    ]);
-
-    setTimeout(advanceGame, 2000);
-  };
-
-  const advanceGame = () => {
-    if (round < 5) {
-      setRound(r => r + 1);
-      setGameState("spinning");
-      setCurrentCategory(null);
-    } else {
-      submitGameSession();
-    }
-  };
-
-  const submitGameSession = async () => {
+  const submitGameSession = useCallback(async () => {
     setGameState("grading");
     setSubmitting(true);
     
@@ -254,6 +200,60 @@ export function TriviaArenaView({ onBack }) {
       setSubmitting(false);
       setGameState("results");
     }
+  }, [score]);
+
+  const advanceGame = useCallback(() => {
+    if (round < 5) {
+      setRound(r => r + 1);
+      setGameState("spinning");
+      setCurrentCategory(null);
+    } else {
+      submitGameSession();
+    }
+  }, [round, submitGameSession]);
+
+  const handleTimeout = useCallback(() => {
+    setIsAnswered(true);
+    setSelectedAnswer(-1); // No choice
+    playIncorrectSound();
+
+    setHistoryLog(prev => [
+      ...prev,
+      { category: currentCategory, question: question.question, correct: false }
+    ]);
+
+    setTimeout(advanceGame, 2000);
+  }, [currentCategory, question, playIncorrectSound, advanceGame]);
+
+  // Timer logic
+  useEffect(() => {
+    if (gameState === "question" && timeLeft > 0 && !isAnswered) {
+      timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+    } else if (gameState === "question" && timeLeft === 0 && !isAnswered) {
+      handleTimeout();
+    }
+    return () => clearTimeout(timerRef.current);
+  }, [gameState, timeLeft, isAnswered, handleTimeout]);
+
+  const selectAnswer = (optionIdx) => {
+    if (isAnswered) return;
+    setIsAnswered(true);
+    setSelectedAnswer(optionIdx);
+
+    const isCorrect = optionIdx === question.correct;
+    if (isCorrect) {
+      setScore(s => s + 1);
+      playCorrectSound();
+    } else {
+      playIncorrectSound();
+    }
+
+    setHistoryLog(prev => [
+      ...prev,
+      { category: currentCategory, question: question.question, correct: isCorrect }
+    ]);
+
+    setTimeout(advanceGame, 2000);
   };
 
   return (

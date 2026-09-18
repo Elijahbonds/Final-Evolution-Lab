@@ -4,9 +4,21 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BUILD_DIR="${ROOT}/build-headless"
+source "${ROOT}/scripts/lib/nexus_build_lock.sh"
+BUILD_DIR="${NEXUS_HEADLESS_BUILD_DIR:-${ROOT}/build-headless}"
 SKIP_BUILD=0
 RECEIPT_DIR="${HOME}/.fel/pending_receipts"
+
+if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
+  export CXX=g++
+fi
+if [[ -z "${CC:-}" ]] && command -v gcc >/dev/null 2>&1; then
+  export CC=gcc
+fi
+CMAKE_COMPILER_ARGS=()
+if [[ -n "${CXX:-}" ]]; then
+  CMAKE_COMPILER_ARGS+=("-DCMAKE_CXX_COMPILER=${CXX}")
+fi
 
 for arg in "$@"; do
   case "$arg" in
@@ -19,11 +31,17 @@ for arg in "$@"; do
   esac
 done
 
+nexus_acquire_build_lock
 cd "$ROOT"
 
 if [[ "$SKIP_BUILD" -eq 0 ]]; then
   echo "==> Configure headless build"
-  cmake -S . -B "$BUILD_DIR" -DNEXUS_ENABLE_RENDERER=OFF
+  if [[ "${NEXUS_REUSE_BUILD:-0}" != "1" ]]; then
+    cmake -E rm -rf "$BUILD_DIR"
+  fi
+  cmake -S . -B "$BUILD_DIR" --fresh \
+    -DNEXUS_ENABLE_RENDERER=OFF \
+    "${CMAKE_COMPILER_ARGS[@]}"
   echo "==> Build"
   cmake --build "$BUILD_DIR" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 fi
