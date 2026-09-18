@@ -16,11 +16,13 @@ const FALLBACK_HUB_STATUS = {
   websocket: { status: "standby", connected_clients: [], total_messages: 0 },
   database: {
     status: "ready",
-    total_venues: 12,
+    total_venues: 17,
     venues: [
-      "VeniceBeach", "Dojo", "BaseballPark", "Gridiron", "SoccerStadium",
-      "Links", "TennisCourt", "SandCourt", "TrainingFloor", "NeuroArena",
-      "Luma_Venice_Shop", "SecureEnclave",
+      "arena_floor", "beach_court", "dojo_arena", "e3ds_stadium_lobby",
+      "golf_green", "mountain_slope", "neuro_arena", "regulation_court_irl",
+      "skate_park", "stadium_diamond", "stadium_field", "stadium_pitch",
+      "vault_shop", "venice_beach_court", "venice_beach_court_tennis",
+      "venice_beach_surf", "movement_lab",
     ],
   },
   integrity: { status: "AWAITING AUTH", hardware_auth: null },
@@ -30,7 +32,7 @@ const FALLBACK_HUB_STATUS = {
 };
 const FALLBACK_HUB_HEALTH = {
   status: "STANDBY",
-  checks: { mode_manager: { production_modes: 19 } },
+  checks: { mode_manager: { production_modes: 20, shell_launchable_modes: 19 } },
 };
 const FALLBACK_HUB_HANDSHAKE = {
   handshake_status: "STANDBY",

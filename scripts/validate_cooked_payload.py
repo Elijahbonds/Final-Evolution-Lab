@@ -5,6 +5,7 @@ Validates that all required venue maps, ArenaSettings, and registry files
 would be included in a cooked UE5 build. Runs pre-build as a CI gate.
 """
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -19,9 +20,10 @@ REQUIRED_VENUE_DIRS = [
     "BaseballPark", "Dojo", "Gridiron", "Links",
     "Luma_Venice_Shop", "NeuroArena", "SandCourt",
     "SoccerStadium", "TennisCourt", "TrainingFloor", "VeniceBeach",
+    "Skate_Park", "Mountain_Slope",
 ]
 
-STAGING_VENUE_DIRS = ["SkatePark", "MountainSlope"]
+STAGING_VENUE_DIRS = []
 
 def validate_venue_content_dirs():
     """Check that venue content directories exist (or note them for asset pipeline)"""
@@ -65,24 +67,61 @@ def validate_config_files_present():
                     err(f"Invalid JSON in {label}: {e}")
     print("  ✓ Config file presence validated")
 
+def parse_maps_to_cook(content):
+    return set(re.findall(r'\+MapsToCook=\(FilePath="([^"]+)"\)', content))
+
+def parse_fel_play_map(content):
+    play_map = {}
+    in_section = False
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped == "[FELPlayMap]":
+            in_section = True
+            continue
+        if in_section and stripped.startswith("["):
+            break
+        if in_section and "=" in stripped and not stripped.startswith(";"):
+            key, value = stripped.split("=", 1)
+            play_map[key.strip()] = value.strip()
+    return play_map
+
+def arena_level_to_package(level_path):
+    """Convert `/Game/Path/Map.Map` to the package path UE cooks."""
+    return level_path.split(".", 1)[0]
+
 def validate_maps_to_cook_coverage():
-    """Verify MapsToCook entries cover all production mode maps"""
+    """Verify MapsToCook entries cover the packages runtime launch routes open."""
     ini_path = REPO_ROOT / "infra" / "ue5_config" / "DefaultGame.ini"
     content = ini_path.read_text()
 
-    import re
-    maps_to_cook = set(re.findall(r'\+MapsToCook=\(FilePath="([^"]+)"\)', content))
+    maps_to_cook = parse_maps_to_cook(content)
+    play_map = parse_fel_play_map(content)
+
+    arena_path = REPO_ROOT / "UnrealStarter" / "BasketballGame" / "Content" / "FEL" / "Config" / "ArenaSettings.json"
+    arena_modes = json.loads(arena_path.read_text()).get("modes", {})
 
     mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
     mgr = json.loads(mgr_path.read_text())
     registry = mgr.get("mode_manager", {}).get("mode_registry", {})
 
     for mode_id, info in registry.items():
-        if info.get("status") != "production":
+        if info.get("status") not in ("production", "non-game-module"):
             continue
-        map_path = info.get("map", "")
-        if map_path and map_path not in maps_to_cook:
-            err(f"Production map not in MapsToCook: {mode_id} → {map_path}")
+        if info.get("render_mode") == "IRL":
+            continue
+
+        play_map_path = play_map.get(mode_id)
+        arena_level = arena_modes.get(mode_id, {}).get("unrealOpenLevelPackage")
+        arena_package = arena_level_to_package(arena_level) if arena_level else None
+
+        expected_package = play_map_path or arena_package
+        if not expected_package:
+            err(f"Cooked runtime package missing from FELPlayMap/ArenaSettings: {mode_id}")
+            continue
+        if arena_package and play_map_path and arena_package != play_map_path:
+            err(f"FELPlayMap/ArenaSettings mismatch for {mode_id}: {play_map_path} != {arena_package}")
+        if expected_package not in maps_to_cook:
+            err(f"Runtime package not in MapsToCook: {mode_id} → {expected_package}")
 
     print("  ✓ MapsToCook coverage validated")
 
@@ -96,6 +135,7 @@ def validate_binary_signatures():
     required_sigs = [
         "FinalEvolutionLab-iOS-Shipping",
         "FinalEvolutionLab-Linux-Shipping",
+        "FinalEvolutionLab-Mac-Shipping",
     ]
     for sig in required_sigs:
         if sig not in sigs:

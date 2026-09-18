@@ -58,23 +58,32 @@ const FALLBACK_PROGRESS = { total_workouts: 0, total_games: 0, total_brawls: 0, 
 // Used only as an offline fallback so completed sessions always surface
 // XP / Shards / PRQ / MRI rewards even when the backend is unreachable.
 const SHARD_BASE_BY_OUTCOME = { win: 50, draw: 25, loss: 15 };
+const PRQ_OUTCOME_BASE = { win: 2.0, draw: 0.5, loss: 0.2 };
 const PRQ_MODE_WEIGHTS = {
-  basketball_h2h: 1.2, basketball_dunk: 1.0, basketball_3v3: 1.3,
+  basketball_h2h: 1.2, basketball_dunk: 1.0, basketball_dunk_3d: 1.0,
+  basketball_dunk_irl: 1.5, basketball_3v3: 1.3,
   karate: 1.4, karate_h2h: 1.4, karate_endless: 1.4,
   baseball: 1.0, football: 1.5, soccer: 1.1, golf: 0.9, tennis: 1.1,
-  volleyball: 1.2, gymnastics: 1.0, brain_brawl: 0.8, surfing: 1.05,
-  skateboarding: 1.0, snowboarding: 1.0, market_browse: 0.0,
+  volleyball: 1.2, gymnastics: 1.0, brain_brawl: 1.0, surfing: 1.05,
+  skateboarding: 0.9, snowboarding: 0.9, who_scene_it: 1.1,
+  court_carnival: 1.0, market_browse: 0.0, movement_lab: 0.0,
 };
 function computeLocalReward({ mode_id, score, outcome, duration_seconds = 30, combo = 0, critical = 0, pacing = 0 }) {
+  const safePacing = Math.min(100, Math.max(0, pacing || 0));
   const xp = Math.min(500, Math.max(10, Math.floor(score / 5)));
   const base = SHARD_BASE_BY_OUTCOME[outcome] ?? 15;
   let shards = base + Math.max(0, combo - 3) * 5 + Math.max(0, critical) * 10;
-  const pacingBonus = pacing >= 75;
-  if (pacingBonus) shards = Math.floor(shards * 1.05);
+  const pacingBonus = safePacing >= 75;
+  if (pacingBonus) shards += Math.ceil(shards * 0.05);
   const weight = PRQ_MODE_WEIGHTS[mode_id] ?? 1.0;
-  const timeFactor = Math.min(1, Math.max(0, duration_seconds) / 60);
-  const prq_delta = Math.round(Math.min(100, Math.max(0, score) * 0.1 * weight * 1.25 * timeFactor) * 100) / 100;
-  const mri = Math.round((37.5 + 0.25 * Math.min(100, pacing)) * 100) / 100;
+  const mri = Math.round((37.5 + 0.25 * safePacing) * 100) / 100;
+  const prqBase = PRQ_OUTCOME_BASE[outcome] ?? PRQ_OUTCOME_BASE.loss;
+  const comboBonus = Math.min(1.0, Math.max(0, combo) * 0.05);
+  const criticalBonus = Math.min(0.5, Math.max(0, critical) * 0.1);
+  const dominanceBonus = outcome === "win" ? Math.min(0.5, Math.max(0, score) * 0.05) : 0;
+  const mriBonus = (mri / 100) * 0.5;
+  const prq_delta = Math.round(Math.min(100, prqBase * weight + comboBonus + criticalBonus + dominanceBonus + mriBonus) * 100) / 100;
+  void duration_seconds;
   return { xp, shards, prq_delta, mri, pacing_bonus_applied: pacingBonus, source: "local" };
 }
 function normalizeServerReward(data) {
@@ -1095,7 +1104,7 @@ const GameModesView = () => {
     return <PlayableGame mode={playingMode} onComplete={handleGameComplete} onBack={() => setPlayingMode(null)} />;
   }
 
-  const categories = ['all','Basketball','Combat','Field','Court','Precision','Board','Performance','Academy'];
+  const categories = ['all','Basketball','Combat','Field','Court','Precision','Board','Performance','Academy','Party'];
   const filtered = filter === 'all' ? modes : modes.filter(m => m.category === filter);
 
   return (

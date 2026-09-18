@@ -79,11 +79,11 @@ extension GameModeId {
         case .gymnastics, .skateboarding, .snowboarding, .surfing:
             return .prod
         case .brainBrawl:
-            return .staging
+            return .prod
         case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
             return .sim
         case .marketBrowse:
-            return .preview
+            return .nonGame
         }
     }
 
@@ -109,7 +109,7 @@ extension GameModeId {
     var isNexusSprintPlayable: Bool {
         switch self {
         case .marketBrowse:
-            return true
+            return false
         default:
             break
         }
@@ -255,9 +255,9 @@ extension GameMode {
     /// SceneKit shell + NEXUS session — preview/staging tiers need ``Config.showPreviewGameModes`` in Release.
     var isLaunchableInCurrentBuild: Bool {
         switch nexusCapabilityTier {
-        case .prod, .sim, .staging:
+        case .prod, .sim, .staging, .nonGame:
             return true
-        case .preview, .nonGame:
+        case .preview:
             return Config.showPreviewGameModes
         }
     }
@@ -563,7 +563,7 @@ struct GameModeRegistry {
             multiplayerType: .solo,
             environmentName: "Luma Venice Shop",
             hint: "Browse the vault · scan venues · shop collectibles",
-            releaseState: .preview
+            releaseState: .production
         ),
     ]
 
@@ -571,19 +571,30 @@ struct GameModeRegistry {
         all.first(where: { $0.id == id }) ?? all[0]
     }
 
-    /// Resolves C++ registry mode ids (including aliases) to a launchable ``GameMode``.
-    static func playableMode(forRegistryId raw: String) -> GameMode? {
+    /// Resolves C++ registry ids and legacy aliases to the Swift mode that should be routed.
+    static func playableModeId(forRegistryId raw: String) -> GameModeId? {
         switch raw {
         case "venice_pickup":
-            return mode(for: .basketballHeadToHead)
-        case "basketball_dunk":
-            return mode(for: .basketballDunkContest3D)
+            return .basketballHeadToHead
+        case "basketball_dunk", "basketball_dunk_contest", "dunk_competition":
+            return .basketballDunkContest3D
+        case "basketball_irl":
+            return .basketballDunkContestIRL
+        case "karate":
+            return .karate
+        case "karate_kata":
+            return .karateEndless
         case "market_browse", "module_library", "vault_shop":
-            return mode(for: .marketBrowse)
+            return .marketBrowse
         default:
             break
         }
-        guard let id = GameModeId(rawValue: raw) else { return nil }
+        return GameModeId(rawValue: raw)
+    }
+
+    /// Resolves C++ registry mode ids (including aliases) to a launchable ``GameMode``.
+    static func playableMode(forRegistryId raw: String) -> GameMode? {
+        guard let id = playableModeId(forRegistryId: raw) else { return nil }
         return all.first(where: { $0.id == id })
     }
 
@@ -616,9 +627,10 @@ struct GameModeRegistry {
     static func loadFromPayload(_ payload: FELModeManagerPayload) -> [GameMode] {
         var loaded: [GameMode] = []
         for (rawId, entry) in payload.modeManager.modeRegistry {
-            guard let modeId = GameModeId(rawValue: rawId) else { continue }
+            guard let modeId = playableModeId(forRegistryId: rawId) else { continue }
             let baseMode = all.first(where: { $0.id == modeId })
-            let releaseState: GameMode.ReleaseState = entry.status == "production" ? .production : .preview
+            let releaseState: GameMode.ReleaseState = ["production", "non-game-module"].contains(entry.status) ? .production : .preview
+            let capabilityTier: NexusCapabilityTier = entry.status == "non-game-module" ? .nonGame : (baseMode?.capabilityTier ?? modeId.nexusCapabilityTier)
             
             let mode = GameMode(
                 id: modeId,
@@ -631,7 +643,7 @@ struct GameModeRegistry {
                 environmentName: baseMode?.environmentName ?? "Arena",
                 hint: baseMode?.hint,
                 releaseState: releaseState,
-                capabilityTier: baseMode?.capabilityTier ?? modeId.nexusCapabilityTier
+                capabilityTier: capabilityTier
             )
             loaded.append(mode)
         }

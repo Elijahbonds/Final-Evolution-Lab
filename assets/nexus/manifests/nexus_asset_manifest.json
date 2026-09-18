@@ -180,7 +180,7 @@
       "kind": "environment",
       "source_url": "https://seelemedia.s3.us-east-1.amazonaws.com/media/ae37defd09354867a8d360530f17f423.fbx",
       "source_descriptor": "seeles_work/assets/models/skate_park_environment_model_fbx/skate_park_environment_model_fbx.json",
-      "unreal_package": "/Game/FEL/Venues/SkatePark/SkatePark",
+      "unreal_package": "/Game/FEL/Venues/Skate_Park/Skate_Park",
       "imported_mesh": "skate_park_environment_model_fbx.nexusmesh.json",
       "fallback": "arena_grid",
       "generation_method": "tripo3D",
@@ -201,7 +201,7 @@
       "kind": "environment",
       "source_url": "https://seelemedia.s3.us-east-1.amazonaws.com/media/7c7ef0f3008d4283be92155dca194841.fbx",
       "source_descriptor": "seeles_work/assets/models/mountain_slope_environment_model_fbx/mountain_slope_environment_model_fbx.json",
-      "unreal_package": "/Game/FEL/Venues/MountainSlope/MountainSlope",
+      "unreal_package": "/Game/FEL/Venues/Mountain_Slope/Mountain_Slope",
       "imported_mesh": "mountain_slope_environment_model_fbx.nexusmesh.json",
       "fallback": "arena_grid",
       "generation_method": "hunyuan3D",
@@ -393,7 +393,7 @@
         "skateboarding"
       ],
       "environment_asset_id": "skate_park_environment_model_fbx",
-      "unreal_open_level": "/Game/FEL/Venues/SkatePark/SkatePark"
+      "unreal_open_level": "/Game/FEL/Venues/Skate_Park/Skate_Park"
     },
     {
       "venue_key": "mountain_slope",
@@ -403,7 +403,7 @@
         "snowboarding"
       ],
       "environment_asset_id": "mountain_slope_environment_model_fbx",
-      "unreal_open_level": "/Game/FEL/Venues/MountainSlope/MountainSlope"
+      "unreal_open_level": "/Game/FEL/Venues/Mountain_Slope/Mountain_Slope"
     },
     {
       "venue_key": "arena_floor",

@@ -132,21 +132,29 @@ struct NexusGameGeneratorView: View {
         }
         .background(Theme.deepBlack)
         .navigationDestination(item: $gameplayRoute) { modeId in
-            if modeId == .brainBrawl {
-                BrainBrawl2DView(
-                    viewModel: viewModel,
-                    gameMode: GameModeRegistry.mode(for: .brainBrawl),
-                    onDismiss: { gameplayRoute = nil }
-                )
-                .id(gameplayLaunchId)
-            } else if let mode = GameModeRegistry.all.first(where: { $0.id == modeId }) {
-                GamePlayView(
-                    viewModel: viewModel,
-                    gameMode: mode,
-                    sessionReadiness: sessionReadiness,
-                    generatorHudTheme: lastGeneratorHudTheme
-                )
-                .id(gameplayLaunchId)
+            if let mode = GameModeRegistry.all.first(where: { $0.id == modeId }) {
+                if mode.id.isIRLDunkContest {
+                    IRLDunkView(viewModel: viewModel, gameMode: mode)
+                        .id(gameplayLaunchId)
+                } else if mode.id == .marketBrowse {
+                    MarketBrowseView(viewModel: viewModel)
+                        .id(gameplayLaunchId)
+                } else if modeId == .brainBrawl {
+                    BrainBrawl2DView(
+                        viewModel: viewModel,
+                        gameMode: GameModeRegistry.mode(for: .brainBrawl),
+                        onDismiss: { gameplayRoute = nil }
+                    )
+                    .id(gameplayLaunchId)
+                } else {
+                    GamePlayView(
+                        viewModel: viewModel,
+                        gameMode: mode,
+                        sessionReadiness: sessionReadiness,
+                        generatorHudTheme: lastGeneratorHudTheme
+                    )
+                    .id(gameplayLaunchId)
+                }
             }
         }
         .sheet(isPresented: $showArenaOnly) {
@@ -1232,7 +1240,7 @@ struct NexusGameGeneratorView: View {
     /// Clears ``navigationDestination`` before re-push so EXIT → same mode re-entry works (SwiftUI item routing).
     @MainActor
     private func pushGameplayRoute(for rawModeId: String) async {
-        guard let modeId = GameModeId(rawValue: rawModeId),
+        guard let modeId = GameModeRegistry.playableModeId(forRegistryId: rawModeId),
               GameModeRegistry.playableMode(forRegistryId: rawModeId) != nil
         else {
             progressLines.append("Error: mode \(rawModeId) is not launchable")
@@ -1270,7 +1278,7 @@ struct NexusGameGeneratorView: View {
 
     private func openStudioRun(for spec: NexusGameplayEngine.GeneratedGameSpec) {
         let exportPath = ensureExported(spec)
-        let modeId = GameModeId(rawValue: spec.modeId)
+        let modeId = GameModeRegistry.playableModeId(forRegistryId: spec.modeId)
         NexusStudioCoordinator.shared.openRunPanel(
             modeId: modeId ?? .basketballDunkContest3D,
             readiness: NexusGeneratedGameEntry.readiness(for: spec.difficultyTier),
