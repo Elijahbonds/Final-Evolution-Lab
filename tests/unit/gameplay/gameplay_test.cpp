@@ -30,9 +30,7 @@
 #include <cstdlib>
 #include <array>
 #include <chrono>
-#include <cstdlib>
 #include <filesystem>
-#include <fstream>
 #include <fstream>
 #include <string>
 #include <thread>
@@ -2341,6 +2339,18 @@ void require_nested_object(const nlohmann::json& root,
           std::string(label) + " nested " + std::string(key) + " must be object");
 }
 
+void require_production_release_state_if_present(const nlohmann::json& object,
+                                                 const std::string& label) {
+  if (!object.contains("release_state")) {
+    return;
+  }
+  const auto& releaseState = object["release_state"];
+  require(releaseState.is_number_integer(), label + " release_state must use registry integer");
+  require(releaseState.get<int>() ==
+              static_cast<int>(nexus::gameplay::ArenaReleaseState::kProduction),
+          label + " release_state must be production");
+}
+
 void nexus_sprint_live_modes_agent_contract_integration() {
   nexus::creative::VoxelWorld world;
   nexus::creative::WorldManipulator manipulator(world);
@@ -2362,10 +2372,7 @@ void nexus_sprint_live_modes_agent_contract_integration() {
     const char* nestedStateKey;
   };
 
-  const std::array<SprintProbe, 9> probes{{
-      {"basketball_dunk", "fel.dunk.charge_begin", {}, "fel.dunk.charge_begin", "dunk"},
-      {"karate_endless", "fel.karate.action", {{"action", "heavy_strike"}},
-       "fel.karate.action", "karate"},
+  const std::array<SprintProbe, 18> probes{{
       {"basketball_h2h", "fel.fitness.update",
        {{"frc_mobility", 0.6F},
         {"frc_active_range", 0.6F},
@@ -2374,8 +2381,35 @@ void nexus_sprint_live_modes_agent_contract_integration() {
         {"iap_confidence", 0.6F},
         {"breath_phase", 0}},
        "", "pickup"},
+      {"basketball_dunk", "fel.dunk.charge_begin", {}, "fel.dunk.charge_begin", "dunk"},
+      {"basketball_3v3", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.9F}, {"sport_action", "three_pointer"}},
+       "", "outcome_sport"},
       {"court_carnival", "fel.carnival.trigger_pad", {{"pad", "trick_shot"}, {"timing", 0.9F}},
        "fel.carnival.trigger_pad", "carnival"},
+      {"karate_h2h", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.9F}, {"action", "heavy_strike"}},
+       "", "outcome_sport"},
+      {"karate_endless", "fel.karate.action", {{"action", "heavy_strike"}},
+       "fel.karate.action", "karate"},
+      {"baseball", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.93F}, {"play_type", "home_run"}},
+       "", "outcome_sport"},
+      {"football", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.9F}, {"play_type", "touchdown"}},
+       "", "outcome_sport"},
+      {"soccer", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.9F}, {"shot_type", "penalty"}},
+       "", "outcome_sport"},
+      {"golf", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.9F}, {"club", "putt"}},
+       "", "outcome_sport"},
+      {"tennis", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.9F}, {"shot_type", "ace"}},
+       "", "outcome_sport"},
+      {"volleyball", "fel.sport.pulse",
+       {{"success", true}, {"timing", 0.9F}, {"shot_type", "ace_serve"}},
+       "", "outcome_sport"},
       {"gymnastics", "fel.gymnastics.tap", {{"timing", 0.92F}, {"difficulty", 0.75F}},
        "fel.gymnastics.tap", "gymnastics"},
       {"brain_brawl", "fel.brain.answer",
@@ -2385,6 +2419,8 @@ void nexus_sprint_live_modes_agent_contract_integration() {
        "fel.skate.trick", "skateboarding"},
       {"snowboarding", "fel.snow.carve", {{"timing", 0.93F}, {"line_difficulty", 0.75F}},
        "fel.snow.carve", "snowboarding"},
+      {"surfing", "fel.surf.carve", {{"timing", 0.94F}, {"wave_difficulty", 0.7F}},
+       "fel.surf.carve", "surfing"},
       {"who_scene_it", "fel.scene.buzz_in", {{"timing", 0.91F}}, "fel.scene.buzz_in",
        "who_scene_it"},
   }};
@@ -2409,6 +2445,8 @@ void nexus_sprint_live_modes_agent_contract_integration() {
     require(actionResponses.size() == 1, "one action response");
     require(actionResponses[0].status == "ok", std::string("action ok for ") + probe.modeId);
     require_json_object(actionResponses[0].payload, "action payload");
+    require_production_release_state_if_present(actionResponses[0].payload,
+                                                std::string("action payload ") + probe.modeId);
 
     if (actionResponses[0].payload.contains("agent_envelope") &&
         probe.envelopeCommand[0] != '\0') {
@@ -2428,6 +2466,9 @@ void nexus_sprint_live_modes_agent_contract_integration() {
     require(modeResponses[0].status == "ok", std::string("mode state ok for ") + probe.modeId);
     require_nested_object(modeResponses[0].payload, probe.nestedStateKey,
                           "mode_runtime state");
+    require_production_release_state_if_present(
+        modeResponses[0].payload[std::string(probe.nestedStateKey)],
+        std::string("mode state ") + probe.modeId);
 
     const std::string hudQuery =
         R"json({"type":"query","id":"sprint_hud","payload":{"query":"fel.hud.poll"}})json";
@@ -2445,6 +2486,10 @@ void nexus_sprint_live_modes_agent_contract_integration() {
     require(hudFrame["payload"]["mode_state"].is_object(), "hud mode_state object");
     require(hudFrame["payload"]["mode_state"].contains(probe.nestedStateKey),
             std::string("hud nested mode state for ") + probe.modeId);
+    require_production_release_state_if_present(
+        hudFrame["payload"]["mode_state"][std::string(probe.nestedStateKey)],
+        std::string("hud mode state ") + probe.modeId);
+    std::fprintf(stderr, "PASS: sprint mode=%s\n", probe.modeId);
   }
 
   server.shutdown();
