@@ -33,6 +33,26 @@ namespace {
   return stem;
 }
 
+[[nodiscard]] auto trimCopy(std::string value) -> std::string {
+  while (!value.empty() && std::isspace(static_cast<unsigned char>(value.front())) != 0) {
+    value.erase(value.begin());
+  }
+  while (!value.empty() && std::isspace(static_cast<unsigned char>(value.back())) != 0) {
+    value.pop_back();
+  }
+  return value;
+}
+
+[[nodiscard]] auto environmentValue(const char* key) -> std::string {
+  if (const char* value = std::getenv(key)) {
+    std::string trimmed = trimCopy(value);
+    if (!trimmed.empty()) {
+      return trimmed;
+    }
+  }
+  return {};
+}
+
 [[nodiscard]] auto receiptFileStem(const nlohmann::json& receipt, std::uint64_t& counter) -> std::string {
   if (receipt.contains("telemetry") && receipt.at("telemetry").contains("session_id")) {
     return sanitizeFileStem(receipt.at("telemetry").at("session_id").get<std::string>());
@@ -57,11 +77,24 @@ namespace {
   return "http://127.0.0.1:8000/api/games/session";
 }
 
+[[nodiscard]] auto resolveAuthToken(const SessionReceiptClientConfig& config) -> std::string {
+  if (const std::string envToken = environmentValue("FEL_BACKEND_AUTH_TOKEN"); !envToken.empty()) {
+    return envToken;
+  }
+  if (const std::string envToken = environmentValue("FEL_SESSION_TOKEN"); !envToken.empty()) {
+    return envToken;
+  }
+  return trimCopy(config.authToken);
+}
+
 [[nodiscard]] auto shouldUseStubHttpTransport(const SessionReceiptClientConfig& config) -> bool {
   if (const char* envUrl = std::getenv("NEXUS_RECEIPT_URL")) {
     if (envUrl[0] != '\0') {
       return false;
     }
+  }
+  if (!resolveAuthToken(config).empty()) {
+    return false;
   }
   return config.useStubHttpTransport;
 }
@@ -76,7 +109,7 @@ SessionReceiptClient::SessionReceiptClient(SessionReceiptClientConfig config)
     : m_config(std::move(config)),
       m_http(nexus::core::HttpClientConfig{
           .url = resolvePostUrl(m_config),
-          .authToken = m_config.authToken,
+          .authToken = resolveAuthToken(m_config),
           .useStubTransport = shouldUseStubHttpTransport(m_config),
       }) {
   if (m_config.queueDirectory.empty()) {
@@ -90,7 +123,7 @@ void SessionReceiptClient::setConfig(SessionReceiptClientConfig config) {
   }
   m_config = std::move(config);
   m_http.setUrl(resolvePostUrl(m_config));
-  m_http.setAuthToken(m_config.authToken);
+  m_http.setAuthToken(resolveAuthToken(m_config));
   m_http.setStubTransportEnabled(shouldUseStubHttpTransport(m_config));
 }
 
@@ -224,6 +257,8 @@ auto SessionReceiptClient::deliverReceipt(const nlohmann::json& receipt) -> Resu
 
   if (m_config.httpEnabled) {
     m_http.setUrl(resolvePostUrl(m_config));
+    m_http.setAuthToken(resolveAuthToken(m_config));
+    m_http.setStubTransportEnabled(shouldUseStubHttpTransport(m_config));
     const auto postResult = m_http.post(receipt.dump());
     if (postResult.isErr()) {
       return postResult;

@@ -2164,6 +2164,62 @@ void session_receipt_env_url_forces_live_http_transport() {
   require(posted.front().url == server.url(), "env live receipt targets NEXUS_RECEIPT_URL");
 }
 
+void session_receipt_auth_env_forces_live_http_transport() {
+  if (std::system("command -v curl >/dev/null 2>&1") != 0) {
+    return;
+  }
+
+  const char* previousReceiptUrl = std::getenv("NEXUS_RECEIPT_URL");
+  const char* previousBackendToken = std::getenv("FEL_BACKEND_AUTH_TOKEN");
+  const char* previousSessionToken = std::getenv("FEL_SESSION_TOKEN");
+  const std::string previousReceiptUrlValue =
+      previousReceiptUrl != nullptr ? std::string(previousReceiptUrl) : std::string{};
+  const std::string previousBackendTokenValue =
+      previousBackendToken != nullptr ? std::string(previousBackendToken) : std::string{};
+  const std::string previousSessionTokenValue =
+      previousSessionToken != nullptr ? std::string(previousSessionToken) : std::string{};
+
+  unsetenv("NEXUS_RECEIPT_URL");
+  unsetenv("FEL_SESSION_TOKEN");
+  setenv("FEL_BACKEND_AUTH_TOKEN", "test-session-token", 1);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .baseUrl = "http://127.0.0.1:1/api/games/session",
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = true,
+  });
+  client.enqueue({{"mode_id", "basketball_dunk"}, {"score", 21}, {"completed", true}});
+  const auto flush = client.flush();
+  const auto posted = client.postedRequests();
+
+  if (previousReceiptUrl != nullptr) {
+    setenv("NEXUS_RECEIPT_URL", previousReceiptUrlValue.c_str(), 1);
+  } else {
+    unsetenv("NEXUS_RECEIPT_URL");
+  }
+  if (previousBackendToken != nullptr) {
+    setenv("FEL_BACKEND_AUTH_TOKEN", previousBackendTokenValue.c_str(), 1);
+  } else {
+    unsetenv("FEL_BACKEND_AUTH_TOKEN");
+  }
+  if (previousSessionToken != nullptr) {
+    setenv("FEL_SESSION_TOKEN", previousSessionTokenValue.c_str(), 1);
+  } else {
+    unsetenv("FEL_SESSION_TOKEN");
+  }
+
+  require(flush.attempted == 1, "auth env live receipt attempts one receipt");
+  require(flush.delivered == 0, "auth env does not fake-deliver through stub transport");
+  require(flush.requeued == 1, "auth env requeues failed live receipt");
+  require(flush.queued_on_disk == 0, "auth env live failure has no disk fallback when disabled");
+  require(client.pendingCount() == 1, "auth env live failure keeps receipt pending");
+  require(posted.size() == 1, "auth env live receipt records POST attempt");
+  require(posted.front().statusCode == 0, "auth env live receipt captures failed curl status");
+  require(posted.front().url == "http://127.0.0.1:1/api/games/session",
+          "auth env live receipt targets configured base URL");
+}
+
 void session_receipt_real_http_non_2xx_requeues_without_disk_fallback() {
   if (std::system("command -v curl >/dev/null 2>&1") != 0) {
     return;
@@ -3011,6 +3067,7 @@ auto main() -> int {
   session_receipt_http_stub_posts_localhost_contract();
   session_receipt_real_http_2xx_clears_without_disk_fallback();
   session_receipt_env_url_forces_live_http_transport();
+  session_receipt_auth_env_forces_live_http_transport();
   session_receipt_real_http_non_2xx_requeues_without_disk_fallback();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
