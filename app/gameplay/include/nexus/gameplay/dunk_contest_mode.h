@@ -6,6 +6,7 @@
 #include "nexus/gameplay/qte_system.h"
 
 #include <nlohmann/json.hpp>
+#include <cstdint>
 #include <string>
 #include <vector>
 
