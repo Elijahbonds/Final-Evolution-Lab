@@ -96,6 +96,7 @@ __pycache__/
 *pyc*
 venv/
 .venv/
+backend/*.sqlite3
 
 # Archives / large binaries
 **/*.zip

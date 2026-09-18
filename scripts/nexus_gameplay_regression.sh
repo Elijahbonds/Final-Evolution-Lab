@@ -4,7 +4,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-HEADLESS_DIR="${ROOT}/build-headless"
+source "${ROOT}/scripts/lib/nexus_build_lock.sh"
+HEADLESS_DIR="${NEXUS_HEADLESS_BUILD_DIR:-${ROOT}/build-headless}"
 ARTIFACT_DIR="${ROOT}/artifacts/playtest"
 REGRESSION_JSON="${ARTIFACT_DIR}/gameplay_regression.json"
 REGRESSION_LOG="${ARTIFACT_DIR}/gameplay_regression_run.log"
@@ -48,6 +49,7 @@ for arg in "$@"; do
   esac
 done
 
+nexus_acquire_build_lock
 mkdir -p "${ARTIFACT_DIR}"
 cd "${ROOT}"
 

@@ -4,7 +4,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BUILD_DIR="${ROOT}/build-headless"
+source "${ROOT}/scripts/lib/nexus_build_lock.sh"
+BUILD_DIR="${NEXUS_HEADLESS_BUILD_DIR:-${ROOT}/build-headless}"
 SKIP_BUILD=0
 RECEIPT_DIR="${HOME}/.fel/pending_receipts"
 
@@ -30,6 +31,7 @@ for arg in "$@"; do
   esac
 done
 
+nexus_acquire_build_lock
 cd "$ROOT"
 
 if [[ "$SKIP_BUILD" -eq 0 ]]; then

@@ -3,7 +3,10 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "${ROOT}/scripts/lib/nexus_build_lock.sh"
 cd "$ROOT"
+HEADLESS_DIR="${NEXUS_HEADLESS_BUILD_DIR:-${ROOT}/build-headless}"
+FULL_DIR="${NEXUS_FULL_BUILD_DIR:-${ROOT}/build-full}"
 
 if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
   export CXX=g++
@@ -32,6 +35,7 @@ resolve_build_jobs() {
   echo "2"
 }
 BUILD_JOBS="$(resolve_build_jobs)"
+nexus_acquire_build_lock
 
 reset_build_dir() {
   local build_dir="$1"
@@ -41,24 +45,24 @@ reset_build_dir() {
 }
 
 echo "==> Phase 1: headless build (NEXUS_ENABLE_RENDERER=OFF, jobs=${BUILD_JOBS})"
-reset_build_dir build-headless
-cmake -S . -B build-headless --fresh \
+reset_build_dir "${HEADLESS_DIR}"
+cmake -S . -B "${HEADLESS_DIR}" --fresh \
   -DNEXUS_ENABLE_RENDERER=OFF \
   -DNEXUS_BUILD_RUNTIME=OFF \
   -DNEXUS_BUILD_TESTS=ON \
   "${CMAKE_COMPILER_ARGS[@]}"
-cmake --build build-headless -j"${BUILD_JOBS}"
-ctest --test-dir build-headless --output-on-failure
+cmake --build "${HEADLESS_DIR}" -j"${BUILD_JOBS}"
+ctest --test-dir "${HEADLESS_DIR}" --output-on-failure
 
 echo "==> Phase 1: full renderer build (NEXUS_ENABLE_RENDERER=ON, jobs=${BUILD_JOBS})"
-reset_build_dir build-full
-cmake -S . -B build-full --fresh \
+reset_build_dir "${FULL_DIR}"
+cmake -S . -B "${FULL_DIR}" --fresh \
   -DNEXUS_ENABLE_RENDERER=ON \
   -DNEXUS_BUILD_RUNTIME=ON \
   -DNEXUS_BUILD_TESTS=ON \
   "${CMAKE_COMPILER_ARGS[@]}"
-cmake --build build-full -j"${BUILD_JOBS}"
-ctest --test-dir build-full --output-on-failure
+cmake --build "${FULL_DIR}" -j"${BUILD_JOBS}"
+ctest --test-dir "${FULL_DIR}" --output-on-failure
 
 # Production mode mesh budget (mobile profile). Skips when NEXUS_SKIP_PRODUCTION_MODE_VALIDATE=1.
 if [[ "${NEXUS_SKIP_PRODUCTION_MODE_VALIDATE:-}" != "1" ]]; then
