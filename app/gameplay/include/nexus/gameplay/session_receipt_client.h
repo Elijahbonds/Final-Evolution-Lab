@@ -1,6 +1,7 @@
 // Session receipt dispatch — queue to ~/.fel/pending_receipts/ with flush retry.
 #pragma once
 
+#include <cstdint>
 #include "nexus/core/http_client.h"
 #include "nexus/core/result.h"
 

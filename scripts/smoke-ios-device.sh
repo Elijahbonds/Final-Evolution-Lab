@@ -40,7 +40,7 @@ Prerequisites
 A. Menu navigation (DoD #6)
   1. Launch app → tab shell visible (≤2 taps to Arena)
   2. Arena → Modes → Dunk Contest (P0) and Karate Endless (P1) cards visible
-  3. Tap a P2 mode → "Coming Soon" sheet (release config)
+  3. Tap a P2 production mode (Surfing / Brain Brawl / Who Scene It) → gameplay shell loads with honest tier labels
 
 B. Dunk Contest touch loop (DoD #3)
   1. Tap Dunk Contest → GamePlayView loads (no crash)
@@ -78,6 +78,10 @@ if [[ "$CHECKLIST_ONLY" -eq 1 ]]; then
 fi
 
 cd "$ROOT"
+
+echo "==> NEXUS mode registry validators"
+python3 scripts/validate_mode_registry.py
+python3 scripts/validate_ios_descriptor.py
 
 echo "==> Headless ctest gate"
 ./scripts/smoke_gameplay_session.sh --skip-build

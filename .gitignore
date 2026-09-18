@@ -53,6 +53,8 @@ next-env.d.ts
 
 # Production builds
 /build
+/build-full/
+/build-headless/
 dist/
 dist
 

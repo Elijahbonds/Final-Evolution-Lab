@@ -146,6 +146,12 @@ auto FelBridgeService::postSessionPayload(const nlohmann::json& receiptBody) -> 
                    "FEL bridge session POST failed: " + result.error());
     return result;
   }
+  if (result.value() < 200 || result.value() >= 300) {
+    const std::string error = "FEL bridge session POST returned HTTP status " +
+                              std::to_string(result.value());
+    NEXUS_LOG_WARN(nexus::LogChannel::kAI, error);
+    return nexus::Result<int>::err(error);
+  }
   NEXUS_LOG_INFO(nexus::LogChannel::kAI,
                  "FEL bridge session POST ok mode=" + receiptBody.value("mode_id", "unknown"));
   return result;

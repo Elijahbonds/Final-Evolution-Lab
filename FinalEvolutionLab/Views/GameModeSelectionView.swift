@@ -127,8 +127,14 @@ struct GameModeSelectionView: View {
                             FELHaptics.modeSelect()
                             SaveSystem.saveLastSelectedArenaModeId(mode.id.rawValue)
                             pendingMode = mode
-                            Task { @MainActor in
-                                await launchSelectedMode()
+                            if mode.id.isIRLDunkContest {
+                                showDunkPlatform = true
+                            } else if mode.id == .karateEndless {
+                                showKarateCoopLobby = true
+                            } else {
+                                Task { @MainActor in
+                                    await launchSelectedMode()
+                                }
                             }
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
