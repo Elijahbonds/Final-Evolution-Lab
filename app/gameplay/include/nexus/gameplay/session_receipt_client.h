@@ -39,6 +39,7 @@ public:
   void enqueue(nlohmann::json receipt);
   auto flush() -> SessionReceiptDispatchResult;
   void tick(double deltaSeconds);
+  [[nodiscard]] auto config() const -> const SessionReceiptClientConfig&;
   [[nodiscard]] auto pendingCount() const -> std::size_t;
   [[nodiscard]] auto pendingReceipts() const -> std::span<const nlohmann::json>;
   [[nodiscard]] auto postedRequests() const -> std::span<const nexus::core::HttpPostRecord>;

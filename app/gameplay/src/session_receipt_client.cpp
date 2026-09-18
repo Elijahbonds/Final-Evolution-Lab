@@ -109,7 +109,9 @@ auto SessionReceiptClient::flush() -> SessionReceiptDispatchResult {
     const auto delivery = deliverReceipt(receipt);
     if (delivery.isOk()) {
       ++result.delivered;
-      ++result.queued_on_disk;
+      if (m_config.persistToDisk) {
+        ++result.queued_on_disk;
+      }
       continue;
     }
 
@@ -142,6 +144,10 @@ void SessionReceiptClient::tick(double deltaSeconds) {
   }
   m_secondsSinceFlush = 0.0;
   (void)flush();
+}
+
+auto SessionReceiptClient::config() const -> const SessionReceiptClientConfig& {
+  return m_config;
 }
 
 auto SessionReceiptClient::pendingCount() const -> std::size_t {

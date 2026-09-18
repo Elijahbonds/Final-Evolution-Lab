@@ -30,11 +30,13 @@
 #include <cstdlib>
 #include <array>
 #include <chrono>
+#include <csignal>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <fstream>
 #include <string>
+#include <sys/wait.h>
 #include <thread>
 #include <vector>
 
@@ -63,6 +65,110 @@ void removeTreeBestEffort(const std::filesystem::path& root) {
     std::this_thread::sleep_for(std::chrono::milliseconds(10 * (attempt + 1)));
   }
 }
+
+auto nextReceiptTestPort() -> int {
+  static int port = 37100 + (static_cast<int>(getpid()) % 10000);
+  return port++;
+}
+
+class ScopedHttpStatusServer {
+public:
+  explicit ScopedHttpStatusServer(int statusCode)
+      : m_statusCode(statusCode),
+        m_port(nextReceiptTestPort()),
+        m_root(std::filesystem::temp_directory_path() /
+               ("fel_receipt_http_server_" + std::to_string(getpid()) + "_" +
+                std::to_string(statusCode))),
+        m_scriptPath(m_root / "server.py"),
+        m_readyPath(m_root / "ready") {
+    removeTreeBestEffort(m_root);
+    std::error_code ec;
+    std::filesystem::create_directories(m_root, ec);
+    require(!ec, "receipt HTTP test server temp directory");
+
+    std::ofstream script(m_scriptPath, std::ios::trunc);
+    script << R"py(
+import http.server
+import sys
+
+port = int(sys.argv[1])
+status_code = int(sys.argv[2])
+ready_path = sys.argv[3]
+
+class Handler(http.server.BaseHTTPRequestHandler):
+    def do_POST(self):
+        length = int(self.headers.get("Content-Length", "0") or "0")
+        if length:
+            self.rfile.read(length)
+        self.send_response(status_code)
+        self.end_headers()
+        self.wfile.write(b"{}")
+
+    def log_message(self, format, *args):
+        return
+
+class Server(http.server.HTTPServer):
+    allow_reuse_address = True
+
+server = Server(("127.0.0.1", port), Handler)
+with open(ready_path, "w", encoding="utf-8") as ready:
+    ready.write("ready")
+server.serve_forever()
+)py";
+    script.close();
+
+    const std::string portArg = std::to_string(m_port);
+    const std::string statusArg = std::to_string(m_statusCode);
+    m_pid = fork();
+    if (m_pid == 0) {
+      execlp("python3",
+             "python3",
+             m_scriptPath.string().c_str(),
+             portArg.c_str(),
+             statusArg.c_str(),
+             m_readyPath.string().c_str(),
+             static_cast<char*>(nullptr));
+      std::_Exit(127);
+    }
+    require(m_pid > 0, "receipt HTTP test server forked");
+    waitForReady();
+  }
+
+  ~ScopedHttpStatusServer() {
+    if (m_pid > 0) {
+      (void)kill(m_pid, SIGTERM);
+      int status = 0;
+      (void)waitpid(m_pid, &status, 0);
+    }
+    removeTreeBestEffort(m_root);
+  }
+
+  [[nodiscard]] auto url() const -> std::string {
+    return "http://127.0.0.1:" + std::to_string(m_port) + "/api/games/session";
+  }
+
+private:
+  void waitForReady() const {
+    for (int attempt = 0; attempt < 50; ++attempt) {
+      if (std::filesystem::exists(m_readyPath)) {
+        return;
+      }
+      int status = 0;
+      if (waitpid(m_pid, &status, WNOHANG) == m_pid) {
+        require(false, "receipt HTTP test server exited before ready");
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+    require(false, "receipt HTTP test server ready timeout");
+  }
+
+  int m_statusCode{0};
+  int m_port{0};
+  pid_t m_pid{-1};
+  std::filesystem::path m_root;
+  std::filesystem::path m_scriptPath;
+  std::filesystem::path m_readyPath;
+};
 
 void fitness_data_snapshots_are_thread_safe() {
   nexus::gameplay::ThreadSafeFitnessData fitness;
@@ -1929,6 +2035,109 @@ void session_receipt_http_stub_posts_localhost_contract() {
           "POST body includes mode_id");
 }
 
+void session_receipt_live_http_204_clears_without_disk_queue() {
+  ScopedHttpStatusServer server(204);
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_http_204_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  client.enqueue({
+      {"mode_id", "basketball_dunk"},
+      {"score", 21},
+      {"outcome", "win"},
+      {"completed", true},
+      {"telemetry", {{"session_id", "live_http_204"}, {"user_id", "test_user"}}},
+  });
+
+  const auto flush = client.flush();
+  require(flush.delivered == 1, "live HTTP 204 delivers receipt");
+  require(flush.requeued == 0, "live HTTP 204 does not requeue");
+  require(flush.queued_on_disk == 0, "HTTP-only 204 success does not report disk queue");
+  require(client.pendingCount() == 0, "live HTTP 204 clears pending receipt");
+  require(client.postedRequests().size() == 1, "live HTTP 204 records POST");
+  require(client.postedRequests().front().statusCode == 204, "live HTTP records real 204 status");
+
+  removeTreeBestEffort(tempDir);
+}
+
+void session_receipt_live_http_503_requeues_receipt() {
+  ScopedHttpStatusServer server(503);
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_http_503_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  client.enqueue({
+      {"mode_id", "basketball_dunk"},
+      {"score", 9},
+      {"outcome", "loss"},
+      {"completed", true},
+      {"telemetry", {{"session_id", "live_http_503"}, {"user_id", "test_user"}}},
+  });
+
+  const auto flush = client.flush();
+  require(flush.delivered == 0, "live HTTP 503 does not deliver receipt");
+  require(flush.requeued == 1, "live HTTP 503 requeues receipt");
+  require(flush.queued_on_disk == 0, "HTTP-only 503 requeue does not report disk queue");
+  require(client.pendingCount() == 1, "live HTTP 503 preserves pending receipt");
+  require(client.postedRequests().size() == 1, "live HTTP 503 records POST");
+  require(client.postedRequests().front().statusCode == 503, "live HTTP records real 503 status");
+
+  removeTreeBestEffort(tempDir);
+}
+
+void gameplay_flush_receipts_can_use_live_http_transport() {
+  ScopedHttpStatusServer server(503);
+  nexus::creative::VoxelWorld world;
+  nexus::creative::WorldManipulator manipulator(world);
+  nexus::gameplay::GameplayApplication gameplay(manipulator, world);
+
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.start_session",
+              {{"mode_id", "basketball_dunk"}, {"user_id", "live_flush_user"}},
+              "live_flush_start")
+              .status == "ok",
+          "live flush session starts");
+  require(gameplay.handleGameplayCommand(
+              "fel.arena.end_session",
+              {{"player_score", 8.0F}, {"opponent_score", 21.0F}},
+              "live_flush_end")
+              .status == "ok",
+          "live flush session ends");
+
+  const auto flush = gameplay.handleGameplayCommand(
+      "fel.arena.flush_receipts",
+      {{"base_url", server.url()},
+       {"persist_to_disk", false},
+       {"use_stub_http_transport", false}},
+      "live_flush");
+  require(flush.status == "ok", "live flush command ok");
+  require(flush.payload["attempted"].get<std::size_t>() == 1, "live flush attempted receipt");
+  require(flush.payload["delivered"].get<std::size_t>() == 0, "live flush 503 not delivered");
+  require(flush.payload["requeued"].get<std::size_t>() == 1, "live flush 503 requeued");
+  require(flush.payload["queued_on_disk"].get<std::size_t>() == 0,
+          "live flush HTTP-only requeue skips disk queue");
+
+  const auto receipts =
+      gameplay.handleGameplayQuery("fel.query.get_pending_session_receipts", {}, "live_flush_receipts");
+  require(receipts.payload["receipts"].size() == 1, "live flush preserves pending receipt");
+}
+
 struct TextGenTempWorkspace {
   std::filesystem::path root;
   std::string manifestPath;
@@ -2747,6 +2956,9 @@ auto main() -> int {
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_live_http_204_clears_without_disk_queue();
+  session_receipt_live_http_503_requeues_receipt();
+  gameplay_flush_receipts_can_use_live_http_transport();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
