@@ -4,6 +4,7 @@
 #pragma once
 
 #include <nlohmann/json.hpp>
+#include <cstdint>
 #include <optional>
 #include <span>
 #include <string>
@@ -19,7 +20,12 @@ enum class ArenaReleaseState : std::uint8_t {
   kNonGameModule = 3,
 };
 
-/// Canonical production mode ids — keep in sync with `scripts/nexus_validate_production_modes.sh`.
+/// Canonical NEXUS mesh-validated production runtime ids.
+///
+/// iOS exposes split dunk products (`basketball_dunk_3d` and the IRL camera-only
+/// `basketball_dunk_irl`). The 3D product aliases to this C++ `basketball_dunk`
+/// runtime id; the IRL product intentionally has no NEXUS mesh validate path.
+/// Keep this list in sync with `scripts/nexus_validate_production_modes.sh`.
 inline constexpr std::string_view kProductionModeIds[] = {
     "basketball_h2h",  "basketball_dunk", "basketball_3v3", "court_carnival",
     "karate_h2h",      "karate_endless",  "baseball",       "football",

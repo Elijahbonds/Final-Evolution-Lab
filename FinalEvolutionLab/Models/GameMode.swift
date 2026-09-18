@@ -76,14 +76,12 @@ extension GameModeId {
         case .basketballDunkContestIRL, .basketballDunkContest3D, .karateEndless, .basketballHeadToHead, .venicePickup, .courtCarnival,
              .whoSceneIt:
             return .prod
-        case .gymnastics, .skateboarding, .snowboarding, .surfing:
+        case .gymnastics, .skateboarding, .snowboarding, .surfing, .brainBrawl:
             return .prod
-        case .brainBrawl:
-            return .staging
         case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
             return .sim
         case .marketBrowse:
-            return .preview
+            return .nonGame
         }
     }
 
@@ -290,7 +288,8 @@ extension GameMode {
 }
 
 struct GameModeRegistry {
-    /// Canonical production mode ids — keep in sync with `arena_mode_registry.h` and `scripts/nexus_validate_production_modes.sh`.
+    /// Swift-facing production mode ids. `basketball_dunk_3d` maps to the C++ `basketball_dunk`
+    /// runtime id; `basketball_dunk_irl` is camera/HealthKit-only and has no mesh validation path.
     static let productionModeIds: [String] = [
         "basketball_h2h", "basketball_dunk_irl", "basketball_dunk_3d", "basketball_3v3", "court_carnival",
         "karate_h2h", "karate_endless",
@@ -303,7 +302,7 @@ struct GameModeRegistry {
     /// badges (prod/sim/staging) stay honest via ``GameModeId/nexusCapabilityTier``.
     static let nexusSprintModeIds: Set<GameModeId> = Set(GameModeId.allCases).subtracting([.marketBrowse])
 
-    /// All 20 mode IDs from `arena_mode_registry.cpp` — keep in sync when adding modes.
+    /// All Swift-facing arena/catalog mode IDs — keep in sync with backend ModeManager payloads.
     static let arenaRegistryModeIds: [GameModeId] = [
         .basketballHeadToHead, .basketballDunkContestIRL, .basketballDunkContest3D, .basketball3v3,
         .karate, .karateEndless,

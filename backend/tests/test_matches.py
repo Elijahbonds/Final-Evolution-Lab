@@ -65,6 +65,21 @@ def _clear_stores():
     _events.clear()
 
 
+def test_server_app_mounts_match_and_nexus_status_routes():
+    """Production uvicorn entrypoint must expose match lifecycle + Nexus console probes."""
+    import server
+
+    server.app.dependency_overrides[get_current_user] = lambda: _USER_A
+    try:
+        client = TestClient(server.app, raise_server_exceptions=True)
+        assert client.get("/api/nexus/status").status_code == 200
+        resp = client.post("/api/matches/create", json={"mode_id": "basketball_h2h"})
+        assert resp.status_code == 200
+        assert resp.json()["mode_id"] == "basketball_h2h"
+    finally:
+        server.app.dependency_overrides.pop(get_current_user, None)
+
+
 # ── Match lifecycle ────────────────────────────────────────────────────────
 
 class TestMatchCreate:

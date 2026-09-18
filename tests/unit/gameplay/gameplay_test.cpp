@@ -417,6 +417,10 @@ void arena_mode_registry_production_modes_match_validate_script() {
   const auto production = nexus::gameplay::ArenaModeRegistry::productionModes();
   require(production.size() == nexus::gameplay::kProductionModeCount,
           "production mode count matches validate script");
+  require(nexus::gameplay::ArenaModeRegistry::find("basketball_dunk").has_value(),
+          "3D dunk Swift product aliases to C++ basketball_dunk runtime id");
+  require(!nexus::gameplay::ArenaModeRegistry::find("basketball_dunk_irl").has_value(),
+          "IRL dunk product is not a NEXUS mesh runtime mode");
   for (std::string_view expectedId : nexus::gameplay::kProductionModeIds) {
     const auto mode = nexus::gameplay::ArenaModeRegistry::find(expectedId);
     require(mode.has_value(), std::string("production mode registered: ") + std::string(expectedId));
