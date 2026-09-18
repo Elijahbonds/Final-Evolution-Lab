@@ -109,7 +109,7 @@ extension GameModeId {
     var isNexusSprintPlayable: Bool {
         switch self {
         case .marketBrowse:
-            return true
+            return false
         default:
             break
         }

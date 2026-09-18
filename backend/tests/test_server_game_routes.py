@@ -132,3 +132,32 @@ def test_matches_router_is_mounted_on_server_app() -> None:
     assert response.status_code == 200
     assert response.json()["mode_id"] == "basketball_h2h"
     assert response.json()["status"] == "waiting"
+
+
+def test_legacy_game_result_route_normalizes_and_persists_registered_modes(monkeypatch) -> None:
+    game_sessions = _FakeCollection()
+    monkeypatch.setattr(server, "db", SimpleNamespace(game_sessions=game_sessions))
+
+    response = _client().post(
+        "/api/games/result",
+        json={"user_id": "ios_player", "mode_id": "dunk_competition", "user_score": 42},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["ok"] is True
+    assert body["mode_id"] == "basketball_dunk_3d"
+    assert game_sessions.inserted[0]["mode_id"] == "basketball_dunk_3d"
+    assert game_sessions.inserted[0]["source"] == "legacy_ios_result"
+
+
+def test_legacy_game_result_route_rejects_unknown_modes(monkeypatch) -> None:
+    monkeypatch.setattr(server, "db", SimpleNamespace(game_sessions=_FakeCollection()))
+
+    response = _client().post(
+        "/api/games/result",
+        json={"user_id": "ios_player", "mode_id": "trivia_arena", "user_score": 5},
+    )
+
+    assert response.status_code == 400
+    assert "unknown mode_id" in response.json()["detail"]

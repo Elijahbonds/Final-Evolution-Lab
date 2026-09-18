@@ -197,6 +197,25 @@ class AnalyticsSessionIn(BaseModel):
         return v
 
 
+class LegacyGameResultIn(BaseModel):
+    """Bounded iOS legacy result payload. Canonical NEXUS receipts use /api/games/session."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    user_id: str = Field("player", min_length=1, max_length=80)
+    mode_id: str = Field(..., min_length=1, max_length=80)
+    user_score: int = Field(0, ge=-1_000_000, le=1_000_000)
+    opponent_score: int = Field(0, ge=-1_000_000, le=1_000_000)
+    duration_seconds: int = Field(0, ge=0, le=86400 * 7)
+    creator_card_ids: List[str] = Field(default_factory=list, max_length=64)
+    prq_delta: int = Field(0, ge=-100, le=100)
+
+    @field_validator("creator_card_ids")
+    @classmethod
+    def cap_creator_cards(cls, v: List[str]) -> List[str]:
+        return [str(card_id)[:128] for card_id in v[:64]]
+
+
 @api_router.post("/auth/session")
 async def create_session(request: Request, response: Response):
     data = await request.json()
@@ -1180,6 +1199,45 @@ def _compute_shard_reward(
     subtotal     = base + combo_bonus + crit_bonus
     pacing_bonus = math.ceil(subtotal * 0.05) if pacing_score >= 75 else 0
     return subtotal + pacing_bonus
+
+
+LEGACY_GAME_RESULT_MODE_ALIASES = {
+    "basketball_irl": "basketball_dunk_irl",
+    "dunk_competition": "basketball_dunk_3d",
+    "karate": "karate_h2h",
+    "karate_1v1": "karate_h2h",
+}
+
+
+def _normalize_legacy_game_result_mode_id(mode_id: str) -> str:
+    lowered = str(mode_id).strip().lower()
+    return LEGACY_GAME_RESULT_MODE_ALIASES.get(lowered, lowered)
+
+
+@api_router.post("/games/result")
+async def save_legacy_game_result(payload: LegacyGameResultIn):
+    """
+    Compatibility endpoint for legacy Swift mini-game views.
+
+    Authenticated economy writes should use /api/games/session; this route preserves the
+    existing iOS fire-and-forget result call while rejecting ghost mode ids.
+    """
+    mode_id = _normalize_legacy_game_result_mode_id(payload.mode_id)
+    registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
+    if registry and mode_id not in registry:
+        raise HTTPException(status_code=400, detail=f"unknown mode_id: {payload.mode_id}")
+
+    result_doc = payload.model_dump()
+    result_doc.update(
+        {
+            "id": str(uuid.uuid4()),
+            "mode_id": mode_id,
+            "source": "legacy_ios_result",
+            "played_at": datetime.now(timezone.utc).isoformat(),
+        }
+    )
+    await db.game_sessions.insert_one(result_doc)
+    return {"ok": True, "result_id": result_doc["id"], "mode_id": mode_id}
 
 
 @api_router.post("/games/session")

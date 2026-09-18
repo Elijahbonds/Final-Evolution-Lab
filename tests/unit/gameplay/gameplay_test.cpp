@@ -473,6 +473,16 @@ void arena_mode_registry_lists_nineteen_modes() {
   require(dunk->nexusMeshPath.find(".nexusmesh.json") != std::string_view::npos,
           "dunk nexus mesh path");
   require(dunk->legacyUeMapAlias.find("/Game/FEL/Maps/") == 0, "dunk legacy ue alias");
+
+  const auto splitDunk = nexus::gameplay::ArenaModeRegistry::find("basketball_dunk_3d");
+  require(splitDunk.has_value(), "basketball_dunk_3d resolves to NEXUS dunk runtime");
+  require(splitDunk->id == "basketball_dunk", "split dunk canonical runtime id");
+
+  nexus::gameplay::ModeRuntime runtime;
+  require(runtime.setMode("basketball_dunk_3d").isOk(), "split dunk runtime mode set");
+  require(runtime.activeModeId() == "basketball_dunk", "split dunk runtime stores canonical id");
+  require(runtime.activeKind() == nexus::gameplay::ActiveModeKind::kDunkContest,
+          "split dunk runtime uses dunk contest mode");
 }
 
 void arena_mode_registry_production_modes_match_validate_script() {
@@ -582,6 +592,10 @@ void outcome_sport_mode_mechanics_and_session_scores() {
           "soccer win target is five goals");
   require(soccer.stateJson().value("penalty_round", 0) == 2,
           "two penalty pulses tracked");
+  require(soccer.stateJson().value("release_state", std::string{}) == "validate_only",
+          "outcome sports disclose validate-only state");
+  require(!soccer.stateJson().value("preview_label", std::string{}).empty(),
+          "outcome sports expose preview label");
 }
 
 void soccer_penalty_validate_only_integration() {
@@ -995,6 +1009,19 @@ void exercise_demo_pipeline_maps_production_modes() {
   require(mapping.has_value(), "dunk demo mapping exists");
   require(mapping->moduleId == "mod2", "dunk maps to mod2");
   require(mapping->montagePath.find("mod2") != std::string::npos, "montage path contains mod2");
+
+  const auto allMappings = nexus::gameplay::ExerciseDemoPipeline::allProductionMappings();
+  require(allMappings["count"].get<std::size_t>() == nexus::gameplay::kProductionModeCount,
+          "all production modes have academy mappings");
+  for (std::string_view modeId : nexus::gameplay::kProductionModeIds) {
+    const auto productionMapping = nexus::gameplay::ExerciseDemoPipeline::mappingForMode(modeId);
+    require(productionMapping.has_value(),
+            std::string("academy mapping exists for ") + std::string(modeId));
+    require(!productionMapping->moduleId.empty(),
+            std::string("academy module id set for ") + std::string(modeId));
+    require(!productionMapping->montagePath.empty(),
+            std::string("academy montage path set for ") + std::string(modeId));
+  }
 }
 
 void physics_intent_queue_is_consumed_on_step() {
@@ -1926,6 +1953,11 @@ void flagship_surfing_validate_only_integration() {
           "hud reports surfing mode");
   require(hud.payload["payload"]["mode_state"]["surfing"].is_object(),
           "hud surfing nested state");
+  require(hud.payload["payload"]["mode_state"]["surfing"].value("release_state", std::string{}) ==
+              "validate_only",
+          "surfing HUD discloses validate-only state");
+  require(!hud.payload["payload"]["mode_state"]["surfing"].value("preview_label", std::string{}).empty(),
+          "surfing HUD discloses venue proxy label");
 
   physics.shutdown();
 }
@@ -1978,6 +2010,13 @@ void flagship_outcome_sport_validate_only_integration() {
   }
 
   require(gameplay.mode_runtime().shouldAutoEndSession(), "volleyball match completes");
+  const auto volleyballState =
+      gameplay.handleGameplayQuery("fel.query.get_mode_state", {}, "volleyball_state");
+  require(volleyballState.payload["outcome_sport"].value("release_state", std::string{}) ==
+              "validate_only",
+          "outcome HUD state discloses validate-only state");
+  require(!volleyballState.payload["outcome_sport"].value("preview_label", std::string{}).empty(),
+          "outcome HUD state exposes preview label");
 
   physics.shutdown();
 }
@@ -2427,6 +2466,10 @@ void game_prompt_adapter_covers_all_playable_modes() {
 
 void game_prompt_adapter_normalizes_mode_aliases() {
   require(nexus::ai::normalizeGameModeId("venice_pickup") == "basketball_h2h", "venice_pickup alias");
+  require(nexus::ai::normalizeGameModeId("basketball_dunk_3d") == "basketball_dunk",
+          "split dunk alias");
+  require(nexus::ai::normalizeGameModeId("basketball_dunk_irl").empty(),
+          "irl dunk excluded from NEXUS generation");
   require(nexus::ai::normalizeGameModeId("karate_kata") == "karate_endless", "karate_kata alias");
   require(nexus::ai::normalizeGameModeId("market_browse").empty(), "market_browse excluded");
 }
