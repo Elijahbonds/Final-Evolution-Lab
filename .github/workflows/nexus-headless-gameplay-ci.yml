@@ -1,0 +1,35 @@
+name: NEXUS Headless Gameplay CI
+
+on:
+  push:
+    branches:
+      - main
+      - 'cursor/**'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  headless-gameplay:
+    name: Headless gameplay matrix
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake
+
+      - name: Validate bundled NEXUS descriptors
+        run: |
+          python3 scripts/validate_ios_descriptor.py
+          python3 scripts/validate_cooked_payload.py
+
+      - name: Build and test headless gameplay matrix
+        env:
+          CC: gcc
+          CXX: g++
+          NEXUS_HEADLESS_DIR: build-headless-ci
+        run: ./scripts/nexus_gameplay_regression.sh

@@ -5,21 +5,42 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+detect_jobs() {
+  if command -v sysctl >/dev/null 2>&1; then
+    sysctl -n hw.ncpu 2>/dev/null && return
+  fi
+  if command -v nproc >/dev/null 2>&1; then
+    nproc && return
+  fi
+  echo 4
+}
+
+if [[ -z "${CC:-}" ]] && [[ "$(uname -s)" == "Linux" ]] && command -v gcc >/dev/null 2>&1; then
+  export CC=gcc
+fi
+if [[ -z "${CXX:-}" ]] && [[ "$(uname -s)" == "Linux" ]] && command -v g++ >/dev/null 2>&1; then
+  export CXX=g++
+fi
+
+HEADLESS_DIR="${NEXUS_HEADLESS_DIR:-build-headless}"
+FULL_DIR="${NEXUS_FULL_DIR:-build-full}"
+BUILD_JOBS="${NEXUS_BUILD_JOBS:-$(detect_jobs)}"
+
 echo "==> Phase 1: headless build (NEXUS_ENABLE_RENDERER=OFF)"
-cmake -S . -B build-headless \
+cmake -S . -B "${HEADLESS_DIR}" \
   -DNEXUS_ENABLE_RENDERER=OFF \
   -DNEXUS_BUILD_RUNTIME=OFF \
   -DNEXUS_BUILD_TESTS=ON
-cmake --build build-headless -j"$(sysctl -n hw.ncpu 2>/dev/null || echo 4)"
-ctest --test-dir build-headless --output-on-failure
+cmake --build "${HEADLESS_DIR}" -j"${BUILD_JOBS}"
+ctest --test-dir "${HEADLESS_DIR}" --output-on-failure
 
 echo "==> Phase 1: full renderer build (NEXUS_ENABLE_RENDERER=ON)"
-cmake -S . -B build-full \
+cmake -S . -B "${FULL_DIR}" \
   -DNEXUS_ENABLE_RENDERER=ON \
   -DNEXUS_BUILD_RUNTIME=ON \
   -DNEXUS_BUILD_TESTS=ON
-cmake --build build-full -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
-ctest --test-dir build-full --output-on-failure
+cmake --build "${FULL_DIR}" -j"${BUILD_JOBS}"
+ctest --test-dir "${FULL_DIR}" --output-on-failure
 
 # Production mode mesh budget (mobile profile). Skips when NEXUS_SKIP_PRODUCTION_MODE_VALIDATE=1.
 if [[ "${NEXUS_SKIP_PRODUCTION_MODE_VALIDATE:-}" != "1" ]]; then
