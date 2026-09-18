@@ -13,6 +13,9 @@ LATEST_JSON="${ARTIFACT_DIR}/latest.json"
 DEV_EXPORT="${ARTIFACT_DIR}/dev_stats_tick.json"
 RUNTIME_LOG="${ARTIFACT_DIR}/runtime.log"
 
+# shellcheck source=scripts/nexus_build_lock.sh
+source "${ROOT}/scripts/nexus_build_lock.sh"
+
 MODE="${NEXUS_PLAYTEST_MODE:-basketball_dunk}"
 VENUE="${NEXUS_PLAYTEST_VENUE:-venice_beach}"
 DURATION_SEC="${NEXUS_PLAYTEST_DURATION:-5}"
@@ -56,6 +59,7 @@ export NEXUS_DEV_STATS=0
 export NEXUS_DEV_DRAW_STATS=0
 
 cd "${ROOT}"
+nexus_acquire_build_lock "${ROOT}"
 
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
   echo "==> Configure + build (full renderer)"

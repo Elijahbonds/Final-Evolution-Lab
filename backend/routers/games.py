@@ -775,13 +775,15 @@ async def get_streaming_status():
     """LOCAL SOVEREIGN MODE — No E3DS cloud. Data feed only."""
     mode_maps = {
         "basketball_h2h": "Venice_Beach_Court", "basketball_dunk": "Venice_Beach_Court",
+        "basketball_dunk_3d": "Venice_Beach_Court",
         "basketball_3v3": "Venice_Beach_Court", "karate_h2h": "Zen_Dojo",
         "karate_endless": "Zen_Dojo", "baseball": "Baseball_Park",
         "football": "Gridiron_Stadium", "soccer": "Soccer_Stadium",
         "golf": "Links_Course", "tennis": "Tennis_Court",
         "volleyball": "Sand_Court", "gymnastics": "Training_Floor",
         "surfing": "Venice_Beach_Surf", "skateboarding": "Skate_Park",
-        "snowboarding": "Mountain_Slope",
+        "snowboarding": "Mountain_Slope", "brain_brawl": "Neuro_Arena",
+        "who_scene_it": "Neuro_Arena", "court_carnival": "Venice_Beach_Court",
     }
     ws_connected = len(sovereign_bridge.clients) > 0
     return {

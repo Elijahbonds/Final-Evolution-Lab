@@ -34,6 +34,29 @@ auto trim(std::string_view value) -> std::string_view {
   return value;
 }
 
+auto parsePort(std::string_view value) -> Result<std::uint16_t> {
+  if (value.empty()) {
+    return Result<std::uint16_t>::err("WebSocket URL port missing");
+  }
+
+  std::uint32_t port = 0;
+  for (const char ch : value) {
+    if (std::isdigit(static_cast<unsigned char>(ch)) == 0) {
+      return Result<std::uint16_t>::err("WebSocket URL port must be numeric");
+    }
+    port = (port * 10U) + static_cast<std::uint32_t>(ch - '0');
+    if (port > 65535U) {
+      return Result<std::uint16_t>::err("WebSocket URL port out of range");
+    }
+  }
+
+  if (port == 0U) {
+    return Result<std::uint16_t>::err("WebSocket URL port must be between 1 and 65535");
+  }
+
+  return Result<std::uint16_t>::ok(static_cast<std::uint16_t>(port));
+}
+
 auto parseWebSocketUrl(std::string_view url) -> Result<ParsedWsUrl> {
   const std::string_view trimmed = trim(url);
   constexpr std::string_view kPrefix = "ws://";
@@ -53,7 +76,11 @@ auto parseWebSocketUrl(std::string_view url) -> Result<ParsedWsUrl> {
     parsed.port = 80;
   } else {
     parsed.host = std::string(hostPort.substr(0, colon));
-    parsed.port = static_cast<std::uint16_t>(std::stoi(std::string(hostPort.substr(colon + 1))));
+    const auto portResult = parsePort(hostPort.substr(colon + 1));
+    if (portResult.isErr()) {
+      return Result<ParsedWsUrl>::err(portResult.error());
+    }
+    parsed.port = portResult.value();
   }
   if (parsed.host.empty()) {
     return Result<ParsedWsUrl>::err("WebSocket URL missing host");
