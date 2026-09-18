@@ -409,12 +409,14 @@ struct GameLogicTests {
         }
     }
 
-    @Test func previewModesExposeHonestGameplayPreviewLabels() {
-        let previewModes = GameModeRegistry.all.filter { $0.releaseState == .preview }
-        #expect(previewModes.contains { $0.id == .marketBrowse })
-        for mode in previewModes {
-            #expect(mode.felPreviewLabel?.hasPrefix("Early Access · ") == true)
-        }
+    @Test func nonGameModulesExposeHonestLibraryLabels() {
+        let market = GameModeRegistry.mode(for: .marketBrowse)
+        #expect(market.releaseState == .production)
+        #expect(market.nexusCapabilityTier == .nonGame)
+        #expect(market.isNexusSprintPlayable == false)
+        #expect(market.isLaunchableInCurrentBuild)
+        #expect(market.felPreviewLabel == nil)
+        #expect(market.felHonestTierLabel?.hasPrefix("Library · ") == true)
     }
 
     @Test func generatedGameSpecParsesAdapterMetadata() {
