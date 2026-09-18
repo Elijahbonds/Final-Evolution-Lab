@@ -36,6 +36,7 @@
 #include <fstream>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include <unistd.h>
@@ -422,6 +423,20 @@ void arena_mode_registry_production_modes_match_validate_script() {
     require(mode.has_value(), std::string("production mode registered: ") + std::string(expectedId));
     require(mode->releaseState == nexus::gameplay::ArenaReleaseState::kProduction,
             std::string("production release state: ") + std::string(expectedId));
+  }
+  const std::array<std::pair<std::string_view, nexus::gameplay::ArenaReleaseState>, 5>
+      expectedNonProduction{{
+          {"gymnastics", nexus::gameplay::ArenaReleaseState::kStaging},
+          {"skateboarding", nexus::gameplay::ArenaReleaseState::kStaging},
+          {"snowboarding", nexus::gameplay::ArenaReleaseState::kStaging},
+          {"brain_brawl", nexus::gameplay::ArenaReleaseState::kStaging},
+          {"who_scene_it", nexus::gameplay::ArenaReleaseState::kPreview},
+      }};
+  for (const auto& [modeId, state] : expectedNonProduction) {
+    const auto mode = nexus::gameplay::ArenaModeRegistry::find(modeId);
+    require(mode.has_value(), std::string("non-production mode registered: ") + std::string(modeId));
+    require(mode->releaseState == state,
+            std::string("honest release state: ") + std::string(modeId));
   }
 }
 

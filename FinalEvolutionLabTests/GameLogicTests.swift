@@ -257,7 +257,7 @@ struct GameLogicTests {
     }
 
     @Test func productionModeIdsMatchNexusRegistryAndValidateScript() {
-        #expect(GameModeRegistry.productionModeIds.count == 19)
+        #expect(GameModeRegistry.productionModeIds.count == 14)
         let arenaIds = Set(GameModeRegistry.arenaRegistryModeIds.map(\.rawValue))
         for rawId in GameModeRegistry.productionModeIds {
             #expect(GameModeId(rawValue: rawId) != nil)
@@ -268,6 +268,8 @@ struct GameLogicTests {
         }
         #expect(!GameModeRegistry.productionModeIds.contains("market_browse"))
         #expect(!GameModeRegistry.productionModeIds.contains("venice_pickup"))
+        #expect(!GameModeRegistry.productionModeIds.contains("brain_brawl"))
+        #expect(!GameModeRegistry.productionModeIds.contains("who_scene_it"))
     }
 
     @Test func productionModesHaveArcadeRetroCartridgeTitles() {
@@ -412,8 +414,17 @@ struct GameLogicTests {
     @Test func previewModesExposeHonestGameplayPreviewLabels() {
         let previewModes = GameModeRegistry.all.filter { $0.releaseState == .preview }
         #expect(previewModes.contains { $0.id == .marketBrowse })
+        #expect(previewModes.contains { $0.id == .whoSceneIt })
         for mode in previewModes {
             #expect(mode.felPreviewLabel?.hasPrefix("Early Access · ") == true)
+        }
+    }
+
+    @Test func stagedActionModesExposeBetaTierLabels() {
+        for modeId in [GameModeId.gymnastics, .skateboarding, .snowboarding, .brainBrawl] {
+            let mode = GameModeRegistry.mode(for: modeId)
+            #expect(mode.nexusCapabilityTier == .staging)
+            #expect(mode.felHonestTierLabel?.hasPrefix("Beta · ") == true)
         }
     }
 

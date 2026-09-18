@@ -4,6 +4,7 @@
 #pragma once
 
 #include <nlohmann/json.hpp>
+#include <cstdint>
 #include <optional>
 #include <span>
 #include <string>
@@ -19,13 +20,12 @@ enum class ArenaReleaseState : std::uint8_t {
   kNonGameModule = 3,
 };
 
-/// Canonical production mode ids — keep in sync with `scripts/nexus_validate_production_modes.sh`.
+/// Canonical production C++ runtime ids; staging/preview simulators remain launchable with honest labels.
 inline constexpr std::string_view kProductionModeIds[] = {
-    "basketball_h2h",  "basketball_dunk", "basketball_3v3", "court_carnival",
-    "karate_h2h",      "karate_endless",  "baseball",       "football",
-    "soccer",          "golf",            "tennis",         "volleyball",
-    "gymnastics",      "surfing",         "skateboarding",  "snowboarding",
-    "brain_brawl",     "who_scene_it",
+    "basketball_h2h", "basketball_dunk", "basketball_3v3", "court_carnival",
+    "karate_h2h",     "karate_endless",  "baseball",       "football",
+    "soccer",         "golf",            "tennis",         "volleyball",
+    "surfing",
 };
 
 inline constexpr std::size_t kProductionModeCount = sizeof(kProductionModeIds) / sizeof(kProductionModeIds[0]);
