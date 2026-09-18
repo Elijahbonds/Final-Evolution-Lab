@@ -79,7 +79,7 @@ extension GameModeId {
         case .gymnastics, .skateboarding, .snowboarding, .surfing:
             return .prod
         case .brainBrawl:
-            return .staging
+            return .prod
         case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
             return .sim
         case .marketBrowse:
@@ -571,19 +571,24 @@ struct GameModeRegistry {
         all.first(where: { $0.id == id }) ?? all[0]
     }
 
-    /// Resolves C++ registry mode ids (including aliases) to a launchable ``GameMode``.
-    static func playableMode(forRegistryId raw: String) -> GameMode? {
+    /// Resolves C++ / backend registry ids (including aliases) to Swift app mode ids.
+    static func modeId(forRegistryId raw: String) -> GameModeId? {
         switch raw {
         case "venice_pickup":
-            return mode(for: .basketballHeadToHead)
+            return .basketballHeadToHead
         case "basketball_dunk":
-            return mode(for: .basketballDunkContest3D)
+            return .basketballDunkContest3D
         case "market_browse", "module_library", "vault_shop":
-            return mode(for: .marketBrowse)
+            return .marketBrowse
         default:
             break
         }
-        guard let id = GameModeId(rawValue: raw) else { return nil }
+        return GameModeId(rawValue: raw)
+    }
+
+    /// Resolves C++ registry mode ids (including aliases) to a launchable ``GameMode``.
+    static func playableMode(forRegistryId raw: String) -> GameMode? {
+        guard let id = modeId(forRegistryId: raw) else { return nil }
         return all.first(where: { $0.id == id })
     }
 
@@ -595,7 +600,7 @@ struct GameModeRegistry {
     /// Uses ``SaveSystem/loadLastSelectedArenaModeId()`` so Global Arena matchmaking matches an explicit grid selection (GAME-35).
     static func resolvedLastSelectedMode() -> GameMode? {
         guard let raw = SaveSystem.loadLastSelectedArenaModeId(),
-              let id = GameModeId(rawValue: raw) else { return nil }
+              let id = modeId(forRegistryId: raw) else { return nil }
         return mode(for: id)
     }
 
@@ -615,8 +620,12 @@ struct GameModeRegistry {
     /// Ingests a `FELModeManagerPayload` to dynamically update or filter shipping game modes.
     static func loadFromPayload(_ payload: FELModeManagerPayload) -> [GameMode] {
         var loaded: [GameMode] = []
+        var seenModeIds: Set<GameModeId> = []
         for (rawId, entry) in payload.modeManager.modeRegistry {
-            guard let modeId = GameModeId(rawValue: rawId) else { continue }
+            guard let modeId = modeId(forRegistryId: rawId),
+                  !seenModeIds.contains(modeId)
+            else { continue }
+            seenModeIds.insert(modeId)
             let baseMode = all.first(where: { $0.id == modeId })
             let releaseState: GameMode.ReleaseState = entry.status == "production" ? .production : .preview
             

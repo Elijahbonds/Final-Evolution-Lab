@@ -12,6 +12,7 @@
 #include "nexus/gameplay/gameplay_manager.h"
 #include "nexus/gameplay/skateboarding_mode.h"
 #include "nexus/gameplay/snowboarding_mode.h"
+#include "nexus/gameplay/prq_engine.h"
 #include "nexus/gameplay/surfing_mode.h"
 #include "nexus/gameplay/throw_catch_physics.h"
 #include "nexus/gameplay/venice_pickup_mode.h"
@@ -47,6 +48,7 @@ public:
   auto setMode(std::string_view modeId) -> Result<void>;
   void reset();
   void update(double deltaSeconds);
+  void syncFitnessSnapshot(const FitnessSnapshot& snapshot);
 
   auto handleCommand(std::string_view command, const nlohmann::json& params) -> Result<nlohmann::json>;
   void onThrowCatchPulse(const ThrowCatchState& throwCatch);
@@ -79,6 +81,8 @@ private:
   OutcomeSportMode m_outcomeSport;
   std::uint64_t m_lastThrowPulseCount{0};
   std::int32_t m_browseItemsViewed{0};
+  float m_prqScore{PRQEngine::kFallbackScore};
+  float m_neuralDrive{PRQEngine::kFallbackNeuralDrive};
 };
 
 } // namespace nexus::gameplay
