@@ -765,6 +765,7 @@ void session_receipt_flush_keeps_queue_when_http_disabled() {
       "fel.arena.flush_receipts", {{"persist_to_disk", true}}, "flush");
   require(flush.status == "ok", "flush command ok");
   require(flush.payload["delivered"].get<std::size_t>() >= 1, "receipt delivered to disk queue");
+  require(flush.payload["queued_on_disk"].get<std::size_t>() >= 1, "disk queue count reflects persistence");
   require(!flush.payload["queue_directory"].get<std::string>().empty(), "queue directory returned");
 
   const auto receipts =
@@ -1921,12 +1922,42 @@ void session_receipt_http_stub_posts_localhost_contract() {
   client.enqueue(receipt);
   const auto flush = client.flush();
   require(flush.delivered == 1, "stub HTTP flush delivers receipt");
+  require(flush.queued_on_disk == 0, "HTTP-only delivery does not report disk queue");
   require(client.pendingCount() == 0, "receipt cleared after stub POST");
   require(client.postedRequests().size() == 1, "one stub POST recorded");
   require(client.postedRequests().front().url.find("/api/games/session") != std::string::npos,
           "POST targets session contract path");
   require(client.postedRequests().front().body.find("karate_endless") != std::string::npos,
           "POST body includes mode_id");
+}
+
+void gameplay_manager_preserves_receipt_transport_config() {
+  nexus::gameplay::GameplayManager manager;
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_config_roundtrip_" + std::to_string(getpid()));
+  nexus::gameplay::SessionReceiptClientConfig config{
+      .queueDirectory = tempDir.string(),
+      .baseUrl = "http://127.0.0.1:9999/api/games/session",
+      .authToken = "test-token",
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+      .flushIntervalSeconds = 1.25F,
+      .maxRetries = 2,
+  };
+
+  manager.setReceiptClientConfig(config);
+  const auto roundTrip = manager.receiptClientConfig();
+  require(roundTrip.queueDirectory == config.queueDirectory, "queue directory round trips");
+  require(roundTrip.baseUrl == config.baseUrl, "receipt base URL round trips");
+  require(roundTrip.authToken == config.authToken, "receipt auth token round trips");
+  require(roundTrip.persistToDisk == config.persistToDisk, "receipt disk setting round trips");
+  require(roundTrip.httpEnabled == config.httpEnabled, "receipt HTTP setting round trips");
+  require(roundTrip.useStubHttpTransport == config.useStubHttpTransport,
+          "receipt transport setting round trips");
+  require(roundTrip.flushIntervalSeconds == config.flushIntervalSeconds,
+          "receipt flush interval round trips");
+  require(roundTrip.maxRetries == config.maxRetries, "receipt retry limit round trips");
 }
 
 struct TextGenTempWorkspace {
@@ -2747,6 +2778,7 @@ auto main() -> int {
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  gameplay_manager_preserves_receipt_transport_config();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();

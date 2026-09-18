@@ -48,6 +48,15 @@
       }
     },
     {
+      "id": "basketball_dunk",
+      "analyticsMode": "dunk_contest",
+      "venueKey": "venice_beach_court",
+      "displayVenue": "Venice Beach Blue Court",
+      "renderMode": "3D_UE5",
+      "nexusRuntimeModeId": "basketball_dunk",
+      "modeNote": "C++ runtime alias for Swift basketball_dunk_3d."
+    },
+    {
       "id": "basketball_dunk_irl",
       "analyticsMode": "dunk_contest_irl",
       "venueKey": "regulation_court_irl",
@@ -165,6 +174,7 @@
     { "venueKey": "stadium_pitch", "analyticsPolicyName": "Stadium Pitch" },
     { "venueKey": "golf_green", "analyticsPolicyName": "Golf Green" },
     { "venueKey": "arena_floor", "analyticsPolicyName": "Arena — Gymnastics" },
+    { "venueKey": "regulation_court_irl", "analyticsPolicyName": "Regulation Court — IRL Dunk" },
     { "venueKey": "e3ds_stadium_lobby", "analyticsPolicyName": "E3DS Stadium / Lobby shell" }
   ]
 }
