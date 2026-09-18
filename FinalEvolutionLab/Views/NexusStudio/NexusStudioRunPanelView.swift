@@ -123,8 +123,8 @@ struct NexusStudioRunPanelView: View {
 
             if result.success, let spec = result.spec {
                 readiness = NexusGeneratedGameEntry.readiness(for: spec.difficultyTier)
-                if let parsed = GameModeId(rawValue: spec.modeId) {
-                    selectedModeId = parsed
+                if let mode = GameModeRegistry.playableMode(forRegistryId: spec.modeId) {
+                    selectedModeId = mode.id
                 }
                 if let path = engine.exportGeneratedSpecToSandbox(spec) {
                     selectedGeneratedPath = path
@@ -341,8 +341,8 @@ struct NexusStudioRunPanelView: View {
 
     private func applyGeneratedEntry(_ entry: NexusGeneratedGameEntry) {
         selectedGeneratedPath = entry.relativePath
-        if let parsed = GameModeId(rawValue: entry.modeId) {
-            selectedModeId = parsed
+        if let mode = GameModeRegistry.playableMode(forRegistryId: entry.modeId) {
+            selectedModeId = mode.id
         }
         readiness = entry.readinessEstimate
         statusMessage = "Loaded \(entry.displayName) from sandbox."
@@ -351,13 +351,13 @@ struct NexusStudioRunPanelView: View {
     private func playSelectedGeneratedGame() {
         guard let path = selectedGeneratedPath,
               let entry = generatedGames.first(where: { $0.relativePath == path }),
-              let parsed = GameModeId(rawValue: entry.modeId)
+              let mode = GameModeRegistry.playableMode(forRegistryId: entry.modeId)
         else {
             statusMessage = "Select a generated spec first."
             return
         }
 
-        launchPlaytest(modeId: parsed, readiness: entry.readinessEstimate, label: entry.displayName)
+        launchPlaytest(modeId: mode.id, readiness: entry.readinessEstimate, label: entry.displayName)
     }
 
     private func launchPlaytest(modeId: GameModeId, readiness: Double, label: String?) {

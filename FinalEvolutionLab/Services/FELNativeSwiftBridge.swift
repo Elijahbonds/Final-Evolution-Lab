@@ -7,6 +7,8 @@ enum FELNativeSwiftBridge {
     private static let modeToVenueToken: [String: String] = [
         "basketball_h2h": "Venice_Beach_Court",
         "basketball_dunk": "Venice_Beach_Court",
+        "basketball_dunk_3d": "Venice_Beach_Court",
+        "basketball_dunk_irl": "regulation_court_irl",
         "basketball_3v3": "Venice_Beach_Court",
         "karate_h2h": "Zen_Dojo",
         "karate_endless": "Zen_Dojo",

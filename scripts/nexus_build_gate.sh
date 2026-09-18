@@ -4,21 +4,26 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+HOST_JOBS="$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 
-echo "==> Phase 1: headless build (NEXUS_ENABLE_RENDERER=OFF)"
-cmake -S . -B build-headless \
+: "${CC:=gcc}"
+: "${CXX:=g++}"
+export CC CXX
+
+echo "==> Phase 1: headless build (NEXUS_ENABLE_RENDERER=OFF, CC=${CC}, CXX=${CXX})"
+cmake --fresh -S . -B build-headless \
   -DNEXUS_ENABLE_RENDERER=OFF \
   -DNEXUS_BUILD_RUNTIME=OFF \
   -DNEXUS_BUILD_TESTS=ON
-cmake --build build-headless -j"$(sysctl -n hw.ncpu 2>/dev/null || echo 4)"
+cmake --build build-headless -j"${HOST_JOBS}"
 ctest --test-dir build-headless --output-on-failure
 
-echo "==> Phase 1: full renderer build (NEXUS_ENABLE_RENDERER=ON)"
-cmake -S . -B build-full \
+echo "==> Phase 1: full renderer build (NEXUS_ENABLE_RENDERER=ON, CC=${CC}, CXX=${CXX})"
+cmake --fresh -S . -B build-full \
   -DNEXUS_ENABLE_RENDERER=ON \
   -DNEXUS_BUILD_RUNTIME=ON \
   -DNEXUS_BUILD_TESTS=ON
-cmake --build build-full -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
+cmake --build build-full -j"${HOST_JOBS}"
 ctest --test-dir build-full --output-on-failure
 
 # Production mode mesh budget (mobile profile). Skips when NEXUS_SKIP_PRODUCTION_MODE_VALIDATE=1.
