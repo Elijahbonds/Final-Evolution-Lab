@@ -38,6 +38,9 @@
 #include <thread>
 #include <vector>
 
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 namespace {
@@ -63,6 +66,65 @@ void removeTreeBestEffort(const std::filesystem::path& root) {
     std::this_thread::sleep_for(std::chrono::milliseconds(10 * (attempt + 1)));
   }
 }
+
+class OneShotHttpServer {
+public:
+  explicit OneShotHttpServer(int statusCode) : m_statusCode(statusCode) {
+    m_serverFd = ::socket(AF_INET, SOCK_STREAM, 0);
+    require(m_serverFd >= 0, "one-shot HTTP socket created");
+
+    int reuse = 1;
+    (void)::setsockopt(m_serverFd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+
+    sockaddr_in address{};
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    address.sin_port = 0;
+    require(::bind(m_serverFd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == 0,
+            "one-shot HTTP socket bound");
+    require(::listen(m_serverFd, 1) == 0, "one-shot HTTP socket listening");
+
+    socklen_t length = sizeof(address);
+    require(::getsockname(m_serverFd, reinterpret_cast<sockaddr*>(&address), &length) == 0,
+            "one-shot HTTP socket port discovered");
+    m_port = ntohs(address.sin_port);
+
+    m_thread = std::thread([this]() { serveOnce(); });
+  }
+
+  OneShotHttpServer(const OneShotHttpServer&) = delete;
+  auto operator=(const OneShotHttpServer&) -> OneShotHttpServer& = delete;
+
+  ~OneShotHttpServer() {
+    if (m_thread.joinable()) {
+      m_thread.join();
+    }
+  }
+
+  [[nodiscard]] auto url() const -> std::string {
+    return "http://127.0.0.1:" + std::to_string(m_port) + "/api/games/session";
+  }
+
+private:
+  void serveOnce() const {
+    const int clientFd = ::accept(m_serverFd, nullptr, nullptr);
+    if (clientFd >= 0) {
+      std::array<char, 1024> request{};
+      (void)::read(clientFd, request.data(), request.size());
+      const std::string reason = m_statusCode >= 500 ? "Service Unavailable" : "OK";
+      const std::string response = "HTTP/1.1 " + std::to_string(m_statusCode) + " " +
+                                   reason + "\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+      (void)::write(clientFd, response.data(), response.size());
+      (void)::close(clientFd);
+    }
+    (void)::close(m_serverFd);
+  }
+
+  int m_statusCode{200};
+  int m_serverFd{-1};
+  int m_port{0};
+  std::thread m_thread;
+};
 
 void fitness_data_snapshots_are_thread_safe() {
   nexus::gameplay::ThreadSafeFitnessData fitness;
@@ -1921,12 +1983,63 @@ void session_receipt_http_stub_posts_localhost_contract() {
   client.enqueue(receipt);
   const auto flush = client.flush();
   require(flush.delivered == 1, "stub HTTP flush delivers receipt");
+  require(flush.queued_on_disk == 0, "stub HTTP-only success does not count disk queue");
   require(client.pendingCount() == 0, "receipt cleared after stub POST");
   require(client.postedRequests().size() == 1, "one stub POST recorded");
   require(client.postedRequests().front().url.find("/api/games/session") != std::string::npos,
           "POST targets session contract path");
   require(client.postedRequests().front().body.find("karate_endless") != std::string::npos,
           "POST body includes mode_id");
+}
+
+void session_receipt_real_http_2xx_clears_without_disk_fallback() {
+  if (std::system("command -v curl >/dev/null 2>&1") != 0) {
+    return;
+  }
+
+  OneShotHttpServer server(204);
+  nexus::gameplay::SessionReceiptClient client({
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  client.enqueue({{"mode_id", "basketball_dunk"}, {"score", 21}, {"completed", true}});
+  const auto flush = client.flush();
+
+  require(flush.attempted == 1, "real HTTP 204 attempts one receipt");
+  require(flush.delivered == 1, "real HTTP 204 delivers receipt");
+  require(flush.requeued == 0, "real HTTP 204 does not requeue");
+  require(flush.queued_on_disk == 0, "real HTTP 204 has no disk fallback when disabled");
+  require(client.pendingCount() == 0, "real HTTP 204 clears pending receipt");
+  require(client.postedRequests().size() == 1, "real HTTP 204 records POST");
+  require(client.postedRequests().front().statusCode == 204, "real HTTP status captured as 204");
+}
+
+void session_receipt_real_http_non_2xx_requeues_without_disk_fallback() {
+  if (std::system("command -v curl >/dev/null 2>&1") != 0) {
+    return;
+  }
+
+  OneShotHttpServer server(503);
+  nexus::gameplay::SessionReceiptClient client({
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  client.enqueue({{"mode_id", "basketball_dunk"}, {"score", 21}, {"completed", true}});
+  const auto flush = client.flush();
+
+  require(flush.attempted == 1, "real HTTP 503 attempts one receipt");
+  require(flush.delivered == 0, "real HTTP 503 does not deliver receipt");
+  require(flush.requeued == 1, "real HTTP 503 requeues receipt");
+  require(flush.queued_on_disk == 0, "real HTTP 503 has no disk fallback when disabled");
+  require(client.pendingCount() == 1, "real HTTP 503 keeps pending receipt");
+  require(client.postedRequests().size() == 1, "real HTTP 503 records POST");
+  require(client.postedRequests().front().statusCode == 503, "real HTTP status captured as 503");
 }
 
 struct TextGenTempWorkspace {
@@ -2747,6 +2860,8 @@ auto main() -> int {
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_real_http_2xx_clears_without_disk_fallback();
+  session_receipt_real_http_non_2xx_requeues_without_disk_fallback();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
