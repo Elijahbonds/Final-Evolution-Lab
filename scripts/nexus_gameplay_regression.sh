@@ -16,6 +16,10 @@ fi
 if [[ -z "${CC:-}" ]] && command -v gcc >/dev/null 2>&1; then
   export CC=gcc
 fi
+CMAKE_COMPILER_ARGS=()
+if [[ -n "${CXX:-}" ]]; then
+  CMAKE_COMPILER_ARGS+=("-DCMAKE_CXX_COMPILER=${CXX}")
+fi
 
 for arg in "$@"; do
   case "$arg" in
@@ -32,10 +36,14 @@ cd "${ROOT}"
 
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
   echo "==> Configure + build headless gameplay tests"
-  cmake -S . -B "${HEADLESS_DIR}" \
+  if [[ "${NEXUS_REUSE_BUILD:-0}" != "1" ]]; then
+    cmake -E rm -rf "${HEADLESS_DIR}"
+  fi
+  cmake -S . -B "${HEADLESS_DIR}" --fresh \
     -DNEXUS_ENABLE_RENDERER=OFF \
     -DNEXUS_BUILD_RUNTIME=OFF \
-    -DNEXUS_BUILD_TESTS=ON
+    -DNEXUS_BUILD_TESTS=ON \
+    "${CMAKE_COMPILER_ARGS[@]}"
   cmake --build "${HEADLESS_DIR}" -j"$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
 fi
 
