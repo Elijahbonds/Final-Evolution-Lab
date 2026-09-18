@@ -1929,6 +1929,26 @@ void session_receipt_http_stub_posts_localhost_contract() {
           "POST body includes mode_id");
 }
 
+void session_receipt_http_only_success_reports_zero_disk_queue() {
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_http_only_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = "http://127.0.0.1:8000/api/games/session",
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = true,
+  });
+
+  client.enqueue({{"mode_id", "surfing"}, {"score", 9}});
+  const auto flush = client.flush();
+  require(flush.delivered == 1, "http-only flush delivers receipt");
+  require(flush.queued_on_disk == 0, "http-only flush does not count disk queue");
+  require(client.pendingCount() == 0, "http-only receipt cleared after stub POST");
+}
+
 struct TextGenTempWorkspace {
   std::filesystem::path root;
   std::string manifestPath;
@@ -2747,6 +2767,7 @@ auto main() -> int {
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_http_only_success_reports_zero_disk_queue();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
