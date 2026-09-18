@@ -144,6 +144,7 @@ auto SurfingMode::stateJson() const -> nlohmann::json {
   out["max_wipeouts"] = kMaxWipeouts;
   out["run_complete"] = isRunComplete();
   out["release_state"] = "validate_only";
+  out["preview_label"] = "VENUE PROXY - Venice court stand-in until surf-break mesh ships";
   return out;
 }
 

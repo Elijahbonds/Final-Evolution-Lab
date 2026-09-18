@@ -7,11 +7,13 @@
 #include "nexus/gameplay/brain_brawl_mode.h"
 #include "nexus/gameplay/court_carnival_mode.h"
 #include "nexus/gameplay/dunk_contest_mode.h"
+#include "nexus/gameplay/fitness_data.h"
 #include "nexus/gameplay/gymnastics_mode.h"
 #include "nexus/gameplay/karate_endless_mode.h"
 #include "nexus/gameplay/gameplay_manager.h"
 #include "nexus/gameplay/skateboarding_mode.h"
 #include "nexus/gameplay/snowboarding_mode.h"
+#include "nexus/gameplay/prq_engine.h"
 #include "nexus/gameplay/surfing_mode.h"
 #include "nexus/gameplay/throw_catch_physics.h"
 #include "nexus/gameplay/venice_pickup_mode.h"
@@ -46,6 +48,7 @@ class ModeRuntime {
 public:
   auto setMode(std::string_view modeId) -> Result<void>;
   void reset();
+  void syncFitness(const FitnessSnapshot& snapshot);
   void update(double deltaSeconds);
 
   auto handleCommand(std::string_view command, const nlohmann::json& params) -> Result<nlohmann::json>;
@@ -77,6 +80,10 @@ private:
   SurfingMode m_surfing;
   WhoSceneItMode m_whoSceneIt;
   OutcomeSportMode m_outcomeSport;
+  float m_prqScore{75.0F};
+  float m_neuralDrive{60.0F};
+  PRQGrade m_prqGrade{PRQGrade::kPrimed};
+  std::uint64_t m_fitnessRevision{0};
   std::uint64_t m_lastThrowPulseCount{0};
   std::int32_t m_browseItemsViewed{0};
 };
