@@ -57,6 +57,15 @@ namespace {
   return "http://127.0.0.1:8000/api/games/session";
 }
 
+[[nodiscard]] auto shouldUseStubHttpTransport(const SessionReceiptClientConfig& config) -> bool {
+  if (const char* envUrl = std::getenv("NEXUS_RECEIPT_URL")) {
+    if (envUrl[0] != '\0') {
+      return false;
+    }
+  }
+  return config.useStubHttpTransport;
+}
+
 } // namespace
 
 auto SessionReceiptClient::defaultQueueDirectory() -> std::string {
@@ -68,7 +77,7 @@ SessionReceiptClient::SessionReceiptClient(SessionReceiptClientConfig config)
       m_http(nexus::core::HttpClientConfig{
           .url = resolvePostUrl(m_config),
           .authToken = m_config.authToken,
-          .useStubTransport = m_config.useStubHttpTransport,
+          .useStubTransport = shouldUseStubHttpTransport(m_config),
       }) {
   if (m_config.queueDirectory.empty()) {
     m_config.queueDirectory = defaultQueueDirectory();
@@ -82,7 +91,7 @@ void SessionReceiptClient::setConfig(SessionReceiptClientConfig config) {
   m_config = std::move(config);
   m_http.setUrl(resolvePostUrl(m_config));
   m_http.setAuthToken(m_config.authToken);
-  m_http.setStubTransportEnabled(m_config.useStubHttpTransport);
+  m_http.setStubTransportEnabled(shouldUseStubHttpTransport(m_config));
 }
 
 void SessionReceiptClient::enqueue(nlohmann::json receipt) {

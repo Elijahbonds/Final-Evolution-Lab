@@ -2047,6 +2047,25 @@ void hud_relay_websocket_stub_emits_frames() {
           "hud relay WS payload type");
 }
 
+void hud_relay_env_url_uses_real_transport() {
+  const char* previous = std::getenv("FEL_HUD_WS_URL");
+  const std::string previousValue = previous != nullptr ? std::string(previous) : std::string{};
+  setenv("FEL_HUD_WS_URL", "ws://127.0.0.1:1/ws/hud", 1);
+
+  nexus::gameplay::HudRelayService relay;
+  const auto result = relay.connectRelay();
+
+  if (previous != nullptr) {
+    setenv("FEL_HUD_WS_URL", previousValue.c_str(), 1);
+  } else {
+    unsetenv("FEL_HUD_WS_URL");
+  }
+
+  require(result.isErr(), "FEL_HUD_WS_URL uses real HUD transport");
+  require(relay.relayState() == nexus::core::WebSocketClientState::kError,
+          "real HUD transport reports connection error without relay");
+}
+
 void session_receipt_http_stub_posts_localhost_contract() {
   const auto tempDir = std::filesystem::temp_directory_path() /
                        ("fel_receipt_http_stub_test_" + std::to_string(getpid()));
@@ -2111,6 +2130,38 @@ void session_receipt_real_http_2xx_clears_without_disk_fallback() {
   require(client.pendingCount() == 0, "real HTTP 204 clears pending receipt");
   require(client.postedRequests().size() == 1, "real HTTP 204 records POST");
   require(client.postedRequests().front().statusCode == 204, "real HTTP status captured as 204");
+}
+
+void session_receipt_env_url_forces_live_http_transport() {
+  if (std::system("command -v curl >/dev/null 2>&1") != 0) {
+    return;
+  }
+
+  OneShotHttpServer server(201);
+  const char* previous = std::getenv("NEXUS_RECEIPT_URL");
+  const std::string previousValue = previous != nullptr ? std::string(previous) : std::string{};
+  setenv("NEXUS_RECEIPT_URL", server.url().c_str(), 1);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .baseUrl = "http://127.0.0.1:1/should-not-use-stub",
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = true,
+  });
+  client.enqueue({{"mode_id", "basketball_dunk"}, {"score", 21}, {"completed", true}});
+  const auto flush = client.flush();
+  const auto posted = client.postedRequests();
+
+  if (previous != nullptr) {
+    setenv("NEXUS_RECEIPT_URL", previousValue.c_str(), 1);
+  } else {
+    unsetenv("NEXUS_RECEIPT_URL");
+  }
+
+  require(flush.delivered == 1, "NEXUS_RECEIPT_URL forces live receipt delivery");
+  require(posted.size() == 1, "env live receipt records POST");
+  require(posted.front().statusCode == 201, "env live receipt captures server status");
+  require(posted.front().url == server.url(), "env live receipt targets NEXUS_RECEIPT_URL");
 }
 
 void session_receipt_real_http_non_2xx_requeues_without_disk_fallback() {
@@ -2956,8 +3007,10 @@ auto main() -> int {
   hud_poll_returns_tick_frame_payload();
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
+  hud_relay_env_url_uses_real_transport();
   session_receipt_http_stub_posts_localhost_contract();
   session_receipt_real_http_2xx_clears_without_disk_fallback();
+  session_receipt_env_url_forces_live_http_transport();
   session_receipt_real_http_non_2xx_requeues_without_disk_fallback();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
