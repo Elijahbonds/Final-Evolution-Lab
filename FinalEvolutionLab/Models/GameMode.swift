@@ -73,13 +73,14 @@ extension GameModeId {
 
     var nexusCapabilityTier: NexusCapabilityTier {
         switch self {
-        case .basketballDunkContestIRL, .basketballDunkContest3D, .karateEndless, .basketballHeadToHead, .venicePickup, .courtCarnival,
-             .whoSceneIt:
+        case .basketballDunkContestIRL, .basketballDunkContest3D, .karateEndless, .basketballHeadToHead, .venicePickup, .courtCarnival:
             return .prod
-        case .gymnastics, .skateboarding, .snowboarding, .surfing:
+        case .surfing:
             return .prod
-        case .brainBrawl:
+        case .gymnastics, .skateboarding, .snowboarding, .brainBrawl:
             return .staging
+        case .whoSceneIt:
+            return .preview
         case .basketball3v3, .karate, .baseball, .football, .soccer, .golf, .tennis, .volleyball:
             return .sim
         case .marketBrowse:
@@ -290,13 +291,13 @@ extension GameMode {
 }
 
 struct GameModeRegistry {
-    /// Canonical production mode ids — keep in sync with `arena_mode_registry.h` and `scripts/nexus_validate_production_modes.sh`.
+    /// Canonical production app mode ids. Split dunk entries map to one C++ runtime mode;
+    /// outcome sport modes remain production app surfaces with simulation-tier badges.
     static let productionModeIds: [String] = [
         "basketball_h2h", "basketball_dunk_irl", "basketball_dunk_3d", "basketball_3v3", "court_carnival",
         "karate_h2h", "karate_endless",
         "baseball", "football", "soccer", "golf", "tennis", "volleyball",
-        "gymnastics", "surfing", "skateboarding", "snowboarding",
-        "brain_brawl", "who_scene_it",
+        "surfing",
     ]
 
     /// Every playable arena mode — full lineup ships available; per-mode capability
@@ -539,7 +540,7 @@ struct GameModeRegistry {
             multiplayerType: .realtime,
             environmentName: "Neuro Arena",
             hint: "Load Creator Scene Cards to practice monologues, dialogue cues, and camera angles.",
-            releaseState: .production
+            releaseState: .preview
         ),
         GameMode(
             id: .courtCarnival,

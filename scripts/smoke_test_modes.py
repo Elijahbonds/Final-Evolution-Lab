@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-FEL Smoke Test Suite — 12 Production Mode Acceptance Tests
-Tests each production mode's registration, configuration, and deep link routing.
-Run against a live or mock FEL backend.
+FEL Smoke Test Suite — registry acceptance tests.
+Tests each shippable/staged mode's registration, configuration, deep link routing,
+and honest readiness label without requiring UE or iOS tooling.
 """
 import json
 import sys
@@ -33,17 +33,16 @@ def skip(msg):
 # Production modes expected to pass all gates
 # ═══════════════════════════════════════════════════════════════════════════════
 PRODUCTION_MODES = [
-    "basketball_h2h", "basketball_dunk", "basketball_3v3",
+    "basketball_h2h", "basketball_dunk", "basketball_3v3", "court_carnival",
     "karate_h2h", "karate_endless",
     "baseball", "football", "soccer", "golf",
-    "tennis", "volleyball", "surfing",
-    "gymnastics", "skateboarding", "snowboarding",
+    "tennis", "volleyball", "surfing"
 ]
 
 NON_GAME_MODULES = ["market_browse"]
 
-STAGING_MODES = ["brain_brawl"]
-PREVIEW_MODES = ["who_scene_it", "court_carnival"]
+STAGING_MODES = ["gymnastics", "skateboarding", "snowboarding", "brain_brawl"]
+PREVIEW_MODES = ["who_scene_it"]
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Test 1: Mode Manager Registry Completeness
@@ -197,6 +196,8 @@ def test_swift_enum():
         # Search for rawValue
         if f'= "{mode}"' in content:
             ok(f'{mode} has Swift enum case')
+        elif mode == "basketball_dunk" and 'case "basketball_dunk":' in content and '.basketballDunkContest3D' in content:
+            ok("basketball_dunk resolved to Swift 3D dunk contest alias")
         else:
             fail(f'{mode} missing from GameMode.swift enum')
 
@@ -244,8 +245,8 @@ def test_economy_integration():
         else:
             fail(f"{label} missing")
 
-    # Verify PRQ weights cover all scoring modes
-    scoring_modes = PRODUCTION_MODES  # all production modes are scoring modes
+    # Verify PRQ weights cover all scoring production modes.
+    scoring_modes = PRODUCTION_MODES
     for mode in scoring_modes:
         if f'"{mode}"' in content.split("PRQ_MODE_WEIGHTS")[1].split("}")[0]:
             ok(f"PRQ weight defined for {mode}")
@@ -256,7 +257,7 @@ def test_economy_integration():
 def main():
     print("═══════════════════════════════════════════════════════════")
     print("  FEL Production Smoke Test Suite")
-    print("  19 modes · 8 test categories · Registry → Economy")
+    print("  18 UE-backed modes · 8 test categories · Registry → Economy")
     print("═══════════════════════════════════════════════════════════")
 
     test_mode_manager_registry()

@@ -1,8 +1,8 @@
 {
-  "cooked_runtime_note": "FEL_ModeManager — 20 total modes (19 game + 1 education). Gate 1 fix applied: who_scene_it + court_carnival promoted to production. production_modes=14. movement_lab added as preview/non-scoring education module.",
+  "cooked_runtime_note": "FEL_ModeManager — 22 total mode records (19 game surfaces + split dunk aliases + 1 education module). Production count includes launchable production aliases; staging/preview labels remain honest where ship blockers are open.",
   "mode_manager": {
-    "total_modes": 20,
-    "production_modes": 12,
+    "total_modes": 22,
+    "production_modes": 15,
     "mode_registry": {
       "basketball_h2h": {
         "status": "production",

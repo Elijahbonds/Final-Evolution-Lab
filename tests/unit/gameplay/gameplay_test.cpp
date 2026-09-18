@@ -30,14 +30,21 @@
 #include <cstdlib>
 #include <array>
 #include <chrono>
+#include <cerrno>
+#include <cstdint>
+#include <cstring>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <fstream>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 namespace {
@@ -63,6 +70,95 @@ void removeTreeBestEffort(const std::filesystem::path& root) {
     std::this_thread::sleep_for(std::chrono::milliseconds(10 * (attempt + 1)));
   }
 }
+
+class OneShotHttpServer {
+public:
+  explicit OneShotHttpServer(int statusCode) : m_statusCode(statusCode) {
+    m_fd = ::socket(AF_INET, SOCK_STREAM, 0);
+    require(m_fd >= 0, "create receipt test socket");
+
+    int reuse = 1;
+    (void)::setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+
+    sockaddr_in addr{};
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    addr.sin_port = 0;
+    require(::bind(m_fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) == 0,
+            std::string("bind receipt test socket: ") + std::strerror(errno));
+    require(::listen(m_fd, 1) == 0, "listen receipt test socket");
+
+    socklen_t len = sizeof(addr);
+    require(::getsockname(m_fd, reinterpret_cast<sockaddr*>(&addr), &len) == 0,
+            "read receipt test socket port");
+    m_port = ntohs(addr.sin_port);
+    m_worker = std::thread([this] { serveOnce(); });
+  }
+
+  ~OneShotHttpServer() {
+    if (m_worker.joinable()) {
+      m_worker.join();
+    }
+  }
+
+  [[nodiscard]] auto url() const -> std::string {
+    return "http://127.0.0.1:" + std::to_string(m_port) + "/api/games/session";
+  }
+
+  [[nodiscard]] auto requestBody() const -> const std::string& { return m_requestBody; }
+
+private:
+  void serveOnce() {
+    const int client = ::accept(m_fd, nullptr, nullptr);
+    if (client < 0) {
+      return;
+    }
+
+    std::string request;
+    std::array<char, 1024> buffer{};
+    std::size_t contentLength = 0;
+    while (request.find("\r\n\r\n") == std::string::npos) {
+      const ssize_t bytes = ::recv(client, buffer.data(), buffer.size(), 0);
+      if (bytes <= 0) {
+        break;
+      }
+      request.append(buffer.data(), static_cast<std::size_t>(bytes));
+    }
+
+    const auto lengthHeader = request.find("Content-Length:");
+    if (lengthHeader != std::string::npos) {
+      const auto lengthStart = lengthHeader + std::strlen("Content-Length:");
+      const auto lengthEnd = request.find("\r\n", lengthStart);
+      contentLength = static_cast<std::size_t>(
+          std::stoul(request.substr(lengthStart, lengthEnd - lengthStart)));
+    }
+
+    const auto bodyStart = request.find("\r\n\r\n");
+    if (bodyStart != std::string::npos) {
+      m_requestBody = request.substr(bodyStart + 4);
+      while (m_requestBody.size() < contentLength) {
+        const ssize_t bytes = ::recv(client, buffer.data(), buffer.size(), 0);
+        if (bytes <= 0) {
+          break;
+        }
+        m_requestBody.append(buffer.data(), static_cast<std::size_t>(bytes));
+      }
+    }
+
+    const std::string response = "HTTP/1.1 " + std::to_string(m_statusCode) +
+                                 " Test\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+    (void)::send(client, response.data(), response.size(), 0);
+    ::close(client);
+    ::close(m_fd);
+    m_fd = -1;
+  }
+
+  int m_statusCode{204};
+  int m_fd{-1};
+  std::uint16_t m_port{0};
+  std::thread m_worker;
+  std::string m_requestBody;
+};
 
 void fitness_data_snapshots_are_thread_safe() {
   nexus::gameplay::ThreadSafeFitnessData fitness;
@@ -422,6 +518,20 @@ void arena_mode_registry_production_modes_match_validate_script() {
     require(mode.has_value(), std::string("production mode registered: ") + std::string(expectedId));
     require(mode->releaseState == nexus::gameplay::ArenaReleaseState::kProduction,
             std::string("production release state: ") + std::string(expectedId));
+  }
+  const std::array<std::pair<std::string_view, nexus::gameplay::ArenaReleaseState>, 5>
+      expectedNonProduction{{
+          {"gymnastics", nexus::gameplay::ArenaReleaseState::kStaging},
+          {"skateboarding", nexus::gameplay::ArenaReleaseState::kStaging},
+          {"snowboarding", nexus::gameplay::ArenaReleaseState::kStaging},
+          {"brain_brawl", nexus::gameplay::ArenaReleaseState::kStaging},
+          {"who_scene_it", nexus::gameplay::ArenaReleaseState::kPreview},
+      }};
+  for (const auto& [modeId, state] : expectedNonProduction) {
+    const auto mode = nexus::gameplay::ArenaModeRegistry::find(modeId);
+    require(mode.has_value(), std::string("non-production mode registered: ") + std::string(modeId));
+    require(mode->releaseState == state,
+            std::string("honest release state: ") + std::string(modeId));
   }
 }
 
@@ -1929,6 +2039,67 @@ void session_receipt_http_stub_posts_localhost_contract() {
           "POST body includes mode_id");
 }
 
+void session_receipt_real_http_2xx_clears_without_disk_queue() {
+  OneShotHttpServer server(204);
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_http_204_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+  });
+
+  client.enqueue({{"mode_id", "basketball_dunk"},
+                  {"score", 21},
+                  {"completed", true},
+                  {"telemetry", {{"session_id", "http_204_session"}}}});
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "real HTTP 204 attempted once");
+  require(flush.delivered == 1, "real HTTP 204 delivered");
+  require(flush.requeued == 0, "real HTTP 204 not requeued");
+  require(flush.queued_on_disk == 0, "HTTP-only 204 does not report disk queue");
+  require(client.pendingCount() == 0, "real HTTP 204 clears pending receipt");
+  require(client.postedRequests().size() == 1, "real HTTP 204 recorded POST");
+  require(client.postedRequests().front().statusCode == 204, "real HTTP records 204 status");
+  require(server.requestBody().find("basketball_dunk") != std::string::npos,
+          "real HTTP server received receipt body");
+}
+
+void session_receipt_real_http_503_requeues_without_disk_queue() {
+  OneShotHttpServer server(503);
+  const auto tempDir = std::filesystem::temp_directory_path() /
+                       ("fel_receipt_http_503_test_" + std::to_string(getpid()));
+  removeTreeBestEffort(tempDir);
+
+  nexus::gameplay::SessionReceiptClient client({
+      .queueDirectory = tempDir.string(),
+      .baseUrl = server.url(),
+      .persistToDisk = false,
+      .httpEnabled = true,
+      .useStubHttpTransport = false,
+      .maxRetries = 2,
+  });
+
+  client.enqueue({{"mode_id", "karate_endless"},
+                  {"score", 15},
+                  {"completed", true},
+                  {"telemetry", {{"session_id", "http_503_session"}}}});
+  const auto flush = client.flush();
+  require(flush.attempted == 1, "real HTTP 503 attempted once");
+  require(flush.delivered == 0, "real HTTP 503 not delivered");
+  require(flush.requeued == 1, "real HTTP 503 requeued");
+  require(flush.queued_on_disk == 0, "HTTP-only 503 does not report disk queue");
+  require(client.pendingCount() == 1, "real HTTP 503 leaves receipt pending");
+  require(client.postedRequests().size() == 1, "real HTTP 503 recorded POST");
+  require(client.postedRequests().front().statusCode == 503, "real HTTP records 503 status");
+  require(server.requestBody().find("karate_endless") != std::string::npos,
+          "real HTTP 503 server received receipt body");
+}
+
 struct TextGenTempWorkspace {
   std::filesystem::path root;
   std::string manifestPath;
@@ -2747,6 +2918,8 @@ auto main() -> int {
   fel_bridge_websocket_stub_sends_outbound();
   hud_relay_websocket_stub_emits_frames();
   session_receipt_http_stub_posts_localhost_contract();
+  session_receipt_real_http_2xx_clears_without_disk_queue();
+  session_receipt_real_http_503_requeues_without_disk_queue();
   karate_mode_input_strike_advances_wave();
   mode_runtime_tracks_dunk_combo_metrics();
   venue_volume_overlap_triggers_travel();
