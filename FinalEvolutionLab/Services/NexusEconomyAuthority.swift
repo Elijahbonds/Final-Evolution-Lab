@@ -10,7 +10,8 @@ enum NexusEconomyAuthority {
     /// NEXUS P0/P1 modes where C++ is score authority and economy grants require server receipt.
     static func usesServerAuthoritativeEconomy(modeId: GameModeId) -> Bool {
         switch modeId {
-        case .basketballDunkContestIRL, .basketballDunkContest3D, .karateEndless:
+        case .basketballDunkContestIRL, .basketballDunkContest3D,
+             .basketballHeadToHead, .venicePickup, .karateEndless, .courtCarnival:
             return true
         default:
             return false

@@ -25,6 +25,7 @@ jobs:
       - name: Validate production mode descriptors
         run: |
           python scripts/validate_nexus_production_registry_sync.py
+          python scripts/validate_swift_mode_registry.py
           python scripts/smoke_test_modes.py
           python scripts/validate_ios_descriptor.py
           python scripts/validate_cooked_payload.py
