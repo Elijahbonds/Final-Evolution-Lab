@@ -5,6 +5,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# shellcheck source=scripts/nexus_build_lock.sh
+source "${ROOT}/scripts/nexus_build_lock.sh"
+nexus_acquire_build_lock "${ROOT}"
+
 if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
   export CXX=g++
 fi

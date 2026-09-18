@@ -10,6 +10,9 @@ REGRESSION_JSON="${ARTIFACT_DIR}/gameplay_regression.json"
 REGRESSION_LOG="${ARTIFACT_DIR}/gameplay_regression_run.log"
 SKIP_BUILD=0
 
+# shellcheck source=scripts/nexus_build_lock.sh
+source "${ROOT}/scripts/nexus_build_lock.sh"
+
 if [[ -z "${CXX:-}" ]] && command -v g++ >/dev/null 2>&1; then
   export CXX=g++
 fi
@@ -33,6 +36,7 @@ done
 
 mkdir -p "${ARTIFACT_DIR}"
 cd "${ROOT}"
+nexus_acquire_build_lock "${ROOT}"
 
 if [[ "${SKIP_BUILD}" -eq 0 ]]; then
   echo "==> Configure + build headless gameplay tests"
