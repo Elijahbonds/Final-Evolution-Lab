@@ -33,23 +33,23 @@ def contains_alias_return(content: str, aliases: tuple[str, ...], target: str) -
     return re.search(case_pattern + r"\s*" + return_pattern, content, re.MULTILINE) is not None
 
 
-def routes_dedicated_launch_surfaces(content: str) -> bool:
-    """The gameplayRoute stack must keep camera/non-game modes out of GamePlayView."""
-    route_stack = content.find(".navigationDestination(item: $gameplayRoute)")
-    irl_guard = content.find("mode.id.isIRLDunkContest", route_stack)
-    irl_view = content.find("IRLDunkView(viewModel: viewModel, gameMode: mode)", route_stack)
-    market_guard = content.find("mode.id == .marketBrowse", route_stack)
-    market_view = content.find("MarketBrowseView(viewModel: viewModel)", route_stack)
-    gameplay_view = content.find("GamePlayView(", route_stack)
+def router_dispatches_dedicated_surfaces(content: str) -> bool:
+    """The shared router must keep camera/non-game/2D modes out of GamePlayView."""
+    irl_guard = content.find("gameMode.id.isIRLDunkContest")
+    irl_view = content.find("IRLDunkView(viewModel: viewModel, gameMode: gameMode)", irl_guard)
+    market_guard = content.find("gameMode.id == .marketBrowse", irl_view)
+    market_view = content.find("MarketBrowseView(viewModel: viewModel)", market_guard)
+    brain_guard = content.find("gameMode.id == .brainBrawl", market_view)
+    brain_view = content.find("BrainBrawl2DView(", brain_guard)
+    gameplay_view = content.find("GamePlayView(", brain_view)
     return (
-        route_stack >= 0
-        and irl_guard >= 0
+        irl_guard >= 0
         and irl_view > irl_guard
         and market_guard >= 0
         and market_view > market_guard
-        and gameplay_view >= 0
-        and irl_view < gameplay_view
-        and market_view < gameplay_view
+        and brain_guard >= 0
+        and brain_view > brain_guard
+        and gameplay_view > brain_view
     )
 
 
@@ -59,7 +59,11 @@ def main() -> int:
     game_mode = read("FinalEvolutionLab/Models/GameMode.swift")
     content_view = read("FinalEvolutionLab/ContentView.swift")
     agent_service = read("FinalEvolutionLab/Services/NEXUSAgentService.swift")
+    arcade_preferences = read("FinalEvolutionLab/Services/ArcadeLibraryPreferences.swift")
     receipt_coordinator = read("FinalEvolutionLab/Services/GameplaySessionReceiptCoordinator.swift")
+    game_mode_router = read("FinalEvolutionLab/Views/GameModeRouter.swift")
+    dashboard_view = read("FinalEvolutionLab/Views/DashboardView.swift")
+    lab_view = read("FinalEvolutionLab/Views/LabView.swift")
     generator_view = read("FinalEvolutionLab/Views/NexusGameGeneratorView.swift")
     selection_view = read("FinalEvolutionLab/Views/GameModeSelectionView.swift")
     arcade_view = read("FinalEvolutionLab/Views/ArcadeLibraryView.swift")
@@ -106,9 +110,8 @@ def main() -> int:
         failures,
     )
     require(
-        "IRLDunkView(viewModel: viewModel, gameMode: mode)" in content_view
-        and "MarketBrowseView(viewModel: viewModel)" in content_view,
-        "external launches respect IRL camera and non-game market routes",
+        "GameModeRouter(" in content_view and "sessionReadiness: agentLaunchReadiness" in content_view,
+        "app-level agent launches use canonical GameModeRouter",
         failures,
     )
 
@@ -140,18 +143,33 @@ def main() -> int:
         failures,
     )
     require(
-        routes_dedicated_launch_surfaces(generator_view),
-        "game generator gameplay route dispatches IRL camera and market surfaces before 3D gameplay",
+        router_dispatches_dedicated_surfaces(game_mode_router),
+        "GameModeRouter dispatches IRL camera, market module, and Brain Brawl 2D before 3D gameplay",
         failures,
     )
     require(
-        routes_dedicated_launch_surfaces(selection_view),
-        "mode selection gameplay route dispatches IRL camera and market surfaces before 3D gameplay",
+        "GameModeRouter(" in generator_view and "generatorHudTheme: lastGeneratorHudTheme" in generator_view,
+        "game generator gameplay route uses canonical GameModeRouter with generated HUD theme",
         failures,
     )
     require(
-        routes_dedicated_launch_surfaces(arcade_view),
-        "arcade library gameplay route dispatches IRL camera and market surfaces before 3D gameplay",
+        "GameModeRouter(" in selection_view,
+        "mode selection gameplay route uses canonical GameModeRouter",
+        failures,
+    )
+    require(
+        "GameModeRouter(" in arcade_view,
+        "arcade library gameplay route uses canonical GameModeRouter",
+        failures,
+    )
+    require(
+        "GameModeRouter(" in dashboard_view and "sessionReadiness: sessionReadiness" in dashboard_view,
+        "Dashboard quick-launch uses canonical GameModeRouter",
+        failures,
+    )
+    require(
+        "GameModeRouter(" in lab_view and "sessionReadiness: sessionReadiness" in lab_view,
+        "Lab Global Arena uses canonical GameModeRouter",
         failures,
     )
     require(
@@ -162,6 +180,16 @@ def main() -> int:
     require(
         "GameModeId(rawValue: modeStr)" not in receipt_coordinator,
         "verified receipt ingestion no longer drops canonical runtime ids",
+        failures,
+    )
+    require(
+        "let id = playableModeId(forRegistryId: raw)" in game_mode,
+        "last selected Global Arena mode resolves registry aliases",
+        failures,
+    )
+    require(
+        "GameModeRegistry.playableModeId(forRegistryId: $0)" in arcade_preferences,
+        "arcade recents/favorites decode registry aliases",
         failures,
     )
 

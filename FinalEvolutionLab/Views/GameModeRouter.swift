@@ -7,6 +7,23 @@ import SwiftUI
 struct GameModeRouter: View {
     let gameMode: GameMode
     let viewModel: LabViewModel
+    let sessionReadiness: Double
+    let generatorHudTheme: NexusGeneratorHudTheme?
+    let onDismiss: () -> Void
+
+    init(
+        gameMode: GameMode,
+        viewModel: LabViewModel,
+        sessionReadiness: Double = 50,
+        generatorHudTheme: NexusGeneratorHudTheme? = nil,
+        onDismiss: @escaping () -> Void = {}
+    ) {
+        self.gameMode = gameMode
+        self.viewModel = viewModel
+        self.sessionReadiness = sessionReadiness
+        self.generatorHudTheme = generatorHudTheme
+        self.onDismiss = onDismiss
+    }
 
     @ViewBuilder
     var body: some View {
@@ -20,48 +37,24 @@ struct GameModeRouter: View {
 
     @ViewBuilder
     private var routedView: some View {
-        switch gameMode.id {
-        case .basketballHeadToHead, .venicePickup:
-            BasketballH2HGameView(viewModel: viewModel)
-        case .basketball3v3:
-            Basketball3v3GameView(viewModel: viewModel)
-        case .basketballDunkContest3D:
-            BasketballDunkGameView(viewModel: viewModel)
-        case .basketballDunkContestIRL:
+        if gameMode.id.isIRLDunkContest {
             IRLDunkView(viewModel: viewModel, gameMode: gameMode)
-        case .karate:
-            KarateGameView(viewModel: viewModel)
-        case .karateEndless:
-            KarateEndlessGameView(viewModel: viewModel)
-        case .baseball:
-            BaseballGameView(viewModel: viewModel, gameMode: gameMode)
-        case .football:
-            FootballGameView(viewModel: viewModel, gameMode: gameMode)
-        case .soccer:
-            SoccerGameView(viewModel: viewModel, gameMode: gameMode)
-        case .golf:
-            GolfGameView(viewModel: viewModel, gameMode: gameMode)
-        case .tennis:
-            TennisGameView(viewModel: viewModel, gameMode: gameMode)
-        case .volleyball:
-            VolleyballGameView(viewModel: viewModel, gameMode: gameMode)
-        case .gymnastics:
-            GymnasticsGameView(viewModel: viewModel, gameMode: gameMode)
-        case .surfing:
-            SurfingGameView(viewModel: viewModel, gameMode: gameMode)
-        case .skateboarding:
-            SkateboardingGameView(viewModel: viewModel, gameMode: gameMode)
-        case .snowboarding:
-            SnowboardingGameView(viewModel: viewModel, gameMode: gameMode)
-        case .brainBrawl:
-            BrainBrawlView(viewModel: viewModel, gameMode: gameMode)
-        case .whoSceneIt:
-            WhoSceneItView(viewModel: viewModel, gameMode: gameMode)
-        case .courtCarnival:
-            CourtCarnivalView(viewModel: viewModel, gameMode: gameMode)
-        case .marketBrowse:
+        } else if gameMode.id == .marketBrowse {
             // Not a game session — no PRQ delta, no session receipt, no shards per round.
             MarketBrowseView(viewModel: viewModel)
+        } else if gameMode.id == .brainBrawl {
+            BrainBrawl2DView(
+                viewModel: viewModel,
+                gameMode: gameMode,
+                onDismiss: onDismiss
+            )
+        } else {
+            GamePlayView(
+                viewModel: viewModel,
+                gameMode: gameMode,
+                sessionReadiness: sessionReadiness,
+                generatorHudTheme: generatorHudTheme
+            )
         }
     }
 }

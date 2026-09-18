@@ -606,7 +606,7 @@ struct GameModeRegistry {
     /// Uses ``SaveSystem/loadLastSelectedArenaModeId()`` so Global Arena matchmaking matches an explicit grid selection (GAME-35).
     static func resolvedLastSelectedMode() -> GameMode? {
         guard let raw = SaveSystem.loadLastSelectedArenaModeId(),
-              let id = GameModeId(rawValue: raw) else { return nil }
+              let id = playableModeId(forRegistryId: raw) else { return nil }
         return mode(for: id)
     }
 

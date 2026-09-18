@@ -39,27 +39,13 @@ struct GameModeSelectionView: View {
         .background(Theme.deepBlack)
         .navigationDestination(item: $gameplayRoute) { modeId in
             if let mode = GameModeRegistry.all.first(where: { $0.id == modeId }) {
-                if mode.id.isIRLDunkContest {
-                    IRLDunkView(viewModel: viewModel, gameMode: mode)
-                        .id(gameplayLaunchId)
-                } else if mode.id == .marketBrowse {
-                    MarketBrowseView(viewModel: viewModel)
-                        .id(gameplayLaunchId)
-                } else if modeId == .brainBrawl {
-                    BrainBrawl2DView(
-                        viewModel: viewModel,
-                        gameMode: GameModeRegistry.mode(for: .brainBrawl),
-                        onDismiss: { gameplayRoute = nil }
-                    )
-                    .id(gameplayLaunchId)
-                } else {
-                    GamePlayView(
-                        viewModel: viewModel,
-                        gameMode: mode,
-                        sessionReadiness: sessionReadiness
-                    )
-                    .id(gameplayLaunchId)
-                }
+                GameModeRouter(
+                    gameMode: mode,
+                    viewModel: viewModel,
+                    sessionReadiness: sessionReadiness,
+                    onDismiss: { gameplayRoute = nil }
+                )
+                .id(gameplayLaunchId)
             }
         }
         .fullScreenCover(isPresented: $showNeuralScan) {
