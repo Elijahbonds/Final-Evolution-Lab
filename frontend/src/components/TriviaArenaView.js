@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { 
   Trophy, Brain, HelpCircle, Award, Play, RotateCcw, 
@@ -27,6 +27,9 @@ export function TriviaArenaView({ onBack }) {
   const [selectedAnswer, setSelectedAnswer] = useState(null); // index
   const [isAnswered, setIsAnswered] = useState(false);
   const [timeLeft, setTimeLeft] = useState(15);
+  const [lastFeedback, setLastFeedback] = useState(null);
+  const [finalCorrectCount, setFinalCorrectCount] = useState(null);
+  const [askedQuestionIds, setAskedQuestionIds] = useState([]);
   const timerRef = useRef(null);
   
   // Final receipt
@@ -45,7 +48,7 @@ export function TriviaArenaView({ onBack }) {
   ];
 
   // Sound Synthesizer (Web Audio API)
-  const synthTone = (freq, type = "sine", duration = 0.1, delay = 0) => {
+  const synthTone = useCallback((freq, type = "sine", duration = 0.1, delay = 0) => {
     if (!audioEnabled) return;
     try {
       setTimeout(() => {
@@ -62,9 +65,9 @@ export function TriviaArenaView({ onBack }) {
         osc.stop(ctx.currentTime + duration);
       }, delay * 1000);
     } catch {}
-  };
+  }, [audioEnabled]);
 
-  const playSpinSound = () => {
+  const playSpinSound = useCallback(() => {
     if (!audioEnabled) return;
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -81,15 +84,15 @@ export function TriviaArenaView({ onBack }) {
       osc.start();
       osc.stop(ctx.currentTime + 3.0);
     } catch {}
-  };
+  }, [audioEnabled]);
 
-  const playCorrectSound = () => {
+  const playCorrectSound = useCallback(() => {
     synthTone(523.25, "sine", 0.1); // C5
     synthTone(659.25, "sine", 0.15, 0.08); // E5
     synthTone(783.99, "sine", 0.25, 0.16); // G5
-  };
+  }, [synthTone]);
 
-  const playIncorrectSound = () => {
+  const playIncorrectSound = useCallback(() => {
     try {
       if (!audioEnabled) return;
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -105,23 +108,16 @@ export function TriviaArenaView({ onBack }) {
       osc.start();
       osc.stop(ctx.currentTime + 0.35);
     } catch {}
-  };
-
-  // Timer logic
-  useEffect(() => {
-    if (gameState === "question" && timeLeft > 0 && !isAnswered) {
-      timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
-    } else if (gameState === "question" && timeLeft === 0 && !isAnswered) {
-      handleTimeout();
-    }
-    return () => clearTimeout(timerRef.current);
-  }, [gameState, timeLeft, isAnswered]);
+  }, [audioEnabled]);
 
   const startNewGame = () => {
     setRound(1);
     setScore(0);
     setHistoryLog([]);
     setReceipt(null);
+    setLastFeedback(null);
+    setFinalCorrectCount(null);
+    setAskedQuestionIds([]);
     setGameState("spinning");
     setRotation(0);
     setCurrentCategory(null);
@@ -155,12 +151,15 @@ export function TriviaArenaView({ onBack }) {
   const fetchQuestionForCategory = async (catId) => {
     try {
       const r = await axios.get(`${API}/trivia/questions`, {
-        params: { category: catId, count: 1 }
+        params: { category: catId, count: 5 }
       });
       if (r.data && r.data.length > 0) {
-        setQuestion(r.data[0]);
+        const nextQuestion = r.data.find((q) => !askedQuestionIds.includes(q.id)) || r.data[0];
+        setQuestion(nextQuestion);
+        setAskedQuestionIds((prev) => prev.includes(nextQuestion.id) ? prev : [...prev, nextQuestion.id]);
         setSelectedAnswer(null);
         setIsAnswered(false);
+        setLastFeedback(null);
         setTimeLeft(15);
         setGameState("question");
       }
@@ -168,6 +167,7 @@ export function TriviaArenaView({ onBack }) {
       console.error(e);
       // Fallback in case of network issue
       setQuestion({
+        id: "fallback_sport_science",
         question: "What muscle group is primary for long distance athletic events?",
         options: ["Fast-Twitch", "Slow-Twitch", "Cardiac", "Intermediate"],
         correct: 1,
@@ -176,62 +176,22 @@ export function TriviaArenaView({ onBack }) {
       });
       setSelectedAnswer(null);
       setIsAnswered(false);
+      setLastFeedback(null);
+      setAskedQuestionIds((prev) => prev.includes("fallback_sport_science") ? prev : [...prev, "fallback_sport_science"]);
       setTimeLeft(15);
       setGameState("question");
     }
   };
 
-  const handleTimeout = () => {
-    setIsAnswered(true);
-    setSelectedAnswer(-1); // No choice
-    playIncorrectSound();
-    
-    setHistoryLog(prev => [
-      ...prev,
-      { category: currentCategory, question: question.question, correct: false }
-    ]);
-
-    setTimeout(advanceGame, 2000);
-  };
-
-  const selectAnswer = (optionIdx) => {
-    if (isAnswered) return;
-    setIsAnswered(true);
-    setSelectedAnswer(optionIdx);
-    
-    const isCorrect = optionIdx === question.correct;
-    if (isCorrect) {
-      setScore(s => s + 1);
-      playCorrectSound();
-    } else {
-      playIncorrectSound();
-    }
-
-    setHistoryLog(prev => [
-      ...prev,
-      { category: currentCategory, question: question.question, correct: isCorrect }
-    ]);
-
-    setTimeout(advanceGame, 2000);
-  };
-
-  const advanceGame = () => {
-    if (round < 5) {
-      setRound(r => r + 1);
-      setGameState("spinning");
-      setCurrentCategory(null);
-    } else {
-      submitGameSession();
-    }
-  };
-
-  const submitGameSession = async () => {
+  const submitGameSession = useCallback(async (correctCount = score) => {
     setGameState("grading");
     setSubmitting(true);
-    
-    const finalScore = score * 100; // e.g. 4/5 correct -> 400 score
-    const outcomeResult = score >= 3 ? "win" : "loss";
-    
+    setScore(correctCount);
+    setFinalCorrectCount(correctCount);
+
+    const finalScore = correctCount * 100; // e.g. 4/5 correct -> 400 score
+    const outcomeResult = correctCount >= 3 ? "win" : "loss";
+
     try {
       const r = await axios.post(`${API}/games/session`, {
         mode_id: "trivia_arena",
@@ -246,14 +206,76 @@ export function TriviaArenaView({ onBack }) {
       // Client-side fallback receipt representation
       setReceipt({
         xp_earned: Math.min(Math.floor(finalScore / 5), 500),
-        shards_earned: score >= 3 ? 50 : 15,
-        prq_delta: score >= 3 ? 2.2 : -1.1,
+        shards_earned: correctCount >= 3 ? 50 : 15,
+        prq_delta: correctCount >= 3 ? 2.2 : -1.1,
         score: finalScore
       });
     } finally {
       setSubmitting(false);
       setGameState("results");
     }
+  }, [score]);
+
+  const advanceGame = useCallback((correctCount = score) => {
+    if (round < 5) {
+      setRound(r => r + 1);
+      setGameState("spinning");
+      setCurrentCategory(null);
+    } else {
+      submitGameSession(correctCount);
+    }
+  }, [round, score, submitGameSession]);
+
+  const handleTimeout = useCallback(() => {
+    if (!question) return;
+    const feedbackMessage = `Time expired - correct answer: ${question.options[question.correct]}`;
+    setIsAnswered(true);
+    setSelectedAnswer(-1); // No choice
+    setLastFeedback({ kind: "incorrect", message: feedbackMessage });
+    playIncorrectSound();
+    
+    setHistoryLog(prev => [
+      ...prev,
+      { category: currentCategory, question: question.question, correct: false }
+    ]);
+
+    setTimeout(() => advanceGame(score), 3000);
+  }, [advanceGame, currentCategory, playIncorrectSound, question, score]);
+
+  // Timer logic
+  useEffect(() => {
+    if (gameState === "question" && timeLeft > 0 && !isAnswered) {
+      timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+    } else if (gameState === "question" && timeLeft === 0 && !isAnswered) {
+      handleTimeout();
+    }
+    return () => clearTimeout(timerRef.current);
+  }, [gameState, timeLeft, isAnswered, handleTimeout]);
+
+  const selectAnswer = (optionIdx) => {
+    if (isAnswered) return;
+    setIsAnswered(true);
+    setSelectedAnswer(optionIdx);
+    
+    const isCorrect = optionIdx === question.correct;
+    const nextScore = isCorrect ? score + 1 : score;
+    const feedbackMessage = isCorrect
+      ? "Correct - round secured."
+      : `Incorrect - correct answer: ${question.options[question.correct]}`;
+    setLastFeedback({ kind: isCorrect ? "correct" : "incorrect", message: feedbackMessage });
+    if (isCorrect) {
+      setScore(nextScore);
+      playCorrectSound();
+    } else {
+      playIncorrectSound();
+    }
+
+    setHistoryLog(prev => [
+      ...prev,
+      { category: currentCategory, question: question.question, correct: isCorrect }
+    ]);
+
+    setTimeout(() => advanceGame(nextScore), 3000);
   };
 
   return (
@@ -347,6 +369,19 @@ export function TriviaArenaView({ onBack }) {
                 Spin the wheel to lock in a random academic or sports subject. Shards are committed after 5 full rounds.
               </p>
             </div>
+
+            {lastFeedback && (
+              <div
+                data-testid="trivia-previous-round-feedback"
+                className={`rounded border px-4 py-3 text-sm font-mono uppercase tracking-wide ${
+                  lastFeedback.kind === "correct"
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                    : "border-red-500/40 bg-red-500/10 text-red-300"
+                }`}
+              >
+                Previous round: {lastFeedback.message}
+              </div>
+            )}
 
             <button
               onClick={spinWheel}
@@ -449,6 +484,23 @@ export function TriviaArenaView({ onBack }) {
               {question.question}
             </h2>
 
+            {isAnswered && (
+              <div
+                data-testid="trivia-answer-feedback"
+                className={`mb-5 rounded border px-4 py-3 text-sm font-mono uppercase tracking-wide ${
+                  selectedAnswer === question.correct
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                    : "border-red-500/40 bg-red-500/10 text-red-300"
+                }`}
+              >
+                {selectedAnswer === question.correct
+                  ? "Correct - round secured."
+                  : selectedAnswer === -1
+                    ? `Time expired - correct answer: ${question.options[question.correct]}`
+                    : `Incorrect - correct answer: ${question.options[question.correct]}`}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 gap-3">
               {question.options.map((opt, idx) => {
                 let btnStyle = "border-white/5 hover:border-teal-400/30 text-zinc-300 hover:text-white bg-[#0F0F13]/50";
@@ -512,7 +564,7 @@ export function TriviaArenaView({ onBack }) {
             </h2>
             <p className="text-xs font-mono text-zinc-500 mb-6">DATABASE RECEIPT COMMITTED</p>
 
-            <div className="metric-value text-6xl text-white font-mono mb-2">{score} / 5</div>
+            <div className="metric-value text-6xl text-white font-mono mb-2">{finalCorrectCount ?? score} / 5</div>
             <div className="metric-label mb-8">CORRECT ANSWERS</div>
 
             {/* Receipt metrics */}

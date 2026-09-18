@@ -290,9 +290,10 @@ enum SessionReceiptUploadService {
     @MainActor
     private static func ingestServerResponse(_ response: [String: Any], requestBody: [String: Any]) {
         let sessionId = (response["session_id"] as? String) ?? UUID().uuidString
-        let modeId = (response["mode_id"] as? String)
+        let rawModeId = (response["mode_id"] as? String)
             ?? (requestBody["mode_id"] as? String)
             ?? "basketball_h2h"
+        let modeId = GameModeRegistry.modeId(forRegistryId: rawModeId)?.rawValue ?? rawModeId
         let playerScore = (response["score"] as? Int)
             ?? (requestBody["score"] as? Int)
             ?? 0

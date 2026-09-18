@@ -2,6 +2,8 @@
 
 #include "nexus/core/log.h"
 
+#include <cstdlib>
+
 namespace nexus::gameplay {
 
 namespace {
@@ -16,10 +18,28 @@ nexus::core::WebSocketClient makeRelayClient(std::string url, bool useStubTransp
   };
 }
 
+[[nodiscard]] auto resolveHudRelayUrl() -> std::string {
+  if (const char* envUrl = std::getenv("FEL_HUD_WS_URL")) {
+    if (envUrl[0] != '\0') {
+      return envUrl;
+    }
+  }
+  return "ws://127.0.0.1:8787/ws/hud";
+}
+
+[[nodiscard]] auto shouldUseStubRelayTransport() -> bool {
+  if (const char* envUrl = std::getenv("FEL_HUD_WS_URL")) {
+    return envUrl[0] == '\0';
+  }
+  return true;
+}
+
 } // namespace
 
 HudRelayService::HudRelayService()
-    : m_relay(makeRelayClient(m_websocketUrl, true)) {}
+    : m_websocketUrl(resolveHudRelayUrl()),
+      m_useStubTransport(shouldUseStubRelayTransport()),
+      m_relay(makeRelayClient(m_websocketUrl, m_useStubTransport)) {}
 
 auto HudRelayService::connectRelay() -> nexus::Result<void> {
   m_relay.setUrl(m_websocketUrl);

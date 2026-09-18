@@ -642,6 +642,45 @@ class User(BaseModel):
     coins: int = 100
 
 
+def local_shell_auth_enabled() -> bool:
+    """Allow local shell auth only outside production deployments."""
+    return os.environ.get("FEL_ENV", "development").lower() != "production"
+
+
+def build_local_shell_user(
+    user_id: str = "dev-athlete",
+    email: Optional[str] = None,
+    name: str = "Demo Athlete",
+    picture: Optional[str] = None,
+) -> User:
+    return User(
+        user_id=user_id,
+        email=email or f"{user_id}@fel.local",
+        name=name,
+        picture=picture,
+        created_at=datetime.now(timezone.utc).isoformat(),
+        role="athlete",
+        sport="basketball",
+        prq_score=75.0,
+        level=1,
+        xp=0,
+        streak_days=0,
+        total_workouts=0,
+        coins=100,
+        followers=[],
+        following=[],
+        avatar_config=None,
+    )
+
+
+def local_shell_user_from_session_token(session_token: str) -> Optional[User]:
+    if not local_shell_auth_enabled() or not session_token.startswith("sess_dev_"):
+        return None
+    token_body = session_token.removeprefix("sess_dev_")
+    user_id = token_body.rsplit("_", 1)[0] or "dev-athlete"
+    return build_local_shell_user(user_id=user_id)
+
+
 async def verify_firebase_token(token: str) -> dict:
     use_emulator = (
         os.environ.get("FEL_USE_FIREBASE_EMULATORS") == "1" or
@@ -693,6 +732,10 @@ async def get_current_user(request: Request) -> User:
             
     if not session_token:
         raise HTTPException(status_code=401, detail="Not authenticated")
+
+    local_shell_user = local_shell_user_from_session_token(session_token)
+    if local_shell_user:
+        return local_shell_user
         
     # Check if the token is a Firebase ID Token directly
     if session_token.count(".") == 2 and not session_token.startswith("sess_"):

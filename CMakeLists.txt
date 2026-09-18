@@ -30,9 +30,17 @@ if(NEXUS_ENABLE_RENDERER AND NOT NEXUS_ENABLE_METAL_RENDERER)
   find_package(SDL3 REQUIRED CONFIG COMPONENTS SDL3-shared)
 endif()
 
-find_package(nlohmann_json QUIET)
+set(NEXUS_VENDORED_NLOHMANN_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/third_party")
+if(EXISTS "${NEXUS_VENDORED_NLOHMANN_INCLUDE}/nlohmann/json.hpp")
+  add_library(nlohmann_json INTERFACE)
+  add_library(nlohmann_json::nlohmann_json ALIAS nlohmann_json)
+  target_include_directories(nlohmann_json INTERFACE "${NEXUS_VENDORED_NLOHMANN_INCLUDE}")
+  include_directories(BEFORE SYSTEM "${NEXUS_VENDORED_NLOHMANN_INCLUDE}")
+else()
+  find_package(nlohmann_json QUIET)
+endif()
 
-if(NOT nlohmann_json_FOUND)
+if(NOT TARGET nlohmann_json::nlohmann_json)
   include(FetchContent)
   FetchContent_Declare(
     nlohmann_json
