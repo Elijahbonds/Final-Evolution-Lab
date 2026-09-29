@@ -23,10 +23,12 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 
 from core import db, User, get_current_user, ROOT_DIR
+from mode_registry_resolver import load_ue_mode_maps, resolve_mode_launch_fields
 from .sovereign import sovereign_bridge, sovereign_state, VENUE_REGISTRY, MODE_MANAGER
 
 router = APIRouter(prefix="/api", tags=["games"])
 logger = logging.getLogger(__name__)
+UE_MODE_MAPS = load_ue_mode_maps(ROOT_DIR)
 
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -814,14 +816,27 @@ async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_curr
     if not mode_config:
         raise HTTPException(status_code=404, detail=f"Mode {mode_id} not found in production registry")
 
-    venue_key = mode_config["map"].split("/")[-1]
+    if mode_config.get("status") in ("non_game", "non-game-module"):
+        raise HTTPException(status_code=404, detail=f"Mode {mode_id} not found in production registry")
+    if mode_config.get("status") not in ("production", "staging"):
+        raise HTTPException(status_code=403, detail=f"Mode '{mode_id}' is not in production or staging status.")
+
+    resolved = resolve_mode_launch_fields(
+        mode_id,
+        mode_config,
+        venue_registry=VENUE_REGISTRY,
+        ue_mode_maps=UE_MODE_MAPS,
+    )
+    if not resolved["map_path"]:
+        raise HTTPException(status_code=400, detail=f"Mode {mode_id} has no streamable Unreal map")
+    venue_key = resolved["venue_key"]
 
     session_id = f"sess_{uuid.uuid4().hex[:12]}"
     session = {
         "id": session_id, "user_id": user.user_id, "mode_id": mode_id,
-        "venue": venue_key, "map_path": mode_config["map"],
-        "gamemode_class": mode_config["gamemode_class"],
-        "binary": mode_config["binary"],
+        "venue": venue_key, "map_path": resolved["map_path"],
+        "gamemode_class": resolved["gamemode_class"],
+        "binary": resolved["binary"],
         "status": "launching",
         "score": 0, "started_at": datetime.now(timezone.utc).isoformat(),
         "completed_at": None, "source": "sovereign_hub_local"
@@ -830,15 +845,15 @@ async def launch_stream_mode(data: Dict[str, Any], user: User = Depends(get_curr
 
     await sovereign_bridge.broadcast({
         "type": "mode_launch", "session_id": session_id, "mode_id": mode_id,
-        "venue": venue_key, "map_path": mode_config["map"], "user_id": user.user_id
+        "venue": venue_key, "map_path": resolved["map_path"], "user_id": user.user_id
     }, encrypt=False)
 
     deep_link = f"finalevolution://launch?map={venue_key}&mode={mode_id}&session={session_id}"
 
     return {
         "session_id": session_id, "mode_id": mode_id, "venue": venue_key,
-        "map_path": mode_config["map"], "gamemode_class": mode_config["gamemode_class"],
-        "binary": mode_config["binary"], "status": mode_config["status"],
+        "map_path": resolved["map_path"], "gamemode_class": resolved["gamemode_class"],
+        "binary": resolved["binary"], "status": mode_config["status"],
         "deep_link": deep_link, "source": "FEL_ModeManager.production.json",
         "cloud": False, "sovereign_session": True
     }
@@ -899,19 +914,26 @@ async def get_all_mapped_modes():
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mapped = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
-        venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
+        resolved = resolve_mode_launch_fields(
+            mode_id,
+            config,
+            venue_registry=VENUE_REGISTRY,
+            ue_mode_maps=UE_MODE_MAPS,
+        )
+        venue_key = resolved["venue_key"]
+        venue_data = resolved["venue_data"]
         deep_link = f"finalevolution://launch?map={venue_key}&mode={mode_id}"
         mapped.append({
             "mode_id": mode_id, "deep_link": deep_link,
-            "map_path": config["map"], "map_token": venue_key,
-            "gamemode_class": config["gamemode_class"],
-            "binary": config["binary"],
+            "map_path": resolved["map_path"], "map_token": venue_key,
+            "gamemode_class": resolved["gamemode_class"],
+            "binary": resolved["binary"],
             "production_status": config["status"],
             "venue_display": venue_data.get("display_name", venue_key),
             "category": venue_data.get("category", "Unknown"),
             "db_collection": venue_data.get("db_collection", ""),
-            "linked": True
+            "linked": bool(venue_key),
+            "launchable": resolved["launchable"],
         })
     return {
         "total_modes": len(mapped),
@@ -929,17 +951,24 @@ async def get_production_modes():
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     modes = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
-        venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
+        resolved = resolve_mode_launch_fields(
+            mode_id,
+            config,
+            venue_registry=VENUE_REGISTRY,
+            ue_mode_maps=UE_MODE_MAPS,
+        )
+        venue_key = resolved["venue_key"]
+        venue_data = resolved["venue_data"]
         collection = venue_data.get("db_collection", f"sessions_{venue_key.lower()}")
         live_sessions = await db[collection].count_documents({})
         modes.append({
-            "mode_id": mode_id, "map_path": config["map"],
-            "gamemode_class": config["gamemode_class"],
-            "binary": config["binary"], "status": config["status"],
+            "mode_id": mode_id, "map_path": resolved["map_path"],
+            "gamemode_class": resolved["gamemode_class"],
+            "binary": resolved["binary"], "status": config["status"],
             "venue": venue_key, "venue_display": venue_data.get("display_name", venue_key),
             "live_sessions": live_sessions, "db_collection": collection,
-            "data_source": "FEL_ModeManager.production.json"
+            "data_source": "FEL_ModeManager.production.json",
+            "launchable": resolved["launchable"],
         })
     return {
         "total_modes": len(modes),
@@ -1181,18 +1210,25 @@ async def get_venue_registry():
 
     result = []
     for mode_id, config in registry.items():
-        venue_key = config["map"].split("/")[-1]
-        venue_data = venues.get(venue_key, {})
+        resolved = resolve_mode_launch_fields(
+            mode_id,
+            config,
+            venue_registry=VENUE_REGISTRY,
+            ue_mode_maps=UE_MODE_MAPS,
+        )
+        venue_key = resolved["venue_key"]
+        venue_data = resolved["venue_data"]
         result.append({
             "mode_id": mode_id,
             "deep_link": f"finalevolution://launch?map={venue_key}&mode={mode_id}",
-            "map_path": config["map"],
+            "map_path": resolved["map_path"],
             "venue_token": venue_key,
             "venue_display": venue_data.get("display_name", venue_key.replace("_", " ")),
             "category": venue_data.get("category", "Unknown"),
-            "binary": config["binary"],
+            "binary": resolved["binary"],
             "status": config["status"],
-            "gamemode_class": config["gamemode_class"]
+            "gamemode_class": resolved["gamemode_class"],
+            "launchable": resolved["launchable"],
         })
 
     return {

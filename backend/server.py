@@ -18,6 +18,7 @@ from core import db, client, User, get_current_user, verify_firebase_token, FEL_
 from privacy_minors import athlete_visible_in_public_discovery, include_prq_in_public_athlete_search
 from commerce_catalog import COMMERCE_CATALOG, resolve_paypal_line_item
 from iap_verify import extract_line_items, extract_product_ids, verify_legacy_receipt
+from mode_registry_resolver import load_ue_mode_maps, resolve_mode_launch_fields
 from storekit_catalog import (
     decode_unsigned_jws_payload,
     mapping_valid_for_commerce,
@@ -1676,21 +1677,25 @@ async def get_venue_registry():
 
     result = []
     for mode_id, config in registry.items():
-        map_path = config.get("map")
-        if not map_path:
-            continue
-        venue_key = map_path.split("/")[-1]
-        venue_data = venues.get(venue_key, {})
+        resolved = resolve_mode_launch_fields(
+            mode_id,
+            config,
+            venue_registry=VENUE_REGISTRY,
+            ue_mode_maps=UE_MODE_MAPS,
+        )
+        venue_key = resolved["venue_key"]
+        venue_data = resolved["venue_data"] or venues.get(venue_key, {})
         result.append({
             "mode_id": mode_id,
             "deep_link": f"finalevolution://launch?map={venue_key}&mode={mode_id}",
-            "map_path": map_path,
+            "map_path": resolved["map_path"],
             "venue_token": venue_key,
             "venue_display": venue_data.get("display_name", venue_key.replace("_", " ")),
             "category": venue_data.get("category", "Unknown"),
-            "binary": config.get("binary", ""),
+            "binary": resolved["binary"],
             "status": config.get("status", "staging"),
-            "gamemode_class": config.get("gamemode_class", "")
+            "gamemode_class": resolved["gamemode_class"],
+            "launchable": resolved["launchable"],
         })
 
     return {
@@ -2430,35 +2435,20 @@ async def launch_vault_mode(data: Dict[str, Any], user: User = Depends(get_curre
     if mode_config.get("status") not in ("production", "staging"):
         raise HTTPException(status_code=403, detail=f"Mode '{mode_id}' is not in production or staging status.")
 
-    map_path = mode_config.get("map")
-    venue_key = None
-    
-    # Load from ue_mode_maps.json if map is not present in mode_config
-    if not map_path:
-        ue_maps_path = ROOT_DIR / "ue_mode_maps.json"
-        if ue_maps_path.exists():
-            with open(ue_maps_path) as f:
-                ue_maps_data = json.load(f)
-                mode_to_map = ue_maps_data.get("mode_to_unreal_map", {})
-                venue_key = mode_to_map.get(mode_id)
-        
-        if venue_key:
-            # Look up in VENUE_REGISTRY
-            venues = VENUE_REGISTRY.get("venues", {})
-            venue_config = venues.get(venue_key) or venues.get(venue_key.lower())
-            if venue_config:
-                map_path = venue_config.get("map_path")
-            if not map_path:
-                map_path = f"/Game/FEL/Maps/{venue_key}"
-                
-    if not map_path:
-        raise HTTPException(status_code=400, detail=f"Mode {mode_id} is a non-game module and cannot be launched")
+    resolved = resolve_mode_launch_fields(
+        mode_id,
+        mode_config,
+        venue_registry=VENUE_REGISTRY,
+        ue_mode_maps=UE_MODE_MAPS,
+    )
+    map_path = resolved["map_path"]
+    venue_key = resolved["venue_key"]
 
-    if not venue_key:
-        venue_key = map_path.split("/")[-1]
+    if not map_path:
+        raise HTTPException(status_code=400, detail=f"Mode {mode_id} has no streamable Unreal map")
 
-    gamemode_class = mode_config.get("gamemode_class", f"BP_GameMode_{venue_key}")
-    binary = mode_config.get("binary", f"FEL_{venue_key}")
+    gamemode_class = resolved["gamemode_class"]
+    binary = resolved["binary"]
     status = mode_config.get("status", "production")
 
     # Create live session in Vault Hub
@@ -2578,24 +2568,28 @@ async def get_all_mapped_modes():
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     mapped = []
     for mode_id, config in registry.items():
-        map_path = config.get("map")
-        if not map_path:
-            continue
-        venue_key = map_path.split("/")[-1]
-        venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
+        resolved = resolve_mode_launch_fields(
+            mode_id,
+            config,
+            venue_registry=VENUE_REGISTRY,
+            ue_mode_maps=UE_MODE_MAPS,
+        )
+        venue_key = resolved["venue_key"]
+        venue_data = resolved["venue_data"]
         deep_link = f"finalevolution://launch?map={venue_key}&mode={mode_id}"
         mapped.append({
             "mode_id": mode_id,
             "deep_link": deep_link,
-            "map_path": map_path,
+            "map_path": resolved["map_path"],
             "map_token": venue_key,
-            "gamemode_class": config.get("gamemode_class", ""),
-            "binary": config.get("binary", ""),
+            "gamemode_class": resolved["gamemode_class"],
+            "binary": resolved["binary"],
             "production_status": config.get("status", "staging"),
             "venue_display": venue_data.get("display_name", venue_key),
             "category": venue_data.get("category", "Unknown"),
             "db_collection": venue_data.get("db_collection", ""),
-            "linked": True
+            "linked": bool(venue_key),
+            "launchable": resolved["launchable"],
         })
     return {
         "total_modes": len(mapped),
@@ -3172,6 +3166,7 @@ if mode_path.exists():
     with open(mode_path) as f:
         MODE_MANAGER = json.load(f)
     logger.info(f"Loaded mode manager: {len(MODE_MANAGER.get('mode_manager', {}).get('mode_registry', {}))} modes")
+UE_MODE_MAPS = load_ue_mode_maps(ROOT_DIR)
 
 # Vault connection state
 vault_state = {
@@ -3837,25 +3832,29 @@ async def get_production_modes():
     registry = MODE_MANAGER.get("mode_manager", {}).get("mode_registry", {})
     modes = []
     for mode_id, config in registry.items():
-        map_path = config.get("map")
-        if not map_path:
-            continue
-        venue_key = map_path.split("/")[-1]
-        venue_data = VENUE_REGISTRY.get("venues", {}).get(venue_key, {})
+        resolved = resolve_mode_launch_fields(
+            mode_id,
+            config,
+            venue_registry=VENUE_REGISTRY,
+            ue_mode_maps=UE_MODE_MAPS,
+        )
+        venue_key = resolved["venue_key"]
+        venue_data = resolved["venue_data"]
         # Check for live session data in venue collection
         collection = venue_data.get("db_collection", f"sessions_{venue_key.lower()}")
         live_sessions = await db[collection].count_documents({})
         modes.append({
             "mode_id": mode_id,
-            "map_path": map_path,
-            "gamemode_class": config.get("gamemode_class", ""),
-            "binary": config.get("binary", ""),
+            "map_path": resolved["map_path"],
+            "gamemode_class": resolved["gamemode_class"],
+            "binary": resolved["binary"],
             "status": config.get("status", "staging"),
             "venue": venue_key,
             "venue_display": venue_data.get("display_name", venue_key),
             "live_sessions": live_sessions,
             "db_collection": collection,
-            "data_source": "FEL_ModeManager.production.json"
+            "data_source": "FEL_ModeManager.production.json",
+            "launchable": resolved["launchable"],
         })
     return {
         "total_modes": len(modes),

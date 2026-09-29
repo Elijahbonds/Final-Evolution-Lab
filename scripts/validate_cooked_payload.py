@@ -15,6 +15,17 @@ WARNINGS = []
 def err(msg): ERRORS.append(msg)
 def warn(msg): WARNINGS.append(msg)
 
+def load_json_strict(path: Path):
+    def reject_duplicate_keys(pairs):
+        out = {}
+        for key, value in pairs:
+            if key in out:
+                raise ValueError(f"Duplicate JSON key '{key}' in {path}")
+            out[key] = value
+        return out
+
+    return json.loads(path.read_text(), object_pairs_hook=reject_duplicate_keys)
+
 REQUIRED_VENUE_DIRS = [
     "BaseballPark", "Dojo", "Gridiron", "Links",
     "Luma_Venice_Shop", "NeuroArena", "SandCourt",
@@ -60,9 +71,11 @@ def validate_config_files_present():
             # Validate JSON files parse correctly
             if path.endswith(".json"):
                 try:
-                    json.loads(full.read_text())
+                    load_json_strict(full)
                 except json.JSONDecodeError as e:
                     err(f"Invalid JSON in {label}: {e}")
+                except ValueError as e:
+                    err(str(e))
     print("  ✓ Config file presence validated")
 
 def validate_maps_to_cook_coverage():
@@ -74,7 +87,7 @@ def validate_maps_to_cook_coverage():
     maps_to_cook = set(re.findall(r'\+MapsToCook=\(FilePath="([^"]+)"\)', content))
 
     mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
-    mgr = json.loads(mgr_path.read_text())
+    mgr = load_json_strict(mgr_path)
     registry = mgr.get("mode_manager", {}).get("mode_registry", {})
 
     for mode_id, info in registry.items():
@@ -89,7 +102,7 @@ def validate_maps_to_cook_coverage():
 def validate_binary_signatures():
     """Check expected binary signatures in ModeManager"""
     mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
-    mgr = json.loads(mgr_path.read_text())
+    mgr = load_json_strict(mgr_path)
     bridge = mgr.get("bridge_subsystem", {})
     sigs = bridge.get("expected_binary_signatures", [])
 
@@ -106,7 +119,7 @@ def validate_binary_signatures():
 def validate_prq_config():
     """Validate PRQ calculator configuration"""
     mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
-    mgr = json.loads(mgr_path.read_text())
+    mgr = load_json_strict(mgr_path)
     prq = mgr.get("prq_calculator", {})
 
     weights = prq.get("weights", {})
