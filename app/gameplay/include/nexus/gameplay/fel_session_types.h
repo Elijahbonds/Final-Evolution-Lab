@@ -2,6 +2,7 @@
 #pragma once
 
 #include <nlohmann/json.hpp>
+#include <cstdint>
 #include <string>
 
 namespace nexus::gameplay {

@@ -17,6 +17,21 @@ WARNINGS = []
 def err(msg): ERRORS.append(msg)
 def warn(msg): WARNINGS.append(msg)
 
+def load_json_strict(path: Path):
+    def reject_duplicate_keys(pairs):
+        out = {}
+        for key, value in pairs:
+            if key in out:
+                raise ValueError(f"Duplicate JSON key '{key}' in {path}")
+            out[key] = value
+        return out
+
+    try:
+        return json.loads(path.read_text(), object_pairs_hook=reject_duplicate_keys)
+    except ValueError as exc:
+        err(str(exc))
+        return {}
+
 # ── 1. Validate DefaultGame.ini packaging settings ──────────────────────────
 def validate_packaging_settings():
     ini_path = REPO_ROOT / "infra" / "ue5_config" / "DefaultGame.ini"
@@ -40,7 +55,7 @@ def validate_packaging_settings():
     # Validate all required maps are listed in MapsToCook
     mode_mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
     if mode_mgr_path.exists():
-        mgr = json.loads(mode_mgr_path.read_text())
+        mgr = load_json_strict(mode_mgr_path)
         registry = mgr.get("mode_manager", {}).get("mode_registry", {})
         maps_in_ini = re.findall(r'\+MapsToCook=\(FilePath="([^"]+)"\)', content)
         for mode_id, info in registry.items():
@@ -71,13 +86,18 @@ def validate_fel_play_map():
                 break
             if "=" in line and not line.strip().startswith(";"):
                 k, v = line.strip().split("=", 1)
-                play_map_section[k.strip()] = v.strip()
+                key = k.strip()
+                if key in play_map_section:
+                    err(f"FELPlayMap duplicate mode: {key}")
+                play_map_section[key] = v.strip()
 
     # Cross-check with ue_mode_maps.json
     ue_maps_path = REPO_ROOT / "backend" / "ue_mode_maps.json"
     if ue_maps_path.exists():
-        ue_maps = json.loads(ue_maps_path.read_text()).get("mode_to_unreal_map", {})
-        for mode_id in ue_maps:
+        ue_maps = load_json_strict(ue_maps_path).get("mode_to_unreal_map", {})
+        for mode_id, map_token in ue_maps.items():
+            if map_token is None:
+                continue
             if mode_id not in play_map_section:
                 err(f"FELPlayMap missing mode: {mode_id}")
     print("  ✓ FELPlayMap cross-reference validated")
@@ -88,7 +108,7 @@ def validate_mode_counts():
     if not mgr_path.exists():
         err("FEL_ModeManager.production.json not found")
         return
-    mgr = json.loads(mgr_path.read_text())
+    mgr = load_json_strict(mgr_path)
     mm = mgr.get("mode_manager", {})
     registry = mm.get("mode_registry", {})
 
@@ -110,14 +130,17 @@ def validate_arena_settings():
     if not arena_path.exists():
         warn("ArenaSettings.json not found — skipping")
         return
-    arena = json.loads(arena_path.read_text())
+    arena = load_json_strict(arena_path)
     modes = arena.get("modes", {})
 
     mgr_path = REPO_ROOT / "backend" / "FEL_ModeManager.production.json"
     if mgr_path.exists():
-        mgr = json.loads(mgr_path.read_text())
+        mgr = load_json_strict(mgr_path)
         registry = mgr.get("mode_manager", {}).get("mode_registry", {})
         for mode_id, info in registry.items():
+            render_mode = info.get("render_mode", "")
+            if render_mode == "IRL" or info.get("venue_id") is None:
+                continue
             if mode_id not in modes:
                 if info.get("status") in ("production", "staging"):
                     warn(f"ArenaSettings missing config for {info['status']} mode: {mode_id}")
@@ -130,7 +153,7 @@ def validate_venue_registry():
     if not vr_path.exists():
         warn("VenueRegistry not found")
         return
-    vr = json.loads(vr_path.read_text())
+    vr = load_json_strict(vr_path)
     mode_ids = {m["id"] for m in vr.get("modes", [])}
     venue_keys = {v["venueKey"] for v in vr.get("venues", [])}
 
